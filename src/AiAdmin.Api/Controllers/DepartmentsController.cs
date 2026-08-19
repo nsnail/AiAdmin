@@ -26,16 +26,13 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// <returns>创建后的部门节点</returns>
     [HttpPost]
     [ApiDescription("Create department")]
-    public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> CreateAsync(SaveDepartmentRequest request)
-    {
+    public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> CreateAsync(SaveDepartmentRequest request) {
         var code = request.Code.Trim();
-        if (await db.Departments.AnyAsync(x => x.Code == code).ConfigureAwait(false))
-        {
+        if (await db.Departments.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "departmentCodeExists"), null));
         }
 
-        if (!await ParentExistsAsync(request.ParentId).ConfigureAwait(false))
-        {
+        if (!await ParentExistsAsync(request.ParentId).ConfigureAwait(false)) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentParentNotFound"), null));
         }
 
@@ -52,21 +49,17 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// <returns>删除结果</returns>
     [HttpDelete("{id:long}")]
     [ApiDescription("Delete department")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id)
-    {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
-        if (department is null)
-        {
+        if (department is null) {
             return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "departmentNotFound"), null));
         }
 
-        if (await db.Departments.AnyAsync(x => x.ParentId == id).ConfigureAwait(false))
-        {
+        if (await db.Departments.AnyAsync(x => x.ParentId == id).ConfigureAwait(false)) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentHasChildren"), null));
         }
 
-        if (await db.UserDepartments.AnyAsync(x => x.DepartmentId == id).ConfigureAwait(false))
-        {
+        if (await db.UserDepartments.AnyAsync(x => x.DepartmentId == id).ConfigureAwait(false)) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentHasUsers"), null));
         }
 
@@ -81,8 +74,7 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// <returns>部门树节点集合</returns>
     [HttpGet("tree")]
     [ApiDescription("Query department tree")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<DepartmentTreeItem>>>> TreeAsync()
-    {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<DepartmentTreeItem>>>> TreeAsync() {
         var departments = await db.Departments.AsNoTracking().OrderBy(x => x.Sort).ThenBy(x => x.Id).ToListAsync().ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<DepartmentTreeItem>>.Ok(BuildTree(departments)));
     }
@@ -98,27 +90,22 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> UpdateAsync(
         long id
         , SaveDepartmentRequest request
-    )
-    {
+    ) {
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
-        if (department is null)
-        {
+        if (department is null) {
             return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "departmentNotFound"), null));
         }
 
         var code = request.Code.Trim();
-        if (await db.Departments.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false))
-        {
+        if (await db.Departments.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "departmentCodeExists"), null));
         }
 
-        if (!await ParentExistsAsync(request.ParentId).ConfigureAwait(false))
-        {
+        if (!await ParentExistsAsync(request.ParentId).ConfigureAwait(false)) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentParentNotFound"), null));
         }
 
-        if (await CreatesCycleAsync(id, request.ParentId).ConfigureAwait(false))
-        {
+        if (await CreatesCycleAsync(id, request.ParentId).ConfigureAwait(false)) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentCycle"), null));
         }
 
@@ -129,16 +116,33 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     将请求字段应用到部门实体
+    /// </summary>
+    /// <param name="department">部门实体</param>
+    /// <param name="request">部门保存请求</param>
+    private static void ApplyRequest(
+        Department department
+        , SaveDepartmentRequest request
+    ) {
+        department.Name = request.Name.Trim();
+        department.Code = request.Code.Trim();
+        department.ParentId = request.ParentId;
+        department.Sort = request.Sort;
+        department.Leader = request.Leader.Trim();
+        department.Phone = request.Phone.Trim();
+        department.Email = request.Email?.Trim() ?? string.Empty;
+        department.IsEnabled = request.IsEnabled;
+    }
+
+    /// <summary>
     ///     将平面部门集合构建为树
     /// </summary>
     /// <param name="departments">平面部门集合</param>
     /// <returns>部门树节点集合</returns>
-    private static IReadOnlyList<DepartmentTreeItem> BuildTree(IReadOnlyList<Department> departments)
-    {
+    private static IReadOnlyList<DepartmentTreeItem> BuildTree(IReadOnlyList<Department> departments) {
         return BuildChildren(null);
 
-        IReadOnlyList<DepartmentTreeItem> BuildChildren(long? parentId)
-        {
+        IReadOnlyList<DepartmentTreeItem> BuildChildren(long? parentId) {
             return
             [
                 .. departments
@@ -155,31 +159,10 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// </summary>
     /// <param name="request">部门保存请求</param>
     /// <returns>部门实体</returns>
-    private static Department FromRequest(SaveDepartmentRequest request)
-    {
+    private static Department FromRequest(SaveDepartmentRequest request) {
         var department = new Department { Name = request.Name.Trim(), Code = request.Code.Trim() };
         ApplyRequest(department, request);
         return department;
-    }
-
-    /// <summary>
-    ///     将请求字段应用到部门实体
-    /// </summary>
-    /// <param name="department">部门实体</param>
-    /// <param name="request">部门保存请求</param>
-    private static void ApplyRequest(
-        Department department
-        , SaveDepartmentRequest request
-    )
-    {
-        department.Name = request.Name.Trim();
-        department.Code = request.Code.Trim();
-        department.ParentId = request.ParentId;
-        department.Sort = request.Sort;
-        department.Leader = request.Leader.Trim();
-        department.Phone = request.Phone.Trim();
-        department.Email = request.Email?.Trim() ?? string.Empty;
-        department.IsEnabled = request.IsEnabled;
     }
 
     /// <summary>
@@ -191,8 +174,7 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     private static DepartmentTreeItem ToTreeItem(
         Department department
         , IReadOnlyList<DepartmentTreeItem>? children = null
-    )
-    {
+    ) {
         return new DepartmentTreeItem
         {
             Id = department.Id
@@ -218,13 +200,10 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     private async Task<bool> CreatesCycleAsync(
         long id
         , long? parentId
-    )
-    {
+    ) {
         var currentParentId = parentId;
-        while (currentParentId.HasValue)
-        {
-            if (currentParentId.Value == id)
-            {
+        while (currentParentId.HasValue) {
+            if (currentParentId.Value == id) {
                 return true;
             }
 
@@ -243,8 +222,7 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// </summary>
     /// <param name="parentId">父部门主键</param>
     /// <returns>父部门为空或存在时返回 true</returns>
-    private async Task<bool> ParentExistsAsync(long? parentId)
-    {
+    private async Task<bool> ParentExistsAsync(long? parentId) {
         return !parentId.HasValue || await db.Departments.AnyAsync(x => x.Id == parentId.Value).ConfigureAwait(false);
     }
 }

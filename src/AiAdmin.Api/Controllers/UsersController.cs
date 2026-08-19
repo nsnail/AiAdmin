@@ -22,6 +22,26 @@ namespace AiAdmin.Api.Controllers;
 public sealed class UsersController(AppDbContext db) : ControllerBase
 {
     /// <summary>
+    ///     修改当前登录用户密码
+    /// </summary>
+    /// <param name="request">密码修改请求</param>
+    /// <returns>密码修改结果</returns>
+    [HttpPut("password")]
+    [ApiDescription("Change current user password")]
+    public async Task<ActionResult<ApiResponse<object>>> ChangePasswordAsync(ChangePasswordRequest request) {
+        var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        var user = await db.Users.SingleAsync(x => x.Id == id).ConfigureAwait(false);
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash)) {
+            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "currentPasswordInvalid"), null));
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        user.UpdatedAt = DateTime.UtcNow;
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, ApiMessages.Get(Request, "passwordChanged")));
+    }
+
+    /// <summary>
     ///     创建用户
     /// </summary>
     /// <param name="request">用户保存请求</param>
@@ -102,50 +122,12 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         // 返回当前登录用户及其角色、按钮权限信息。
         var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
         var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleAsync(x => x.Id == id).ConfigureAwait(false);
- var roles = user.UserRoles.Select(x => x.Role.Code).ToArray();
+        var roles = user.UserRoles.Select(x => x.Role.Code).ToArray();
         return Ok(
             ApiResponse<CurrentUserResult>.Ok(
-                new CurrentUserResult(user.Id, user.UserName, user.Email, user.Avatar, roles, ["add", "edit", "delete"])
+                new CurrentUserResult(user.Id, user.UserName, user.Email, user.Phone, user.Gender, user.Avatar, roles, ["add", "edit", "delete"])
             )
         );
-    }
-
-    /// <summary>
-    ///     修改当前登录用户密码
-    /// </summary>
-    /// <param name="request">密码修改请求</param>
-    /// <returns>密码修改结果</returns>
-    [HttpPut("password")]
-    [ApiDescription("Change current user password")]
-    public async Task<ActionResult<ApiResponse<object>>> ChangePasswordAsync(ChangePasswordRequest request) {
-        var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
-        var user = await db.Users.SingleAsync(x => x.Id == id).ConfigureAwait(false);
-        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash)) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "currentPasswordInvalid"), null));
-        }
-
-        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-        user.UpdatedAt = DateTime.UtcNow;
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, ApiMessages.Get(Request, "passwordChanged")));
-    }
-
-    /// <summary>
-    ///     更新当前登录用户资料
-    /// </summary>
-    /// <param name="request">个人资料更新请求</param>
-    /// <returns>更新后的当前用户信息</returns>
-    [HttpPut("profile")]
-    [ApiDescription("Update current user profile")]
-    public async Task<ActionResult<ApiResponse<CurrentUserResult>>> UpdateProfileAsync(UpdateCurrentUserProfileRequest request) {
-        var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
-        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleAsync(x => x.Id == id).ConfigureAwait(false);
-        user.Email = request.Email.Trim();
-        user.Phone = request.Phone.Trim();
-        user.Gender = request.Gender;
-        user.UpdatedAt = DateTime.UtcNow;
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<CurrentUserResult>.Ok(ToCurrentUserResult(user), ApiMessages.Get(Request, "profileUpdated")));
     }
 
     /// <summary>
@@ -289,6 +271,31 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     更新当前登录用户资料
+    /// </summary>
+    /// <param name="request">个人资料更新请求</param>
+    /// <returns>更新后的当前用户信息</returns>
+    [HttpPut("profile")]
+    [ApiDescription("Update current user profile")]
+    public async Task<ActionResult<ApiResponse<CurrentUserResult>>> UpdateProfileAsync(UpdateCurrentUserProfileRequest request) {
+        var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleAsync(x => x.Id == id).ConfigureAwait(false);
+        user.Email = request.Email.Trim();
+        user.Phone = request.Phone.Trim();
+        user.Gender = request.Gender;
+        user.UpdatedAt = DateTime.UtcNow;
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<CurrentUserResult>.Ok(ToCurrentUserResult(user), ApiMessages.Get(Request, "profileUpdated")));
+    }
+
+    private static CurrentUserResult ToCurrentUserResult(User user) {
+        return new CurrentUserResult(
+            user.Id, user.UserName, user.Email, user.Phone, user.Gender, user.Avatar, [.. user.UserRoles.Select(x => x.Role.Code)]
+            , ["add", "edit", "delete"]
+        );
+    }
+
+    /// <summary>
     ///     将用户实体转换为列表项
     /// </summary>
     /// <param name="user">用户实体</param>
@@ -298,13 +305,6 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.Phone, user.Email
             , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserDepartments.Select(x => x.DepartmentId)]
             , [.. user.UserDepartments.Select(x => x.Department.Name)], "system", user.CreatedAt, "system", user.UpdatedAt
-        );
-    }
-
-    private static CurrentUserResult ToCurrentUserResult(User user) {
-        return new CurrentUserResult(
-            user.Id, user.UserName, user.Email, user.Phone, user.Gender, user.Avatar
-            , [.. user.UserRoles.Select(x => x.Role.Code)], ["add", "edit", "delete"]
         );
     }
 

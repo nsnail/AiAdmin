@@ -41,14 +41,14 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Role> Roles => Set<Role>();
 
     /// <summary>
-    ///     用户角色关联集合
-    /// </summary>
-    public DbSet<UserRole> UserRoles => Set<UserRole>();
-
-    /// <summary>
     ///     用户部门关联集合
     /// </summary>
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
+
+    /// <summary>
+    ///     用户角色关联集合
+    /// </summary>
+    public DbSet<UserRole> UserRoles => Set<UserRole>();
 
     /// <summary>
     ///     用户实体集合
