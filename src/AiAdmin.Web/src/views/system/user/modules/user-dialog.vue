@@ -9,9 +9,6 @@
       <ElFormItem :label="t('userManagement.fields.userName')" prop="userName">
         <ElInput v-model.trim="formData.userName" :placeholder="t('userManagement.placeholder.userName')" />
       </ElFormItem>
-      <ElFormItem :label="t('userManagement.fields.nickName')" prop="nickName">
-        <ElInput v-model.trim="formData.nickName" :placeholder="t('userManagement.placeholder.nickName')" />
-      </ElFormItem>
       <ElFormItem :label="t('userManagement.fields.password')" prop="password">
         <ElInput
           v-model="formData.password"
@@ -76,7 +73,7 @@
     { label: t('userManagement.gender.female'), value: 'female' }
   ])
   const formData = reactive<Api.SystemManage.SaveUserParams>({
-    userName: '', nickName: '', password: '', email: '', phone: '', gender: 'male', roles: [], isEnabled: true
+    userName: '', password: '', email: '', phone: '', gender: 'male', roles: [], isEnabled: true
   })
   const rules = computed<FormRules>(() => ({
     userName: [
@@ -91,7 +88,10 @@
       },
       trigger: 'blur'
     }],
-    email: [{ type: 'email', message: t('userManagement.validation.emailInvalid'), trigger: 'blur' }],
+    email: [
+      { required: true, message: t('userManagement.placeholder.email'), trigger: 'blur' },
+      { type: 'email', message: t('userManagement.validation.emailInvalid'), trigger: 'blur' }
+    ],
     roles: [{ required: true, type: 'array', min: 1, message: t('userManagement.validation.rolesRequired'), trigger: 'change' }]
   }))
 
@@ -101,7 +101,6 @@
     const row = props.userData
     Object.assign(formData, {
       userName: props.type === 'edit' ? row?.userName ?? '' : '',
-      nickName: props.type === 'edit' ? row?.nickName ?? '' : '',
       password: '',
       email: props.type === 'edit' ? row?.userEmail ?? '' : '',
       phone: props.type === 'edit' ? row?.userPhone ?? '' : '',

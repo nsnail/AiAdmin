@@ -38,11 +38,6 @@ public sealed class User
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
-    ///     用户昵称
-    /// </summary>
-    public required string NickName { get; set; }
-
-    /// <summary>
     ///     密码哈希
     /// </summary>
     public required string PasswordHash { get; set; }

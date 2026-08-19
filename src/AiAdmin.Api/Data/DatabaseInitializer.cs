@@ -16,6 +16,8 @@ public static class DatabaseInitializer
     private static readonly string[] _basicApiKeys =
     [
         ApiEndpointKey.Create("GET", "api/user/info"), ApiEndpointKey.Create("GET", "api/menu/current")
+        , ApiEndpointKey.Create("PUT", "api/user/profile")
+        , ApiEndpointKey.Create("PUT", "api/user/password")
     ];
 
     private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -51,7 +53,6 @@ public static class DatabaseInitializer
             {
                 UserName = "root"
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
-                , NickName = "Super administrator"
                 , Email = "root@aiadmin.local"
                 , Phone = "13800000000"
                 , Gender = "male"
@@ -62,7 +63,6 @@ public static class DatabaseInitializer
             {
                 UserName = "admin"
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
-                , NickName = "Administrator"
                 , Email = "admin@aiadmin.local"
                 , Phone = "13800000001"
                 , Gender = "male"
@@ -73,7 +73,6 @@ public static class DatabaseInitializer
             {
                 UserName = "user"
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
-                , NickName = "User"
                 , Email = "user@aiadmin.local"
                 , Phone = "13800000002"
                 , Gender = "male"

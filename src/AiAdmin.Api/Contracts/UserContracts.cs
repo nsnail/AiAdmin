@@ -12,7 +12,6 @@ public sealed record UserListItem(
     , string Status
     , string UserName
     , string UserGender
-    , string NickName
     , string UserPhone
     , string UserEmail
     , string[] UserRoles
@@ -22,6 +21,51 @@ public sealed record UserListItem(
     , DateTime UpdateTime);
 
 /// <summary>
+///     当前用户修改密码请求
+/// </summary>
+public sealed class ChangePasswordRequest
+{
+    /// <summary>
+    ///     当前密码
+    /// </summary>
+    [Required]
+    public string CurrentPassword { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     新密码
+    /// </summary>
+    [Required]
+    [StringLength(100, MinimumLength = 6)]
+    public string NewPassword { get; init; } = string.Empty;
+}
+
+/// <summary>
+///     当前用户资料更新请求
+/// </summary>
+public sealed class UpdateCurrentUserProfileRequest
+{
+    /// <summary>
+    ///     电子邮箱
+    /// </summary>
+    [Required]
+    [EmailAddress]
+    [StringLength(100)]
+    public string Email { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     性别编码
+    /// </summary>
+    [StringLength(10)]
+    public string Gender { get; init; } = "male";
+
+    /// <summary>
+    ///     联系电话
+    /// </summary>
+    [StringLength(20)]
+    public string Phone { get; init; } = string.Empty;
+}
+
+/// <summary>
 ///     用户新增或修改请求
 /// </summary>
 public sealed class SaveUserRequest
@@ -29,6 +73,7 @@ public sealed class SaveUserRequest
     /// <summary>
     ///     电子邮箱
     /// </summary>
+    [Required]
     [EmailAddress]
     [StringLength(100)]
     public string Email { get; init; } = string.Empty;
@@ -43,12 +88,6 @@ public sealed class SaveUserRequest
     ///     是否启用用户
     /// </summary>
     public bool IsEnabled { get; init; } = true;
-
-    /// <summary>
-    ///     用户昵称
-    /// </summary>
-    [StringLength(50)]
-    public string NickName { get; init; } = string.Empty;
 
     /// <summary>
     ///     登录密码

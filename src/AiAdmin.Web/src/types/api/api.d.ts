@@ -81,7 +81,22 @@ declare namespace Api {
       userId: number
       userName: string
       email: string
+      phone: string
+      gender: string
       avatar?: string
+    }
+
+    /** 当前用户资料更新参数 */
+    interface UpdateProfileParams {
+      email: string
+      phone: string
+      gender: string
+    }
+
+    /** 当前用户密码修改参数 */
+    interface ChangePasswordParams {
+      currentPassword: string
+      newPassword: string
     }
   }
 
@@ -97,7 +112,6 @@ declare namespace Api {
       status: string
       userName: string
       userGender: string
-      nickName: string
       userPhone: string
       userEmail: string
       userRoles: string[]
@@ -115,7 +129,6 @@ declare namespace Api {
 
     interface SaveUserParams {
       userName: string
-      nickName: string
       email: string
       phone: string
       gender: string

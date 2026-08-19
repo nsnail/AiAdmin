@@ -17,4 +17,12 @@ public sealed record LoginResult(string Token, string RefreshToken);
 /// <summary>
 ///     当前用户信息响应
 /// </summary>
-public sealed record CurrentUserResult(long UserId, string UserName, string Email, string? Avatar, string[] Roles, string[] Buttons);
+public sealed record CurrentUserResult(
+    long UserId
+    , string UserName
+    , string Email
+    , string Phone
+    , string Gender
+    , string? Avatar
+    , string[] Roles
+    , string[] Buttons);

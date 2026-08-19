@@ -15,6 +15,8 @@ public static class ApiMessages
         , ["Create user"] = "新增用户"
         , ["Delete user"] = "删除用户"
         , ["Get current user information"] = "获取当前用户信息"
+        , ["Update current user profile"] = "修改当前用户资料"
+        , ["Change current user password"] = "修改当前用户密码"
         , ["Query user list"] = "查询用户列表"
         , ["Query assignable roles"] = "查询可分配角色"
         , ["Update user"] = "修改用户"
@@ -50,6 +52,9 @@ public static class ApiMessages
         , ["userCreated"] = ("用户创建成功", "User created")
         , ["userNotFound"] = ("用户不存在", "User not found")
         , ["userUpdated"] = ("用户更新成功", "User updated")
+        , ["profileUpdated"] = ("个人资料更新成功", "Profile updated")
+        , ["passwordChanged"] = ("密码修改成功", "Password changed")
+        , ["currentPasswordInvalid"] = ("当前密码错误", "Current password is incorrect")
         , ["cannotDeleteSelf"] = ("不能删除当前登录用户", "You cannot delete your own account")
         , ["userDeleted"] = ("用户删除成功", "User deleted")
         , ["roleSuper"] = ("超级管理员", "Super administrator")
