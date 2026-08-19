@@ -58,6 +58,22 @@ export const permissionRoutes: AppRouteRecord = {
         keepAlive: true,
         roles: ['R_SUPER']
       }
+    },
+    {
+      path: 'dictionary',
+      name: 'DictionaryManagement',
+      component: '/system/dictionary',
+      meta: {
+        title: 'menus.system.dictionary',
+        icon: 'ri:book-shelf-line',
+        keepAlive: true,
+        roles: ['R_SUPER'],
+        authList: [
+          { title: '新增', authMark: 'add' },
+          { title: '编辑', authMark: 'edit' },
+          { title: '删除', authMark: 'delete' }
+        ]
+      }
     }
   ]
 }

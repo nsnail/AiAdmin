@@ -293,12 +293,13 @@
       },
       "system": {
         "title": "System Settings",
-        "permission": "Permission Management",
+        "permission": "System Management",
       "user": "User Manage",
       "role": "Role Manage",
       "userCenter": "User Center",
         "menu": "Menu Manage",
-        "api": "API Management"
+        "api": "API Management",
+        "dictionary": "Dictionary Management"
     },
     "safeguard": {
       "title": "Safeguard",

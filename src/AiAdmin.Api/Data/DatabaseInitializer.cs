@@ -91,6 +91,13 @@ public static class DatabaseInitializer
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
+
+        if (!await db.DictionaryCategories.AnyAsync().ConfigureAwait(false)) {
+            _ = await db
+                .DictionaryCategories.AddAsync(new DictionaryCategory { Code = "system_settings", Name = "系统设置", Sort = 0 })
+                .ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>

@@ -153,6 +153,36 @@ declare namespace Api {
       action: string
     }
 
+    interface DictionaryCategory {
+      id: number
+      code: string
+      name: string
+      parentId: number | null
+      sort: number
+      isEnabled: boolean
+      children: DictionaryCategory[]
+    }
+
+    interface DictionaryItem {
+      id: number
+      categoryId: number
+      value: string
+      label: string
+      sort: number
+      isEnabled: boolean
+      remark: string
+    }
+
+    type SaveDictionaryCategoryParams = Pick<
+      DictionaryCategory,
+      'code' | 'name' | 'parentId' | 'sort' | 'isEnabled'
+    >
+
+    type SaveDictionaryItemParams = Pick<
+      DictionaryItem,
+      'value' | 'label' | 'sort' | 'isEnabled' | 'remark'
+    >
+
     interface ApiSyncResult {
       added: number
       updated: number

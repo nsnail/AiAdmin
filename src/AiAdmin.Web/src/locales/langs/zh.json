@@ -293,12 +293,13 @@
       },
       "system": {
         "title": "系统管理",
-        "permission": "权限管理",
+        "permission": "系统管理",
       "user": "用户管理",
       "role": "角色管理",
       "userCenter": "个人中心",
         "menu": "菜单管理",
-        "api": "接口管理"
+        "api": "接口管理",
+        "dictionary": "字典管理"
     },
     "safeguard": {
       "title": "运维管理",
