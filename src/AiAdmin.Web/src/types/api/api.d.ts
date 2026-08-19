@@ -66,12 +66,23 @@ declare namespace Api {
     interface LoginParams {
       userName: string
       password: string
+      challenge: string
+      proof: string
     }
 
     /** 登录响应 */
     interface LoginResponse {
       token: string
       refreshToken: string
+    }
+
+    interface LoginConfig {
+      loginSliderVerification: boolean
+    }
+
+    interface LoginChallenge {
+      challenge: string
+      difficulty: number
     }
 
     /** 用户信息 */
@@ -189,6 +200,36 @@ declare namespace Api {
       controllerName: string
       action: string
     }
+
+    interface DictionaryCategory {
+      id: number
+      code: string
+      name: string
+      parentId: number | null
+      sort: number
+      isEnabled: boolean
+      children: DictionaryCategory[]
+    }
+
+    interface DictionaryItem {
+      id: number
+      categoryId: number
+      value: string
+      label: string
+      sort: number
+      isEnabled: boolean
+      remark: string
+    }
+
+    type SaveDictionaryCategoryParams = Pick<
+      DictionaryCategory,
+      'code' | 'name' | 'parentId' | 'sort' | 'isEnabled'
+    >
+
+    type SaveDictionaryItemParams = Pick<
+      DictionaryItem,
+      'value' | 'label' | 'sort' | 'isEnabled' | 'remark'
+    >
 
     interface ApiSyncResult {
       added: number

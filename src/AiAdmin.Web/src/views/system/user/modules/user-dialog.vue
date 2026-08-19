@@ -34,7 +34,7 @@
       <ElFormItem :label="t('userManagement.fields.departments')" prop="departmentIds">
         <ElTreeSelect
           v-model="formData.departmentIds"
-          :data="departmentList"
+          :data="localizedDepartments"
           node-key="id"
           :props="{ label: 'name', children: 'children' }"
           multiple
@@ -73,6 +73,7 @@
     (e: 'submit', value: Api.SystemManage.SaveUserParams): void
   }>()
   const { t } = useI18n()
+  const defaultDepartmentCode = 'DEFAULT'
   const dialogVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value)
@@ -81,6 +82,15 @@
   const formRef = ref<FormInstance>()
   const roleList = ref<Api.SystemManage.RoleListItem[]>([])
   const departmentList = ref<Api.SystemManage.DepartmentTreeItem[]>([])
+  const localizedDepartments = computed(() => {
+    const localize = (items: Api.SystemManage.DepartmentTreeItem[]): Api.SystemManage.DepartmentTreeItem[] =>
+      items.map((item) => ({
+        ...item,
+        name: item.code === defaultDepartmentCode ? t('userManagement.defaultDepartment') : item.name,
+        children: localize(item.children)
+      }))
+    return localize(departmentList.value)
+  })
   const genderOptions = computed(() => [
     { label: t('userManagement.gender.male'), value: 'male' },
     { label: t('userManagement.gender.female'), value: 'female' }

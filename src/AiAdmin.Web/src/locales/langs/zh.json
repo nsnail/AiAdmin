@@ -301,7 +301,11 @@
       "department": "部门管理",
       "userCenter": "个人中心",
         "menu": "菜单管理",
-        "api": "接口管理"
+        "api": "接口管理",
+        "dictionary": "字典管理"
+      },
+      "dictionaryCategories": {
+        "systemSettings": "系统设置"
     },
     "safeguard": {
       "title": "运维管理",
@@ -350,7 +354,8 @@
       "passwordRequired": "请输入密码", "passwordLength": "密码至少 6 位", "emailInvalid": "邮箱格式不正确", "rolesRequired": "请选择角色"
     },
     "confirm": { "deleteTitle": "删除用户", "deleteMessage": "确定要删除用户“{name}”吗？" },
-    "message": { "created": "创建成功", "updated": "更新成功" }
+    "message": { "created": "创建成功", "updated": "更新成功" },
+    "defaultDepartment": "默认部门"
   },
   "table": {
     "form": {

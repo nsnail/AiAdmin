@@ -37,7 +37,7 @@
             </ElFormItem>
 
             <!-- 推拽验证 -->
-            <div class="relative pb-5 mt-6">
+            <div v-if="loginSliderVerification" class="relative pb-5 mt-6">
               <div
                 class="relative z-[2] overflow-hidden select-none rounded-lg border border-transparent tad-300"
                 :class="{ '!border-[#FF4E4F]': !isPassing && isClickPass }"
@@ -99,7 +99,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { useI18n } from 'vue-i18n'
   import { HttpError } from '@/utils/http/error'
-  import { fetchLogin } from '@/api/auth'
+  import { fetchLogin, fetchLoginChallenge, fetchLoginConfig } from '@/api/auth'
   import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
   import { useSettingStore } from '@/store/modules/setting'
 
@@ -121,6 +121,9 @@
   const router = useRouter()
   const route = useRoute()
   const isPassing = ref(false)
+  const loginSliderVerification = ref(true)
+  const loginChallenge = ref<{ challenge: string; difficulty: number }>()
+  const loginProof = ref('')
   const isClickPass = ref(false)
 
   const formRef = ref<FormInstance>()
@@ -148,7 +151,7 @@
       if (!valid) return
 
       // 拖拽验证
-      if (!isPassing.value) {
+      if (loginSliderVerification.value && !isPassing.value) {
         isClickPass.value = true
         return
       }
@@ -157,10 +160,14 @@
 
       // 登录请求
       const { username, password } = formData
+      if (!loginChallenge.value) return
+      if (!loginProof.value) loginProof.value = await solveProof(loginChallenge.value.challenge, loginChallenge.value.difficulty)
 
       const { token, refreshToken } = await fetchLogin({
         userName: username,
-        password
+        password,
+        challenge: loginChallenge.value.challenge,
+        proof: loginProof.value
       })
 
       // 验证token
@@ -198,6 +205,25 @@
   // 重置拖拽验证
   const resetDragVerify = () => {
     dragVerify.value.reset()
+  }
+
+  onMounted(async () => {
+    try {
+      loginSliderVerification.value = (await fetchLoginConfig()).loginSliderVerification
+      loginChallenge.value = await fetchLoginChallenge()
+    } catch { loginSliderVerification.value = true }
+  })
+
+  const solveProof = async (challenge: string, difficulty: number) => {
+    const prefix = '0'.repeat(difficulty)
+    let nonce = 0
+    while (true) {
+      const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${challenge}:${nonce}`))
+      const hash = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('')
+      if (hash.startsWith(prefix)) return String(nonce)
+      nonce++
+      if (nonce % 1000 === 0) await new Promise(resolve => setTimeout(resolve, 0))
+    }
   }
 
   // 登录成功提示

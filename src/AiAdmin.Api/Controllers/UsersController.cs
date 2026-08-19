@@ -77,7 +77,7 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
 
         _ = await db.Users.AddAsync(user).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        var defaultDepartment = await db.Departments.SingleOrDefaultAsync(x => x.Code == "DEFAULT").ConfigureAwait(false);
+        var defaultDepartment = await db.Departments.SingleOrDefaultAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
         if (defaultDepartment is null) {
             return StatusCode(500, new ApiResponse<object>(500, "默认部门不存在", null));
         }

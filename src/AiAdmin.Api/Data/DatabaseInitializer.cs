@@ -5,7 +5,6 @@ using AiAdmin.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Menu = AiAdmin.Api.Models.Menu;
 
-// 负责创建数据库结构并写入开发环境所需的基础数据。
 namespace AiAdmin.Api.Data;
 
 /// <summary>
@@ -93,6 +92,33 @@ public static class DatabaseInitializer
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
+
+        if (!await db.DictionaryCategories.AnyAsync().ConfigureAwait(false)) {
+            _ = await db
+                .DictionaryCategories.AddAsync(new DictionaryCategory { Code = "system_settings", Name = "System Settings", Sort = 0 })
+                .ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        var systemSettings = await db.DictionaryCategories.SingleAsync(x => x.Code == "system_settings").ConfigureAwait(false);
+        if (!await db
+                .DictionaryItems.AnyAsync(x => x.CategoryId == systemSettings.Id && x.Label == "Enable login slider verification")
+                .ConfigureAwait(false)) {
+            _ = await db
+                .DictionaryItems.AddAsync(
+                    new DictionaryItem
+                    {
+                        CategoryId = systemSettings.Id
+                        , Value = "true"
+                        , Label = "Enable login slider verification"
+                        , Sort = 0
+                        , IsEnabled = true
+                        , Remark = "Whether login requires slider verification"
+                    }
+                )
+                .ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -147,12 +173,18 @@ public static class DatabaseInitializer
     /// <param name="db">数据库上下文</param>
     /// <returns>默认部门实体</returns>
     private static async Task<Department> EnsureDefaultDepartmentAsync(AppDbContext db) {
-        var department = await db.Departments.SingleOrDefaultAsync(x => x.Code == "DEFAULT").ConfigureAwait(false);
+        var department = await db.Departments.SingleOrDefaultAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
         if (department is not null) {
+            if (department.Name != Department.DEFAULT_NAME) {
+                department.Name = Department.DEFAULT_NAME;
+                department.UpdatedAt = ServerTime.Now;
+                _ = await db.SaveChangesAsync().ConfigureAwait(false);
+            }
+
             return department;
         }
 
-        department = new Department { Name = "默认部门", Code = "DEFAULT", Sort = 0 };
+        department = new Department { Name = Department.DEFAULT_NAME, Code = Department.DEFAULT_CODE, Sort = 0 };
         _ = await db.Departments.AddAsync(department).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return department;

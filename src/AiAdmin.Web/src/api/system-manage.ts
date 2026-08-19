@@ -114,3 +114,35 @@ export function fetchUpdateMenu(id: number, data: Record<string, any>) {
 export function fetchDeleteMenu(id: number) {
   return request.del<void>({ url: `/api/menu/${id}`, showSuccessMessage: true })
 }
+
+export function fetchGetDictionaryCategories() {
+  return request.get<Api.SystemManage.DictionaryCategory[]>({ url: '/api/dictionary/categories' })
+}
+
+export function fetchCreateDictionaryCategory(data: Api.SystemManage.SaveDictionaryCategoryParams) {
+  return request.post<Api.SystemManage.DictionaryCategory>({ url: '/api/dictionary/categories', data })
+}
+
+export function fetchUpdateDictionaryCategory(id: number, data: Api.SystemManage.SaveDictionaryCategoryParams) {
+  return request.put<Api.SystemManage.DictionaryCategory>({ url: `/api/dictionary/categories/${id}`, data })
+}
+
+export function fetchDeleteDictionaryCategory(id: number) {
+  return request.del<void>({ url: `/api/dictionary/categories/${id}`, showSuccessMessage: true })
+}
+
+export function fetchGetDictionaryItems(categoryId: number) {
+  return request.get<Api.SystemManage.DictionaryItem[]>({ url: `/api/dictionary/categories/${categoryId}/items` })
+}
+
+export function fetchCreateDictionaryItem(categoryId: number, data: Api.SystemManage.SaveDictionaryItemParams) {
+  return request.post<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/categories/${categoryId}/items`, data })
+}
+
+export function fetchUpdateDictionaryItem(id: number, data: Api.SystemManage.SaveDictionaryItemParams) {
+  return request.put<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/items/${id}`, data })
+}
+
+export function fetchDeleteDictionaryItem(id: number) {
+  return request.del<void>({ url: `/api/dictionary/items/${id}`, showSuccessMessage: true })
+}

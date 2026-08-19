@@ -14,6 +14,14 @@ export function fetchLogin(params: Api.Auth.LoginParams) {
   })
 }
 
+export function fetchLoginConfig() {
+  return request.get<Api.Auth.LoginConfig>({ url: '/api/auth/config' })
+}
+
+export function fetchLoginChallenge() {
+  return request.get<Api.Auth.LoginChallenge>({ url: '/api/auth/challenge' })
+}
+
 /**
  * 获取用户信息
  * @returns 用户信息

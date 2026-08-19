@@ -53,11 +53,16 @@
   } from '@/api/system-manage'
   import DepartmentDialog from './modules/department-dialog.vue'
   import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+  import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'Department' })
 
   type Department = Api.SystemManage.DepartmentTreeItem
   type SaveDepartment = Api.SystemManage.SaveDepartmentParams
+  const { t } = useI18n()
+  const defaultDepartmentCode = 'DEFAULT'
+  const getDepartmentName = (department: Department): string =>
+    department.code === defaultDepartmentCode ? t('userManagement.defaultDepartment') : department.name
 
   const loading = ref(false)
   const expanded = ref(false)
@@ -71,7 +76,7 @@
   const searchItems = [{ label: '部门名称/编码', key: 'keyword', type: 'input', props: { clearable: true } }]
 
   const { columnChecks, columns } = useTableColumns(() => [
-    { prop: 'name', label: '部门名称', minWidth: 200 },
+    { prop: 'name', label: '部门名称', minWidth: 200, formatter: (row: Department) => getDepartmentName(row) },
     { prop: 'code', label: '部门编码', minWidth: 140 },
     { prop: 'sort', label: '排序', width: 80 },
     { prop: 'leader', label: '负责人', minWidth: 110 },
@@ -105,7 +110,7 @@
     if (!keyword) return items
     return items.flatMap((item) => {
       const children = filterTree(item.children, keyword)
-      const matches = item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword)
+      const matches = getDepartmentName(item).toLowerCase().includes(keyword) || item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword)
       return matches || children.length ? [{ ...item, children }] : []
     })
   }

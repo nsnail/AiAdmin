@@ -21,6 +21,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<Department> Departments => Set<Department>();
 
     /// <summary>
+    ///     字典目录实体集合
+    /// </summary>
+    public DbSet<DictionaryCategory> DictionaryCategories => Set<DictionaryCategory>();
+
+    /// <summary>
+    ///     字典内容实体集合
+    /// </summary>
+    public DbSet<DictionaryItem> DictionaryItems => Set<DictionaryItem>();
+
+    /// <summary>
     ///     菜单实体集合
     /// </summary>
     public DbSet<Menu> Menus => Set<Menu>();
@@ -164,6 +174,29 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 _ = entity.Property(x => x.Component).HasMaxLength(300);
                 _ = entity.Property(x => x.ParentName).HasMaxLength(100);
                 _ = entity.Property(x => x.MetaJson).HasColumnType("TEXT");
+            }
+        );
+
+        _ = modelBuilder.Entity<DictionaryCategory>(entity =>
+            {
+                _ = entity.ToTable("sys_dict_category");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.HasIndex(x => x.Code).IsUnique();
+                _ = entity.Property(x => x.Code).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                _ = entity.HasOne<DictionaryCategory>().WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
+            }
+        );
+
+        _ = modelBuilder.Entity<DictionaryItem>(entity =>
+            {
+                _ = entity.ToTable("sys_dict_item");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.HasIndex(x => new { x.CategoryId, x.Value }).IsUnique();
+                _ = entity.Property(x => x.Value).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.Label).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.Remark).HasMaxLength(500);
+                _ = entity.HasOne(x => x.Category).WithMany(x => x.Items).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
             }
         );
     }

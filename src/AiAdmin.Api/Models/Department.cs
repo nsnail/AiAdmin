@@ -8,6 +8,16 @@ namespace AiAdmin.Api.Models;
 public sealed class Department
 {
     /// <summary>
+    ///     默认部门编码
+    /// </summary>
+    public const string DEFAULT_CODE = "DEFAULT";
+
+    /// <summary>
+    ///     默认部门数据库名称
+    /// </summary>
+    public const string DEFAULT_NAME = "Default Department";
+
+    /// <summary>
     ///     子部门集合
     /// </summary>
     public ICollection<Department> Children { get; init; } = [];

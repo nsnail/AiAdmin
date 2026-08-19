@@ -301,7 +301,11 @@
       "department": "Department Management",
       "userCenter": "User Center",
         "menu": "Menu Manage",
-        "api": "API Management"
+        "api": "API Management",
+        "dictionary": "Dictionary Management"
+      },
+      "dictionaryCategories": {
+        "systemSettings": "System Settings"
     },
     "safeguard": {
       "title": "Safeguard",
@@ -350,7 +354,8 @@
       "passwordRequired": "Password is required", "passwordLength": "Password must contain at least 6 characters", "emailInvalid": "Enter a valid email", "rolesRequired": "Select at least one role"
     },
     "confirm": { "deleteTitle": "Delete user", "deleteMessage": "Delete user “{name}”?" },
-    "message": { "created": "User created", "updated": "User updated" }
+    "message": { "created": "User created", "updated": "User updated" },
+    "defaultDepartment": "Default Department"
   },
   "table": {
     "form": {

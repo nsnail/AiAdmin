@@ -49,6 +49,7 @@
 
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
+  import { useI18n } from 'vue-i18n'
 
   type Department = Api.SystemManage.DepartmentTreeItem
   type SaveDepartment = Api.SystemManage.SaveDepartmentParams
@@ -70,6 +71,8 @@
     set: (value) => emit('update:visible', value)
   })
   const dialogType = computed(() => props.type)
+  const { t } = useI18n()
+  const defaultDepartmentCode = 'DEFAULT'
   const formRef = ref<FormInstance>()
   const formData = reactive<SaveDepartment>({
     name: '',
@@ -81,6 +84,12 @@
     email: '',
     isEnabled: true
   })
+  const localizedTree = (items: Department[]): Department[] =>
+    items.map((item) => ({
+      ...item,
+      name: item.code === defaultDepartmentCode ? t('userManagement.defaultDepartment') : item.name,
+      children: localizedTree(item.children)
+    }))
   const rules: FormRules = {
     name: [{ required: true, message: '请输入部门名称', trigger: 'blur' }],
     code: [{ required: true, message: '请输入部门编码', trigger: 'blur' }],
@@ -107,7 +116,7 @@
   }
 
   const availableParents = computed(() => {
-    if (props.type !== 'edit' || !props.departmentData?.id) return props.departments
+    if (props.type !== 'edit' || !props.departmentData?.id) return localizedTree(props.departments)
     const excludedIds = collectDescendantIds(
       findDepartment(props.departments, props.departmentData.id)
     )
@@ -115,7 +124,7 @@
       items
         .filter((item) => !excludedIds.has(item.id))
         .map((item) => ({ ...item, children: filterTree(item.children) }))
-    return filterTree(props.departments)
+    return filterTree(localizedTree(props.departments))
   })
 
   watch(
