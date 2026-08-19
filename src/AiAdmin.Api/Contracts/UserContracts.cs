@@ -16,6 +16,8 @@ public sealed record UserListItem(
     , string UserPhone
     , string UserEmail
     , string[] UserRoles
+    , long[] DepartmentIds
+    , string[] DepartmentNames
     , string CreateBy
     , DateTime CreateTime
     , string UpdateBy
@@ -26,6 +28,11 @@ public sealed record UserListItem(
 /// </summary>
 public sealed class SaveUserRequest
 {
+    /// <summary>
+    ///     所属部门主键集合
+    /// </summary>
+    public long[] DepartmentIds { get; init; } = [];
+
     /// <summary>
     ///     电子邮箱
     /// </summary>

@@ -296,6 +296,7 @@
         "permission": "权限管理",
       "user": "用户管理",
       "role": "角色管理",
+      "department": "部门管理",
       "userCenter": "个人中心",
         "menu": "菜单管理",
         "api": "接口管理"
@@ -319,7 +320,7 @@
     "actions": { "add": "新增用户", "save": "保存", "edit": "编辑", "delete": "删除" },
     "fields": {
       "userName": "用户名", "nickName": "昵称", "password": "密码", "email": "邮箱",
-      "phone": "手机号", "gender": "性别", "roles": "角色", "status": "状态",
+      "phone": "手机号", "gender": "性别", "roles": "角色", "departments": "所属部门", "status": "状态",
       "createdAt": "创建日期", "operation": "操作"
     },
     "status": { "enabled": "启用", "disabled": "停用", "unknown": "未知" },

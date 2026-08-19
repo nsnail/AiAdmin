@@ -42,6 +42,11 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "invalidRole"), null));
         }
 
+        var departments = await ResolveDepartmentsAsync(request.DepartmentIds).ConfigureAwait(false);
+        if (departments is null) {
+            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "invalidDepartment"), null));
+        }
+
         var user = new User
         {
             UserName = request.UserName.Trim()
@@ -54,6 +59,10 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         };
         foreach (var role in roles) {
             user.UserRoles.Add(new UserRole { User = user, Role = role });
+        }
+
+        foreach (var department in departments) {
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
         }
 
         _ = await db.Users.AddAsync(user).ConfigureAwait(false);
@@ -126,7 +135,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     ) {
         current = Math.Max(current, 1);
         size = Math.Clamp(size, 1, 100);
-        var query = db.Users.AsNoTracking().Include(x => x.UserRoles).ThenInclude(x => x.Role).AsQueryable();
+        var query = db
+            .Users.AsNoTracking()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .AsQueryable();
         if (!string.IsNullOrWhiteSpace(userName)) {
             query = query.Where(x => x.UserName.Contains(userName));
         }
@@ -193,7 +208,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         long id
         , SaveUserRequest request
     ) {
-        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
+        var user = await db
+            .Users.Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .SingleOrDefaultAsync(x => x.Id == id)
+            .ConfigureAwait(false);
         if (user is null) {
             return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "userNotFound"), null));
         }
@@ -205,6 +226,11 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         var roles = await ResolveRolesAsync(request.Roles).ConfigureAwait(false);
         if (roles is null) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "invalidRole"), null));
+        }
+
+        var departments = await ResolveDepartmentsAsync(request.DepartmentIds).ConfigureAwait(false);
+        if (departments is null) {
+            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "invalidDepartment"), null));
         }
 
         user.UserName = request.UserName.Trim();
@@ -220,17 +246,41 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
 
         db.UserRoles.RemoveRange(user.UserRoles);
         user.UserRoles = [.. roles.Select(role => new UserRole { User = user, Role = role })];
+        db.UserDepartments.RemoveRange(user.UserDepartments);
+        user.UserDepartments = [.. departments.Select(department => new UserDepartment { User = user, Department = department })];
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), ApiMessages.Get(Request, "userUpdated")));
     }
 
+    /// <summary>
+    ///     将用户实体转换为列表项
+    /// </summary>
+    /// <param name="user">用户实体</param>
+    /// <returns>用户列表项</returns>
     private static UserListItem ToListItem(User user) {
         return new UserListItem(
             user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.NickName, user.Phone, user.Email
-            , [.. user.UserRoles.Select(x => x.Role.Code)], "system", user.CreatedAt, "system", user.UpdatedAt
+            , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserDepartments.Select(x => x.DepartmentId)]
+            , [.. user.UserDepartments.Select(x => x.Department.Name)], "system", user.CreatedAt, "system", user.UpdatedAt
         );
     }
 
+    /// <summary>
+    ///     解析并校验部门主键集合
+    /// </summary>
+    /// <param name="ids">部门主键集合</param>
+    /// <returns>全部有效时返回部门集合，否则返回 null</returns>
+    private async Task<List<Department>?> ResolveDepartmentsAsync(long[] ids) {
+        var distinct = ids.Distinct().ToArray();
+        var departments = await db.Departments.Where(x => distinct.Contains(x.Id)).ToListAsync().ConfigureAwait(false);
+        return departments.Count == distinct.Length ? departments : null;
+    }
+
+    /// <summary>
+    ///     解析并校验角色编码集合
+    /// </summary>
+    /// <param name="codes">角色编码集合</param>
+    /// <returns>全部有效时返回角色集合，否则返回 null</returns>
     private async Task<List<Role>?> ResolveRolesAsync(string[] codes) {
         var distinct = codes.Distinct().ToArray();
         var roles = await db.Roles.Where(x => distinct.Contains(x.Code)).ToListAsync().ConfigureAwait(false);

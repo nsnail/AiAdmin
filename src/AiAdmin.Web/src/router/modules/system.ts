@@ -33,6 +33,22 @@ export const permissionRoutes: AppRouteRecord = {
       }
     },
     {
+      path: 'department',
+      name: 'Department',
+      component: '/system/department',
+      meta: {
+        title: 'menus.system.department',
+        icon: 'ri:organization-chart',
+        keepAlive: true,
+        roles: ['R_SUPER'],
+        authList: [
+          { title: '新增', authMark: 'add' },
+          { title: '编辑', authMark: 'edit' },
+          { title: '删除', authMark: 'delete' }
+        ]
+      }
+    },
+    {
       path: 'menu',
       name: 'Menus',
       component: '/system/menu',

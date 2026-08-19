@@ -1,0 +1,145 @@
+<template>
+  <ElDialog
+    v-model="dialogVisible"
+    :title="dialogType === 'add' ? '新增部门' : '编辑部门'"
+    width="560px"
+    align-center
+  >
+    <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
+      <ElFormItem label="上级部门" prop="parentId">
+        <ElTreeSelect
+          v-model="formData.parentId"
+          :data="availableParents"
+          node-key="id"
+          :props="{ label: 'name', children: 'children' }"
+          check-strictly
+          clearable
+          placeholder="不选择则为根部门"
+          class="w-full"
+        />
+      </ElFormItem>
+      <ElFormItem label="部门名称" prop="name">
+        <ElInput v-model.trim="formData.name" maxlength="100" placeholder="请输入部门名称" />
+      </ElFormItem>
+      <ElFormItem label="部门编码" prop="code">
+        <ElInput v-model.trim="formData.code" maxlength="50" placeholder="请输入唯一部门编码" />
+      </ElFormItem>
+      <ElFormItem label="显示顺序" prop="sort">
+        <ElInputNumber v-model="formData.sort" :min="0" :max="9999" controls-position="right" />
+      </ElFormItem>
+      <ElFormItem label="负责人" prop="leader">
+        <ElInput v-model.trim="formData.leader" maxlength="50" placeholder="请输入负责人" />
+      </ElFormItem>
+      <ElFormItem label="联系电话" prop="phone">
+        <ElInput v-model.trim="formData.phone" maxlength="20" placeholder="请输入联系电话" />
+      </ElFormItem>
+      <ElFormItem label="邮箱" prop="email">
+        <ElInput v-model.trim="formData.email" maxlength="100" placeholder="请输入邮箱" />
+      </ElFormItem>
+      <ElFormItem label="状态">
+        <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="停用" />
+      </ElFormItem>
+    </ElForm>
+    <template #footer>
+      <ElButton @click="dialogVisible = false">取消</ElButton>
+      <ElButton type="primary" @click="handleSubmit">保存</ElButton>
+    </template>
+  </ElDialog>
+</template>
+
+<script setup lang="ts">
+  import type { FormInstance, FormRules } from 'element-plus'
+
+  type Department = Api.SystemManage.DepartmentTreeItem
+  type SaveDepartment = Api.SystemManage.SaveDepartmentParams
+
+  const props = defineProps<{
+    visible: boolean
+    type: 'add' | 'edit'
+    departmentData?: Partial<Department>
+    departments: Department[]
+  }>()
+
+  const emit = defineEmits<{
+    (event: 'update:visible', value: boolean): void
+    (event: 'submit', value: SaveDepartment): void
+  }>()
+
+  const dialogVisible = computed({
+    get: () => props.visible,
+    set: (value) => emit('update:visible', value)
+  })
+  const dialogType = computed(() => props.type)
+  const formRef = ref<FormInstance>()
+  const formData = reactive<SaveDepartment>({
+    name: '',
+    code: '',
+    parentId: null,
+    sort: 0,
+    leader: '',
+    phone: '',
+    email: '',
+    isEnabled: true
+  })
+  const rules: FormRules = {
+    name: [{ required: true, message: '请输入部门名称', trigger: 'blur' }],
+    code: [{ required: true, message: '请输入部门编码', trigger: 'blur' }],
+    email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }]
+  }
+
+  const collectDescendantIds = (node: Department | undefined): Set<number> => {
+    const result = new Set<number>()
+    const visit = (current: Department) => {
+      result.add(current.id)
+      current.children.forEach(visit)
+    }
+    if (node) visit(node)
+    return result
+  }
+
+  const findDepartment = (items: Department[], id: number): Department | undefined => {
+    for (const item of items) {
+      if (item.id === id) return item
+      const child = findDepartment(item.children, id)
+      if (child) return child
+    }
+    return undefined
+  }
+
+  const availableParents = computed(() => {
+    if (props.type !== 'edit' || !props.departmentData?.id) return props.departments
+    const excludedIds = collectDescendantIds(
+      findDepartment(props.departments, props.departmentData.id)
+    )
+    const filterTree = (items: Department[]): Department[] =>
+      items
+        .filter((item) => !excludedIds.has(item.id))
+        .map((item) => ({ ...item, children: filterTree(item.children) }))
+    return filterTree(props.departments)
+  })
+
+  watch(
+    () => props.visible,
+    (visible) => {
+      if (!visible) return
+      const row = props.departmentData
+      Object.assign(formData, {
+        name: props.type === 'edit' ? row?.name ?? '' : '',
+        code: props.type === 'edit' ? row?.code ?? '' : '',
+        parentId: row?.parentId ?? null,
+        sort: props.type === 'edit' ? row?.sort ?? 0 : 0,
+        leader: props.type === 'edit' ? row?.leader ?? '' : '',
+        phone: props.type === 'edit' ? row?.phone ?? '' : '',
+        email: props.type === 'edit' ? row?.email ?? '' : '',
+        isEnabled: props.type === 'edit' ? row?.isEnabled ?? true : true
+      })
+      nextTick(() => formRef.value?.clearValidate())
+    }
+  )
+
+  const handleSubmit = async (): Promise<void> => {
+    if (formRef.value && (await formRef.value.validate())) {
+      emit('submit', { ...formData })
+    }
+  }
+</script>

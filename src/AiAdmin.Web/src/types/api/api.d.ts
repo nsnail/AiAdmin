@@ -101,6 +101,8 @@ declare namespace Api {
       userPhone: string
       userEmail: string
       userRoles: string[]
+      departmentIds: number[]
+      departmentNames: string[]
       createBy: string
       createTime: string
       updateBy: string
@@ -120,9 +122,31 @@ declare namespace Api {
       phone: string
       gender: string
       roles: string[]
+      departmentIds: number[]
       password?: string
       isEnabled: boolean
     }
+
+    /** 部门树节点 */
+    interface DepartmentTreeItem {
+      id: number
+      name: string
+      code: string
+      parentId: number | null
+      sort: number
+      leader: string
+      phone: string
+      email: string
+      isEnabled: boolean
+      createdAt: string
+      children: DepartmentTreeItem[]
+    }
+
+    /** 部门保存参数 */
+    type SaveDepartmentParams = Pick<
+      DepartmentTreeItem,
+      'name' | 'code' | 'parentId' | 'sort' | 'leader' | 'phone' | 'email' | 'isEnabled'
+    >
 
     /** 角色列表 */
     type RoleList = Api.Common.PaginatedResponse<RoleListItem>

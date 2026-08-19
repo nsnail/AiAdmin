@@ -25,6 +25,25 @@ export function fetchGetUserRoles() {
   return request.get<Api.SystemManage.RoleListItem[]>({ url: '/api/user/roles' })
 }
 
+export function fetchGetDepartmentTree() {
+  return request.get<Api.SystemManage.DepartmentTreeItem[]>({ url: '/api/department/tree' })
+}
+
+export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParams) {
+  return request.post<Api.SystemManage.DepartmentTreeItem>({ url: '/api/department', data })
+}
+
+export function fetchUpdateDepartment(
+  id: number,
+  data: Api.SystemManage.SaveDepartmentParams
+) {
+  return request.put<Api.SystemManage.DepartmentTreeItem>({ url: `/api/department/${id}`, data })
+}
+
+export function fetchDeleteDepartment(id: number) {
+  return request.del<void>({ url: `/api/department/${id}`, showSuccessMessage: true })
+}
+
 // 获取角色列表
 export function fetchGetRoleList(params: Api.SystemManage.RoleSearchParams) {
   return request.get<Api.SystemManage.RoleList>({

@@ -34,6 +34,18 @@
           <ElOption v-for="role in roleList" :key="role.roleCode" :value="role.roleCode" :label="role.roleName" />
         </ElSelect>
       </ElFormItem>
+      <ElFormItem :label="t('userManagement.fields.departments')" prop="departmentIds">
+        <ElTreeSelect
+          v-model="formData.departmentIds"
+          :data="departmentList"
+          node-key="id"
+          :props="{ label: 'name', children: 'children' }"
+          multiple
+          check-strictly
+          clearable
+          class="w-full"
+        />
+      </ElFormItem>
       <ElFormItem :label="t('userManagement.fields.status')">
         <ElSwitch
           v-model="formData.isEnabled"
@@ -50,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-  import { fetchGetUserRoles } from '@/api/system-manage'
+  import { fetchGetDepartmentTree, fetchGetUserRoles } from '@/api/system-manage'
   import type { FormInstance, FormRules } from 'element-plus'
   import { useI18n } from 'vue-i18n'
 
@@ -71,12 +83,13 @@
   const dialogType = computed(() => props.type)
   const formRef = ref<FormInstance>()
   const roleList = ref<Api.SystemManage.RoleListItem[]>([])
+  const departmentList = ref<Api.SystemManage.DepartmentTreeItem[]>([])
   const genderOptions = computed(() => [
     { label: t('userManagement.gender.male'), value: 'male' },
     { label: t('userManagement.gender.female'), value: 'female' }
   ])
   const formData = reactive<Api.SystemManage.SaveUserParams>({
-    userName: '', nickName: '', password: '', email: '', phone: '', gender: 'male', roles: [], isEnabled: true
+    userName: '', nickName: '', password: '', email: '', phone: '', gender: 'male', roles: [], departmentIds: [], isEnabled: true
   })
   const rules = computed<FormRules>(() => ({
     userName: [
@@ -98,6 +111,7 @@
   watch(() => props.visible, async (visible) => {
     if (!visible) return
     if (!roleList.value.length) roleList.value = await fetchGetUserRoles()
+    if (!departmentList.value.length) departmentList.value = await fetchGetDepartmentTree()
     const row = props.userData
     Object.assign(formData, {
       userName: props.type === 'edit' ? row?.userName ?? '' : '',
@@ -107,6 +121,7 @@
       phone: props.type === 'edit' ? row?.userPhone ?? '' : '',
       gender: props.type === 'edit' ? row?.userGender ?? 'male' : 'male',
       roles: props.type === 'edit' ? [...(row?.userRoles ?? [])] : ['R_USER'],
+      departmentIds: props.type === 'edit' ? [...(row?.departmentIds ?? [])] : [],
       isEnabled: props.type === 'edit' ? row?.status === '1' : true
     })
     nextTick(() => formRef.value?.clearValidate())
@@ -114,7 +129,7 @@
 
   const handleSubmit = async () => {
     if (formRef.value && await formRef.value.validate()) {
-      emit('submit', { ...formData, roles: [...formData.roles] })
+      emit('submit', { ...formData, roles: [...formData.roles], departmentIds: [...formData.departmentIds] })
     }
   }
 </script>
