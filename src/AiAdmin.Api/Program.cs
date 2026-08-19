@@ -73,4 +73,6 @@ await using (var scope = app.Services.CreateAsyncScope()) {
     _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
 }
 
+await DatabaseInitializer.InitializeRoleApisAsync(app.Services).ConfigureAwait(false);
+
 await app.RunAsync().ConfigureAwait(false);

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Models;
+using AiAdmin.Api.Services;
 using Microsoft.EntityFrameworkCore;
 using Menu = AiAdmin.Api.Models.Menu;
 
@@ -12,6 +13,11 @@ namespace AiAdmin.Api.Data;
 /// </summary>
 public static class DatabaseInitializer
 {
+    private static readonly string[] _basicApiKeys =
+    [
+        ApiEndpointKey.Create("GET", "api/user/info"), ApiEndpointKey.Create("GET", "api/menu/current")
+    ];
+
     private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>
@@ -37,17 +43,44 @@ public static class DatabaseInitializer
 
         if (!await db.Users.AnyAsync().ConfigureAwait(false)) {
             var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER").ConfigureAwait(false);
+            var adminRole = await db.Roles.SingleAsync(x => x.Code == "R_ADMIN").ConfigureAwait(false);
+            var userRole = await db.Roles.SingleAsync(x => x.Code == "R_USER").ConfigureAwait(false);
+
+            // 初始化三个基础账号，分别覆盖超级管理员、普通管理员和普通用户权限
+            var root = new User
+            {
+                UserName = "root"
+                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
+                , NickName = "Super administrator"
+                , Email = "root@aiadmin.local"
+                , Phone = "13800000000"
+                , Gender = "male"
+            };
+            root.UserRoles.Add(new UserRole { User = root, Role = superRole });
+
             var admin = new User
             {
                 UserName = "admin"
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
                 , NickName = "Administrator"
                 , Email = "admin@aiadmin.local"
-                , Phone = "13800000000"
+                , Phone = "13800000001"
                 , Gender = "male"
             };
-            admin.UserRoles.Add(new UserRole { User = admin, Role = superRole });
-            _ = await db.Users.AddAsync(admin).ConfigureAwait(false);
+            admin.UserRoles.Add(new UserRole { User = admin, Role = adminRole });
+
+            var user = new User
+            {
+                UserName = "user"
+                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
+                , NickName = "User"
+                , Email = "user@aiadmin.local"
+                , Phone = "13800000002"
+                , Gender = "male"
+            };
+            user.UserRoles.Add(new UserRole { User = user, Role = userRole });
+
+            await db.Users.AddRangeAsync(root, admin, user).ConfigureAwait(false);
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
@@ -58,6 +91,32 @@ public static class DatabaseInitializer
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    ///     为非超级管理员角色补充进入后台所需的基础接口权限
+    /// </summary>
+    /// <param name="services">应用服务提供器</param>
+    /// <returns>异步初始化任务</returns>
+    public static async Task InitializeRoleApisAsync(IServiceProvider services) {
+        await using var scope = services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var permissionCache = scope.ServiceProvider.GetRequiredService<ApiPermissionCache>();
+        var roles = await db.Roles.Include(x => x.RoleApis).Where(x => x.Code == "R_ADMIN" || x.Code == "R_USER").ToListAsync().ConfigureAwait(false);
+        var endpoints = (await db.ApiEndpoints.ToListAsync().ConfigureAwait(false))
+            .Where(x => _basicApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path), StringComparer.Ordinal))
+            .ToList();
+
+        // 接口同步完成后，幂等补齐普通管理员和普通用户登录后台必需的权限
+        foreach (var role in roles) {
+            var assignedEndpointIds = role.RoleApis.Select(x => x.ApiEndpointId).ToHashSet();
+            foreach (var endpoint in endpoints.Where(x => !assignedEndpointIds.Contains(x.Id))) {
+                role.RoleApis.Add(new RoleApi { Role = role, ApiEndpoint = endpoint });
+            }
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        permissionCache.Invalidate();
     }
 
     private static MenuItemRequest[] FilterByRole(
