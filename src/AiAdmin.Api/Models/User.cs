@@ -15,7 +15,7 @@ public sealed class User
     /// <summary>
     ///     创建时间
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     电子邮箱
@@ -50,7 +50,7 @@ public sealed class User
     /// <summary>
     ///     最后更新时间
     /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     ///     登录用户名

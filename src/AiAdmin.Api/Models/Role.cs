@@ -13,6 +13,11 @@ public sealed class Role
     public required string Code { get; set; }
 
     /// <summary>
+    ///     创建时间
+    /// </summary>
+    public DateTime CreatedAt { get; init; } = DateTime.Now;
+
+    /// <summary>
     ///     角色描述
     /// </summary>
     public string Description { get; set; } = string.Empty;
@@ -76,7 +81,7 @@ public sealed class ApiEndpoint
     /// <summary>
     ///     创建时间
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     接口主键
@@ -169,7 +174,7 @@ public sealed class Menu
     /// <summary>
     ///     创建时间
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     菜单主键

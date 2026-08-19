@@ -16,8 +16,7 @@ public static class DatabaseInitializer
     private static readonly string[] _basicApiKeys =
     [
         ApiEndpointKey.Create("GET", "api/user/info"), ApiEndpointKey.Create("GET", "api/menu/current")
-        , ApiEndpointKey.Create("PUT", "api/user/profile")
-        , ApiEndpointKey.Create("PUT", "api/user/password")
+        , ApiEndpointKey.Create("PUT", "api/user/profile"), ApiEndpointKey.Create("PUT", "api/user/password")
     ];
 
     private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };

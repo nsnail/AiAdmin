@@ -89,6 +89,8 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <param name="roleCode">角色编码筛选</param>
     /// <param name="description">角色描述筛选</param>
     /// <param name="enabled">启用状态筛选</param>
+    /// <param name="startTime">创建时间起点</param>
+    /// <param name="endTime">创建时间终点</param>
     /// <returns>角色分页结果</returns>
     [HttpGet("list")]
     [ApiDescription("Query role list")]
@@ -99,6 +101,8 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         , [FromQuery] string? roleCode = null
         , [FromQuery] string? description = null
         , [FromQuery] bool? enabled = null
+        , [FromQuery] DateTimeOffset? startTime = null
+        , [FromQuery] DateTimeOffset? endTime = null
     ) {
         current = Math.Max(current, 1);
         size = Math.Clamp(size, 1, 100);
@@ -117,6 +121,16 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
 
         if (enabled.HasValue) {
             query = query.Where(x => x.IsEnabled == enabled.Value);
+        }
+
+        if (startTime.HasValue) {
+            var from = ServerTime.ToLocal(startTime.Value);
+            query = query.Where(x => x.CreatedAt >= from);
+        }
+
+        if (endTime.HasValue) {
+            var to = ServerTime.ToLocal(endTime.Value);
+            query = query.Where(x => x.CreatedAt < to);
         }
 
         var total = await query.CountAsync().ConfigureAwait(false);
@@ -258,6 +272,6 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     }
 
     private static RoleListItem ToListItem(Role role) {
-        return new RoleListItem(role.Id, role.Name, role.Code, role.Description, role.IsEnabled, DateTime.UnixEpoch);
+        return new RoleListItem(role.Id, role.Name, role.Code, role.Description, role.IsEnabled, ServerTime.ToOffset(role.CreatedAt));
     }
 }

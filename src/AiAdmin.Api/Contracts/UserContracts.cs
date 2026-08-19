@@ -16,9 +16,9 @@ public sealed record UserListItem(
     , string UserEmail
     , string[] UserRoles
     , string CreateBy
-    , DateTime CreateTime
+    , DateTimeOffset CreateTime
     , string UpdateBy
-    , DateTime UpdateTime);
+    , DateTimeOffset UpdateTime);
 
 /// <summary>
 ///     当前用户修改密码请求

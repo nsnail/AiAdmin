@@ -6,7 +6,7 @@ namespace AiAdmin.Api.Contracts;
 /// <summary>
 ///     角色列表项
 /// </summary>
-public sealed record RoleListItem(long RoleId, string RoleName, string RoleCode, string Description, bool Enabled, DateTime CreateTime);
+public sealed record RoleListItem(long RoleId, string RoleName, string RoleCode, string Description, bool Enabled, DateTimeOffset CreateTime);
 
 /// <summary>
 ///     角色新增或修改请求

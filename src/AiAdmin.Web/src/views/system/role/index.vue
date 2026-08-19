@@ -63,8 +63,11 @@
   import RolePermissionDialog from './modules/role-permission-dialog.vue'
   import RoleApiDialog from './modules/role-api-dialog.vue'
   import { ElTag, ElMessageBox } from 'element-plus'
+  import { formatDateTime } from '@/utils/date'
+  import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'Role' })
+  const { locale } = useI18n()
 
   type RoleListItem = Api.SystemManage.RoleListItem
   type RoleSearchFormParams = Api.SystemManage.RoleSearchParams & {
@@ -108,7 +111,6 @@
         size: 20
       },
       // 排除 apiParams 中的属性
-      excludeParams: ['daterange'],
       columnsFactory: () => [
         {
           prop: 'roleId',
@@ -150,7 +152,8 @@
           prop: 'createTime',
           label: '创建日期',
           width: 180,
-          sortable: true
+          sortable: true,
+          formatter: (row) => formatDateTime(row.createTime, locale.value)
         },
         {
           prop: 'operation',
@@ -206,7 +209,11 @@
   const handleSearch = (params: RoleSearchFormParams) => {
     // 处理日期区间参数，把 daterange 转换为 startTime 和 endTime
     const { daterange, ...filtersParams } = params
-    const [startTime, endTime] = Array.isArray(daterange) ? daterange : [null, null]
+    const [startDate, endDate] = Array.isArray(daterange) ? daterange : [null, null]
+    const startTime = startDate ? new Date(`${startDate}T00:00:00`).toISOString() : null
+    const endTime = endDate
+      ? new Date(new Date(`${endDate}T00:00:00`).getTime() + 24 * 60 * 60 * 1000).toISOString()
+      : null
 
     replaceSearchParams({ ...filtersParams, startTime, endTime })
     getData()

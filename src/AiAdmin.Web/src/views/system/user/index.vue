@@ -51,6 +51,7 @@
   import { ElTag, ElMessageBox, ElImage, ElMessage } from 'element-plus'
   import { DialogType } from '@/types'
   import { useI18n } from 'vue-i18n'
+  import { formatDateTime } from '@/utils/date'
 
   defineOptions({ name: 'User' })
   const { t, locale } = useI18n()
@@ -153,7 +154,8 @@
         {
           prop: 'createTime',
           label: t('userManagement.fields.createdAt'),
-          sortable: true
+          sortable: true,
+          formatter: (row) => formatDateTime(row.createTime, locale.value)
         },
         {
           prop: 'operation',
