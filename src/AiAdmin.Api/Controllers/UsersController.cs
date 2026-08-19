@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
@@ -8,17 +9,27 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
+// 提供用户增删改查和当前用户信息查询。
 namespace AiAdmin.Api.Controllers;
 
+/// <summary>
+///     用户管理控制器
+/// </summary>
 [ApiController]
+[ApiDescription("User management")]
 [Authorize]
 [Route("api/user")]
 public sealed class UsersController(AppDbContext db) : ControllerBase
 {
+    /// <summary>
+    ///     创建用户
+    /// </summary>
+    /// <param name="request">用户保存请求</param>
+    /// <returns>创建后的用户</returns>
     [HttpPost]
-    [Authorize(Roles = "R_SUPER,R_ADMIN")]
-    public async Task<ActionResult<ApiResponse<UserListItem>>> Create(SaveUserRequest request) {
-        if (await db.Users.AnyAsync(x => x.UserName == request.UserName)) {
+    [ApiDescription("Create user")]
+    public async Task<ActionResult<ApiResponse<UserListItem>>> CreateAsync(SaveUserRequest request) {
+        if (await db.Users.AnyAsync(x => x.UserName == request.UserName).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "userExists"), null));
         }
 
@@ -26,7 +37,7 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "passwordRequired"), null));
         }
 
-        var roles = await ResolveRoles(request.Roles);
+        var roles = await ResolveRolesAsync(request.Roles).ConfigureAwait(false);
         if (roles is null) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "invalidRole"), null));
         }
@@ -45,33 +56,44 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             user.UserRoles.Add(new UserRole { User = user, Role = role });
         }
 
-        db.Users.Add(user);
-        await db.SaveChangesAsync();
+        _ = await db.Users.AddAsync(user).ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), ApiMessages.Get(Request, "userCreated")));
     }
 
+    /// <summary>
+    ///     删除用户
+    /// </summary>
+    /// <param name="id">用户主键</param>
+    /// <returns>删除结果</returns>
     [HttpDelete("{id:long}")]
-    [Authorize(Roles = "R_SUPER,R_ADMIN")]
-    public async Task<ActionResult<ApiResponse<object>>> Delete(long id) {
+    [ApiDescription("Delete user")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var currentId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
         if (currentId == id) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "cannotDeleteSelf"), null));
         }
 
-        var user = await db.Users.FindAsync(id);
+        var user = await db.Users.FindAsync(id).ConfigureAwait(false);
         if (user is null) {
             return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "userNotFound"), null));
         }
 
-        db.Users.Remove(user);
-        await db.SaveChangesAsync();
+        _ = db.Users.Remove(user);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, ApiMessages.Get(Request, "userDeleted")));
     }
 
+    /// <summary>
+    ///     查询当前登录用户信息
+    /// </summary>
+    /// <returns>当前用户信息</returns>
     [HttpGet("info")]
-    public async Task<ActionResult<ApiResponse<CurrentUserResult>>> Info() {
+    [ApiDescription("Get current user information")]
+    public async Task<ActionResult<ApiResponse<CurrentUserResult>>> InfoAsync() {
+        // 返回当前登录用户及其角色、按钮权限信息。
         var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
-        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleAsync(x => x.Id == id);
+        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleAsync(x => x.Id == id).ConfigureAwait(false);
         var roles = user.UserRoles.Select(x => x.Role.Code).ToArray();
         return Ok(
             ApiResponse<CurrentUserResult>.Ok(
@@ -80,8 +102,20 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         );
     }
 
+    /// <summary>
+    ///     分页查询用户
+    /// </summary>
+    /// <param name="current">当前页码</param>
+    /// <param name="size">每页记录数</param>
+    /// <param name="userName">用户名筛选</param>
+    /// <param name="userPhone">手机号筛选</param>
+    /// <param name="userEmail">邮箱筛选</param>
+    /// <param name="userGender">性别筛选</param>
+    /// <param name="status">状态筛选</param>
+    /// <returns>用户分页结果</returns>
     [HttpGet("list")]
-    public async Task<ActionResult<ApiResponse<PagedResponse<UserListItem>>>> List(
+    [ApiDescription("Query user list")]
+    public async Task<ActionResult<ApiResponse<PagedResponse<UserListItem>>>> ListAsync(
         [FromQuery] int current = 1
         , [FromQuery] int size = 20
         , [FromQuery] string? userName = null
@@ -116,50 +150,59 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             , _ => query
         };
 
-        var total = await query.CountAsync();
-        var users = await query.OrderByDescending(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync();
-        var items = users.Select(ToListItem).ToList();
+        var total = await query.CountAsync().ConfigureAwait(false);
+        var users = await query.OrderByDescending(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
+        var items = users.ConvertAll(ToListItem);
         return Ok(ApiResponse<PagedResponse<UserListItem>>.Ok(new PagedResponse<UserListItem>(items, current, size, total)));
     }
 
+    /// <summary>
+    ///     查询可分配角色
+    /// </summary>
+    /// <returns>角色选项集合</returns>
     [HttpGet("roles")]
-    public async Task<ActionResult<ApiResponse<object>>> Roles() {
-        var roleEntities = await db.Roles.AsNoTracking().OrderBy(x => x.Id).ToListAsync();
-        var roles = roleEntities
-            .Select(x => new
+    [ApiDescription("Query assignable roles")]
+    public async Task<ActionResult<ApiResponse<object>>> RolesAsync() {
+        var roleEntities = await db.Roles.AsNoTracking().OrderBy(x => x.Id).ToListAsync().ConfigureAwait(false);
+        var roles = roleEntities.ConvertAll(x => new
+            {
+                roleId = x.Id
+                , roleName = x.Code switch
                 {
-                    roleId = x.Id
-                    , roleName = x.Code switch
-                    {
-                        "R_SUPER" => ApiMessages.Get(Request, "roleSuper")
-                        , "R_ADMIN" => ApiMessages.Get(Request, "roleAdmin")
-                        , "R_USER" => ApiMessages.Get(Request, "roleUser")
-                        , _ => x.Name
-                    }
-                    , roleCode = x.Code
-                    , x.Description
+                    "R_SUPER" => ApiMessages.Get(Request, "roleSuper")
+                    , "R_ADMIN" => ApiMessages.Get(Request, "roleAdmin")
+                    , "R_USER" => ApiMessages.Get(Request, "roleUser")
+                    , _ => x.Name
                 }
-            )
-            .ToList();
+                , roleCode = x.Code
+                , x.Description
+            }
+        );
         return Ok(ApiResponse<object>.Ok(roles));
     }
 
+    /// <summary>
+    ///     更新用户
+    /// </summary>
+    /// <param name="id">用户主键</param>
+    /// <param name="request">用户保存请求</param>
+    /// <returns>更新后的用户</returns>
     [HttpPut("{id:long}")]
-    [Authorize(Roles = "R_SUPER,R_ADMIN")]
-    public async Task<ActionResult<ApiResponse<UserListItem>>> Update(
+    [ApiDescription("Update user")]
+    public async Task<ActionResult<ApiResponse<UserListItem>>> UpdateAsync(
         long id
         , SaveUserRequest request
     ) {
-        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleOrDefaultAsync(x => x.Id == id);
+        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (user is null) {
             return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "userNotFound"), null));
         }
 
-        if (await db.Users.AnyAsync(x => x.UserName == request.UserName && x.Id != id)) {
+        if (await db.Users.AnyAsync(x => x.UserName == request.UserName && x.Id != id).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "userExists"), null));
         }
 
-        var roles = await ResolveRoles(request.Roles);
+        var roles = await ResolveRolesAsync(request.Roles).ConfigureAwait(false);
         if (roles is null) {
             return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "invalidRole"), null));
         }
@@ -177,7 +220,7 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
 
         db.UserRoles.RemoveRange(user.UserRoles);
         user.UserRoles = [.. roles.Select(role => new UserRole { User = user, Role = role })];
-        await db.SaveChangesAsync();
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), ApiMessages.Get(Request, "userUpdated")));
     }
 
@@ -188,9 +231,9 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         );
     }
 
-    private async Task<List<Role>?> ResolveRoles(string[] codes) {
+    private async Task<List<Role>?> ResolveRolesAsync(string[] codes) {
         var distinct = codes.Distinct().ToArray();
-        var roles = await db.Roles.Where(x => distinct.Contains(x.Code)).ToListAsync();
+        var roles = await db.Roles.Where(x => distinct.Contains(x.Code)).ToListAsync().ConfigureAwait(false);
         return roles.Count == distinct.Length ? roles : null;
     }
 }

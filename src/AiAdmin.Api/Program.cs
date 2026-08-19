@@ -1,5 +1,8 @@
+// 注册应用服务、认证授权、请求管道，并在启动时初始化和同步接口数据。
+
 using System.Text;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Middleware;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -9,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<ApiPermissionCache>();
+builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<TokenService>();
 
 var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvariant() ?? "sqlite";
@@ -17,23 +23,14 @@ var connectionString = builder.Configuration.GetConnectionString(provider)
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     {
-        switch (provider) {
-            case "sqlite":
-                options.UseSqlite(connectionString);
-                break;
-            case "sqlserver":
-                options.UseSqlServer(connectionString);
-                break;
-            case "postgresql":
-            case "postgres":
-                options.UseNpgsql(connectionString);
-                break;
-            case "mysql":
-                options.UseMySQL(connectionString);
-                break;
-            default:
-                throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.");
-        }
+        _ = provider switch
+        {
+            "sqlite" => options.UseSqlite(connectionString)
+            , "sqlserver" => options.UseSqlServer(connectionString)
+            , "postgresql" or "postgres" => options.UseNpgsql(connectionString)
+            , "mysql" => options.UseMySQL(connectionString)
+            , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
+        };
     }
 );
 
@@ -65,9 +62,15 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseCors("Web");
+app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<ApiPermissionMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
-await DatabaseInitializer.InitializeAsync(app.Services);
-await app.RunAsync();
+await DatabaseInitializer.InitializeAsync(app.Services).ConfigureAwait(false);
+await using (var scope = app.Services.CreateAsyncScope()) {
+    _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
+}
+
+await app.RunAsync().ConfigureAwait(false);

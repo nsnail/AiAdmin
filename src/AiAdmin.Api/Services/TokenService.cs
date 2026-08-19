@@ -5,10 +5,19 @@ using System.Text;
 using AiAdmin.Api.Models;
 using Microsoft.IdentityModel.Tokens;
 
+// 根据用户身份和角色生成用于 Bearer 鉴权的 JWT。
 namespace AiAdmin.Api.Services;
 
+/// <summary>
+///     JWT 访问令牌服务
+/// </summary>
 public sealed class TokenService(IConfiguration configuration)
 {
+    /// <summary>
+    ///     为用户创建包含角色声明的 JWT
+    /// </summary>
+    /// <param name="user">登录用户</param>
+    /// <returns>JWT 字符串</returns>
     public string Create(User user) {
         var roles = user.UserRoles.Select(x => x.Role.Code).ToArray();
         var claims = new List<Claim>

@@ -1,0 +1,35 @@
+<!-- 注意此文件名大小写不可变更 -->
+<Project>
+    <PropertyGroup>
+        <SolutionDir>$(MSBuildThisFileDirectory)</SolutionDir>
+    </PropertyGroup>
+    <PropertyGroup>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Authors>nsnail</Authors>
+        <BaseIntermediateOutputPath>$(SolutionDir)/dist/$(MSBuildProjectName)/obj</BaseIntermediateOutputPath>
+        <BaseOutputPath>$(SolutionDir)/dist/$(MSBuildProjectName)/bin</BaseOutputPath>
+        <Copyright>© 2006-2026 nsnail</Copyright>
+        <Description>通用后台权限管理系统、快速开发框架（基于C#13/.NET10、Vue3/Vite、ElementPlus等现代技术构建，具有十分整洁、优雅的编码规范）</Description>
+        <EnableBaseIntermediateOutputPathMismatchWarning>false</EnableBaseIntermediateOutputPathMismatchWarning>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>preview</LangVersion>
+        <MinVerDefaultPreReleaseIdentifiers>beta</MinVerDefaultPreReleaseIdentifiers>
+        <MinVerTagPrefix>v</MinVerTagPrefix>
+        <NoWarn>CA1707;IDE0005;IDE0008;IDE0010;IDE0028;IDE0055;IDE0072;IDE0160;IDE0300;IDE0305;RCS1141;RCS1142;RCS1181;S101;S1121;S1135;S125;S2094;S3604;S4663;S6561;SA1010;SYSLIB1045</NoWarn>
+        <Nullable>enable</Nullable>
+        <Product>AiAdmin</Product>
+        <RepositoryType>git</RepositoryType>
+        <RepositoryUrl>https://github.com/nsnail/AiAdmin.git</RepositoryUrl>
+        <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
+        <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
+        <Title>$(AssemblyName)</Title>
+        <UseWindowsForms Condition="'$(OS)' == 'Windows_NT'">true</UseWindowsForms>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="MinVer" Version="7.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+</Project>

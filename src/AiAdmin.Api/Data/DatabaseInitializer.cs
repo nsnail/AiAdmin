@@ -2,27 +2,41 @@ using System.Text.Json;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Models;
 using Microsoft.EntityFrameworkCore;
+using Menu = AiAdmin.Api.Models.Menu;
 
+// 负责创建数据库结构并写入开发环境所需的基础数据。
 namespace AiAdmin.Api.Data;
 
+/// <summary>
+///     数据库结构和基础数据初始化器
+/// </summary>
 public static class DatabaseInitializer
 {
+    private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    /// <summary>
+    ///     初始化数据库结构、基础角色和菜单数据
+    /// </summary>
+    /// <param name="services">应用服务提供器</param>
+    /// <returns>异步初始化任务</returns>
     public static async Task InitializeAsync(IServiceProvider services) {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.EnsureCreatedAsync();
+        _ = await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
 
-        if (!await db.Roles.AnyAsync()) {
-            db.Roles.AddRange(
-                new Role { Name = "Super administrator", Code = "R_SUPER", Description = "Full system access" }
-                , new Role { Name = "Administrator", Code = "R_ADMIN", Description = "User administration" }
-                , new Role { Name = "User", Code = "R_USER", Description = "Basic access" }
-            );
-            await db.SaveChangesAsync();
+        if (!await db.Roles.AnyAsync().ConfigureAwait(false)) {
+            await db
+                .Roles.AddRangeAsync(
+                    new Role { Name = "Super administrator", Code = "R_SUPER", Description = "Full system access" }
+                    , new Role { Name = "Administrator", Code = "R_ADMIN", Description = "User administration" }
+                    , new Role { Name = "User", Code = "R_USER", Description = "Basic access" }
+                )
+                .ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
-        if (!await db.Users.AnyAsync()) {
-            var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER");
+        if (!await db.Users.AnyAsync().ConfigureAwait(false)) {
+            var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER").ConfigureAwait(false);
             var admin = new User
             {
                 UserName = "admin"
@@ -33,16 +47,16 @@ public static class DatabaseInitializer
                 , Gender = "male"
             };
             admin.UserRoles.Add(new UserRole { User = admin, Role = superRole });
-            db.Users.Add(admin);
-            await db.SaveChangesAsync();
+            _ = await db.Users.AddAsync(admin).ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
-        if (!await db.Menus.AnyAsync()) {
-            await SeedMenusAsync(db);
+        if (!await db.Menus.AnyAsync().ConfigureAwait(false)) {
+            await SeedMenusAsync(db).ConfigureAwait(false);
         }
 
-        if (!await db.RoleMenus.AnyAsync()) {
-            await SeedRoleMenusAsync(db);
+        if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
+            await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
     }
 
@@ -72,7 +86,8 @@ public static class DatabaseInitializer
     ) {
         var index = 0;
         foreach (var menu in menus) {
-            yield return (menu, parentName, index++);
+            yield return (menu, parentName, index);
+            ++index;
             foreach (var child in Flatten(menu.Children, menu.Name)) {
                 yield return child;
             }
@@ -95,48 +110,54 @@ public static class DatabaseInitializer
         JsonElement meta
         , string roleCode
     ) {
-        if (meta.ValueKind != JsonValueKind.Object || !meta.TryGetProperty("roles", out var roles)) {
-            return true;
-        }
-
-        return roles.ValueKind != JsonValueKind.Array || roles.EnumerateArray().Any(x => x.GetString() == roleCode);
+        return meta.ValueKind != JsonValueKind.Object
+               || !meta.TryGetProperty("roles", out var roles)
+               || roles.ValueKind != JsonValueKind.Array
+               || roles.EnumerateArray().Any(x => x.GetString() == roleCode);
     }
 
     private static async Task SeedMenusAsync(AppDbContext db) {
         var seedPath = Path.Combine(AppContext.BaseDirectory, "Data", "menu-seed.json");
-        var json = await File.ReadAllTextAsync(seedPath);
-        var tree = JsonSerializer.Deserialize<MenuItemRequest[]>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
+        var json = await File.ReadAllTextAsync(seedPath).ConfigureAwait(false);
+        var tree = JsonSerializer.Deserialize<MenuItemRequest[]>(json, _seedJsonOptions) ?? [];
         var index = 0;
         foreach (var item in FlattenSeed(tree)) {
-            db.Menus.Add(
-                new Menu
-                {
-                    Name = item.Menu.Name
-                    , Path = item.Menu.Path
-                    , Component = item.Menu.Component
-                    , ParentName = item.ParentName
-                    , Sort = index++
-                    , MetaJson = item.Menu.Meta.GetRawText()
-                }
-            );
+            var sort = index;
+            ++index;
+            _ = await db
+                .Menus.AddAsync(
+                    new Menu
+                    {
+                        Name = item.Menu.Name
+                        , Path = item.Menu.Path
+                        , Component = item.Menu.Component
+                        , ParentName = item.ParentName
+                        , Sort = sort
+                        , MetaJson = item.Menu.Meta.GetRawText()
+                    }
+                )
+                .ConfigureAwait(false);
         }
 
-        await db.SaveChangesAsync();
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private static async Task SeedRoleMenusAsync(AppDbContext db) {
         var seedPath = Path.Combine(AppContext.BaseDirectory, "Data", "menu-seed.json");
-        var json = await File.ReadAllTextAsync(seedPath);
-        var menuTree = JsonSerializer.Deserialize<MenuItemRequest[]>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? [];
-        var roles = await db.Roles.ToListAsync();
+        var json = await File.ReadAllTextAsync(seedPath).ConfigureAwait(false);
+        var menuTree = JsonSerializer.Deserialize<MenuItemRequest[]>(json, _seedJsonOptions) ?? [];
+        var roles = await db.Roles.ToListAsync().ConfigureAwait(false);
         foreach (var role in roles) {
-            var items = Flatten(FilterByRole(menuTree, role.Code)).ToList();
-            foreach (var item in items) {
-                var menu = await db.Menus.SingleAsync(x => x.Name == item.Menu.Name);
+            if (role.Code == "R_SUPER") {
+                continue;
+            }
+
+            foreach (var item in Flatten(FilterByRole(menuTree, role.Code)).ToList()) {
+                var menu = await db.Menus.SingleAsync(x => x.Name == item.Menu.Name).ConfigureAwait(false);
                 role.RoleMenus.Add(new RoleMenu { Role = role, Menu = menu });
             }
         }
 
-        await db.SaveChangesAsync();
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 }

@@ -48,6 +48,8 @@
       :role-data="currentRoleData"
       @success="refreshData"
     />
+
+    <RoleApiDialog v-model="apiPermissionDialog" :role-data="currentRoleData" />
   </div>
 </template>
 
@@ -59,6 +61,7 @@
   import RoleSearch from './modules/role-search.vue'
   import RoleEditDialog from './modules/role-edit-dialog.vue'
   import RolePermissionDialog from './modules/role-permission-dialog.vue'
+  import RoleApiDialog from './modules/role-api-dialog.vue'
   import { ElTag, ElMessageBox } from 'element-plus'
 
   defineOptions({ name: 'Role' })
@@ -81,6 +84,7 @@
 
   const dialogVisible = ref(false)
   const permissionDialog = ref(false)
+  const apiPermissionDialog = ref(false)
   const currentRoleData = ref<RoleListItem | undefined>(undefined)
 
   const {
@@ -151,7 +155,7 @@
         {
           prop: 'operation',
           label: '操作',
-          width: 80,
+          width: 100,
           fixed: 'right',
           formatter: (row) =>
             h('div', [
@@ -161,6 +165,11 @@
                     key: 'permission',
                     label: '菜单权限',
                     icon: 'ri:user-3-line'
+                  },
+                  {
+                    key: 'apiPermission',
+                    label: '接口权限',
+                    icon: 'ri:route-line'
                   },
                   {
                     key: 'edit',
@@ -207,6 +216,10 @@
     switch (item.key) {
       case 'permission':
         showPermissionDialog(row)
+        break
+      case 'apiPermission':
+        apiPermissionDialog.value = true
+        currentRoleData.value = row
         break
       case 'edit':
         showDialog('edit', row)

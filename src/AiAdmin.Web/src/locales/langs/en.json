@@ -271,7 +271,7 @@
       "notFound": "404",
       "serverError": "500"
     },
-    "examples": {
+      "examples": {
       "title": "Feature Examples",
       "tabs": "Tabs",
       "tablesBasic": "Basic Tables",
@@ -286,21 +286,19 @@
         "buttonAuth": "Button Authority",
         "pageVisibility": "Super Admin Visibility"
       }
-    },
-    "system": {
-      "title": "System Settings",
+      },
+      "development": {
+        "title": "Development",
+        "exampleCenter": "Example Center"
+      },
+      "system": {
+        "title": "System Settings",
+        "permission": "Permission Management",
       "user": "User Manage",
       "role": "Role Manage",
       "userCenter": "User Center",
-      "menu": "Menu Manage",
-      "nested": "Nested Menu",
-      "menu1": "Menu 1",
-      "menu2": "Menu 2",
-      "menu21": "Menu 2-1",
-      "menu3": "Menu 3",
-      "menu31": "Menu 3-1",
-      "menu32": "Menu 3-2",
-      "menu321": "Menu 3-2-1"
+        "menu": "Menu Manage",
+        "api": "API Management"
     },
     "safeguard": {
       "title": "Safeguard",

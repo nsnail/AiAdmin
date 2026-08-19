@@ -2,4 +2,8 @@
     <Folder Name="/src/">
         <Project Path="src/AiAdmin.Api/AiAdmin.Api.csproj"/>
     </Folder>
+    <Folder Name="/build/">
+        <File Path="build/code.quality.props"/>
+        <File Path="build/stylecop.analyzers.ruleset"/>
+    </Folder>
 </Solution>

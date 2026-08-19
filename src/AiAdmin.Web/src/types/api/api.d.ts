@@ -142,6 +142,24 @@ declare namespace Api {
       'roleName' | 'roleCode' | 'description' | 'enabled'
     >
 
+    interface ApiEndpointItem {
+      id: number
+      name: string
+      allowAnonymous: boolean
+      method: string
+      path: string
+      controller: string
+      controllerName: string
+      action: string
+    }
+
+    interface ApiSyncResult {
+      added: number
+      updated: number
+      deleted: number
+      total: number
+    }
+
     /** 角色搜索参数 */
     type RoleSearchParams = Partial<
       Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &

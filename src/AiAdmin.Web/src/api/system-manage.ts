@@ -53,6 +53,26 @@ export function fetchSaveRoleMenus(id: number, menuIds: number[]) {
   return request.put<void>({ url: `/api/role/${id}/menus`, data: { menuIds } })
 }
 
+export function fetchGetRoleApis(id: number) {
+  return request.get<number[]>({ url: `/api/role/${id}/apis` })
+}
+
+export function fetchSaveRoleApis(id: number, apiIds: number[]) {
+  return request.put<void>({ url: `/api/role/${id}/apis`, data: { apiIds } })
+}
+
+export function fetchGetApiEndpointList() {
+  return request.get<Api.SystemManage.ApiEndpointItem[]>({ url: '/api/api-endpoint/list' })
+}
+
+export function fetchSyncApiEndpoints() {
+  return request.post<Api.SystemManage.ApiSyncResult>({ url: '/api/api-endpoint/sync' })
+}
+
+export function fetchUpdateApiAnonymous(id: number, allowAnonymous: boolean) {
+  return request.put<void>({ url: `/api/api-endpoint/${id}/anonymous`, data: { allowAnonymous } })
+}
+
 export function fetchGetCurrentMenuNames() {
   return request.get<AppRouteRecord[]>({ url: '/api/menu/current' })
 }
