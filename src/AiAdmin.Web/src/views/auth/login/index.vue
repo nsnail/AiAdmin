@@ -96,7 +96,6 @@
 </template>
 
 <script setup lang="ts">
-  import AppConfig from '@/config'
   import { useUserStore } from '@/store/modules/user'
   import { useI18n } from 'vue-i18n'
   import { HttpError } from '@/utils/http/error'
@@ -124,7 +123,6 @@
   const isPassing = ref(false)
   const isClickPass = ref(false)
 
-  const systemName = AppConfig.systemInfo.name
   const formRef = ref<FormInstance>()
 
   const formData = reactive({
@@ -175,11 +173,13 @@
       userStore.setLoginStatus(true)
 
       // 登录成功处理
-      showLoginSuccessNotice()
+      showLoginSuccessNotice(username)
 
       // 获取 redirect 参数，如果存在则跳转到指定页面，否则跳转到首页
       const redirect = route.query.redirect as string
-      router.push(redirect || '/')
+      // 登录页不能作为登录成功后的目标，否则会不断嵌套 redirect 参数
+      const target = redirect && !redirect.startsWith('/auth/login') ? redirect : '/'
+      router.push(target)
     } catch (error) {
       // 处理 HttpError
       if (error instanceof HttpError) {
@@ -201,14 +201,14 @@
   }
 
   // 登录成功提示
-  const showLoginSuccessNotice = () => {
+  const showLoginSuccessNotice = (username: string) => {
     setTimeout(() => {
       ElNotification({
         title: t('login.success.title'),
         type: 'success',
         duration: 2500,
         zIndex: 10000,
-        message: `${t('login.success.message')}, ${systemName}!`
+        message: `${t('login.success.message')}, ${username}!`
       })
     }, 1000)
   }

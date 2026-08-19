@@ -23,6 +23,8 @@
       "docs": "使用文档",
       "github": "Github",
       "lockScreen": "锁定屏幕",
+      "clearCache": "清除缓存",
+      "clearCacheTips": "清除缓存会将系统初始化，包括登录状态、主题、语言设置等，是否继续？",
       "logout": "退出登录"
     },
     "guide": {
@@ -316,17 +318,38 @@
       "oldVersion": "v2.6.1 版本"
     }
   },
+  "userCenter": {
+    "roles": "角色",
+    "empty": { "user": "未登录用户", "email": "未填写邮箱", "phone": "未填写手机号" },
+    "gender": { "male": "男", "female": "女" },
+    "roleNames": { "R_SUPER": "超级管理员", "R_ADMIN": "管理员", "R_USER": "普通用户" },
+    "profile": { "title": "个人资料", "userName": "用户名", "gender": "性别", "email": "邮箱", "phone": "手机号" },
+    "password": { "title": "更改密码", "current": "当前密码", "new": "新密码", "confirm": "确认新密码" },
+    "actions": { "editProfile": "编辑资料", "saveProfile": "保存资料", "changePassword": "修改密码", "savePassword": "保存密码" },
+    "validation": {
+      "emailRequired": "请输入邮箱", "emailInvalid": "请输入正确的邮箱", "genderRequired": "请选择性别",
+      "currentPasswordRequired": "请输入当前密码", "newPasswordRequired": "请输入新密码",
+      "confirmPasswordRequired": "请确认新密码", "passwordLength": "密码长度不能少于 6 位",
+      "passwordMismatch": "两次输入的密码不一致"
+    },
+    "messages": { "profileUpdated": "个人资料更新成功", "passwordChanged": "密码修改成功" }
+  },
   "userManagement": {
     "actions": { "add": "新增用户", "save": "保存", "edit": "编辑", "delete": "删除" },
     "fields": {
+<<<<<<< HEAD
       "userName": "用户名", "nickName": "昵称", "password": "密码", "email": "邮箱",
       "phone": "手机号", "gender": "性别", "roles": "角色", "departments": "所属部门", "status": "状态",
+=======
+      "userName": "用户名", "password": "密码", "email": "邮箱",
+      "phone": "手机号", "gender": "性别", "roles": "角色", "status": "状态",
+>>>>>>> remotes/origin/main
       "createdAt": "创建日期", "operation": "操作"
     },
     "status": { "enabled": "启用", "disabled": "停用", "unknown": "未知" },
     "gender": { "male": "男", "female": "女" },
     "dialog": { "addTitle": "添加用户", "editTitle": "编辑用户", "passwordKeep": "留空表示不修改", "passwordNew": "至少 6 位" },
-    "placeholder": { "userName": "请输入用户名", "nickName": "请输入昵称", "email": "请输入邮箱", "phone": "请输入手机号", "status": "请选择状态" },
+    "placeholder": { "userName": "请输入用户名", "email": "请输入邮箱", "phone": "请输入手机号", "status": "请选择状态" },
     "validation": {
       "userNameRequired": "请输入用户名", "userNameLength": "长度为 2 到 50 个字符",
       "passwordRequired": "请输入密码", "passwordLength": "密码至少 6 位", "emailInvalid": "邮箱格式不正确", "rolesRequired": "请选择角色"
