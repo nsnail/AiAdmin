@@ -144,6 +144,12 @@
         },
         { prop: 'userPhone', label: t('userManagement.fields.phone') },
         {
+          prop: 'departmentNames',
+          label: t('userManagement.fields.departments'),
+          minWidth: 160,
+          formatter: (row) => row.departmentNames.join('、') || '-'
+        },
+        {
           prop: 'status',
           label: t('userManagement.fields.status'),
           formatter: (row) => {

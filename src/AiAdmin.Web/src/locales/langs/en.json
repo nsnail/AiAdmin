@@ -298,6 +298,7 @@
         "permission": "Permission Management",
       "user": "User Manage",
       "role": "Role Manage",
+      "department": "Department Management",
       "userCenter": "User Center",
         "menu": "Menu Manage",
         "api": "API Management"
@@ -337,7 +338,7 @@
     "actions": { "add": "Add user", "save": "Save", "edit": "Edit", "delete": "Delete" },
     "fields": {
       "userName": "Username", "password": "Password", "email": "Email",
-      "phone": "Phone", "gender": "Gender", "roles": "Roles", "status": "Status",
+      "phone": "Phone", "gender": "Gender", "roles": "Roles", "departments": "Departments", "status": "Status",
       "createdAt": "Created at", "operation": "Actions"
     },
     "status": { "enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown" },

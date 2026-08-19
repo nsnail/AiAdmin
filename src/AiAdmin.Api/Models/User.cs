@@ -53,6 +53,11 @@ public sealed class User
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
+    ///     用户部门关联集合
+    /// </summary>
+    public ICollection<UserDepartment> UserDepartments { get; set; } = [];
+
+    /// <summary>
     ///     登录用户名
     /// </summary>
     public required string UserName { get; set; }

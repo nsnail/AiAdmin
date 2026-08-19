@@ -77,6 +77,14 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
 
         _ = await db.Users.AddAsync(user).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        var defaultDepartment = await db.Departments.SingleOrDefaultAsync(x => x.Code == "DEFAULT").ConfigureAwait(false);
+        if (defaultDepartment is null) {
+            return StatusCode(500, new ApiResponse<object>(500, "默认部门不存在", null));
+        }
+
+        var personalDepartment = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id };
+        user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), ApiMessages.Get(Request, "userCreated")));
     }
 
@@ -140,7 +148,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     ) {
         current = Math.Max(current, 1);
         size = Math.Clamp(size, 1, 100);
-        var query = db.Users.AsNoTracking().Include(x => x.UserRoles).ThenInclude(x => x.Role).AsQueryable();
+        var query = db
+            .Users.AsNoTracking()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .AsQueryable();
         if (!string.IsNullOrWhiteSpace(userName)) {
             query = query.Where(x => x.UserName.Contains(userName));
         }
@@ -207,7 +221,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         long id
         , SaveUserRequest request
     ) {
-        var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
+        var user = await db
+            .Users.Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .SingleOrDefaultAsync(x => x.Id == id)
+            .ConfigureAwait(false);
         if (user is null) {
             return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "userNotFound"), null));
         }
@@ -265,7 +285,8 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     private static UserListItem ToListItem(User user) {
         return new UserListItem(
             user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.Phone, user.Email
-            , [.. user.UserRoles.Select(x => x.Role.Code)], "system", ServerTime.ToOffset(user.CreatedAt), "system"
+            , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserDepartments.Select(x => x.DepartmentId)]
+            , [.. user.UserDepartments.Select(x => x.Department.Name)], "system", ServerTime.ToOffset(user.CreatedAt), "system"
             , ServerTime.ToOffset(user.UpdatedAt)
         );
     }

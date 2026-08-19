@@ -16,6 +16,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     public DbSet<ApiEndpoint> ApiEndpoints => Set<ApiEndpoint>();
 
     /// <summary>
+    ///     部门实体集合
+    /// </summary>
+    public DbSet<Department> Departments => Set<Department>();
+
+    /// <summary>
     ///     菜单实体集合
     /// </summary>
     public DbSet<Menu> Menus => Set<Menu>();
@@ -34,6 +39,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
     ///     角色实体集合
     /// </summary>
     public DbSet<Role> Roles => Set<Role>();
+
+    /// <summary>
+    ///     用户部门关联集合
+    /// </summary>
+    public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
 
     /// <summary>
     ///     用户角色关联集合
@@ -62,6 +72,31 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
                 _ = entity.Property(x => x.Phone).HasMaxLength(20);
                 _ = entity.Property(x => x.Gender).HasMaxLength(10);
                 _ = entity.Property(x => x.Avatar).HasMaxLength(500);
+            }
+        );
+
+        _ = modelBuilder.Entity<Department>(entity =>
+            {
+                _ = entity.ToTable("sys_department");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.HasIndex(x => x.Code).IsUnique();
+                _ = entity.HasIndex(x => x.ParentId);
+                _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+                _ = entity.Property(x => x.Leader).HasMaxLength(50);
+                _ = entity.Property(x => x.Phone).HasMaxLength(20);
+                _ = entity.Property(x => x.Email).HasMaxLength(100).IsRequired(false);
+                _ = entity.Property(x => x.IsEnabled).HasDefaultValue(true);
+                _ = entity.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
+            }
+        );
+
+        _ = modelBuilder.Entity<UserDepartment>(entity =>
+            {
+                _ = entity.ToTable("sys_user_department");
+                _ = entity.HasKey(x => new { x.UserId, x.DepartmentId });
+                _ = entity.HasOne(x => x.User).WithMany(x => x.UserDepartments).HasForeignKey(x => x.UserId);
+                _ = entity.HasOne(x => x.Department).WithMany(x => x.UserDepartments).HasForeignKey(x => x.DepartmentId);
             }
         );
 

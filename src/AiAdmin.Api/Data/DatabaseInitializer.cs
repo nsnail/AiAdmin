@@ -42,6 +42,8 @@ public static class DatabaseInitializer
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
+        var defaultDepartment = await EnsureDefaultDepartmentAsync(db).ConfigureAwait(false);
+
         if (!await db.Users.AnyAsync().ConfigureAwait(false)) {
             var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER").ConfigureAwait(false);
             var adminRole = await db.Roles.SingleAsync(x => x.Code == "R_ADMIN").ConfigureAwait(false);
@@ -80,6 +82,8 @@ public static class DatabaseInitializer
 
             await db.Users.AddRangeAsync(root, admin, user).ConfigureAwait(false);
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
+
+            await AddSeedUserDepartmentsAsync(db, defaultDepartment, root, admin, user).ConfigureAwait(false);
         }
 
         if (!await db.Menus.AnyAsync().ConfigureAwait(false)) {
@@ -115,6 +119,43 @@ public static class DatabaseInitializer
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         permissionCache.Invalidate();
+    }
+
+    /// <summary>
+    ///     为种子用户创建默认部门下的个人子部门并建立关联
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <param name="defaultDepartment">默认部门</param>
+    /// <param name="users">种子用户集合</param>
+    /// <returns>异步处理任务</returns>
+    private static async Task AddSeedUserDepartmentsAsync(
+        AppDbContext db
+        , Department defaultDepartment
+        , params User[] users
+    ) {
+        foreach (var user in users) {
+            var department = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id, Sort = 0 };
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保默认部门种子存在
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <returns>默认部门实体</returns>
+    private static async Task<Department> EnsureDefaultDepartmentAsync(AppDbContext db) {
+        var department = await db.Departments.SingleOrDefaultAsync(x => x.Code == "DEFAULT").ConfigureAwait(false);
+        if (department is not null) {
+            return department;
+        }
+
+        department = new Department { Name = "默认部门", Code = "DEFAULT", Sort = 0 };
+        _ = await db.Departments.AddAsync(department).ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return department;
     }
 
     private static MenuItemRequest[] FilterByRole(
