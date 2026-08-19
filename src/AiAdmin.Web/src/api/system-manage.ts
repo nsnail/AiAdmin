@@ -33,9 +33,45 @@ export function fetchGetRoleList(params: Api.SystemManage.RoleSearchParams) {
   })
 }
 
+export function fetchCreateRole(data: Api.SystemManage.SaveRoleParams) {
+  return request.post<Api.SystemManage.RoleListItem>({ url: '/api/role', data })
+}
+
+export function fetchUpdateRole(id: number, data: Api.SystemManage.SaveRoleParams) {
+  return request.put<Api.SystemManage.RoleListItem>({ url: `/api/role/${id}`, data })
+}
+
+export function fetchDeleteRole(id: number) {
+  return request.del<void>({ url: `/api/role/${id}`, showSuccessMessage: true })
+}
+
+export function fetchGetRoleMenus(id: number) {
+  return request.get<AppRouteRecord[]>({ url: `/api/role/${id}/menus` })
+}
+
+export function fetchSaveRoleMenus(id: number, menuIds: number[]) {
+  return request.put<void>({ url: `/api/role/${id}/menus`, data: { menuIds } })
+}
+
+export function fetchGetCurrentMenuNames() {
+  return request.get<AppRouteRecord[]>({ url: '/api/menu/current' })
+}
+
 // 获取菜单列表
 export function fetchGetMenuList() {
   return request.get<AppRouteRecord[]>({
-    url: '/api/v3/system/menus'
+    url: '/api/menu/list'
   })
+}
+
+export function fetchCreateMenu(data: Record<string, any>) {
+  return request.post<AppRouteRecord>({ url: '/api/menu', data })
+}
+
+export function fetchUpdateMenu(id: number, data: Record<string, any>) {
+  return request.put<AppRouteRecord>({ url: `/api/menu/${id}`, data })
+}
+
+export function fetchDeleteMenu(id: number) {
+  return request.del<void>({ url: `/api/menu/${id}`, showSuccessMessage: true })
 }

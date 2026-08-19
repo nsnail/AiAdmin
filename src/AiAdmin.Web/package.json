@@ -18,6 +18,7 @@
     "prepare": "husky",
     "commit": "git-cz",
     "clean:dev": "tsx scripts/clean-dev.ts"
+    , "seed:menus": "tsx scripts/export-menu-seed.ts"
   },
   "config": {
     "commitizen": {

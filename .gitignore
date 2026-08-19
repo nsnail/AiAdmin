@@ -5,6 +5,7 @@
 *.db
 *.db-shm
 *.db-wal
+*.db.obsolete-*
 .idea/
 .vs/
 .vscode/

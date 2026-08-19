@@ -129,14 +129,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             .Select(x => new
                 {
                     roleId = x.Id
-                    , roleName = ApiMessages.Get(
-                        Request, x.Code switch
-                        {
-                            "R_SUPER" => "roleSuper"
-                            , "R_ADMIN" => "roleAdmin"
-                            , _ => "roleUser"
-                        }
-                    )
+                    , roleName = x.Code switch
+                    {
+                        "R_SUPER" => ApiMessages.Get(Request, "roleSuper")
+                        , "R_ADMIN" => ApiMessages.Get(Request, "roleAdmin")
+                        , "R_USER" => ApiMessages.Get(Request, "roleUser")
+                        , _ => x.Name
+                    }
                     , roleCode = x.Code
                     , x.Description
                 }

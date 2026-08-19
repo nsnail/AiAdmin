@@ -137,6 +137,11 @@ declare namespace Api {
       createTime: string
     }
 
+    type SaveRoleParams = Pick<
+      RoleListItem,
+      'roleName' | 'roleCode' | 'description' | 'enabled'
+    >
+
     /** 角色搜索参数 */
     type RoleSearchParams = Partial<
       Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &

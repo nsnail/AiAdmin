@@ -8,9 +8,8 @@
  */
 
 import type { AppRouteRecord } from '@/types/router'
-import { useUserStore } from '@/store/modules/user'
 import { useAppMode } from '@/hooks/core/useAppMode'
-import { fetchGetMenuList } from '@/api/system-manage'
+import { fetchGetCurrentMenuNames } from '@/api/system-manage'
 import { asyncRoutes } from '../routes/asyncRoutes'
 import { RoutesAlias } from '../routesAlias'
 import { formatMenuTitle } from '@/utils'
@@ -40,16 +39,7 @@ export class MenuProcessor {
    * 处理前端控制模式的菜单
    */
   private async processFrontendMenu(): Promise<AppRouteRecord[]> {
-    const userStore = useUserStore()
-    const roles = userStore.info?.roles
-
-    let menuList = [...asyncRoutes]
-
-    // 根据角色过滤菜单
-    if (roles && roles.length > 0) {
-      menuList = this.filterMenuByRoles(menuList, roles)
-    }
-
+    const menuList = await fetchGetCurrentMenuNames()
     return this.filterEmptyMenus(menuList)
   }
 
@@ -57,28 +47,43 @@ export class MenuProcessor {
    * 处理后端控制模式的菜单
    */
   private async processBackendMenu(): Promise<AppRouteRecord[]> {
-    const list = await fetchGetMenuList()
-    return this.filterEmptyMenus(list)
+    const menuList = await fetchGetCurrentMenuNames()
+    return this.filterEmptyMenus(menuList)
   }
 
   /**
    * 根据角色过滤菜单
    */
-  private filterMenuByRoles(menu: AppRouteRecord[], roles: string[]): AppRouteRecord[] {
+  private filterMenuByNames(menu: AppRouteRecord[], allowedNames: Set<string>): AppRouteRecord[] {
     return menu.reduce((acc: AppRouteRecord[], item) => {
-      const itemRoles = item.meta?.roles
-      const hasPermission = !itemRoles || itemRoles.some((role) => roles?.includes(role))
+      const visibleChildren = item.children?.filter((child) => !child.meta?.isHide) ?? []
+      const filteredChildren = this.filterMenuByNames(visibleChildren, allowedNames)
+      const name = typeof item.name === 'string' ? item.name : ''
+      const hasPermission = allowedNames.has(name) || filteredChildren.length > 0
 
       if (hasPermission) {
         const filteredItem = { ...item }
-        if (filteredItem.children?.length) {
-          filteredItem.children = this.filterMenuByRoles(filteredItem.children, roles)
+        if (item.children?.length) {
+          const allowedChildNames = new Set(filteredChildren.map((child) => child.name))
+          filteredItem.children = item.children.flatMap((child) => {
+            if (child.meta?.isHide) return [this.cloneRoute(child)]
+            return allowedChildNames.has(child.name)
+              ? [filteredChildren.find((candidate) => candidate.name === child.name)!]
+              : []
+          })
         }
         acc.push(filteredItem)
       }
 
       return acc
     }, [])
+  }
+
+  private cloneRoute(route: AppRouteRecord): AppRouteRecord {
+    return {
+      ...route,
+      children: route.children?.map((child) => this.cloneRoute(child))
+    }
   }
 
   /**

@@ -55,7 +55,7 @@
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import type { AppRouteRecord } from '@/types/router'
   import MenuDialog from './modules/menu-dialog.vue'
-  import { fetchGetMenuList } from '@/api/system-manage'
+  import { fetchCreateMenu, fetchDeleteMenu, fetchGetMenuList, fetchUpdateMenu } from '@/api/system-manage'
   import { ElTag, ElMessageBox } from 'element-plus'
 
   defineOptions({ name: 'Menus' })
@@ -222,7 +222,7 @@
           }),
           h(ArtButtonTable, {
             type: 'delete',
-            onClick: () => handleDeleteMenu()
+            onClick: () => handleDeleteMenu(row)
           })
         ])
       }
@@ -413,23 +413,39 @@
    * 提交表单数据
    * @param formData 表单数据
    */
-  const handleSubmit = (formData: MenuFormData): void => {
-    console.log('提交数据:', formData)
-    // TODO: 调用API保存数据
-    getMenuList()
+  const handleSubmit = async (formData: MenuFormData): Promise<void> => {
+    const meta = {
+      title: formData.name,
+      icon: formData.icon,
+      keepAlive: formData.keepAlive,
+      isHide: formData.isHide,
+      isHideTab: formData.isHideTab,
+      link: formData.link,
+      isIframe: formData.isIframe,
+      showBadge: formData.showBadge,
+      showTextBadge: formData.showTextBadge,
+      fixedTab: formData.fixedTab,
+      activePath: formData.activePath,
+      roles: formData.roles,
+      isFullPage: formData.isFullPage
+    }
+    const payload = { name: formData.label || formData.name, path: formData.path, component: formData.component || '', parentName: '', sort: formData.sort || 0, meta, isEnabled: formData.isEnable }
+    if (formData.id) await fetchUpdateMenu(formData.id, payload)
+    else await fetchCreateMenu(payload)
+    await getMenuList()
   }
 
   /**
    * 删除菜单
    */
-  const handleDeleteMenu = async (): Promise<void> => {
+  const handleDeleteMenu = async (row?: AppRouteRecord): Promise<void> => {
     try {
       await ElMessageBox.confirm('确定要删除该菜单吗？删除后无法恢复', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning'
       })
-      ElMessage.success('删除成功')
+      if (row?.id) await fetchDeleteMenu(row.id)
       getMenuList()
     } catch (error) {
       if (error !== 'cancel') {
