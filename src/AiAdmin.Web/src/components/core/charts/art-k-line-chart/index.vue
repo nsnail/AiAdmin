@@ -11,11 +11,16 @@
 <script setup lang="ts">
   import type { EChartsOption } from '@/plugins/echarts'
   import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
-  import type { KLineChartProps } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtKLineChart' })
 
-  const props = withDefaults(defineProps<KLineChartProps>(), {
+  interface ArtKLineChartProps {
+    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    data?: Array<{ time: string; open: number; close: number; high: number; low: number }>
+    showDataZoom?: boolean; dataZoomStart?: number; dataZoomEnd?: number
+  }
+
+  const props = withDefaults(defineProps<ArtKLineChartProps>(), {
     // 基础配置
     height: useChartOps().chartHeight,
     loading: false,

@@ -11,11 +11,16 @@
 <script setup lang="ts">
   import type { EChartsOption } from '@/plugins/echarts'
   import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
-  import type { RadarChartProps } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtRadarChart' })
 
-  const props = withDefaults(defineProps<RadarChartProps>(), {
+  interface ArtRadarChartProps {
+    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    indicator?: Array<{ name: string; max: number }>; data?: Array<{ name: string; value: number[] }>
+    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+  }
+
+  const props = withDefaults(defineProps<ArtRadarChartProps>(), {
     // 基础配置
     height: useChartOps().chartHeight,
     loading: false,

@@ -13,7 +13,6 @@
   import { echarts } from '@/plugins/echarts'
   import { useSettingStore } from '@/store/modules/setting'
   import chinaMapJson from '@/mock/json/chinaMap.json'
-  import type { MapChartProps } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtMapChart' })
 
@@ -22,7 +21,12 @@
   const settingStore = useSettingStore()
   const { isDark } = storeToRefs(settingStore)
 
-  const props = withDefaults(defineProps<MapChartProps>(), {
+  interface ArtMapChartProps {
+    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    mapData?: any[]; selectedRegion?: string; showLabels?: boolean; showScatter?: boolean
+  }
+
+  const props = withDefaults(defineProps<ArtMapChartProps>(), {
     mapData: () => [],
     selectedRegion: '',
     showLabels: true,

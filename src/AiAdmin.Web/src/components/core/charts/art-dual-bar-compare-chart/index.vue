@@ -6,11 +6,20 @@
 <script setup lang="ts">
   import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
   import type { EChartsOption, BarSeriesOption } from '@/plugins/echarts'
-  import type { BidirectionalBarChartProps } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtDualBarCompareChart' })
 
-  const props = withDefaults(defineProps<BidirectionalBarChartProps>(), {
+  interface ArtDualBarCompareChartProps {
+    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    positiveData: number[]; negativeData: number[]; xAxisData?: string[]
+    positiveName?: string; negativeName?: string; barWidth?: string | number
+    yAxisMin?: number; yAxisMax?: number; showDataLabel?: boolean
+    positiveBorderRadius?: number | number[]; negativeBorderRadius?: number | number[]
+    showAxisLabel?: boolean; showAxisLine?: boolean; showSplitLine?: boolean
+    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+  }
+
+  const props = withDefaults(defineProps<ArtDualBarCompareChartProps>(), {
     // 基础配置
     height: useChartOps().chartHeight,
     loading: false,

@@ -13,11 +13,33 @@
   import { graphic, type EChartsOption } from '@/plugins/echarts'
   import { getCssVar, hexToRgba } from '@/utils/ui'
   import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
-  import type { LineChartProps, LineDataItem } from '@/types/component/chart'
+  import type { LineDataItem, SymbolType } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtLineChart' })
 
-  const props = withDefaults(defineProps<LineChartProps>(), {
+  /** 折线图运行时 Props，避免外部继承类型无法被 Vue 编译器展开 */
+  interface ArtLineChartProps {
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    data: number[] | LineDataItem[]
+    xAxisData?: string[]
+    lineWidth?: number
+    showAreaColor?: boolean
+    smooth?: boolean
+    symbol?: SymbolType
+    symbolSize?: number
+    animationDelay?: number
+    showAxisLabel?: boolean
+    showAxisLine?: boolean
+    showSplitLine?: boolean
+    showTooltip?: boolean
+    showLegend?: boolean
+    legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+  }
+
+  const props = withDefaults(defineProps<ArtLineChartProps>(), {
     // 基础配置
     height: useChartOps().chartHeight,
     loading: false,

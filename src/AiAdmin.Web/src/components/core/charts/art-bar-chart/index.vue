@@ -7,11 +7,19 @@
   import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
   import { getCssVar } from '@/utils/ui'
   import { graphic, type EChartsOption } from '@/plugins/echarts'
-  import type { BarChartProps, BarDataItem } from '@/types/component/chart'
+  import type { BarDataItem } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtBarChart' })
 
-  const props = withDefaults(defineProps<BarChartProps>(), {
+  interface ArtBarChartProps {
+    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    data: number[] | BarDataItem[]; xAxisData?: string[]; barWidth?: string | number
+    stack?: boolean; borderRadius?: number | number[]
+    showAxisLabel?: boolean; showAxisLine?: boolean; showSplitLine?: boolean
+    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+  }
+
+  const props = withDefaults(defineProps<ArtBarChartProps>(), {
     // 基础配置
     height: useChartOps().chartHeight,
     loading: false,

@@ -13,11 +13,17 @@
   import type { EChartsOption } from '@/plugins/echarts'
   import { getCssVar } from '@/utils/ui'
   import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
-  import type { ScatterChartProps } from '@/types/component/chart'
 
   defineOptions({ name: 'ArtScatterChart' })
 
-  const props = withDefaults(defineProps<ScatterChartProps>(), {
+  interface ArtScatterChartProps {
+    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    data?: Array<{ value: number[] }>; symbolSize?: number
+    showAxisLabel?: boolean; showAxisLine?: boolean; showSplitLine?: boolean
+    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+  }
+
+  const props = withDefaults(defineProps<ArtScatterChartProps>(), {
     // 基础配置
     height: useChartOps().chartHeight,
     loading: false,
