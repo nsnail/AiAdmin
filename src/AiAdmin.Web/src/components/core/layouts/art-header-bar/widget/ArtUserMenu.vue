@@ -49,6 +49,10 @@
             <ArtSvgIcon icon="ri:lock-line" />
             <span>{{ $t('topBar.user.lockScreen') }}</span>
           </li>
+          <li class="btn-item" @click="clearCache()">
+            <ArtSvgIcon icon="ri:delete-bin-line" />
+            <span>{{ $t('topBar.user.clearCache') }}</span>
+          </li>
           <div class="w-full h-px my-2 bg-g-300/80"></div>
           <div class="log-out c-p" @click="loginOut">
             {{ $t('topBar.user.logout') }}
@@ -103,6 +107,44 @@
    */
   const lockScreen = (): void => {
     mittBus.emit('openLockScreen')
+  }
+
+  /**
+   * 清理浏览器本地缓存并重新初始化系统
+   */
+  const clearCache = (): void => {
+    closeUserMenu()
+    setTimeout(() => {
+      ElMessageBox.confirm(t('topBar.user.clearCacheTips'), t('common.tips'), {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
+        type: 'warning',
+        customClass: 'login-out-dialog'
+      }).then(async () => {
+        localStorage.clear()
+        sessionStorage.clear()
+
+        // 删除当前域名下可由脚本访问的 Cookie，HttpOnly Cookie 由浏览器安全策略保护
+        document.cookie.split(';').forEach((cookie) => {
+          const name = cookie.split('=')[0]?.trim()
+          if (name) document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`
+        })
+
+        if ('caches' in window) {
+          const cacheNames = await window.caches.keys()
+          await Promise.all(cacheNames.map((name) => window.caches.delete(name)))
+        }
+
+        if ('indexedDB' in window && 'databases' in indexedDB) {
+          const databases = await indexedDB.databases()
+          databases.forEach((database) => {
+            if (database.name) indexedDB.deleteDatabase(database.name)
+          })
+        }
+
+        window.location.replace(`${window.location.origin}${window.location.pathname}#/auth/login`)
+      })
+    }, 200)
   }
 
   /**

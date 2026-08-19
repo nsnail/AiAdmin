@@ -177,7 +177,9 @@
 
       // 获取 redirect 参数，如果存在则跳转到指定页面，否则跳转到首页
       const redirect = route.query.redirect as string
-      router.push(redirect || '/')
+      // 登录页不能作为登录成功后的目标，否则会不断嵌套 redirect 参数
+      const target = redirect && !redirect.startsWith('/auth/login') ? redirect : '/'
+      router.push(target)
     } catch (error) {
       // 处理 HttpError
       if (error instanceof HttpError) {

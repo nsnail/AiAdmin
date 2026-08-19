@@ -23,6 +23,8 @@
       "docs": "使用文档",
       "github": "Github",
       "lockScreen": "锁定屏幕",
+      "clearCache": "清除缓存",
+      "clearCacheTips": "清除缓存会将系统初始化，包括登录状态、主题、语言设置等，是否继续？",
       "logout": "退出登录"
     },
     "guide": {
