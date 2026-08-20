@@ -31,7 +31,13 @@
           <ElInput v-model="values['SMTP User']" maxlength="100" autocomplete="username" />
         </ElFormItem>
         <ElFormItem :label="t('systemSettings.fields.smtpPassword')">
-          <ElInput v-model="values['SMTP Password']" type="password" show-password maxlength="100" autocomplete="new-password" />
+          <ElInput
+            v-model="values['SMTP Password']"
+            type="password"
+            show-password
+            maxlength="100"
+            autocomplete="new-password"
+          />
         </ElFormItem>
         <ElFormItem :label="t('systemSettings.fields.smtpFrom')">
           <ElInput v-model="values['SMTP From']" maxlength="100" />
@@ -45,7 +51,11 @@
 <script setup lang="ts">
   import { ElMessage } from 'element-plus'
   import { useI18n } from 'vue-i18n'
-  import { fetchGetDictionaryCategories, fetchGetDictionaryItems, fetchUpdateDictionaryItem } from '@/api/system-manage'
+  import {
+    fetchGetDictionaryCategories,
+    fetchGetDictionaryItems,
+    fetchUpdateDictionaryItem
+  } from '@/api/system-manage'
 
   defineOptions({ name: 'SystemSettings' })
 
@@ -59,16 +69,22 @@
   const loading = ref(false)
   const saving = ref(false)
   const registrationFields = [
-    { label: 'Enable login slider verification', title: 'systemSettings.fields.enableLoginSliderVerification' },
+    {
+      label: 'Enable login slider verification',
+      title: 'systemSettings.fields.enableLoginSliderVerification'
+    },
     { label: 'Enable user registration', title: 'systemSettings.fields.enableUserRegistration' },
     { label: 'Enable email verification', title: 'systemSettings.fields.enableEmailVerification' }
   ]
   const smtpPort = computed({
     get: () => Number(values['SMTP Port'] || 25),
-    set: (value: number | undefined) => { values['SMTP Port'] = String(value ?? 25) }
+    set: (value: number | undefined) => {
+      values['SMTP Port'] = String(value ?? 25)
+    }
   })
 
-  const flattenCategories = (categories: Category[]): Category[] => categories.flatMap((item) => [item, ...flattenCategories(item.children)])
+  const flattenCategories = (categories: Category[]): Category[] =>
+    categories.flatMap((item) => [item, ...flattenCategories(item.children)])
   const loadSettings = async () => {
     loading.value = true
     try {
@@ -76,7 +92,10 @@
       category.value = flattenCategories(categories).find((item) => item.code === 'system_settings')
       if (!category.value) return
       items.value = await fetchGetDictionaryItems(category.value.id)
-      items.value.forEach((item) => { values[item.label] = item.value === 'true' ? true : item.value === 'false' ? false : item.value })
+      items.value.forEach((item) => {
+        values[item.label] =
+          item.value === 'true' ? true : item.value === 'false' ? false : item.value
+      })
     } finally {
       loading.value = false
     }
@@ -85,13 +104,20 @@
   const saveSettings = async () => {
     saving.value = true
     try {
-      await Promise.all(items.value.map((item) => fetchUpdateDictionaryItem(item.id, {
-        value: typeof values[item.label] === 'boolean' ? String(values[item.label]) : String(values[item.label] ?? ''),
-        label: item.label,
-        sort: item.sort,
-        isEnabled: item.isEnabled,
-        remark: item.remark
-      })))
+      await Promise.all(
+        items.value.map((item) =>
+          fetchUpdateDictionaryItem(item.id, {
+            value:
+              typeof values[item.label] === 'boolean'
+                ? String(values[item.label])
+                : String(values[item.label] ?? ''),
+            label: item.label,
+            sort: item.sort,
+            isEnabled: item.isEnabled,
+            remark: item.remark
+          })
+        )
+      )
       ElMessage.success(t('systemSettings.saved'))
     } finally {
       saving.value = false
@@ -102,8 +128,30 @@
 </script>
 
 <style scoped>
-  .settings-header { display: flex; align-items: center; justify-content: space-between; font-weight: 600; }
-  .settings-form { max-width: 760px; padding: 8px 12px; }
-  .settings-form h3 { margin: 0 0 20px; font-size: 16px; font-weight: 600; }
-  @media (max-width: 768px) { .settings-form :deep(.el-form-item__label) { float: none; display: block; text-align: left; width: auto !important; } .settings-form :deep(.el-form-item__content) { margin-left: 0 !important; } }
+  .settings-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+  }
+  .settings-form {
+    max-width: 760px;
+    padding: 8px 12px;
+  }
+  .settings-form h3 {
+    margin: 0 0 20px;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  @media (max-width: 768px) {
+    .settings-form :deep(.el-form-item__label) {
+      float: none;
+      display: block;
+      text-align: left;
+      width: auto !important;
+    }
+    .settings-form :deep(.el-form-item__content) {
+      margin-left: 0 !important;
+    }
+  }
 </style>

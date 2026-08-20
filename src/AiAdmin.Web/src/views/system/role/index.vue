@@ -30,6 +30,8 @@
         :pagination="pagination"
         @pagination:size-change="handleSizeChange"
         @pagination:current-change="handleCurrentChange"
+        @sort-change="handleSortChange"
+        @cell-query="applyCellQuery"
       >
       </ArtTable>
     </ElCard>
@@ -57,18 +59,16 @@
   import { ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
   import { useTable } from '@/hooks/core/useTable'
   import { fetchDeleteRole, fetchGetRoleList } from '@/api/system-manage'
+  import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
+  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import ArtButtonMore from '@/components/core/forms/art-button-more/index.vue'
   import RoleSearch from './modules/role-search.vue'
   import RoleEditDialog from './modules/role-edit-dialog.vue'
   import RolePermissionDialog from './modules/role-permission-dialog.vue'
   import RoleApiDialog from './modules/role-api-dialog.vue'
-  import { ElTag, ElMessageBox } from 'element-plus'
-  import { formatDateTime } from '@/utils/date'
-  import { useI18n } from 'vue-i18n'
+  import { ElMessageBox } from 'element-plus'
 
   defineOptions({ name: 'Role' })
-  const { locale } = useI18n()
-
   type RoleListItem = Api.SystemManage.RoleListItem
   type RoleSearchFormParams = Api.SystemManage.RoleSearchParams & {
     daterange?: string[]
@@ -80,8 +80,9 @@
     roleCode: undefined,
     description: undefined,
     enabled: undefined,
-    daterange: undefined
-  })
+    daterange: undefined,
+    IsEnabled: true
+  } as RoleSearchFormParams)
 
   const showSearchBar = ref(false)
 
@@ -101,6 +102,7 @@
     resetSearchParams,
     handleSizeChange,
     handleCurrentChange,
+    handleSortChange,
     refreshData
   } = useTable({
     // 核心配置
@@ -108,33 +110,41 @@
       apiFn: fetchGetRoleList,
       apiParams: {
         current: 1,
-        size: 20
+        size: 20,
+        IsEnabled: true
       },
       // 排除 apiParams 中的属性
       columnsFactory: () => [
         {
           prop: 'roleId',
-          label: '角色ID',
-          width: 100
+          queryField: 'Id',
+          queryValueType: 'number',
+          label: 'ID',
+          minWidth: 190,
+          formatter: (row) => h(ArtListIdCell, { id: row.roleId, createdAt: row.createTime })
         },
         {
           prop: 'roleName',
+          queryField: 'Name',
           label: '角色名称',
           minWidth: 120
         },
         {
           prop: 'roleCode',
+          queryField: 'Code',
           label: '角色编码',
           minWidth: 120
         },
         {
           prop: 'description',
+          queryField: 'Description',
           label: '角色描述',
           minWidth: 150,
           showOverflowTooltip: true
         },
         {
           prop: 'dataScope',
+          queryField: 'DataScope',
           label: '数据权限',
           minWidth: 150,
           formatter: (row) =>
@@ -147,25 +157,19 @@
         },
         {
           prop: 'enabled',
-          label: '角色状态',
+          queryField: 'IsEnabled',
+          queryValueType: 'boolean',
+          label: '是否启用',
           width: 100,
-          formatter: (row) => {
-            const statusConfig = row.enabled
-              ? { type: 'success', text: '启用' }
-              : { type: 'warning', text: '禁用' }
-            return h(
-              ElTag,
-              { type: statusConfig.type as 'success' | 'warning' },
-              () => statusConfig.text
-            )
-          }
-        },
-        {
-          prop: 'createTime',
-          label: '创建日期',
-          width: 180,
-          sortable: true,
-          formatter: (row) => formatDateTime(row.createTime, locale.value)
+          formatter: (row) =>
+            h(ArtEnabledSwitch, {
+              id: row.roleId,
+              resource: 'role',
+              modelValue: row.enabled,
+              'onUpdate:modelValue': () => {
+                void getData()
+              }
+            })
         },
         {
           prop: 'operation',
@@ -229,6 +233,22 @@
 
     replaceSearchParams({ ...filtersParams, startTime, endTime })
     getData()
+  }
+
+  const applyCellQuery = async (condition: {
+    field: string
+    operator: string
+    value: unknown
+  }): Promise<void> => {
+    const currentFilter = searchForm.value.dynamicFilter
+    searchForm.value = {
+      ...searchForm.value,
+      dynamicFilter: currentFilter
+        ? { logic: 'And', filters: [currentFilter, condition] }
+        : condition
+    }
+    replaceSearchParams(searchForm.value)
+    await getData()
   }
 
   const buttonMoreClick = (item: ButtonMoreItem, row: RoleListItem) => {

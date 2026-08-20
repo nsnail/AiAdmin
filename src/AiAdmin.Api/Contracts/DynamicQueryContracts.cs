@@ -64,4 +64,16 @@ public sealed class DynamicQueryRequest
     /// </summary>
     [Range(1, 100)]
     public int Size { get; init; } = 20;
+
+    /// <summary>
+    ///     排序字段名称
+    /// </summary>
+    [StringLength(200)]
+    public string? SortField { get; init; }
+
+    /// <summary>
+    ///     排序方向，支持 asc 或 desc
+    /// </summary>
+    [RegularExpression("^(asc|desc)$", ErrorMessage = "SortOrder must be asc or desc")]
+    public string? SortOrder { get; init; }
 }

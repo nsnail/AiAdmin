@@ -24,8 +24,20 @@
         default-expand-all
         :tree-props="{ children: 'children' }"
         height="calc(100vh - 220px)"
+        @sort-change="handleSortChange"
       >
-        <ElTableColumn prop="name" label="接口名称" min-width="220" show-overflow-tooltip>
+        <ElTableColumn prop="id" label="ID" min-width="190" sortable="custom">
+          <template #default="{ row }"
+            ><ArtListIdCell v-if="!row.isGroup" :id="row.id" :created-at="row.createdAt"
+          /></template>
+        </ElTableColumn>
+        <ElTableColumn
+          prop="name"
+          label="接口名称"
+          min-width="220"
+          show-overflow-tooltip
+          sortable="custom"
+        >
           <template #default="{ row }">
             <div class="flex items-center gap-2">
               <ArtSvgIcon v-if="row.isGroup" icon="ri:code-box-line" class="text-g-500" />
@@ -36,22 +48,32 @@
             </div>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="method" label="方法" width="100">
+        <ElTableColumn prop="method" label="方法" width="100" sortable="custom">
           <template #default="{ row }">
             <ElTag v-if="!row.isGroup" :type="methodTagType(row.method)" effect="plain">
               {{ row.method }}
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="path" label="路径" min-width="280" show-overflow-tooltip />
-        <ElTableColumn label="允许匿名访问" width="140">
+        <ElTableColumn
+          prop="path"
+          label="路径"
+          min-width="280"
+          show-overflow-tooltip
+          sortable="custom"
+        />
+        <ElTableColumn prop="allowAnonymous" label="允许匿名访问" width="140" sortable="custom">
           <template #default="{ row }">
-            <ElTag v-if="!row.isGroup" :type="row.allowAnonymous ? 'success' : 'info'" effect="plain">
+            <ElTag
+              v-if="!row.isGroup"
+              :type="row.allowAnonymous ? 'success' : 'info'"
+              effect="plain"
+            >
               {{ row.allowAnonymous ? '是' : '否' }}
             </ElTag>
           </template>
         </ElTableColumn>
-        <ElTableColumn prop="action" label="操作" min-width="140" />
+        <ElTableColumn prop="action" label="操作" min-width="140" sortable="custom" />
       </ElTable>
     </ElCard>
     <ArtDynamicQueryDrawer
@@ -64,9 +86,18 @@
 
 <script setup lang="ts">
   import ArtDynamicQueryDrawer from '@/components/core/forms/art-dynamic-query-drawer/index.vue'
-  import { fetchGetApiEndpointList, fetchGetListFilterFields, fetchSyncApiEndpoints, type ListFilterField } from '@/api/system-manage'
+  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+  import {
+    fetchGetApiEndpointList,
+    fetchGetListFilterFields,
+    fetchSyncApiEndpoints,
+    type ListFilterField
+  } from '@/api/system-manage'
   import { translateServerMessage } from '@/utils/i18n/server-message'
-  import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import type {
+    DynamicFilter,
+    DynamicQueryField
+  } from '@/components/core/forms/art-dynamic-query-drawer/types'
   import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'ApiManagement' })
@@ -86,14 +117,24 @@
   const loading = ref(false)
   const syncing = ref(false)
   const advancedQueryVisible = ref(false)
+  const activeDynamicFilter = ref<DynamicFilter>()
+  const sortField = ref<string>()
+  const sortOrder = ref<'asc' | 'desc'>()
   const filterFields = ref<ListFilterField[]>([])
-  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
+  const advancedQueryFields = computed<DynamicQueryField[]>(() =>
+    filterFields.value.map((field) => ({
+      field: field.field,
+      label: t(field.label),
+      type: field.valueType
+    }))
+  )
 
   const groupedEndpoints = computed<ApiTableRow[]>(() => {
     const value = keyword.value.trim().toLowerCase()
     const groups = new Map<string, ApiEndpointItem[]>()
     endpoints.value.forEach((item) => {
-      const controllerName = translateServerMessage(item.controllerName || item.controller) || item.controller
+      const controllerName =
+        translateServerMessage(item.controllerName || item.controller) || item.controller
       const items = groups.get(controllerName) || []
       items.push(item)
       groups.set(controllerName, items)
@@ -101,33 +142,43 @@
 
     return [...groups.entries()].flatMap(([controller, items]) => {
       const controllerMatched = controller.toLowerCase().includes(value)
-      const matchedItems = value && !controllerMatched
-        ? items.filter((item) =>
-            [translateServerMessage(item.name) || item.name, item.method, item.path, item.action].some((field) =>
-              field.toLowerCase().includes(value)
+      const matchedItems =
+        value && !controllerMatched
+          ? items.filter((item) =>
+              [
+                translateServerMessage(item.name) || item.name,
+                item.method,
+                item.path,
+                item.action
+              ].some((field) => field.toLowerCase().includes(value))
             )
-          )
-        : items
+          : items
       if (matchedItems.length === 0) return []
 
-      return [{
-        key: `controller:${controller}`,
-        name: controller,
-        isGroup: true,
-        children: matchedItems.map((item) => ({
-          ...item,
-          name: translateServerMessage(item.name) || item.name,
-          key: `api:${item.id}`,
-          isGroup: false
-        }))
-      }]
+      return [
+        {
+          key: `controller:${controller}`,
+          name: controller,
+          isGroup: true,
+          children: matchedItems.map((item) => ({
+            ...item,
+            name: translateServerMessage(item.name) || item.name,
+            key: `api:${item.id}`,
+            isGroup: false
+          }))
+        }
+      ]
     })
   })
 
   const loadEndpoints = async () => {
     loading.value = true
     try {
-      endpoints.value = await fetchGetApiEndpointList()
+      endpoints.value = await fetchGetApiEndpointList(
+        activeDynamicFilter.value,
+        sortField.value,
+        sortOrder.value
+      )
     } finally {
       loading.value = false
     }
@@ -147,12 +198,29 @@
   }
 
   const applyAdvancedQuery = async (dynamicFilter: DynamicFilter | undefined) => {
+    activeDynamicFilter.value = dynamicFilter
     loading.value = true
     try {
-      endpoints.value = await fetchGetApiEndpointList(dynamicFilter)
+      endpoints.value = await fetchGetApiEndpointList(
+        dynamicFilter,
+        sortField.value,
+        sortOrder.value
+      )
     } finally {
       loading.value = false
     }
+  }
+
+  const handleSortChange = async ({
+    prop,
+    order
+  }: {
+    prop: string
+    order: 'ascending' | 'descending' | null
+  }) => {
+    sortField.value = order ? prop : undefined
+    sortOrder.value = order ? (order === 'descending' ? 'desc' : 'asc') : undefined
+    await loadEndpoints()
   }
 
   const methodTagType = (method: string) => {
@@ -167,6 +235,11 @@
   }
 
   onMounted(async () => {
-    await Promise.all([loadEndpoints(), fetchGetListFilterFields('api-endpoint').then((fields) => { filterFields.value = fields })])
+    await Promise.all([
+      loadEndpoints(),
+      fetchGetListFilterFields('api-endpoint').then((fields) => {
+        filterFields.value = fields
+      })
+    ])
   })
 </script>

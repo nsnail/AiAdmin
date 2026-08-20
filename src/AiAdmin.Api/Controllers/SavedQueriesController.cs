@@ -26,21 +26,43 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     /// <summary>
+    ///     删除当前用户的查询条件
+    /// </summary>
+    /// <param name="id">查询条件主键</param>
+    /// <returns>删除结果</returns>
+    [HttpDelete("{id:long}")]
+    [ApiDescription("Delete saved query condition")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+        var userId = GetCurrentUserId();
+        var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.Id == id && x.UserId == userId).ConfigureAwait(false);
+        if (entity is null) {
+            return NotFound(new ApiResponse<object>(404, "Saved query condition not found", null));
+        }
+
+        _ = db.SavedQueries.Remove(entity);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, "Saved query condition deleted"));
+    }
+
+    /// <summary>
     ///     查询当前页面已保存的查询条件
     /// </summary>
     /// <param name="route">当前页面路由</param>
     /// <returns>已保存查询条件列表</returns>
     [HttpGet]
     [ApiDescription("Query saved query conditions")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<SavedQueryResult>>>> ListAsync([FromQuery, Required, StringLength(300)] string route)
-    {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SavedQueryResult>>>> ListAsync([FromQuery] [Required] [StringLength(300)] string route) {
         var userId = GetCurrentUserId();
-        var queries = await db.SavedQueries.AsNoTracking()
+        var queries = await db
+            .SavedQueries.AsNoTracking()
             .Where(x => x.UserId == userId && x.Route == route)
             .OrderBy(x => x.Name)
             .ToListAsync()
             .ConfigureAwait(false);
-        var result = queries.ConvertAll(x => new SavedQueryResult(x.Id, x.Name, JsonSerializer.Deserialize<DynamicFilter>(x.FilterJson, _jsonOptions)!));
+        var result = queries.ConvertAll(x => new SavedQueryResult(
+                x.Id, x.Name, JsonSerializer.Deserialize<DynamicFilter>(x.FilterJson, _jsonOptions)!
+            )
+        );
         return Ok(ApiResponse<IReadOnlyList<SavedQueryResult>>.Ok(result));
     }
 
@@ -51,20 +73,17 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     /// <returns>保存后的查询条件</returns>
     [HttpPost]
     [ApiDescription("Save query condition")]
-    public async Task<ActionResult<ApiResponse<SavedQueryResult>>> SaveAsync(SaveQueryRequest request)
-    {
+    public async Task<ActionResult<ApiResponse<SavedQueryResult>>> SaveAsync(SaveQueryRequest request) {
         var userId = GetCurrentUserId();
         var name = request.Name.Trim();
         var route = request.Route.Trim();
         var filterJson = JsonSerializer.Serialize(request.DynamicFilter, _jsonOptions);
         var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.UserId == userId && x.Route == route && x.Name == name).ConfigureAwait(false);
-        if (entity is null)
-        {
+        if (entity is null) {
             entity = new SavedQuery { UserId = userId, Route = route, Name = name, FilterJson = filterJson };
             _ = await db.SavedQueries.AddAsync(entity).ConfigureAwait(false);
         }
-        else
-        {
+        else {
             entity.FilterJson = filterJson;
         }
 
@@ -73,31 +92,10 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
-    ///     删除当前用户的查询条件
-    /// </summary>
-    /// <param name="id">查询条件主键</param>
-    /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
-    [ApiDescription("Delete saved query condition")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id)
-    {
-        var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.Id == id && x.UserId == GetCurrentUserId()).ConfigureAwait(false);
-        if (entity is null)
-        {
-            return NotFound(new ApiResponse<object>(404, "Saved query condition not found", null));
-        }
-
-        _ = db.SavedQueries.Remove(entity);
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, "Saved query condition deleted"));
-    }
-
-    /// <summary>
     ///     获取当前登录用户主键
     /// </summary>
     /// <returns>当前登录用户主键</returns>
-    private long GetCurrentUserId()
-    {
+    private long GetCurrentUserId() {
         return long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
     }
 }

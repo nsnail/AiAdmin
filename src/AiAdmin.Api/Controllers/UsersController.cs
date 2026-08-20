@@ -52,8 +52,14 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     [HttpPost]
     [ApiDescription("Create user")]
     public async Task<ActionResult<ApiResponse<UserListItem>>> CreateAsync(SaveUserRequest request) {
-        if (await db.Users.AnyAsync(x => x.UserName == request.UserName).ConfigureAwait(false)) {
+        var userName = request.UserName.Trim();
+        var email = request.Email.Trim();
+        if (await db.Users.AnyAsync(x => x.UserName == userName).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Username already exists", null));
+        }
+
+        if (await db.Users.AnyAsync(x => x.Email == email).ConfigureAwait(false)) {
+            return Conflict(new ApiResponse<object>(409, "Email already exists", null));
         }
 
         if (string.IsNullOrWhiteSpace(request.Password)) {
@@ -67,9 +73,9 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
 
         var user = new User
         {
-            UserName = request.UserName.Trim()
+            UserName = userName
             , PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password)
-            , Email = request.Email.Trim()
+            , Email = email
             , Phone = request.Phone.Trim()
             , Gender = request.Gender
             , IsEnabled = request.IsEnabled
@@ -83,36 +89,24 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             return StatusCode(500, new ApiResponse<object>(500, "Default department does not exist", null));
         }
 
-        var personalDepartment = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id };
+        var personalDepartment = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id, Sort = 0 };
         user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
+
+        var departments = await ResolveDepartmentsAsync(request.DepartmentIds).ConfigureAwait(false);
+        if (departments is null) {
+            return BadRequest(new ApiResponse<object>(400, "One or more departments are invalid", null));
+        }
+
+        foreach (var department in departments) {
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
+        }
+
+        // 与用户注册流程一致，事务确保用户、个人部门及关联数据同时创建成功
+        await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);
         _ = await db.Users.AddAsync(user).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        await transaction.CommitAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "User created"));
-    }
-
-    /// <summary>
-    ///     删除用户
-    /// </summary>
-    /// <param name="id">用户主键</param>
-    /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
-    [ApiDescription("Delete user")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
-        var currentId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
-        if (currentId == id) {
-            return BadRequest(new ApiResponse<object>(400, "You cannot delete your own account", null));
-        }
-
-        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
-        if (user is null) {
-            return NotFound(new ApiResponse<object>(404, "User not found", null));
-        }
-
-        // 删除用户时解除其发起和接收的邀请关系，保留其他用户账号
-        _ = await db.UserReferrals.Where(x => x.OwnerId == id || x.InviteeUserId == id).ExecuteDeleteAsync().ConfigureAwait(false);
-        _ = db.Users.Remove(user);
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, "User deleted"));
     }
 
     /// <summary>
@@ -159,7 +153,39 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             .ApplyDynamicFilter(request.DynamicFilter);
 
         var total = await query.CountAsync().ConfigureAwait(false);
-        var users = await query.OrderByDescending(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
+        var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["userInfo"] = nameof(Models.User.UserName)
+            , ["userName"] = nameof(Models.User.UserName)
+            , ["userGender"] = nameof(Models.User.Gender)
+            , ["userPhone"] = nameof(Models.User.Phone)
+            , ["userEmail"] = nameof(Models.User.Email)
+            , ["status"] = nameof(Models.User.IsEnabled)
+            , ["isEnabled"] = nameof(Models.User.IsEnabled)
+            , ["createTime"] = nameof(Models.User.CreatedAt)
+        };
+        var descending = string.Equals(request.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        var sortedQuery = request.SortField?.ToLowerInvariant() switch
+        {
+            "userroles" => descending
+                ? query.OrderByDescending(x => x.UserRoles.OrderBy(role => role.Role.Name).Select(role => role.Role.Name).FirstOrDefault())
+                : query.OrderBy(x => x.UserRoles.OrderBy(role => role.Role.Name).Select(role => role.Role.Name).FirstOrDefault())
+            , "departmentnames" => descending
+                ? query.OrderByDescending(x =>
+                    x
+                        .UserDepartments.OrderBy(department => department.Department.Name)
+                        .Select(department => department.Department.Name)
+                        .FirstOrDefault()
+                )
+                : query.OrderBy(x =>
+                    x
+                        .UserDepartments.OrderBy(department => department.Department.Name)
+                        .Select(department => department.Department.Name)
+                        .FirstOrDefault()
+                )
+            , _ => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Models.User.Id), true, sortAliases)
+        };
+        var users = await sortedQuery.Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
         var items = users.ConvertAll(ToListItem);
         return Ok(ApiResponse<PagedResponse<UserListItem>>.Ok(new PagedResponse<UserListItem>(items, current, size, total)));
     }
@@ -251,13 +277,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     ///     更新用户
     /// </summary>
     /// <param name="id">用户主键</param>
-    /// <param name="request">用户保存请求</param>
+    /// <param name="request">用户修改请求</param>
     /// <returns>更新后的用户</returns>
     [HttpPut("{id:long}")]
     [ApiDescription("Update user")]
     public async Task<ActionResult<ApiResponse<UserListItem>>> UpdateAsync(
         long id
-        , SaveUserRequest request
+        , UpdateUserRequest request
     ) {
         var user = await db
             .Users.Include(x => x.UserRoles)
@@ -270,16 +296,11 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             return NotFound(new ApiResponse<object>(404, "User not found", null));
         }
 
-        if (await db.Users.AnyAsync(x => x.UserName == request.UserName && x.Id != id).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, "Username already exists", null));
-        }
-
         var roles = await ResolveRolesAsync(request.Roles).ConfigureAwait(false);
         if (roles is null) {
             return BadRequest(new ApiResponse<object>(400, "One or more roles are invalid", null));
         }
 
-        user.UserName = request.UserName.Trim();
         user.Email = request.Email.Trim();
         user.Phone = request.Phone.Trim();
         user.Gender = request.Gender;
@@ -288,8 +309,27 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
 
+        var departments = await ResolveDepartmentsAsync(request.DepartmentIds).ConfigureAwait(false);
+        if (departments is null) {
+            return BadRequest(new ApiResponse<object>(400, "One or more departments are invalid", null));
+        }
+
         db.UserRoles.RemoveRange(user.UserRoles);
         user.UserRoles = [.. roles.Select(role => new UserRole { User = user, Role = role })];
+        var personalDepartment = user.UserDepartments.SingleOrDefault(x => x.Department.Code == $"USER_{user.Id}");
+        var selectedDepartmentIds = departments.Select(x => x.Id).ToHashSet();
+        var removedDepartments
+            = user.UserDepartments.Where(x => x != personalDepartment && !selectedDepartmentIds.Contains(x.DepartmentId)).ToArray();
+        db.UserDepartments.RemoveRange(removedDepartments);
+        foreach (var removedDepartment in removedDepartments) {
+            _ = user.UserDepartments.Remove(removedDepartment);
+        }
+
+        var existingDepartmentIds = user.UserDepartments.Select(x => x.DepartmentId).ToHashSet();
+        foreach (var department in departments.Where(x => !existingDepartmentIds.Contains(x.Id))) {
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "User updated"));
     }
@@ -324,11 +364,22 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
 
     private static UserListItem ToListItem(User user) {
         return new UserListItem(
-            user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.Phone, user.Email
+            user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.Phone, user.Email, user.IsEnabled
             , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserDepartments.Select(x => x.DepartmentId)]
             , [.. user.UserDepartments.Select(x => x.Department.Name)], "system", ServerTime.ToOffset(user.CreatedAt), "system"
             , user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null
         );
+    }
+
+    /// <summary>
+    ///     校验并加载用户选择的部门
+    /// </summary>
+    /// <param name="ids">部门主键集合</param>
+    /// <returns>有效部门集合，无效时返回空值</returns>
+    private async Task<List<Department>?> ResolveDepartmentsAsync(long[] ids) {
+        var distinct = ids.Distinct().ToArray();
+        var departments = await db.Departments.Where(x => distinct.Contains(x.Id)).ToListAsync().ConfigureAwait(false);
+        return departments.Count == distinct.Length ? departments : null;
     }
 
     private async Task<List<Role>?> ResolveRolesAsync(string[] codes) {

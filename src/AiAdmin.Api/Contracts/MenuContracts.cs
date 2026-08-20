@@ -9,11 +9,13 @@ namespace AiAdmin.Api.Contracts;
 /// </summary>
 public sealed record MenuItemResult(
     long Id
+    , DateTimeOffset CreatedAt
     , string Name
     , string Path
     , string Component
     , string ParentName
     , int Sort
+    , bool IsEnabled
     , JsonElement Meta
     , IReadOnlyList<MenuItemResult> Children);
 

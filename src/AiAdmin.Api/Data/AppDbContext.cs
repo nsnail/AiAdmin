@@ -130,7 +130,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.InvitationCode).HasMaxLength(12).IsRequired();
                 _ = entity.Property(x => x.Email).HasMaxLength(100);
                 _ = entity.Property(x => x.Phone).HasMaxLength(20);
-                _ = entity.Property(x => x.Gender).HasMaxLength(10);
+                _ = entity.Property(x => x.Gender).HasConversion<int>();
                 _ = entity.Property(x => x.Avatar).HasMaxLength(500);
             }
         );

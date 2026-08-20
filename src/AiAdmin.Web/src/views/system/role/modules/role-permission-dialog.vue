@@ -9,27 +9,27 @@
   >
     <ElTabs v-model="activeTab">
       <ElTabPane label="编辑" name="form">
-    <ElScrollbar height="70vh">
-      <ElTree
-        ref="treeRef"
-        :data="processedMenuList"
-        v-loading="loading"
-        show-checkbox
-        node-key="id"
-        :default-expand-all="isExpandAll"
-        :props="defaultProps"
-        @check="handleTreeCheck"
-      >
-        <template #default="{ data }">
-          <div style="display: flex; align-items: center">
-            <span v-if="data.isAuth">
-              {{ data.label }}
-            </span>
-            <span v-else>{{ defaultProps.label(data) }}</span>
-          </div>
-        </template>
-      </ElTree>
-    </ElScrollbar>
+        <ElScrollbar height="70vh">
+          <ElTree
+            ref="treeRef"
+            :data="processedMenuList"
+            v-loading="loading"
+            show-checkbox
+            node-key="id"
+            :default-expand-all="isExpandAll"
+            :props="defaultProps"
+            @check="handleTreeCheck"
+          >
+            <template #default="{ data }">
+              <div style="display: flex; align-items: center">
+                <span v-if="data.isAuth">
+                  {{ data.label }}
+                </span>
+                <span v-else>{{ defaultProps.label(data) }}</span>
+              </div>
+            </template>
+          </ElTree>
+        </ElScrollbar>
       </ElTabPane>
       <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="props.roleData" /></ElTabPane>
     </ElTabs>
@@ -133,7 +133,11 @@
           menuList.value = (await fetchGetMenuList()) as unknown as MenuNode[]
           const menuNames = await fetchGetRoleMenus(props.roleData.roleId)
           await nextTick()
-          treeRef.value?.setCheckedKeys(flattenMenuItems(menuNames as unknown as MenuNode[]).map(item => item.id).filter(Boolean))
+          treeRef.value?.setCheckedKeys(
+            flattenMenuItems(menuNames as unknown as MenuNode[])
+              .map((item) => item.id)
+              .filter(Boolean)
+          )
           handleTreeCheck()
         } finally {
           loading.value = false
@@ -162,7 +166,9 @@
         ...(treeRef.value.getHalfCheckedKeys() as string[])
       ])
       const allMenus = flattenMenuItems(menuList.value)
-      const selectedNames = new Set(allMenus.filter((item) => selectedKeys.has(String(item.id))).map((item) => item.name))
+      const selectedNames = new Set(
+        allMenus.filter((item) => selectedKeys.has(String(item.id))).map((item) => item.name)
+      )
       const hiddenIds = allMenus
         .filter((item) => item.meta?.isHide === true && selectedNames.has(item.parentName))
         .map((item) => item.id)
@@ -242,5 +248,4 @@
 
     isSelectAll.value = checkedKeys.length === allKeys.length && allKeys.length > 0
   }
-
 </script>

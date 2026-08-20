@@ -9,16 +9,16 @@
   >
     <ElTabs v-model="activeTab">
       <ElTabPane label="编辑" name="form">
-    <ElScrollbar height="65vh" v-loading="loading">
-      <ElTree
-        ref="treeRef"
-        :data="treeData"
-        show-checkbox
-        node-key="id"
-        default-expand-all
-        :props="{ children: 'children', label: 'label' }"
-      />
-    </ElScrollbar>
+        <ElScrollbar height="65vh" v-loading="loading">
+          <ElTree
+            ref="treeRef"
+            :data="treeData"
+            show-checkbox
+            node-key="id"
+            default-expand-all
+            :props="{ children: 'children', label: 'label' }"
+          />
+        </ElScrollbar>
       </ElTabPane>
       <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="props.roleData" /></ElTabPane>
     </ElTabs>
@@ -30,11 +30,7 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    fetchGetApiEndpointList,
-    fetchGetRoleApis,
-    fetchSaveRoleApis
-  } from '@/api/system-manage'
+  import { fetchGetApiEndpointList, fetchGetRoleApis, fetchSaveRoleApis } from '@/api/system-manage'
   import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
   interface Props {

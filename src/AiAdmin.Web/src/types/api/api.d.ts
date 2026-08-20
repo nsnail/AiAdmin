@@ -46,7 +46,10 @@ declare namespace Api {
     }
 
     /** 通用搜索参数 */
-    type CommonSearchParams = Pick<PaginationParams, 'current' | 'size'>
+    type CommonSearchParams = Pick<PaginationParams, 'current' | 'size'> & {
+      sortField?: string
+      sortOrder?: 'asc' | 'desc'
+    }
 
     /** 分页响应基础结构 */
     interface PaginatedResponse<T = any> {
@@ -117,7 +120,7 @@ declare namespace Api {
       userName: string
       email: string
       phone: string
-      gender: string
+      gender: 1 | 2
       avatar?: string
     }
 
@@ -125,7 +128,7 @@ declare namespace Api {
     interface UpdateProfileParams {
       email: string
       phone: string
-      gender: string
+      gender: 1 | 2
     }
 
     /** 当前用户密码修改参数 */
@@ -146,9 +149,10 @@ declare namespace Api {
       avatar: string
       status: string
       userName: string
-      userGender: string
+      userGender: 1 | 2
       userPhone: string
       userEmail: string
+      isEnabled: boolean
       userRoles: string[]
       departmentIds: string[]
       departmentNames: string[]
@@ -168,12 +172,14 @@ declare namespace Api {
       userName: string
       email: string
       phone: string
-      gender: string
+      gender: 1 | 2
       roles: string[]
       departmentIds: string[]
       password?: string
       isEnabled: boolean
     }
+
+    type UpdateUserParams = Omit<SaveUserParams, 'userName'>
 
     /** 当前用户邀请关系查询结果 */
     interface ReferralTreeResult {
@@ -233,6 +239,7 @@ declare namespace Api {
 
     interface ApiEndpointItem {
       id: string
+      createdAt: string
       name: string
       allowAnonymous: boolean
       method: string
@@ -244,6 +251,7 @@ declare namespace Api {
 
     interface DictionaryCategory {
       id: string
+      createdAt: string
       code: string
       name: string
       parentId: string | null
@@ -254,6 +262,7 @@ declare namespace Api {
 
     interface DictionaryItem {
       id: string
+      createdAt: string
       categoryId: string
       value: string
       label: string

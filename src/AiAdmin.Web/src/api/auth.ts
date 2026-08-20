@@ -27,7 +27,10 @@ export function fetchRegister(params: Api.Auth.RegisterParams) {
 }
 
 export function fetchRegisterCode(email: string, puzzleTicket: string) {
-  return request.post<Record<string, never>>({ url: '/api/auth/register-code', data: { email, puzzleTicket } })
+  return request.post<Record<string, never>>({
+    url: '/api/auth/register-code',
+    data: { email, puzzleTicket }
+  })
 }
 
 export function fetchRegisterPuzzle() {

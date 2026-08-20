@@ -1,8 +1,10 @@
 using System.Security.Claims;
 using AiAdmin.Api.Contracts;
+using AiAdmin.Api.Data;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
+using Microsoft.EntityFrameworkCore;
 
 // 在 ASP.NET 授权中间件前执行接口级权限校验和匿名接口放行。
 namespace AiAdmin.Api.Middleware;
@@ -17,10 +19,12 @@ public sealed class ApiPermissionMiddleware(RequestDelegate next)
     /// </summary>
     /// <param name="context">HTTP 请求上下文</param>
     /// <param name="permissionCache">接口权限缓存</param>
+    /// <param name="db">数据库上下文</param>
     /// <returns>异步请求处理任务</returns>
     public async Task InvokeAsync(
         HttpContext context
         , ApiPermissionCache permissionCache
+        , AppDbContext db
     ) {
         // 仅处理标记 Authorize 的控制器动作，其他端点直接进入后续管道。
         var endpoint = context.GetEndpoint();
@@ -50,6 +54,17 @@ public sealed class ApiPermissionMiddleware(RequestDelegate next)
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context
                 .Response.WriteAsJsonAsync(new ApiResponse<object>(401, "Authentication is required", null), context.RequestAborted)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        // 每次授权请求都校验用户启用状态，使被禁用账号的现有令牌立即失效
+        var userIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!long.TryParse(userIdClaim, out var userId)
+            || !await db.Users.AnyAsync(x => x.Id == userId && x.IsEnabled, context.RequestAborted).ConfigureAwait(false)) {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context
+                .Response.WriteAsJsonAsync(new ApiResponse<object>(401, "User account is disabled", null), context.RequestAborted)
                 .ConfigureAwait(false);
             return;
         }

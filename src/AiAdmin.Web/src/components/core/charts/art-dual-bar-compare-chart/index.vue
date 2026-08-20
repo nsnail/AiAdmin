@@ -10,13 +10,27 @@
   defineOptions({ name: 'ArtDualBarCompareChart' })
 
   interface ArtDualBarCompareChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
-    positiveData: number[]; negativeData: number[]; xAxisData?: string[]
-    positiveName?: string; negativeName?: string; barWidth?: string | number
-    yAxisMin?: number; yAxisMax?: number; showDataLabel?: boolean
-    positiveBorderRadius?: number | number[]; negativeBorderRadius?: number | number[]
-    showAxisLabel?: boolean; showAxisLine?: boolean; showSplitLine?: boolean
-    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    positiveData: number[]
+    negativeData: number[]
+    xAxisData?: string[]
+    positiveName?: string
+    negativeName?: string
+    barWidth?: string | number
+    yAxisMin?: number
+    yAxisMax?: number
+    showDataLabel?: boolean
+    positiveBorderRadius?: number | number[]
+    negativeBorderRadius?: number | number[]
+    showAxisLabel?: boolean
+    showAxisLine?: boolean
+    showSplitLine?: boolean
+    showTooltip?: boolean
+    showLegend?: boolean
+    legendPosition?: 'bottom' | 'top' | 'left' | 'right'
   }
 
   const props = withDefaults(defineProps<ArtDualBarCompareChartProps>(), {

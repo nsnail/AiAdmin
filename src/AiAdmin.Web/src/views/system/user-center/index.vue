@@ -43,7 +43,9 @@
       </div>
       <div class="flex-1 overflow-hidden max-md:w-full max-md:mt-3.5">
         <div class="art-card-sm">
-          <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.profile.title') }}</h1>
+          <h1 class="p-4 text-xl font-normal border-b border-g-300">{{
+            t('userCenter.profile.title')
+          }}</h1>
 
           <ElForm
             :model="form"
@@ -58,7 +60,11 @@
                 <ElInput v-model="form.userName" disabled />
               </ElFormItem>
               <ElFormItem :label="t('userCenter.profile.gender')" prop="gender" class="ml-5">
-                <ElSelect v-model="form.gender" :placeholder="t('userCenter.validation.genderRequired')" :disabled="!isEdit">
+                <ElSelect
+                  v-model="form.gender"
+                  :placeholder="t('userCenter.validation.genderRequired')"
+                  :disabled="!isEdit"
+                >
                   <ElOption
                     v-for="item in options"
                     :key="item.value"
@@ -80,14 +86,18 @@
 
             <div class="flex-c justify-end [&_.el-button]:!w-27.5">
               <ElButton type="primary" class="w-22.5" v-ripple @click="edit">
-                {{ t(isEdit ? 'userCenter.actions.saveProfile' : 'userCenter.actions.editProfile') }}
+                {{
+                  t(isEdit ? 'userCenter.actions.saveProfile' : 'userCenter.actions.editProfile')
+                }}
               </ElButton>
             </div>
           </ElForm>
         </div>
 
         <div class="art-card-sm my-5">
-          <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.password.title') }}</h1>
+          <h1 class="p-4 text-xl font-normal border-b border-g-300">{{
+            t('userCenter.password.title')
+          }}</h1>
 
           <ElForm
             ref="pwdFormRef"
@@ -126,7 +136,13 @@
 
             <div class="flex-c justify-end [&_.el-button]:!w-27.5">
               <ElButton type="primary" class="w-22.5" v-ripple @click="editPwd">
-                {{ t(isEditPwd ? 'userCenter.actions.savePassword' : 'userCenter.actions.changePassword') }}
+                {{
+                  t(
+                    isEditPwd
+                      ? 'userCenter.actions.savePassword'
+                      : 'userCenter.actions.changePassword'
+                  )
+                }}
               </ElButton>
             </div>
           </ElForm>
@@ -155,7 +171,7 @@
   const pwdFormRef = ref<FormInstance>()
   const displayName = computed(() => userInfo.value.userName || t('userCenter.empty.user'))
   const genderLabel = computed(() =>
-    t(userInfo.value.gender === 'female' || userInfo.value.gender === '2' ? 'userCenter.gender.female' : 'userCenter.gender.male')
+    t(userInfo.value.gender === 2 ? 'userCenter.gender.female' : 'userCenter.gender.male')
   )
 
   /**
@@ -165,7 +181,7 @@
     userName: '',
     email: '',
     phone: '',
-    gender: 'male'
+    gender: 1 as 1 | 2
   })
 
   /**
@@ -185,20 +201,33 @@
       { required: true, message: t('userCenter.validation.emailRequired'), trigger: 'blur' },
       { type: 'email', message: t('userCenter.validation.emailInvalid'), trigger: 'blur' }
     ],
-    gender: [{ required: true, message: t('userCenter.validation.genderRequired'), trigger: 'change' }]
+    gender: [
+      { required: true, message: t('userCenter.validation.genderRequired'), trigger: 'change' }
+    ]
   }))
 
   const pwdRules = computed<FormRules>(() => ({
-    currentPassword: [{ required: true, message: t('userCenter.validation.currentPasswordRequired'), trigger: 'blur' }],
+    currentPassword: [
+      {
+        required: true,
+        message: t('userCenter.validation.currentPasswordRequired'),
+        trigger: 'blur'
+      }
+    ],
     newPassword: [
       { required: true, message: t('userCenter.validation.newPasswordRequired'), trigger: 'blur' },
       { min: 6, message: t('userCenter.validation.passwordLength'), trigger: 'blur' }
     ],
     confirmPassword: [
-      { required: true, message: t('userCenter.validation.confirmPasswordRequired'), trigger: 'blur' },
+      {
+        required: true,
+        message: t('userCenter.validation.confirmPasswordRequired'),
+        trigger: 'blur'
+      },
       {
         validator: (_rule, value, callback) => {
-          if (value !== pwdForm.newPassword) callback(new Error(t('userCenter.validation.passwordMismatch')))
+          if (value !== pwdForm.newPassword)
+            callback(new Error(t('userCenter.validation.passwordMismatch')))
           else callback()
         },
         trigger: 'blur'
@@ -210,8 +239,8 @@
    * 性别选项
    */
   const options = computed(() => [
-    { value: 'male', label: t('userCenter.gender.male') },
-    { value: 'female', label: t('userCenter.gender.female') }
+    { value: 1, label: t('userCenter.gender.male') },
+    { value: 2, label: t('userCenter.gender.female') }
   ])
 
   onMounted(() => {
@@ -224,7 +253,7 @@
     form.userName = userInfo.value.userName || ''
     form.email = userInfo.value.email || ''
     form.phone = userInfo.value.phone || ''
-    form.gender = userInfo.value.gender || 'male'
+    form.gender = userInfo.value.gender || 1
   }
 
   const getRoleName = (role: string) => {

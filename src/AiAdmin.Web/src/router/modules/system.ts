@@ -74,7 +74,7 @@ export const permissionRoutes: AppRouteRecord = {
         keepAlive: true,
         roles: ['R_SUPER']
       }
-    },
+    }
   ]
 }
 

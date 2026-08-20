@@ -27,7 +27,11 @@
             </ElFormItem>
 
             <ElFormItem prop="email">
-              <ElInput class="custom-height" v-model.trim="formData.email" :placeholder="$t('register.placeholder.email')" />
+              <ElInput
+                class="custom-height"
+                v-model.trim="formData.email"
+                :placeholder="$t('register.placeholder.email')"
+              />
             </ElFormItem>
             <ElFormItem prop="invitationCode">
               <ElInput
@@ -39,7 +43,11 @@
             </ElFormItem>
             <ElFormItem v-if="emailVerificationEnabled" prop="verificationCode">
               <div class="verification-row">
-                <ElInput class="custom-height" v-model.trim="formData.verificationCode" :placeholder="$t('register.placeholder.verificationCode')" />
+                <ElInput
+                  class="custom-height"
+                  v-model.trim="formData.verificationCode"
+                  :placeholder="$t('register.placeholder.verificationCode')"
+                />
                 <ElButton
                   type="primary"
                   class="verification-button"
@@ -66,7 +74,9 @@
                   v-if="formData.password"
                   class="password-strength"
                   role="status"
-                  :aria-label="t('register.passwordStrength.label', { level: passwordStrengthText })"
+                  :aria-label="
+                    t('register.passwordStrength.label', { level: passwordStrengthText })
+                  "
                 >
                   <div class="password-strength-bars" aria-hidden="true">
                     <span
@@ -127,14 +137,27 @@
       </div>
     </div>
 
-    <ElDialog v-model="puzzleVisible" :title="$t('register.puzzle.title')" width="380px" destroy-on-close>
+    <ElDialog
+      v-model="puzzleVisible"
+      :title="$t('register.puzzle.title')"
+      width="380px"
+      destroy-on-close
+    >
       <div v-loading="puzzleLoading" class="puzzle-wrap">
-        <div v-if="puzzle" class="puzzle-board" :style="{ width: `${puzzle.width}px`, height: `${puzzle.height}px` }">
+        <div
+          v-if="puzzle"
+          class="puzzle-board"
+          :style="{ width: `${puzzle.width}px`, height: `${puzzle.height}px` }"
+        >
           <img :src="puzzle.backgroundImage" class="puzzle-background" alt="" />
           <img
             :src="puzzle.pieceImage"
             class="puzzle-piece"
-            :style="{ left: `${puzzleOffset}px`, top: `${puzzle.pieceY}px`, width: `${puzzle.pieceSize}px` }"
+            :style="{
+              left: `${puzzleOffset}px`,
+              top: `${puzzle.pieceY}px`,
+              width: `${puzzle.pieceSize}px`
+            }"
             alt=""
           />
         </div>
@@ -149,10 +172,17 @@
           @change="verifyPuzzle"
         />
         <div class="puzzle-actions">
-          <ElButton circle :disabled="puzzleVerifying" :title="$t('register.puzzle.refresh')" @click="loadPuzzle">
+          <ElButton
+            circle
+            :disabled="puzzleVerifying"
+            :title="$t('register.puzzle.refresh')"
+            @click="loadPuzzle"
+          >
             <ArtSvgIcon icon="ri:refresh-line" />
           </ElButton>
-          <span class="puzzle-status">{{ puzzleVerifying ? $t('register.puzzle.verifying') : $t('register.puzzle.hint') }}</span>
+          <span class="puzzle-status">{{
+            puzzleVerifying ? $t('register.puzzle.verifying') : $t('register.puzzle.hint')
+          }}</span>
         </div>
       </div>
     </ElDialog>
@@ -308,7 +338,9 @@
       { required: true, message: t('register.placeholder.email'), trigger: 'blur' },
       { type: 'email', message: t('register.rule.emailInvalid'), trigger: 'blur' }
     ],
-    verificationCode: emailVerificationEnabled.value ? [{ required: true, message: t('register.placeholder.verificationCode'), trigger: 'blur' }] : [],
+    verificationCode: emailVerificationEnabled.value
+      ? [{ required: true, message: t('register.placeholder.verificationCode'), trigger: 'blur' }]
+      : [],
     password: [
       { required: true, validator: validatePassword, trigger: 'blur' },
       { min: PASSWORD_MIN_LENGTH, message: t('register.rule.passwordLength'), trigger: 'blur' }
@@ -353,13 +385,21 @@
   const loadPuzzle = async () => {
     puzzleLoading.value = true
     puzzleOffset.value = 0
-    try { puzzle.value = await fetchRegisterPuzzle() } finally { puzzleLoading.value = false }
+    try {
+      puzzle.value = await fetchRegisterPuzzle()
+    } finally {
+      puzzleLoading.value = false
+    }
   }
   const verifyPuzzle = async () => {
     if (!puzzle.value) return
     puzzleVerifying.value = true
     try {
-      const result = await fetchVerifyRegisterPuzzle(puzzle.value.challengeId, puzzleOffset.value, formData.email)
+      const result = await fetchVerifyRegisterPuzzle(
+        puzzle.value.challengeId,
+        puzzleOffset.value,
+        formData.email
+      )
       codeSending.value = true
       await fetchRegisterCode(formData.email, result.puzzleTicket)
       puzzleVisible.value = false
@@ -383,8 +423,12 @@
       }
     }, 1000)
   }
-  onMounted(async () => { emailVerificationEnabled.value = (await fetchLoginConfig()).emailVerificationEnabled })
-  onBeforeUnmount(() => { if (cooldownTimer) clearInterval(cooldownTimer) })
+  onMounted(async () => {
+    emailVerificationEnabled.value = (await fetchLoginConfig()).emailVerificationEnabled
+  })
+  onBeforeUnmount(() => {
+    if (cooldownTimer) clearInterval(cooldownTimer)
+  })
 
   /**
    * 跳转到登录页面
@@ -399,27 +443,119 @@
 <style scoped>
   @import '../login/style.css';
 
-  .puzzle-wrap { min-height: 230px; }
-  .puzzle-board { position: relative; max-width: 100%; margin: 0 auto; overflow: hidden; border-radius: 6px; }
-  .puzzle-background { display: block; width: 100%; height: 100%; object-fit: cover; }
-  .puzzle-piece { position: absolute; height: auto; pointer-events: none; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 35%)); }
-  .puzzle-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
-  .puzzle-status { color: var(--art-gray-500); font-size: 13px; }
-  .puzzle-slider { height: 34px; }
-  .puzzle-slider :deep(.el-slider__runway) { width: calc(100% - 44px); height: 10px; margin-right: 22px; margin-left: 22px; }
-  .puzzle-slider :deep(.el-slider__bar) { height: 10px; }
-  .puzzle-slider :deep(.el-slider__button-wrapper) { top: -13px; width: 44px; height: 36px; }
-  .puzzle-slider :deep(.el-slider__button) { position: relative; width: 42px; height: 30px; border-radius: 4px; }
-  .puzzle-slider :deep(.el-slider__button::after) { content: '→'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--el-color-primary); font-size: 20px; line-height: 1; }
-  .verification-row { display: flex; width: 100%; gap: 10px; }
-  .verification-row .el-input { min-width: 0; }
-  .verification-button { width: 112px; height: 40px; flex-shrink: 0; }
-  .password-field { width: 100%; }
-  .password-strength { display: flex; align-items: center; margin-top: 8px; gap: 10px; }
-  .password-strength-bars { display: grid; flex: 1; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-  .password-strength-bar { height: 4px; border-radius: 2px; background: var(--el-border-color); transition: background-color 0.2s ease; }
-  .password-strength-bar.active { background: #dc2626; }
-  .password-strength-bar.active:nth-child(2) { background: #d97706; }
-  .password-strength-bar.active:nth-child(3) { background: #16a34a; }
-  .password-strength-text { min-width: 28px; color: var(--el-text-color-secondary); font-size: 12px; line-height: 1; text-align: right; }
+  .puzzle-wrap {
+    min-height: 230px;
+  }
+  .puzzle-board {
+    position: relative;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 6px;
+  }
+  .puzzle-background {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .puzzle-piece {
+    position: absolute;
+    height: auto;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 3px rgb(0 0 0 / 35%));
+  }
+  .puzzle-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .puzzle-status {
+    color: var(--art-gray-500);
+    font-size: 13px;
+  }
+  .puzzle-slider {
+    height: 34px;
+  }
+  .puzzle-slider :deep(.el-slider__runway) {
+    width: calc(100% - 44px);
+    height: 10px;
+    margin-right: 22px;
+    margin-left: 22px;
+  }
+  .puzzle-slider :deep(.el-slider__bar) {
+    height: 10px;
+  }
+  .puzzle-slider :deep(.el-slider__button-wrapper) {
+    top: -13px;
+    width: 44px;
+    height: 36px;
+  }
+  .puzzle-slider :deep(.el-slider__button) {
+    position: relative;
+    width: 42px;
+    height: 30px;
+    border-radius: 4px;
+  }
+  .puzzle-slider :deep(.el-slider__button::after) {
+    content: '→';
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: var(--el-color-primary);
+    font-size: 20px;
+    line-height: 1;
+  }
+  .verification-row {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+  }
+  .verification-row .el-input {
+    min-width: 0;
+  }
+  .verification-button {
+    width: 112px;
+    height: 40px;
+    flex-shrink: 0;
+  }
+  .password-field {
+    width: 100%;
+  }
+  .password-strength {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    gap: 10px;
+  }
+  .password-strength-bars {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .password-strength-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--el-border-color);
+    transition: background-color 0.2s ease;
+  }
+  .password-strength-bar.active {
+    background: #dc2626;
+  }
+  .password-strength-bar.active:nth-child(2) {
+    background: #d97706;
+  }
+  .password-strength-bar.active:nth-child(3) {
+    background: #16a34a;
+  }
+  .password-strength-text {
+    min-width: 28px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    line-height: 1;
+    text-align: right;
+  }
 </style>

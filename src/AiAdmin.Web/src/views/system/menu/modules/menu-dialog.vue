@@ -10,24 +10,24 @@
   >
     <ElTabs v-model="activeTab">
       <ElTabPane label="编辑" name="form">
-    <ArtForm
-      ref="formRef"
-      v-model="form"
-      :items="formItems"
-      :rules="rules"
-      :span="width > 640 ? 12 : 24"
-      :gutter="20"
-      label-width="100px"
-      :show-reset="false"
-      :show-submit="false"
-    >
-      <template #menuType>
-        <ElRadioGroup v-model="form.menuType" :disabled="disableMenuType">
-          <ElRadioButton value="menu" label="menu">菜单</ElRadioButton>
-          <ElRadioButton value="button" label="button">按钮</ElRadioButton>
-        </ElRadioGroup>
-      </template>
-    </ArtForm>
+        <ArtForm
+          ref="formRef"
+          v-model="form"
+          :items="formItems"
+          :rules="rules"
+          :span="width > 640 ? 12 : 24"
+          :gutter="20"
+          label-width="100px"
+          :show-reset="false"
+          :show-submit="false"
+        >
+          <template #menuType>
+            <ElRadioGroup v-model="form.menuType" :disabled="disableMenuType">
+              <ElRadioButton value="menu" label="menu">菜单</ElRadioButton>
+              <ElRadioButton value="button" label="button">按钮</ElRadioButton>
+            </ElRadioGroup>
+          </template>
+        </ArtForm>
       </ElTabPane>
       <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>

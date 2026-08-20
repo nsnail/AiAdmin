@@ -36,6 +36,7 @@
   },
   "common": {
     "tips": "提示",
+    "edit": "编辑",
     "cancel": "取消",
     "confirm": "确定",
     "logOutTips": "您是否要退出登录?"
@@ -294,7 +295,7 @@
       "notFound": "404",
       "serverError": "500"
     },
-      "examples": {
+    "examples": {
       "title": "功能示例",
       "tabs": "标签页",
       "tablesBasic": "基础表格",
@@ -309,30 +310,30 @@
         "buttonAuth": "按钮权限演示",
         "pageVisibility": "超级管理员可见"
       }
-      },
-      "development": {
-        "title": "开发管理",
-        "exampleCenter": "示例中心"
-      },
-      "system": {
-        "title": "系统管理",
-        "permission": "权限管理",
+    },
+    "development": {
+      "title": "开发管理",
+      "exampleCenter": "示例中心"
+    },
+    "system": {
+      "title": "系统管理",
+      "permission": "权限管理",
       "user": "用户管理",
       "role": "角色管理",
       "department": "部门管理",
       "userCenter": "个人中心",
-        "menu": "菜单管理",
-        "api": "接口管理",
-        "settings": "系统设置",
-        "dictionary": "字典管理"
-        , "referrals": "我的邀请"
-      },
-      "marketing": {
-        "title": "营销管理",
-        "referrals": "我的邀请"
-      },
-      "dictionaryCategories": {
-        "systemSettings": "系统设置"
+      "menu": "菜单管理",
+      "api": "接口管理",
+      "settings": "系统设置",
+      "dictionary": "字典管理",
+      "referrals": "我的邀请"
+    },
+    "marketing": {
+      "title": "营销管理",
+      "referrals": "我的邀请"
+    },
+    "dictionaryCategories": {
+      "systemSettings": "系统设置"
     },
     "safeguard": {
       "title": "运维管理",
@@ -354,13 +355,33 @@
     "empty": { "user": "未登录用户", "email": "未填写邮箱", "phone": "未填写手机号" },
     "gender": { "male": "男", "female": "女" },
     "roleNames": { "R_SUPER": "超级管理员", "R_ADMIN": "管理员", "R_USER": "普通用户" },
-    "profile": { "title": "个人资料", "userName": "用户名", "gender": "性别", "email": "邮箱", "phone": "手机号" },
-    "password": { "title": "更改密码", "current": "当前密码", "new": "新密码", "confirm": "确认新密码" },
-    "actions": { "editProfile": "编辑资料", "saveProfile": "保存资料", "changePassword": "修改密码", "savePassword": "保存密码" },
+    "profile": {
+      "title": "个人资料",
+      "userName": "用户名",
+      "gender": "性别",
+      "email": "邮箱",
+      "phone": "手机号"
+    },
+    "password": {
+      "title": "更改密码",
+      "current": "当前密码",
+      "new": "新密码",
+      "confirm": "确认新密码"
+    },
+    "actions": {
+      "editProfile": "编辑资料",
+      "saveProfile": "保存资料",
+      "changePassword": "修改密码",
+      "savePassword": "保存密码"
+    },
     "validation": {
-      "emailRequired": "请输入邮箱", "emailInvalid": "请输入正确的邮箱", "genderRequired": "请选择性别",
-      "currentPasswordRequired": "请输入当前密码", "newPasswordRequired": "请输入新密码",
-      "confirmPasswordRequired": "请确认新密码", "passwordLength": "密码长度不能少于 6 位",
+      "emailRequired": "请输入邮箱",
+      "emailInvalid": "请输入正确的邮箱",
+      "genderRequired": "请选择性别",
+      "currentPasswordRequired": "请输入当前密码",
+      "newPasswordRequired": "请输入新密码",
+      "confirmPasswordRequired": "请确认新密码",
+      "passwordLength": "密码长度不能少于 6 位",
       "passwordMismatch": "两次输入的密码不一致"
     },
     "messages": { "profileUpdated": "个人资料更新成功", "passwordChanged": "密码修改成功" }
@@ -368,17 +389,38 @@
   "userManagement": {
     "actions": { "add": "新增用户", "save": "保存", "edit": "编辑", "delete": "删除" },
     "fields": {
-      "userName": "用户名", "password": "密码", "email": "邮箱",
-      "phone": "手机号", "gender": "性别", "roles": "角色", "departments": "所属部门", "status": "状态",
-      "createdAt": "创建日期", "operation": "操作"
+      "userName": "用户名",
+      "password": "密码",
+      "email": "邮箱",
+      "phone": "手机号",
+      "gender": "性别",
+      "roles": "角色",
+      "departments": "所属部门",
+      "status": "是否启用",
+      "createdAt": "创建日期",
+      "operation": "操作"
     },
     "status": { "enabled": "启用", "disabled": "停用", "unknown": "未知" },
     "gender": { "male": "男", "female": "女" },
-    "dialog": { "addTitle": "添加用户", "editTitle": "编辑用户", "passwordKeep": "留空表示不修改", "passwordNew": "至少 6 位" },
-    "placeholder": { "userName": "请输入用户名", "email": "请输入邮箱", "phone": "请输入手机号", "status": "请选择状态" },
+    "dialog": {
+      "addTitle": "添加用户",
+      "editTitle": "编辑用户",
+      "passwordKeep": "留空表示不修改；新密码至少 8 位且包含字母和数字",
+      "passwordNew": "至少 8 位且包含字母和数字"
+    },
+    "placeholder": {
+      "userName": "请输入用户名",
+      "email": "请输入邮箱",
+      "phone": "请输入手机号",
+      "status": "请选择是否启用"
+    },
     "validation": {
-      "userNameRequired": "请输入用户名", "userNameLength": "长度为 2 到 50 个字符",
-      "passwordRequired": "请输入密码", "passwordLength": "密码至少 6 位", "emailInvalid": "邮箱格式不正确", "rolesRequired": "请选择角色"
+      "userNameRequired": "请输入用户名",
+      "userNameLength": "长度为 2 到 50 个字符",
+      "passwordRequired": "请输入密码",
+      "passwordLength": "密码至少 6 位",
+      "emailInvalid": "邮箱格式不正确",
+      "rolesRequired": "请选择角色"
     },
     "confirm": { "deleteTitle": "删除用户", "deleteMessage": "确定要删除用户“{name}”吗？" },
     "message": { "created": "创建成功", "updated": "更新成功" },
@@ -418,18 +460,56 @@
   },
   "rawData": "原始数据",
   "listFilter": {
-    "common": { "status": "状态" },
+    "common": { "status": "是否启用" },
     "user": { "userName": "用户名", "email": "邮箱", "phone": "手机号", "gender": "性别" },
-    "role": { "name": "角色名称", "code": "角色编码", "description": "角色描述", "dataScope": "数据权限" },
+    "role": {
+      "name": "角色名称",
+      "code": "角色编码",
+      "description": "角色描述",
+      "dataScope": "数据权限"
+    },
     "menu": { "name": "菜单名称", "parentName": "上级菜单", "path": "路由地址" },
     "department": { "name": "部门名称", "code": "部门编码" },
-    "api": { "name": "接口名称", "method": "请求方法", "path": "接口路径", "controller": "控制器", "controllerName": "控制器名称", "allowAnonymous": "允许匿名访问" },
+    "api": {
+      "name": "接口名称",
+      "method": "请求方法",
+      "path": "接口路径",
+      "controller": "控制器",
+      "controllerName": "控制器名称",
+      "allowAnonymous": "允许匿名访问"
+    },
     "placeholder": {
-      "userName": "请输入用户名", "email": "请输入邮箱", "phone": "请输入手机号", "roleName": "请输入角色名称", "roleCode": "请输入角色编码", "description": "请输入角色描述",
-      "menuName": "请输入菜单名称", "parentMenu": "请输入上级菜单", "departmentName": "请输入部门名称", "departmentCode": "请输入部门编码", "controller": "请输入控制器", "controllerName": "请输入控制器名称", "apiName": "请输入接口名称", "path": "请输入路径"
+      "userName": "请输入用户名",
+      "email": "请输入邮箱",
+      "phone": "请输入手机号",
+      "roleName": "请输入角色名称",
+      "roleCode": "请输入角色编码",
+      "description": "请输入角色描述",
+      "menuName": "请输入菜单名称",
+      "parentMenu": "请输入上级菜单",
+      "departmentName": "请输入部门名称",
+      "departmentCode": "请输入部门编码",
+      "controller": "请输入控制器",
+      "controllerName": "请输入控制器名称",
+      "apiName": "请输入接口名称",
+      "path": "请输入路径"
     },
     "option": {
-      "enabled": "启用", "disabled": "停用", "male": "男", "female": "女", "allData": "全部数据", "departmentData": "本部门数据", "departmentAndChildren": "本部门和子部门数据", "ownData": "本人数据", "yes": "是", "no": "否", "get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH", "delete": "DELETE"
+      "enabled": "启用",
+      "disabled": "停用",
+      "male": "男",
+      "female": "女",
+      "allData": "全部数据",
+      "departmentData": "本部门数据",
+      "departmentAndChildren": "本部门和子部门数据",
+      "ownData": "本人数据",
+      "yes": "是",
+      "no": "否",
+      "get": "GET",
+      "post": "POST",
+      "put": "PUT",
+      "patch": "PATCH",
+      "delete": "DELETE"
     }
   },
   "table": {
@@ -445,7 +525,23 @@
       "expand": "展开",
       "collapse": "收起",
       "searchInputPlaceholder": "请输入",
-      "searchSelectPlaceholder": "请选择"
+      "searchSelectPlaceholder": "请选择",
+      "to": "至",
+      "startDate": "开始时间",
+      "endDate": "结束时间",
+      "createdAt": "创建时间",
+      "updatedAt": "更新时间",
+      "lastHour": "最近一时",
+      "currentHour": "最近整点",
+      "previousHour": "后退一时",
+      "yesterdayAtThisTime": "昨日此时",
+      "today": "今日",
+      "yesterday": "昨日",
+      "previousDay": "后退一日",
+      "thisWeek": "本周",
+      "previousWeek": "后退一周",
+      "thisMonth": "本月",
+      "previousMonth": "后退一月"
     },
     "selection": "选择",
     "sizeOptions": {

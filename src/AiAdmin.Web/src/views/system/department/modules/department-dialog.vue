@@ -7,41 +7,41 @@
   >
     <ElTabs v-model="activeTab">
       <ElTabPane label="编辑" name="form">
-    <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
-      <ElFormItem label="上级部门" prop="parentId">
-        <ElTreeSelect
-          v-model="formData.parentId"
-          :data="availableParents"
-          node-key="id"
-          :props="{ label: 'name', children: 'children' }"
-          check-strictly
-          clearable
-          placeholder="不选择则为根部门"
-          class="w-full"
-        />
-      </ElFormItem>
-      <ElFormItem label="部门名称" prop="name">
-        <ElInput v-model.trim="formData.name" maxlength="100" placeholder="请输入部门名称" />
-      </ElFormItem>
-      <ElFormItem label="部门编码" prop="code">
-        <ElInput v-model.trim="formData.code" maxlength="50" placeholder="请输入唯一部门编码" />
-      </ElFormItem>
-      <ElFormItem label="显示顺序" prop="sort">
-        <ElInputNumber v-model="formData.sort" :min="0" :max="9999" controls-position="right" />
-      </ElFormItem>
-      <ElFormItem label="负责人" prop="leader">
-        <ElInput v-model.trim="formData.leader" maxlength="50" placeholder="请输入负责人" />
-      </ElFormItem>
-      <ElFormItem label="联系电话" prop="phone">
-        <ElInput v-model.trim="formData.phone" maxlength="20" placeholder="请输入联系电话" />
-      </ElFormItem>
-      <ElFormItem label="邮箱" prop="email">
-        <ElInput v-model.trim="formData.email" maxlength="100" placeholder="请输入邮箱" />
-      </ElFormItem>
-      <ElFormItem label="状态">
-        <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="停用" />
-      </ElFormItem>
-    </ElForm>
+        <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
+          <ElFormItem label="上级部门" prop="parentId">
+            <ElTreeSelect
+              v-model="formData.parentId"
+              :data="availableParents"
+              node-key="id"
+              :props="{ label: 'name', children: 'children' }"
+              check-strictly
+              clearable
+              placeholder="不选择则为根部门"
+              class="w-full"
+            />
+          </ElFormItem>
+          <ElFormItem label="部门名称" prop="name">
+            <ElInput v-model.trim="formData.name" maxlength="100" placeholder="请输入部门名称" />
+          </ElFormItem>
+          <ElFormItem label="部门编码" prop="code">
+            <ElInput v-model.trim="formData.code" maxlength="50" placeholder="请输入唯一部门编码" />
+          </ElFormItem>
+          <ElFormItem label="显示顺序" prop="sort">
+            <ElInputNumber v-model="formData.sort" :min="0" :max="9999" controls-position="right" />
+          </ElFormItem>
+          <ElFormItem label="负责人" prop="leader">
+            <ElInput v-model.trim="formData.leader" maxlength="50" placeholder="请输入负责人" />
+          </ElFormItem>
+          <ElFormItem label="联系电话" prop="phone">
+            <ElInput v-model.trim="formData.phone" maxlength="20" placeholder="请输入联系电话" />
+          </ElFormItem>
+          <ElFormItem label="邮箱" prop="email">
+            <ElInput v-model.trim="formData.email" maxlength="100" placeholder="请输入邮箱" />
+          </ElFormItem>
+          <ElFormItem label="是否启用">
+            <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="停用" />
+          </ElFormItem>
+        </ElForm>
       </ElTabPane>
       <ElTabPane :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
@@ -91,7 +91,7 @@
     email: '',
     isEnabled: true
   })
-  const rawData = computed(() => props.type === 'edit' ? props.departmentData : formData)
+  const rawData = computed(() => (props.type === 'edit' ? props.departmentData : formData))
   const localizedTree = (items: Department[]): Department[] =>
     items.map((item) => ({
       ...item,
@@ -142,14 +142,14 @@
       activeTab.value = 'form'
       const row = props.departmentData
       Object.assign(formData, {
-        name: props.type === 'edit' ? row?.name ?? '' : '',
-        code: props.type === 'edit' ? row?.code ?? '' : '',
+        name: props.type === 'edit' ? (row?.name ?? '') : '',
+        code: props.type === 'edit' ? (row?.code ?? '') : '',
         parentId: row?.parentId ?? null,
-        sort: props.type === 'edit' ? row?.sort ?? 0 : 0,
-        leader: props.type === 'edit' ? row?.leader ?? '' : '',
-        phone: props.type === 'edit' ? row?.phone ?? '' : '',
-        email: props.type === 'edit' ? row?.email ?? '' : '',
-        isEnabled: props.type === 'edit' ? row?.isEnabled ?? true : true
+        sort: props.type === 'edit' ? (row?.sort ?? 0) : 0,
+        leader: props.type === 'edit' ? (row?.leader ?? '') : '',
+        phone: props.type === 'edit' ? (row?.phone ?? '') : '',
+        email: props.type === 'edit' ? (row?.email ?? '') : '',
+        isEnabled: props.type === 'edit' ? (row?.isEnabled ?? true) : true
       })
       nextTick(() => formRef.value?.clearValidate())
     }

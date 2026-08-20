@@ -62,7 +62,7 @@ public static class DatabaseInitializer
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
                 , Email = "root@aiadmin.local"
                 , Phone = "13800000000"
-                , Gender = "male"
+                , Gender = UserGender.Male
             };
             root.UserRoles.Add(new UserRole { User = root, Role = superRole });
 
@@ -72,7 +72,7 @@ public static class DatabaseInitializer
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
                 , Email = "admin@aiadmin.local"
                 , Phone = "13800000001"
-                , Gender = "male"
+                , Gender = UserGender.Male
             };
             admin.UserRoles.Add(new UserRole { User = admin, Role = adminRole });
 
@@ -82,7 +82,7 @@ public static class DatabaseInitializer
                 , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
                 , Email = "user@aiadmin.local"
                 , Phone = "13800000002"
-                , Gender = "male"
+                , Gender = UserGender.Male
             };
             user.UserRoles.Add(new UserRole { User = user, Role = userRole });
 

@@ -1,5 +1,7 @@
 // 定义所有数据库实体共用的审计时间字段
 
+using AiAdmin.Api.Attributes;
+
 namespace AiAdmin.Api.Models;
 
 /// <summary>
@@ -10,6 +12,7 @@ public abstract class EntityBase
     /// <summary>
     ///     创建时间
     /// </summary>
+    [ListFilter("listFilter.common.createdAt", "date", Span = 7, Sort = int.MinValue)]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     /// <summary>

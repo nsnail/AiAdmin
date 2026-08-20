@@ -2,6 +2,7 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
+using AiAdmin.Api.Models;
 
 namespace AiAdmin.Api.Contracts;
 
@@ -89,7 +90,7 @@ public sealed record CurrentUserResult(
     , string UserName
     , string Email
     , string Phone
-    , string Gender
+    , UserGender Gender
     , string? Avatar
     , string[] Roles
     , string[] Buttons);

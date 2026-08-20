@@ -12,11 +12,21 @@
   defineOptions({ name: 'ArtBarChart' })
 
   interface ArtBarChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
-    data: number[] | BarDataItem[]; xAxisData?: string[]; barWidth?: string | number
-    stack?: boolean; borderRadius?: number | number[]
-    showAxisLabel?: boolean; showAxisLine?: boolean; showSplitLine?: boolean
-    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    data: number[] | BarDataItem[]
+    xAxisData?: string[]
+    barWidth?: string | number
+    stack?: boolean
+    borderRadius?: number | number[]
+    showAxisLabel?: boolean
+    showAxisLine?: boolean
+    showSplitLine?: boolean
+    showTooltip?: boolean
+    showLegend?: boolean
+    legendPosition?: 'bottom' | 'top' | 'left' | 'right'
   }
 
   const props = withDefaults(defineProps<ArtBarChartProps>(), {

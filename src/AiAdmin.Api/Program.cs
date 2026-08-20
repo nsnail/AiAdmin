@@ -76,6 +76,7 @@ app.UseExceptionHandler();
 app.UseCors("Web");
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<ResponseJsonCleanupMiddleware>();
 app.UseMiddleware<DataScopeMiddleware>();
 app.UseMiddleware<ApiPermissionMiddleware>();
 app.UseAuthorization();

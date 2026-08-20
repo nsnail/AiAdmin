@@ -36,7 +36,13 @@
 
   const searchBarRef = ref()
   const filterFields = ref<ListFilterField[]>([])
-  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
+  const advancedQueryFields = computed<DynamicQueryField[]>(() =>
+    filterFields.value.map((field) => ({
+      field: field.field,
+      label: t(field.label),
+      type: field.valueType
+    }))
+  )
 
   /**
    * 表单数据双向绑定
@@ -52,7 +58,7 @@
   const rules = {}
 
   /**
-   * 角色状态选项
+   * 角色启用选项
    */
   const statusOptions = ref([
     { label: '启用', value: true },
@@ -85,7 +91,7 @@
       clearable: true
     },
     {
-      label: '角色状态',
+      label: '是否启用',
       key: 'enabled',
       type: 'select',
       props: {
@@ -131,5 +137,7 @@
     emit('search', params)
   }
 
-  onMounted(async () => { filterFields.value = await fetchGetListFilterFields('role') })
+  onMounted(async () => {
+    filterFields.value = await fetchGetListFilterFields('role')
+  })
 </script>

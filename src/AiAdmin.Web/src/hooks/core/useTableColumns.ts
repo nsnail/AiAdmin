@@ -73,7 +73,13 @@ export const getColumnChecks = <T>(columns: ColumnOption<T>[]) =>
     const visibility = getColumnVisibility(col)
 
     if (special) {
-      return { ...col, prop: special.prop, label: $t(special.labelKey), checked: true, visible: true }
+      return {
+        ...col,
+        prop: special.prop,
+        label: $t(special.labelKey),
+        checked: true,
+        visible: true
+      }
     }
     return { ...col, checked: visibility, visible: visibility }
   })
@@ -144,7 +150,14 @@ export function useTableColumns<T = any>(
   columns: any
   columnChecks: any
 } & DynamicColumnConfig<T> {
-  const dynamicColumns = ref<ColumnOption<T>[]>(columnsFactory())
+  const createColumns = () =>
+    columnsFactory().map((column) => ({
+      ...column,
+      sortable:
+        column.sortable ??
+        (column.prop && column.prop !== 'operation' && !column.type ? true : undefined)
+    }))
+  const dynamicColumns = ref<ColumnOption<T>[]>(createColumns())
   const columnChecks = ref<ColumnOption<T>[]>(getColumnChecks(dynamicColumns.value))
 
   // 当 dynamicColumns 变动时，重新生成 columnChecks 且保留已存在的显示状态
@@ -262,7 +275,7 @@ export function useTableColumns<T = any>(
      * 重置所有列
      */
     resetColumns: () => {
-      dynamicColumns.value = columnsFactory()
+      dynamicColumns.value = createColumns()
     },
 
     /**

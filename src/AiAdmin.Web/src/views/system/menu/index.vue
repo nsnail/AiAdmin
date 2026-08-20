@@ -36,6 +36,8 @@
         :stripe="false"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
         :default-expand-all="false"
+        @sort-change="handleSortChange"
+        @cell-query="handleCellQuery"
       />
 
       <!-- 菜单弹窗 -->
@@ -53,12 +55,24 @@
 <script setup lang="ts">
   import { formatMenuTitle } from '@/utils/router'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
+  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import type { AppRouteRecord } from '@/types/router'
   import MenuDialog from './modules/menu-dialog.vue'
-  import { fetchCreateMenu, fetchDeleteMenu, fetchGetListFilterFields, fetchGetMenuList, fetchUpdateMenu, type ListFilterField } from '@/api/system-manage'
+  import {
+    fetchCreateMenu,
+    fetchDeleteMenu,
+    fetchGetListFilterFields,
+    fetchGetMenuList,
+    fetchUpdateMenu,
+    type ListFilterField
+  } from '@/api/system-manage'
   import { ElTag, ElMessageBox } from 'element-plus'
-  import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import type {
+    DynamicFilter,
+    DynamicQueryField
+  } from '@/components/core/forms/art-dynamic-query-drawer/types'
   import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'Menus' })
@@ -69,7 +83,13 @@
   const isExpanded = ref(false)
   const tableRef = ref()
   const filterFields = ref<ListFilterField[]>([])
-  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
+  const advancedQueryFields = computed<DynamicQueryField[]>(() =>
+    filterFields.value.map((field) => ({
+      field: field.field,
+      label: t(field.label),
+      type: field.valueType
+    }))
+  )
 
   // 弹窗相关
   const dialogVisible = ref(false)
@@ -80,11 +100,15 @@
   // 搜索相关
   const initialSearchState = {
     name: '',
-    route: ''
+    route: '',
+    IsEnabled: true as boolean | undefined
   }
 
   const formFilters = reactive({ ...initialSearchState })
   const appliedFilters = reactive({ ...initialSearchState })
+  const activeDynamicFilter = ref<DynamicFilter>()
+  const sortField = ref<string>()
+  const sortOrder = ref<'asc' | 'desc'>()
 
   const formItems = computed(() => [
     {
@@ -98,12 +122,26 @@
       key: 'route',
       type: 'input',
       props: { clearable: true }
+    },
+    {
+      label: '是否启用',
+      key: 'IsEnabled',
+      type: 'select',
+      props: {
+        clearable: true,
+        options: [
+          { label: '启用', value: true },
+          { label: '禁用', value: false }
+        ]
+      }
     }
   ])
 
   onMounted(() => {
     getMenuList()
-    fetchGetListFilterFields('menu').then((fields) => { filterFields.value = fields })
+    fetchGetListFilterFields('menu').then((fields) => {
+      filterFields.value = fields
+    })
   })
 
   /**
@@ -113,7 +151,15 @@
     loading.value = true
 
     try {
-      const list = await fetchGetMenuList()
+      const statusFilter =
+        appliedFilters.IsEnabled === undefined
+          ? undefined
+          : { field: 'IsEnabled', operator: 'Equal', value: appliedFilters.IsEnabled }
+      const list = await fetchGetMenuList(
+        activeDynamicFilter.value ?? statusFilter,
+        sortField.value,
+        sortOrder.value
+      )
       tableData.value = list
     } catch (error) {
       throw error instanceof Error ? error : new Error('获取菜单失败')
@@ -127,12 +173,32 @@
    * @param dynamicFilter 动态筛选根节点
    */
   const handleAdvancedSearch = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    activeDynamicFilter.value = dynamicFilter
     loading.value = true
     try {
-      tableData.value = await fetchGetMenuList(dynamicFilter)
+      tableData.value = await fetchGetMenuList(dynamicFilter, sortField.value, sortOrder.value)
     } finally {
       loading.value = false
     }
+  }
+
+  const handleSortChange = async ({
+    prop,
+    order
+  }: {
+    prop: string
+    order: 'ascending' | 'descending' | null
+  }): Promise<void> => {
+    sortField.value = order ? prop : undefined
+    sortOrder.value = order ? (order === 'descending' ? 'desc' : 'asc') : undefined
+    await getMenuList()
+  }
+
+  const handleCellQuery = async (condition: DynamicFilter): Promise<void> => {
+    activeDynamicFilter.value = activeDynamicFilter.value
+      ? { logic: 'And', filters: [activeDynamicFilter.value, condition] }
+      : condition
+    await getMenuList()
   }
 
   /**
@@ -168,14 +234,28 @@
   // 表格列配置
   const { columnChecks, columns } = useTableColumns(() => [
     {
+      prop: 'id',
+      label: 'ID',
+      sortable: 'custom',
+      queryField: 'Id',
+      queryValueType: 'number',
+      minWidth: 190,
+      formatter: (row: AppRouteRecord) =>
+        row.meta?.isAuthButton ? '' : h(ArtListIdCell, { id: row.id!, createdAt: row.createdAt })
+    },
+    {
       prop: 'meta.title',
       label: '菜单名称',
+      sortable: 'custom',
+      queryField: 'Name',
       minWidth: 120,
       formatter: (row: AppRouteRecord) => formatMenuTitle(row.meta?.title)
     },
     {
       prop: 'type',
       label: '菜单类型',
+      sortable: 'custom',
+      queryField: false,
       formatter: (row: AppRouteRecord) => {
         return h(ElTag, { type: getMenuTypeTag(row) }, () => getMenuTypeText(row))
       }
@@ -183,6 +263,8 @@
     {
       prop: 'path',
       label: '路由',
+      sortable: 'custom',
+      queryField: 'Path',
       formatter: (row: AppRouteRecord) => {
         if (row.meta?.isAuthButton) return ''
         return row.meta?.link || row.path || ''
@@ -191,6 +273,8 @@
     {
       prop: 'meta.authList',
       label: '权限标识',
+      sortable: 'custom',
+      queryField: false,
       formatter: (row: AppRouteRecord) => {
         if (row.meta?.isAuthButton) {
           return row.meta?.authMark || ''
@@ -202,12 +286,28 @@
     {
       prop: 'date',
       label: '编辑时间',
+      sortable: 'custom',
+      queryField: false,
       formatter: () => '2022-3-12 12:00:00'
     },
     {
       prop: 'status',
-      label: '状态',
-      formatter: () => h(ElTag, { type: 'success' }, () => '启用')
+      label: '是否启用',
+      sortable: 'custom',
+      queryField: 'IsEnabled',
+      queryValueField: 'isEnabled',
+      queryValueType: 'boolean',
+      formatter: (row: AppRouteRecord) =>
+        row.meta?.isAuthButton
+          ? ''
+          : h(ArtEnabledSwitch, {
+              id: row.id!,
+              resource: 'menu',
+              modelValue: row.isEnabled ?? true,
+              'onUpdate:modelValue': () => {
+                void getMenuList()
+              }
+            })
     },
     {
       prop: 'operation',
@@ -453,7 +553,15 @@
       roles: formData.roles,
       isFullPage: formData.isFullPage
     }
-    const payload = { name: formData.label || formData.name, path: formData.path, component: formData.component || '', parentName: '', sort: formData.sort || 0, meta, isEnabled: formData.isEnable }
+    const payload = {
+      name: formData.label || formData.name,
+      path: formData.path,
+      component: formData.component || '',
+      parentName: '',
+      sort: formData.sort || 0,
+      meta,
+      isEnabled: formData.isEnable
+    }
     if (formData.id) await fetchUpdateMenu(formData.id, payload)
     else await fetchCreateMenu(payload)
     await getMenuList()

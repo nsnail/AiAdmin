@@ -13,7 +13,9 @@
       <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
         <template #left>
           <ElSpace wrap>
-            <ElButton @click="showDialog('add')" v-ripple>{{ t('userManagement.actions.add') }}</ElButton>
+            <ElButton @click="showDialog('add')" v-ripple>{{
+              t('userManagement.actions.add')
+            }}</ElButton>
           </ElSpace>
         </template>
       </ArtTableHeader>
@@ -24,9 +26,10 @@
         :data="data"
         :columns="columns"
         :pagination="pagination"
-        @selection-change="handleSelectionChange"
         @pagination:size-change="handleSizeChange"
         @pagination:current-change="handleCurrentChange"
+        @sort-change="handleSortChange"
+        @cell-query="applyCellQuery"
       >
       </ArtTable>
 
@@ -43,15 +46,16 @@
 
 <script setup lang="ts">
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+  import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
+  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import { ACCOUNT_TABLE_DATA } from '@/mock/temp/formData'
   import { useTable } from '@/hooks/core/useTable'
-  import { fetchCreateUser, fetchDeleteUser, fetchGetUserList, fetchUpdateUser } from '@/api/system-manage'
+  import { fetchCreateUser, fetchGetUserList, fetchUpdateUser } from '@/api/system-manage'
   import UserSearch from './modules/user-search.vue'
   import UserDialog from './modules/user-dialog.vue'
-  import { ElTag, ElMessageBox, ElImage, ElMessage } from 'element-plus'
+  import { ElImage, ElMessage, ElTag } from 'element-plus'
   import { DialogType } from '@/types'
   import { useI18n } from 'vue-i18n'
-  import { formatDateTime } from '@/utils/date'
 
   defineOptions({ name: 'User' })
   const { t, locale } = useI18n()
@@ -63,20 +67,13 @@
   const dialogVisible = ref(false)
   const currentUserData = ref<Partial<UserListItem>>({})
 
-  // 选中行
-  const selectedRows = ref<UserListItem[]>([])
-
   // 搜索表单
-  const searchForm = ref<Api.SystemManage.UserSearchParams>({})
-
-  // 用户状态配置
-  /**
-   * 获取用户状态配置
-   */
-  const getUserStatusConfig = (status: string) => {
-    if (status === '1') return { type: 'success' as const, text: t('userManagement.status.enabled') }
-    if (status === '2') return { type: 'info' as const, text: t('userManagement.status.disabled') }
-    return { type: 'info' as const, text: t('userManagement.status.unknown') }
+  const searchForm = ref<Api.SystemManage.UserSearchParams>({
+    IsEnabled: true
+  } as Api.SystemManage.UserSearchParams)
+  const roleName = (role: string): string => {
+    const key = `userCenter.roleNames.${role}`
+    return t(key) === key ? role : t(key)
   }
 
   const {
@@ -90,6 +87,7 @@
     resetSearchParams,
     handleSizeChange,
     handleCurrentChange,
+    handleSortChange,
     refreshData,
     resetColumns
   } = useTable({
@@ -107,10 +105,18 @@
       //   size: 'pageSize'
       // },
       columnsFactory: () => [
-        { type: 'selection' }, // 勾选列
-        { type: 'index', width: 60, label: t('table.column.index') },
+        {
+          prop: 'id',
+          queryField: 'Id',
+          queryValueType: 'number',
+          label: 'ID',
+          width: 150,
+          formatter: (row) => h(ArtListIdCell, { id: row.id, createdAt: row.createTime })
+        },
         {
           prop: 'userInfo',
+          queryField: 'UserName',
+          queryValueField: 'userName',
           label: t('userManagement.fields.userName'),
           width: 280,
           // visible: false, // 默认是否显示列
@@ -124,53 +130,109 @@
                 previewTeleported: true
               }),
               h('div', { class: 'ml-2' }, [
-                h('p', { class: 'user-name' }, row.userName),
-                h('p', { class: 'email' }, row.userEmail)
+                h(
+                  'p',
+                  {
+                    class: 'user-name',
+                    'data-query-field': 'UserName',
+                    'data-query-label': t('userManagement.fields.userName'),
+                    'data-query-value': row.userName,
+                    'data-query-value-type': 'string'
+                  },
+                  row.userName
+                ),
+                h(
+                  'p',
+                  {
+                    class: 'email text-gray-400',
+                    'data-query-field': 'Email',
+                    'data-query-label': t('userManagement.fields.email'),
+                    'data-query-value': row.userEmail,
+                    'data-query-value-type': 'string'
+                  },
+                  row.userEmail
+                )
               ])
             ])
           }
         },
         {
           prop: 'userGender',
+          queryField: 'Gender',
+          queryValueType: 'number',
           label: t('userManagement.fields.gender'),
+          width: 100,
           sortable: true,
-          formatter: (row) => t(row.userGender === 'female' ? 'userManagement.gender.female' : 'userManagement.gender.male')
+          align: 'center',
+          formatter: (row) =>
+            h(ElTag, { size: 'small', type: row.userGender === 2 ? 'danger' : 'primary' }, () =>
+              t(
+                row.userGender === 2 ? 'userManagement.gender.female' : 'userManagement.gender.male'
+              )
+            )
         },
-        { prop: 'userPhone', label: t('userManagement.fields.phone') },
+        {
+          width: 150,
+          prop: 'userPhone',
+          queryField: 'Phone',
+          label: t('userManagement.fields.phone')
+        },
+        {
+          prop: 'userRoles',
+          queryField: false,
+          label: t('userManagement.fields.roles'),
+          minWidth: 160,
+          formatter: (row) =>
+            h(
+              'div',
+              { class: 'flex flex-wrap gap-1' },
+              row.userRoles.map((role) => h(ElTag, { size: 'small' }, () => roleName(role)))
+            )
+        },
         {
           prop: 'departmentNames',
+          queryField: false,
           label: t('userManagement.fields.departments'),
           minWidth: 160,
-          formatter: (row) => row.departmentNames.join('、') || '-'
+          formatter: (row) =>
+            row.departmentNames.length
+              ? h(
+                  'div',
+                  { class: 'flex flex-wrap gap-1' },
+                  row.departmentNames.map((department) =>
+                    h(ElTag, { size: 'small', type: 'info' }, () => department)
+                  )
+                )
+              : '-'
         },
         {
           prop: 'status',
-          label: t('userManagement.fields.status'),
-          formatter: (row) => {
-            const statusConfig = getUserStatusConfig(row.status)
-            return h(ElTag, { type: statusConfig.type }, () => statusConfig.text)
-          }
-        },
-        {
-          prop: 'createTime',
-          label: t('userManagement.fields.createdAt'),
-          sortable: true,
-          formatter: (row) => formatDateTime(row.createTime, locale.value)
+          queryField: 'IsEnabled',
+          queryValueField: 'isEnabled',
+          queryValueType: 'boolean',
+          label: t('listFilter.common.status'),
+          width: 120,
+          align: 'center',
+          formatter: (row) =>
+            h(ArtEnabledSwitch, {
+              id: row.id,
+              resource: 'user',
+              modelValue: row.isEnabled,
+              'onUpdate:modelValue': () => {
+                void getData()
+              }
+            })
         },
         {
           prop: 'operation',
           label: t('userManagement.fields.operation'),
-          width: 120,
+          width: 70,
           fixed: 'right', // 固定列
           formatter: (row) =>
             h('div', [
               h(ArtButtonTable, {
                 type: 'edit',
                 onClick: () => showDialog('edit', row)
-              }),
-              h(ArtButtonTable, {
-                type: 'delete',
-                onClick: () => deleteUser(row)
               })
             ])
         }
@@ -207,6 +269,22 @@
     getData()
   }
 
+  const applyCellQuery = async (condition: {
+    field: string
+    operator: string
+    value: unknown
+  }): Promise<void> => {
+    const currentFilter = searchForm.value.dynamicFilter
+    searchForm.value = {
+      ...searchForm.value,
+      dynamicFilter: currentFilter
+        ? { logic: 'And', filters: [currentFilter, condition] }
+        : condition
+    }
+    replaceSearchParams(searchForm.value)
+    await getData()
+  }
+
   /**
    * 显示用户弹窗
    */
@@ -219,39 +297,30 @@
   }
 
   /**
-   * 删除用户
-   */
-  const deleteUser = (row: UserListItem): void => {
-    ElMessageBox.confirm(t('userManagement.confirm.deleteMessage', { name: row.userName }), t('userManagement.confirm.deleteTitle'), {
-      confirmButtonText: t('common.confirm'),
-      cancelButtonText: t('common.cancel'),
-      type: 'error'
-    }).then(async () => {
-      await fetchDeleteUser(row.id)
-      await getData()
-    })
-  }
-
-  /**
    * 处理弹窗提交事件
    */
   const handleDialogSubmit = async (form: Api.SystemManage.SaveUserParams) => {
     try {
       if (dialogType.value === 'add') await fetchCreateUser(form)
-      else await fetchUpdateUser(currentUserData.value.id!, form)
-      ElMessage.success(t(dialogType.value === 'add' ? 'userManagement.message.created' : 'userManagement.message.updated'))
+      else {
+        const { userName: _userName, password, ...editableFields } = form
+        await fetchUpdateUser(currentUserData.value.id!, {
+          ...editableFields,
+          ...(password ? { password } : {})
+        })
+      }
+      ElMessage.success(
+        t(
+          dialogType.value === 'add'
+            ? 'userManagement.message.created'
+            : 'userManagement.message.updated'
+        )
+      )
       dialogVisible.value = false
       currentUserData.value = {}
       await getData()
     } catch (error) {
       console.error(error)
     }
-  }
-
-  /**
-   * 处理表格行选择变化
-   */
-  const handleSelectionChange = (selection: UserListItem[]): void => {
-    selectedRows.value = selection
   }
 </script>

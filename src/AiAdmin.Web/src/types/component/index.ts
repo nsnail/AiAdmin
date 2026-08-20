@@ -61,6 +61,12 @@ export interface ColumnOption<T = any> {
   fixed?: boolean | 'left' | 'right'
   // 是否可排序
   sortable?: boolean | 'custom'
+  // 右键查询对应的后端实体字段，false 表示禁用右键查询
+  queryField?: string | false
+  // 右键查询初始值对应的行字段
+  queryValueField?: string
+  // 右键查询字段值类型
+  queryValueType?: 'string' | 'number' | 'boolean' | 'date'
   // 过滤器选项
   filters?: any[]
   // 过滤方法

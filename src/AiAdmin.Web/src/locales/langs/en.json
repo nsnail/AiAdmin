@@ -36,6 +36,7 @@
   },
   "common": {
     "tips": "Prompt",
+    "edit": "Edit",
     "cancel": "Cancel",
     "confirm": "Confirm",
     "logOutTips": "Do you want to log out?"
@@ -294,7 +295,7 @@
       "notFound": "404",
       "serverError": "500"
     },
-      "examples": {
+    "examples": {
       "title": "Feature Examples",
       "tabs": "Tabs",
       "tablesBasic": "Basic Tables",
@@ -309,30 +310,30 @@
         "buttonAuth": "Button Authority",
         "pageVisibility": "Super Admin Visibility"
       }
-      },
-      "development": {
-        "title": "Development",
-        "exampleCenter": "Example Center"
-      },
-      "system": {
-        "title": "System Settings",
-        "permission": "Permission Management",
+    },
+    "development": {
+      "title": "Development",
+      "exampleCenter": "Example Center"
+    },
+    "system": {
+      "title": "System Settings",
+      "permission": "Permission Management",
       "user": "User Manage",
       "role": "Role Manage",
       "department": "Department Management",
       "userCenter": "User Center",
-        "menu": "Menu Manage",
-        "api": "API Management",
-        "settings": "System Settings",
-        "dictionary": "Dictionary Management"
-        , "referrals": "My Referrals"
-      },
-      "marketing": {
-        "title": "Marketing Management",
-        "referrals": "My Referrals"
-      },
-      "dictionaryCategories": {
-        "systemSettings": "System Settings"
+      "menu": "Menu Manage",
+      "api": "API Management",
+      "settings": "System Settings",
+      "dictionary": "Dictionary Management",
+      "referrals": "My Referrals"
+    },
+    "marketing": {
+      "title": "Marketing Management",
+      "referrals": "My Referrals"
+    },
+    "dictionaryCategories": {
+      "systemSettings": "System Settings"
     },
     "safeguard": {
       "title": "Safeguard",
@@ -351,16 +352,40 @@
   },
   "userCenter": {
     "roles": "Roles",
-    "empty": { "user": "Signed-out user", "email": "Email not provided", "phone": "Phone not provided" },
+    "empty": {
+      "user": "Signed-out user",
+      "email": "Email not provided",
+      "phone": "Phone not provided"
+    },
     "gender": { "male": "Male", "female": "Female" },
     "roleNames": { "R_SUPER": "Super administrator", "R_ADMIN": "Administrator", "R_USER": "User" },
-    "profile": { "title": "Profile", "userName": "Username", "gender": "Gender", "email": "Email", "phone": "Phone" },
-    "password": { "title": "Change password", "current": "Current password", "new": "New password", "confirm": "Confirm new password" },
-    "actions": { "editProfile": "Edit profile", "saveProfile": "Save profile", "changePassword": "Change password", "savePassword": "Save password" },
+    "profile": {
+      "title": "Profile",
+      "userName": "Username",
+      "gender": "Gender",
+      "email": "Email",
+      "phone": "Phone"
+    },
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password"
+    },
+    "actions": {
+      "editProfile": "Edit profile",
+      "saveProfile": "Save profile",
+      "changePassword": "Change password",
+      "savePassword": "Save password"
+    },
     "validation": {
-      "emailRequired": "Email is required", "emailInvalid": "Enter a valid email", "genderRequired": "Select a gender",
-      "currentPasswordRequired": "Current password is required", "newPasswordRequired": "New password is required",
-      "confirmPasswordRequired": "Confirm the new password", "passwordLength": "Password must contain at least 6 characters",
+      "emailRequired": "Email is required",
+      "emailInvalid": "Enter a valid email",
+      "genderRequired": "Select a gender",
+      "currentPasswordRequired": "Current password is required",
+      "newPasswordRequired": "New password is required",
+      "confirmPasswordRequired": "Confirm the new password",
+      "passwordLength": "Password must contain at least 6 characters",
       "passwordMismatch": "The passwords do not match"
     },
     "messages": { "profileUpdated": "Profile updated", "passwordChanged": "Password changed" }
@@ -368,17 +393,38 @@
   "userManagement": {
     "actions": { "add": "Add user", "save": "Save", "edit": "Edit", "delete": "Delete" },
     "fields": {
-      "userName": "Username", "password": "Password", "email": "Email",
-      "phone": "Phone", "gender": "Gender", "roles": "Roles", "departments": "Departments", "status": "Status",
-      "createdAt": "Created at", "operation": "Actions"
+      "userName": "Username",
+      "password": "Password",
+      "email": "Email",
+      "phone": "Phone",
+      "gender": "Gender",
+      "roles": "Roles",
+      "departments": "Departments",
+      "status": "Enabled",
+      "createdAt": "Created at",
+      "operation": "Actions"
     },
     "status": { "enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown" },
     "gender": { "male": "Male", "female": "Female" },
-    "dialog": { "addTitle": "Add user", "editTitle": "Edit user", "passwordKeep": "Leave blank to keep unchanged", "passwordNew": "At least 6 characters" },
-    "placeholder": { "userName": "Enter username", "email": "Enter email", "phone": "Enter phone", "status": "Select status" },
+    "dialog": {
+      "addTitle": "Add user",
+      "editTitle": "Edit user",
+      "passwordKeep": "Leave blank to keep unchanged; new passwords need 8+ characters with letters and numbers",
+      "passwordNew": "8+ characters with letters and numbers"
+    },
+    "placeholder": {
+      "userName": "Enter username",
+      "email": "Enter email",
+      "phone": "Enter phone",
+      "status": "Select enabled state"
+    },
     "validation": {
-      "userNameRequired": "Username is required", "userNameLength": "Use 2 to 50 characters",
-      "passwordRequired": "Password is required", "passwordLength": "Password must contain at least 6 characters", "emailInvalid": "Enter a valid email", "rolesRequired": "Select at least one role"
+      "userNameRequired": "Username is required",
+      "userNameLength": "Use 2 to 50 characters",
+      "passwordRequired": "Password is required",
+      "passwordLength": "Password must contain at least 6 characters",
+      "emailInvalid": "Enter a valid email",
+      "rolesRequired": "Select at least one role"
     },
     "confirm": { "deleteTitle": "Delete user", "deleteMessage": "Delete user “{name}”?" },
     "message": { "created": "User created", "updated": "User updated" },
@@ -418,18 +464,56 @@
   },
   "rawData": "Raw Data",
   "listFilter": {
-    "common": { "status": "Status" },
+    "common": { "status": "Enabled" },
     "user": { "userName": "Username", "email": "Email", "phone": "Phone", "gender": "Gender" },
-    "role": { "name": "Role name", "code": "Role code", "description": "Description", "dataScope": "Data scope" },
+    "role": {
+      "name": "Role name",
+      "code": "Role code",
+      "description": "Description",
+      "dataScope": "Data scope"
+    },
     "menu": { "name": "Menu name", "parentName": "Parent menu", "path": "Route path" },
     "department": { "name": "Department name", "code": "Department code" },
-    "api": { "name": "API name", "method": "HTTP method", "path": "Path", "controller": "Controller", "controllerName": "Controller name", "allowAnonymous": "Anonymous access" },
+    "api": {
+      "name": "API name",
+      "method": "HTTP method",
+      "path": "Path",
+      "controller": "Controller",
+      "controllerName": "Controller name",
+      "allowAnonymous": "Anonymous access"
+    },
     "placeholder": {
-      "userName": "Enter username", "email": "Enter email", "phone": "Enter phone", "roleName": "Enter role name", "roleCode": "Enter role code", "description": "Enter description",
-      "menuName": "Enter menu name", "parentMenu": "Enter parent menu", "departmentName": "Enter department name", "departmentCode": "Enter department code", "controller": "Enter controller", "controllerName": "Enter controller name", "apiName": "Enter API name", "path": "Enter path"
+      "userName": "Enter username",
+      "email": "Enter email",
+      "phone": "Enter phone",
+      "roleName": "Enter role name",
+      "roleCode": "Enter role code",
+      "description": "Enter description",
+      "menuName": "Enter menu name",
+      "parentMenu": "Enter parent menu",
+      "departmentName": "Enter department name",
+      "departmentCode": "Enter department code",
+      "controller": "Enter controller",
+      "controllerName": "Enter controller name",
+      "apiName": "Enter API name",
+      "path": "Enter path"
     },
     "option": {
-      "enabled": "Enabled", "disabled": "Disabled", "male": "Male", "female": "Female", "allData": "All data", "departmentData": "Department data", "departmentAndChildren": "Department and children", "ownData": "Own data", "yes": "Yes", "no": "No", "get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH", "delete": "DELETE"
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "male": "Male",
+      "female": "Female",
+      "allData": "All data",
+      "departmentData": "Department data",
+      "departmentAndChildren": "Department and children",
+      "ownData": "Own data",
+      "yes": "Yes",
+      "no": "No",
+      "get": "GET",
+      "post": "POST",
+      "put": "PUT",
+      "patch": "PATCH",
+      "delete": "DELETE"
     }
   },
   "table": {
@@ -445,7 +529,23 @@
       "expand": "Expand",
       "collapse": "Collapse",
       "searchInputPlaceholder": "Please enter",
-      "searchSelectPlaceholder": "Please select"
+      "searchSelectPlaceholder": "Please select",
+      "to": "to",
+      "startDate": "Start time",
+      "endDate": "End time",
+      "createdAt": "Created time",
+      "updatedAt": "Updated time",
+      "lastHour": "Last hour",
+      "currentHour": "Current hour",
+      "previousHour": "Previous hour",
+      "yesterdayAtThisTime": "Yesterday at this time",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "previousDay": "Previous day",
+      "thisWeek": "This week",
+      "previousWeek": "Previous week",
+      "thisMonth": "This month",
+      "previousMonth": "Previous month"
     },
     "selection": "Select",
     "sizeOptions": {

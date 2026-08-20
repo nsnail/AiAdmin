@@ -115,7 +115,20 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         var query = db.Roles.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter);
 
         var total = await query.CountAsync().ConfigureAwait(false);
-        var roles = await query.OrderBy(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
+        var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["roleId"] = nameof(Role.Id)
+            , ["roleName"] = nameof(Role.Name)
+            , ["roleCode"] = nameof(Role.Code)
+            , ["enabled"] = nameof(Role.IsEnabled)
+            , ["createTime"] = nameof(Role.CreatedAt)
+        };
+        var roles = await query
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Role.Id), false, sortAliases)
+            .Skip((current - 1) * size)
+            .Take(size)
+            .ToListAsync()
+            .ConfigureAwait(false);
         var items = roles.ConvertAll(ToListItem);
         return Ok(ApiResponse<PagedResponse<RoleListItem>>.Ok(new PagedResponse<RoleListItem>(items, current, size, total)));
     }
@@ -237,8 +250,10 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
 
     private static IReadOnlyList<MenuItemResult> BuildTree(IReadOnlyList<Menu> rows) {
         var nodes = rows.ToDictionary(
-            x => x.Name, x => new MenuItemResult(x.Id, x.Name, x.Path, x.Component, x.ParentName, x.Sort, ParseMeta(x.MetaJson), [])
-            , StringComparer.Ordinal
+            x => x.Name
+            , x => new MenuItemResult(
+                x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.Path, x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
+            ), StringComparer.Ordinal
         );
         return BuildChildren(string.Empty);
 

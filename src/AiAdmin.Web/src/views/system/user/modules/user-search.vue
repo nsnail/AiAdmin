@@ -32,7 +32,13 @@
   // 表单数据双向绑定
   const searchBarRef = ref()
   const filterFields = ref<ListFilterField[]>([])
-  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
+  const advancedQueryFields = computed<DynamicQueryField[]>(() =>
+    filterFields.value.map((field) => ({
+      field: field.field,
+      label: t(field.label),
+      type: field.valueType
+    }))
+  )
   const formData = computed({
     get: () => props.modelValue,
     set: (val) => emit('update:modelValue', val)
@@ -70,7 +76,7 @@
       props: { placeholder: t('userManagement.placeholder.email') }
     },
     {
-      label: t('userManagement.fields.status'),
+      label: t('listFilter.common.status'),
       key: 'status',
       type: 'select',
       props: {
@@ -84,8 +90,8 @@
       type: 'radiogroup',
       props: {
         options: [
-          { label: t('userManagement.gender.male'), value: 'male' },
-          { label: t('userManagement.gender.female'), value: 'female' }
+          { label: t('userManagement.gender.male'), value: 1 },
+          { label: t('userManagement.gender.female'), value: 2 }
         ]
       }
     }
@@ -101,5 +107,7 @@
     emit('search', params)
   }
 
-  onMounted(async () => { filterFields.value = await fetchGetListFilterFields('user') })
+  onMounted(async () => {
+    filterFields.value = await fetchGetListFilterFields('user')
+  })
 </script>

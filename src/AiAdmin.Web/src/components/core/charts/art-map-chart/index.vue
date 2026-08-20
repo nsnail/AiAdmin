@@ -22,8 +22,14 @@
   const { isDark } = storeToRefs(settingStore)
 
   interface ArtMapChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
-    mapData?: any[]; selectedRegion?: string; showLabels?: boolean; showScatter?: boolean
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    mapData?: any[]
+    selectedRegion?: string
+    showLabels?: boolean
+    showScatter?: boolean
   }
 
   const props = withDefaults(defineProps<ArtMapChartProps>(), {

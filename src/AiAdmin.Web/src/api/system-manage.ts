@@ -26,7 +26,20 @@ export interface ListFilterField {
   valueType: 'string' | 'number' | 'boolean' | 'date'
 }
 
-export function fetchGetListFilterFields(resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint') {
+export type EnabledStateResource =
+  'user' | 'role' | 'menu' | 'department' | 'dictionary-category' | 'dictionary-item'
+
+export function fetchUpdateEnabledState(
+  resource: EnabledStateResource,
+  id: string,
+  isEnabled: boolean
+) {
+  return request.put<void>({ url: `/api/enabled-state/${resource}/${id}`, data: { isEnabled } })
+}
+
+export function fetchGetListFilterFields(
+  resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint'
+) {
   return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
 }
 
@@ -34,7 +47,11 @@ export function fetchGetSavedQueries(route: string) {
   return request.get<SavedQuery[]>({ url: '/api/saved-query', params: { route } })
 }
 
-export function fetchSaveQuery(data: { name: string; route: string; dynamicFilter: DynamicFilter }) {
+export function fetchSaveQuery(data: {
+  name: string
+  route: string
+  dynamicFilter: DynamicFilter
+}) {
   return request.post<SavedQuery>({ url: '/api/saved-query', data })
 }
 
@@ -46,12 +63,22 @@ type DynamicQuery = {
   current?: number
   size?: number
   dynamicFilter?: DynamicFilter
+  sortField?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
-function createDynamicQuery(current: number | undefined, size: number | undefined, filters: DynamicFilter[]): DynamicQuery {
+function createDynamicQuery(
+  current: number | undefined,
+  size: number | undefined,
+  filters: DynamicFilter[],
+  sortField?: string,
+  sortOrder?: 'asc' | 'desc'
+): DynamicQuery {
   return {
     current,
     size,
+    sortField,
+    sortOrder,
     ...(filters.length > 0 ? { dynamicFilter: { logic: 'And', filters } } : {})
   }
 }
@@ -61,32 +88,76 @@ function getTextFilter(field: string, value: string | undefined): DynamicFilter 
   return text ? { field, operator: 'Contains', value: text } : undefined
 }
 
+function getGeneratedFilterOperator(value: unknown): 'Equal' | 'Contains' {
+  return typeof value === 'boolean' ||
+    typeof value === 'number' ||
+    value === 'true' ||
+    value === 'false'
+    ? 'Equal'
+    : 'Contains'
+}
+
+function normalizeDateRange(value: unknown): unknown {
+  if (!Array.isArray(value) || value.length !== 2 || !value[0] || !value[1]) return value
+  const start = new Date(String(value[0]))
+  const end = new Date(String(value[1]))
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return value
+  if (
+    start.getFullYear() === end.getFullYear() &&
+    start.getMonth() === end.getMonth() &&
+    start.getDate() === end.getDate() &&
+    end.getHours() === 0 &&
+    end.getMinutes() === 0 &&
+    end.getSeconds() === 0
+  ) {
+    end.setDate(end.getDate() + 1)
+    return [value[0], end.toISOString()]
+  }
+  return value
+}
+
 // 获取用户列表
 export function fetchGetUserList(params: Api.SystemManage.UserSearchParams) {
-  if ('dynamicFilter' in params && params.dynamicFilter) {
-    return request.post<Api.SystemManage.UserList>({
-      url: '/api/user/list',
-      data: { current: params.current, size: params.size, dynamicFilter: params.dynamicFilter }
-    })
-  }
   const generatedFilters = Object.entries(params)
-    .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
-    .map(([field, value]) => ({ field, operator: typeof value === 'boolean' || value === 'true' || value === 'false' ? 'Equal' : 'Contains', value: value === 'true' ? true : value === 'false' ? false : value }))
-  const filters = generatedFilters.length ? generatedFilters : [
-    getTextFilter('UserName', params.userName),
-    getTextFilter('Phone', params.userPhone),
-    getTextFilter('Email', params.userEmail),
-    params.userGender ? { field: 'Gender', operator: 'Equal', value: params.userGender } : undefined,
-    params.status === '1'
-      ? { field: 'IsEnabled', operator: 'Equal', value: true }
-      : params.status === '2'
-        ? { field: 'IsEnabled', operator: 'Equal', value: false }
-        : undefined
-  ].filter((filter): filter is DynamicFilter => Boolean(filter))
+    .filter(
+      ([field, value]) =>
+        /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== ''
+    )
+    .map(([field, value]) => ({
+      field,
+      operator: Array.isArray(value)
+        ? ['createdat', 'updatedat'].includes(field.toLowerCase())
+          ? 'DateRange'
+          : 'Any'
+        : getGeneratedFilterOperator(value),
+      value: normalizeDateRange(value === 'true' ? true : value === 'false' ? false : value)
+    }))
+  const baseFilters = generatedFilters.length
+    ? generatedFilters
+    : [
+        getTextFilter('UserName', params.userName),
+        getTextFilter('Phone', params.userPhone),
+        getTextFilter('Email', params.userEmail),
+        params.userGender
+          ? { field: 'Gender', operator: 'Equal', value: params.userGender }
+          : undefined,
+        params.status === '1'
+          ? { field: 'IsEnabled', operator: 'Equal', value: true }
+          : params.status === '2'
+            ? { field: 'IsEnabled', operator: 'Equal', value: false }
+            : undefined
+      ].filter((filter): filter is DynamicFilter => Boolean(filter))
+  const filters = params.dynamicFilter ? [...baseFilters, params.dynamicFilter] : baseFilters
 
   return request.post<Api.SystemManage.UserList>({
     url: '/api/user/list',
-    data: createDynamicQuery(params.current, params.size, filters)
+    data: createDynamicQuery(
+      params.current,
+      params.size,
+      filters,
+      params.sortField,
+      params.sortOrder
+    )
   })
 }
 
@@ -94,12 +165,8 @@ export function fetchCreateUser(data: Api.SystemManage.SaveUserParams) {
   return request.post<Api.SystemManage.UserListItem>({ url: '/api/user', data })
 }
 
-export function fetchUpdateUser(id: string, data: Api.SystemManage.SaveUserParams) {
+export function fetchUpdateUser(id: string, data: Api.SystemManage.UpdateUserParams) {
   return request.put<Api.SystemManage.UserListItem>({ url: `/api/user/${id}`, data })
-}
-
-export function fetchDeleteUser(id: string) {
-  return request.del<void>({ url: `/api/user/${id}`, showSuccessMessage: true })
 }
 
 export function fetchGetUserRoles() {
@@ -119,10 +186,7 @@ export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParam
   return request.post<Api.SystemManage.DepartmentTreeItem>({ url: '/api/department', data })
 }
 
-export function fetchUpdateDepartment(
-  id: string,
-  data: Api.SystemManage.SaveDepartmentParams
-) {
+export function fetchUpdateDepartment(id: string, data: Api.SystemManage.SaveDepartmentParams) {
   return request.put<Api.SystemManage.DepartmentTreeItem>({ url: `/api/department/${id}`, data })
 }
 
@@ -132,32 +196,48 @@ export function fetchDeleteDepartment(id: string) {
 
 // 获取角色列表
 export function fetchGetRoleList(params: Api.SystemManage.RoleSearchParams) {
-  if ('dynamicFilter' in params && params.dynamicFilter) {
-    return request.post<Api.SystemManage.RoleList>({
-      url: '/api/role/list',
-      data: { current: params.current, size: params.size, dynamicFilter: params.dynamicFilter }
-    })
-  }
   const generatedFilters = Object.entries(params)
-    .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
-    .map(([field, value]) => ({ field, operator: typeof value === 'boolean' || value === 'true' || value === 'false' ? 'Equal' : 'Contains', value: value === 'true' ? true : value === 'false' ? false : value }))
-  const filters = generatedFilters.length ? generatedFilters : [
-    getTextFilter('Name', params.roleName),
-    getTextFilter('Code', params.roleCode),
-    getTextFilter('Description', params.description),
-    typeof params.enabled === 'boolean' ? { field: 'IsEnabled', operator: 'Equal', value: params.enabled } : undefined,
-    params.startTime && params.endTime
-      ? { field: 'CreatedAt', operator: 'Range', value: [params.startTime, params.endTime] }
-      : params.startTime
-        ? { field: 'CreatedAt', operator: 'GreaterThanOrEqual', value: params.startTime }
-        : params.endTime
-          ? { field: 'CreatedAt', operator: 'LessThan', value: params.endTime }
-          : undefined
-  ].filter((filter): filter is DynamicFilter => Boolean(filter))
+    .filter(
+      ([field, value]) =>
+        /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== ''
+    )
+    .map(([field, value]) => ({
+      field,
+      operator: Array.isArray(value)
+        ? ['createdat', 'updatedat'].includes(field.toLowerCase())
+          ? 'DateRange'
+          : 'Any'
+        : getGeneratedFilterOperator(value),
+      value: normalizeDateRange(value === 'true' ? true : value === 'false' ? false : value)
+    }))
+  const baseFilters = generatedFilters.length
+    ? generatedFilters
+    : [
+        getTextFilter('Name', params.roleName),
+        getTextFilter('Code', params.roleCode),
+        getTextFilter('Description', params.description),
+        typeof params.enabled === 'boolean'
+          ? { field: 'IsEnabled', operator: 'Equal', value: params.enabled }
+          : undefined,
+        params.startTime && params.endTime
+          ? { field: 'CreatedAt', operator: 'Range', value: [params.startTime, params.endTime] }
+          : params.startTime
+            ? { field: 'CreatedAt', operator: 'GreaterThanOrEqual', value: params.startTime }
+            : params.endTime
+              ? { field: 'CreatedAt', operator: 'LessThan', value: params.endTime }
+              : undefined
+      ].filter((filter): filter is DynamicFilter => Boolean(filter))
+  const filters = params.dynamicFilter ? [...baseFilters, params.dynamicFilter] : baseFilters
 
   return request.post<Api.SystemManage.RoleList>({
     url: '/api/role/list',
-    data: createDynamicQuery(params.current, params.size, filters)
+    data: createDynamicQuery(
+      params.current,
+      params.size,
+      filters,
+      params.sortField,
+      params.sortOrder
+    )
   })
 }
 
@@ -189,10 +269,14 @@ export function fetchSaveRoleApis(id: string, apiIds: string[]) {
   return request.put<void>({ url: `/api/role/${id}/apis`, data: { apiIds } })
 }
 
-export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter) {
+export function fetchGetApiEndpointList(
+  dynamicFilter?: DynamicFilter,
+  sortField?: string,
+  sortOrder?: 'asc' | 'desc'
+) {
   return request.post<Api.SystemManage.ApiEndpointItem[]>({
     url: '/api/api-endpoint/list',
-    data: dynamicFilter ? { dynamicFilter } : {}
+    data: { dynamicFilter, sortField, sortOrder }
   })
 }
 
@@ -205,10 +289,14 @@ export function fetchGetCurrentMenuNames() {
 }
 
 // 获取菜单列表
-export function fetchGetMenuList(dynamicFilter?: DynamicFilter) {
+export function fetchGetMenuList(
+  dynamicFilter?: DynamicFilter,
+  sortField?: string,
+  sortOrder?: 'asc' | 'desc'
+) {
   return request.post<AppRouteRecord[]>({
     url: '/api/menu/list',
-    data: dynamicFilter ? { dynamicFilter } : {}
+    data: { dynamicFilter, sortField, sortOrder }
   })
 }
 
@@ -229,11 +317,20 @@ export function fetchGetDictionaryCategories() {
 }
 
 export function fetchCreateDictionaryCategory(data: Api.SystemManage.SaveDictionaryCategoryParams) {
-  return request.post<Api.SystemManage.DictionaryCategory>({ url: '/api/dictionary/categories', data })
+  return request.post<Api.SystemManage.DictionaryCategory>({
+    url: '/api/dictionary/categories',
+    data
+  })
 }
 
-export function fetchUpdateDictionaryCategory(id: string, data: Api.SystemManage.SaveDictionaryCategoryParams) {
-  return request.put<Api.SystemManage.DictionaryCategory>({ url: `/api/dictionary/categories/${id}`, data })
+export function fetchUpdateDictionaryCategory(
+  id: string,
+  data: Api.SystemManage.SaveDictionaryCategoryParams
+) {
+  return request.put<Api.SystemManage.DictionaryCategory>({
+    url: `/api/dictionary/categories/${id}`,
+    data
+  })
 }
 
 export function fetchDeleteDictionaryCategory(id: string) {
@@ -241,14 +338,25 @@ export function fetchDeleteDictionaryCategory(id: string) {
 }
 
 export function fetchGetDictionaryItems(categoryId: string) {
-  return request.get<Api.SystemManage.DictionaryItem[]>({ url: `/api/dictionary/categories/${categoryId}/items` })
+  return request.get<Api.SystemManage.DictionaryItem[]>({
+    url: `/api/dictionary/categories/${categoryId}/items`
+  })
 }
 
-export function fetchCreateDictionaryItem(categoryId: string, data: Api.SystemManage.SaveDictionaryItemParams) {
-  return request.post<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/categories/${categoryId}/items`, data })
+export function fetchCreateDictionaryItem(
+  categoryId: string,
+  data: Api.SystemManage.SaveDictionaryItemParams
+) {
+  return request.post<Api.SystemManage.DictionaryItem>({
+    url: `/api/dictionary/categories/${categoryId}/items`,
+    data
+  })
 }
 
-export function fetchUpdateDictionaryItem(id: string, data: Api.SystemManage.SaveDictionaryItemParams) {
+export function fetchUpdateDictionaryItem(
+  id: string,
+  data: Api.SystemManage.SaveDictionaryItemParams
+) {
   return request.put<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/items/${id}`, data })
 }
 

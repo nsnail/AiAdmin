@@ -1,5 +1,5 @@
 <template>
-  <ElScrollbar class="raw-data-scrollbar">
+  <ElScrollbar class="raw-data-scrollbar" max-height="480px">
     <!-- highlight.js 对 JSON 文本完成转义后再输出，避免把数据当作 HTML 执行 -->
     <pre class="raw-data"><code class="hljs" v-html="formattedData" /></pre>
   </ElScrollbar>
@@ -25,6 +25,19 @@
 </script>
 
 <style scoped>
-  .raw-data-scrollbar { max-height: 480px; border: 1px solid var(--el-border-color-lighter); border-radius: 4px; }
-  .raw-data { margin: 0; padding: 16px; font-family: var(--el-font-family); font-size: 13px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .raw-data-scrollbar {
+    width: 100%;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 4px;
+  }
+  .raw-data {
+    width: max-content;
+    min-width: 100%;
+    margin: 0;
+    padding: 16px;
+    font-family: var(--el-font-family);
+    font-size: 13px;
+    line-height: 1.65;
+    white-space: pre;
+  }
 </style>

@@ -41,6 +41,28 @@ interface ExtendedAxiosRequestConfig extends AxiosRequestConfig {
 
 const { VITE_API_URL, VITE_WITH_CREDENTIALS } = import.meta.env
 
+/** 递归移除请求对象中的 null 和空字符串，保留 false、0 以及有效空数组 */
+function removeEmptyRequestValues(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item !== null && item !== '')
+      .map((item) => removeEmptyRequestValues(item))
+  }
+
+  if (value && typeof value === 'object' && !(value instanceof Date)) {
+    return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>(
+      (result, [key, item]) => {
+        if (item === null || item === '') return result
+        result[key] = removeEmptyRequestValues(item)
+        return result
+      },
+      {}
+    )
+  }
+
+  return value
+}
+
 /** Axios实例 */
 const axiosInstance = axios.create({
   timeout: REQUEST_TIMEOUT,
@@ -69,6 +91,13 @@ axiosInstance.interceptors.request.use(
     if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)
     request.headers.set('Accept-Language', useUserStore().language)
 
+    if (request.params && !(request.params instanceof URLSearchParams)) {
+      request.params = removeEmptyRequestValues(request.params) as Record<string, unknown>
+    }
+    if (request.data && !(request.data instanceof FormData) && !(request.data instanceof Blob)) {
+      request.data = removeEmptyRequestValues(request.data)
+    }
+
     if (request.data && !(request.data instanceof FormData) && !request.headers['Content-Type']) {
       request.headers.set('Content-Type', 'application/json')
       request.data = JSON.stringify(request.data)
@@ -92,7 +121,9 @@ axiosInstance.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === ApiStatus.unauthorized) {
-      const message = translateServerMessage((error.response.data as BaseResponse<unknown> | undefined)?.msg)
+      const message = translateServerMessage(
+        (error.response.data as BaseResponse<unknown> | undefined)?.msg
+      )
       handleUnauthorizedError(message)
     }
     return Promise.reject(handleError(error))
@@ -106,7 +137,10 @@ function createHttpError(message: string, code: number) {
 
 /** 处理401错误（带防抖） */
 function handleUnauthorizedError(message?: string): never {
-  const error = createHttpError(translateServerMessage(message) || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
+  const error = createHttpError(
+    translateServerMessage(message) || $t('httpMsg.unauthorized'),
+    ApiStatus.unauthorized
+  )
 
   if (!isUnauthorizedErrorShown) {
     isUnauthorizedErrorShown = true

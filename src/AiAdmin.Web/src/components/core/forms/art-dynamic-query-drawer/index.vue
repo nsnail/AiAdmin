@@ -1,12 +1,34 @@
 <template>
-  <ElDrawer v-model="visible" title="高级查询" direction="rtl" size="min(680px, 100%)" destroy-on-close>
+  <ElDrawer
+    v-model="visible"
+    title="高级查询"
+    direction="rtl"
+    size="min(680px, 100%)"
+    destroy-on-close
+  >
     <div class="drawer-content">
       <div class="saved-row">
-        <ElSelect v-model="selectedSaved" clearable placeholder="已保存查询" class="saved-select" @change="loadSaved">
-          <ElOption v-for="item in savedQueries" :key="item.id" :label="item.name" :value="String(item.id)" />
+        <ElSelect
+          v-model="selectedSaved"
+          clearable
+          placeholder="已保存查询"
+          class="saved-select"
+          @change="loadSaved"
+        >
+          <ElOption
+            v-for="item in savedQueries"
+            :key="item.id"
+            :label="item.name"
+            :value="String(item.id)"
+          />
         </ElSelect>
-        <ElTooltip content="保存当前查询"><ElButton circle @click="saveQuery"><ArtSvgIcon icon="ri:save-line" /></ElButton></ElTooltip>
-        <ElTooltip content="删除已保存查询"><ElButton circle :disabled="!selectedSaved" @click="deleteSaved"><ArtSvgIcon icon="ri:delete-bin-line" /></ElButton></ElTooltip>
+        <ElTooltip content="保存当前查询"
+          ><ElButton circle @click="saveQuery"><ArtSvgIcon icon="ri:save-line" /></ElButton
+        ></ElTooltip>
+        <ElTooltip content="删除已保存查询"
+          ><ElButton circle :disabled="!selectedSaved" @click="deleteSaved"
+            ><ArtSvgIcon icon="ri:delete-bin-line" /></ElButton
+        ></ElTooltip>
       </div>
       <DynamicQueryGroup v-model="draft" :fields="fields" />
       <section class="preview">
@@ -22,28 +44,33 @@
           </div>
         </div>
         <div class="json-editor" :class="{ 'is-invalid': jsonError }">
-          <pre ref="highlightRef" aria-hidden="true" v-html="highlightedPreview" />
-          <textarea
+          <ArtJsonEditor
             v-model="jsonText"
             aria-label="查询 JSON"
-            spellcheck="false"
             @input="validateJsonText"
-            @keydown.tab.prevent="insertJsonIndent"
             @blur="syncDraftFromJson(true)"
-            @scroll="syncEditorScroll"
           />
         </div>
       </section>
     </div>
-    <template #footer><ElButton @click="visible = false">取消</ElButton><ElButton type="primary" @click="apply">应用查询</ElButton></template>
+    <template #footer
+      ><ElButton @click="visible = false">取消</ElButton
+      ><ElButton type="primary" @click="apply">应用查询</ElButton></template
+    >
   </ElDrawer>
 </template>
 
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
-  import { fetchDeleteSavedQuery, fetchGetSavedQueries, fetchSaveQuery, type SavedQuery } from '@/api/system-manage'
+  import {
+    fetchDeleteSavedQuery,
+    fetchGetSavedQueries,
+    fetchSaveQuery,
+    type SavedQuery
+  } from '@/api/system-manage'
   import { useRoute } from 'vue-router'
   import DynamicQueryGroup from './dynamic-query-group.vue'
+  import ArtJsonEditor from '../art-json-editor/index.vue'
   import type { DynamicFilter, DynamicQueryField, QueryGroup, QueryNode } from './types'
 
   const visible = defineModel<boolean>('visible', { default: false })
@@ -58,20 +85,53 @@
   const highlightRef = ref<HTMLElement>()
   let syncingFromJson = false
 
-  const convertValue = (value: string, field: DynamicQueryField | undefined, operator: string): unknown => {
-    const values = ['Range', 'DateRange', 'Any', 'NotAny'].includes(operator) ? value.split(',').map((item) => item.trim()).filter(Boolean) : undefined
-    const convert = (item: string) => field?.type === 'number' ? Number(item) : field?.type === 'boolean' ? item === 'true' : item
+  const convertValue = (
+    value: string,
+    field: DynamicQueryField | undefined,
+    operator: string
+  ): unknown => {
+    const values = ['Range', 'DateRange', 'Any', 'NotAny'].includes(operator)
+      ? value
+          .split(',')
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : undefined
+    const convert = (item: string) =>
+      field?.type === 'number' ? Number(item) : field?.type === 'boolean' ? item === 'true' : item
     return values ? values.map(convert) : convert(value)
   }
   const toFilter = (group: QueryGroup): DynamicFilter | undefined => {
-    const filters = group.filters.map((node): DynamicFilter | undefined => {
-      if (node.kind === 'group') return toFilter(node.group)
-      if (!node.field || !node.operator || !node.value.trim()) return undefined
-      return { field: node.field, operator: node.operator, value: convertValue(node.value, props.fields.find((field) => field.field === node.field), node.operator) }
-    }).filter((node): node is DynamicFilter => Boolean(node))
+    const filters = group.filters
+      .map((node): DynamicFilter | undefined => {
+        if (node.kind === 'group') return toFilter(node.group)
+        if (!node.field || !node.operator || !node.value.trim()) return undefined
+        return {
+          field: node.field,
+          operator: node.operator,
+          value: convertValue(
+            node.value,
+            props.fields.find((field) => field.field === node.field),
+            node.operator
+          )
+        }
+      })
+      .filter((node): node is DynamicFilter => Boolean(node))
     return filters.length ? { logic: group.logic, filters } : undefined
   }
-  const fromFilter = (filter?: DynamicFilter): QueryGroup => ({ logic: filter?.logic || 'And', filters: (filter?.filters || []).map((item): QueryNode => item.filters?.length ? { id: crypto.randomUUID(), kind: 'group', group: fromFilter(item) } : { id: crypto.randomUUID(), kind: 'condition', field: item.field || '', operator: item.operator || 'Contains', value: Array.isArray(item.value) ? item.value.join(', ') : String(item.value ?? '') }) })
+  const fromFilter = (filter?: DynamicFilter): QueryGroup => ({
+    logic: filter?.logic || 'And',
+    filters: (filter?.filters || []).map((item): QueryNode =>
+      item.filters?.length
+        ? { id: crypto.randomUUID(), kind: 'group', group: fromFilter(item) }
+        : {
+            id: crypto.randomUUID(),
+            kind: 'condition',
+            field: item.field || '',
+            operator: item.operator || 'Contains',
+            value: Array.isArray(item.value) ? item.value.join(', ') : String(item.value ?? '')
+          }
+    )
+  })
   const formatFilterJson = (filter?: DynamicFilter) => JSON.stringify(filter, null, 2) ?? '{}'
   // 先转义用户输入，再为 JSON 标记语法类型，避免预览内容被浏览器当作 HTML 执行。
   const highlightedPreview = computed(() => {
@@ -86,7 +146,8 @@
       (match, key, stringValue, literal) => {
         if (key) return `<span class="json-key">${key}</span>`
         if (stringValue) return `<span class="json-string">${stringValue}</span>`
-        if (literal === 'true' || literal === 'false') return `<span class="json-boolean">${literal}</span>`
+        if (literal === 'true' || literal === 'false')
+          return `<span class="json-boolean">${literal}</span>`
         if (literal === 'null') return `<span class="json-null">${literal}</span>`
         return `<span class="json-number">${match}</span>`
       }
@@ -100,8 +161,14 @@
     if (filter.filters !== undefined) {
       if (!Array.isArray(filter.filters) || !filter.filters.every(isDynamicFilter)) return false
     }
-    if (filter.field !== undefined && filter.field !== null && typeof filter.field !== 'string') return false
-    if (filter.operator !== undefined && filter.operator !== null && typeof filter.operator !== 'string') return false
+    if (filter.field !== undefined && filter.field !== null && typeof filter.field !== 'string')
+      return false
+    if (
+      filter.operator !== undefined &&
+      filter.operator !== null &&
+      typeof filter.operator !== 'string'
+    )
+      return false
     return true
   }
 
@@ -122,7 +189,9 @@
     }
   }
 
-  const validateJsonText = () => { parseJsonText() }
+  const validateJsonText = () => {
+    parseJsonText()
+  }
   const formatJsonText = () => {
     const filter = parseJsonText()
     if (jsonError.value) {
@@ -140,7 +209,9 @@
     }
     syncingFromJson = true
     draft.value = fromFilter(filter)
-    nextTick(() => { syncingFromJson = false })
+    nextTick(() => {
+      syncingFromJson = false
+    })
     return filter
   }
   const setEditorFilter = (filter?: DynamicFilter) => {
@@ -148,7 +219,9 @@
     draft.value = fromFilter(filter)
     jsonText.value = formatFilterJson(filter)
     jsonError.value = ''
-    nextTick(() => { syncingFromJson = false })
+    nextTick(() => {
+      syncingFromJson = false
+    })
   }
   const syncEditorScroll = (event: Event) => {
     const editor = event.target as HTMLTextAreaElement
@@ -169,39 +242,58 @@
     })
   }
 
-  watch(draft, (group) => {
-    if (!syncingFromJson) {
-      jsonText.value = formatFilterJson(toFilter(group))
-      jsonError.value = ''
-    }
-  }, { deep: true, immediate: true })
-  watch(() => props.modelValue, (filter) => {
-    setEditorFilter(filter)
-  }, { immediate: true })
+  watch(
+    draft,
+    (group) => {
+      if (!syncingFromJson) {
+        jsonText.value = formatFilterJson(toFilter(group))
+        jsonError.value = ''
+      }
+    },
+    { deep: true, immediate: true }
+  )
+  watch(
+    () => props.modelValue,
+    (filter) => {
+      setEditorFilter(filter)
+    },
+    { immediate: true }
+  )
   const loadSaved = (id?: string | number) => {
     const item = savedQueries.value.find((query) => String(query.id) === String(id))
     if (item) {
       setEditorFilter(item.dynamicFilter)
     }
   }
-  const loadSavedQueries = async () => { savedQueries.value = await fetchGetSavedQueries(route.path) }
+  const loadSavedQueries = async () => {
+    savedQueries.value = await fetchGetSavedQueries(route.path)
+  }
   const saveQuery = async () => {
     const dynamicFilter = syncDraftFromJson(true)
     if (!dynamicFilter) return
-    const currentQuery = savedQueries.value.find((query) => String(query.id) === selectedSaved.value)
+    const currentQuery = savedQueries.value.find(
+      (query) => String(query.id) === selectedSaved.value
+    )
     const { value } = await ElMessageBox.prompt('请输入查询名称', '保存查询', {
       inputValue: currentQuery?.name || '',
       inputPattern: /\S+/,
       inputErrorMessage: '请输入查询名称'
     })
     const saved = await fetchSaveQuery({ name: value.trim(), route: route.path, dynamicFilter })
-    savedQueries.value = [...savedQueries.value.filter((item) => String(item.id) !== String(saved.id) && item.name !== saved.name), saved].sort((left, right) => left.name.localeCompare(right.name))
+    savedQueries.value = [
+      ...savedQueries.value.filter(
+        (item) => String(item.id) !== String(saved.id) && item.name !== saved.name
+      ),
+      saved
+    ].sort((left, right) => left.name.localeCompare(right.name))
     selectedSaved.value = String(saved.id)
   }
   const deleteSaved = async () => {
     if (!selectedSaved.value) return
     await fetchDeleteSavedQuery(selectedSaved.value)
-    savedQueries.value = savedQueries.value.filter((item) => String(item.id) !== selectedSaved.value)
+    savedQueries.value = savedQueries.value.filter(
+      (item) => String(item.id) !== selectedSaved.value
+    )
     selectedSaved.value = ''
   }
   const apply = () => {
@@ -217,12 +309,44 @@
 </script>
 
 <style scoped lang="scss">
-  .drawer-content { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-  .saved-row { display: flex; gap: 8px; margin-bottom: 16px; } .saved-select { flex: 1; }
-  .preview { display: flex; flex: 1; flex-direction: column; min-height: 280px; margin-top: 20px; font-size: 13px; color: var(--el-text-color-regular); }
-  .preview-title { display: flex; min-height: 32px; align-items: center; justify-content: space-between; gap: 12px; }
-  .preview-actions { display: flex; align-items: center; gap: 8px; }
-  .json-error { color: var(--el-color-danger); }
+  .drawer-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .saved-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .saved-select {
+    flex: 1;
+  }
+  .preview {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 280px;
+    margin-top: 20px;
+    font-size: 13px;
+    color: var(--el-text-color-regular);
+  }
+  .preview-title {
+    display: flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .preview-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .json-error {
+    color: var(--el-color-danger);
+  }
   .json-editor {
     position: relative;
     flex: 1;
@@ -231,7 +355,9 @@
     border: 1px solid var(--el-border-color);
     background: var(--el-fill-color-light);
 
-    &.is-invalid { border-color: var(--el-color-danger); }
+    &.is-invalid {
+      border-color: var(--el-color-danger);
+    }
 
     pre,
     textarea {
@@ -243,7 +369,11 @@
       margin: 0;
       overflow: auto;
       border: 0;
-      font: 13px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+      font:
+        13px/1.5 ui-monospace,
+        SFMono-Regular,
+        Consolas,
+        monospace;
       letter-spacing: 0;
       tab-size: 2;
       white-space: pre;
@@ -264,9 +394,18 @@
       -webkit-text-fill-color: transparent;
     }
 
-    :deep(.json-key) { color: var(--el-color-primary); }
-    :deep(.json-string) { color: var(--el-color-success); }
-    :deep(.json-number) { color: var(--el-color-warning); }
-    :deep(.json-boolean), :deep(.json-null) { color: var(--el-color-danger); }
+    :deep(.json-key) {
+      color: var(--el-color-primary);
+    }
+    :deep(.json-string) {
+      color: var(--el-color-success);
+    }
+    :deep(.json-number) {
+      color: var(--el-color-warning);
+    }
+    :deep(.json-boolean),
+    :deep(.json-null) {
+      color: var(--el-color-danger);
+    }
   }
 </style>

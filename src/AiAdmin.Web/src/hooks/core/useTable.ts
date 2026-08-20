@@ -226,7 +226,19 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
   }))
 
   // 列配置
-  const columnConfig = columnsFactory ? useTableColumns<TRecord>(columnsFactory) : null
+  const sortableColumnsFactory = columnsFactory
+    ? () =>
+        columnsFactory().map((column) => {
+          const supportsSorting = column.prop && column.prop !== 'operation' && !column.type
+          return {
+            ...column,
+            sortable: column.sortable === false ? false : supportsSorting ? 'custom' : undefined
+          }
+        })
+    : undefined
+  const columnConfig = sortableColumnsFactory
+    ? useTableColumns<TRecord>(sortableColumnsFactory)
+    : null
   const columns = columnConfig?.columns
   const columnChecks = columnConfig?.columnChecks
 
@@ -483,6 +495,8 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
   const replaceSearchParams = (params?: Partial<TParams>): void => {
     const paramsRecord = searchParams as Record<string, unknown>
     const currentSize = pagination.size || ((paramsRecord[sizeKey] as number) ?? 10)
+    const currentSortField = paramsRecord.sortField
+    const currentSortOrder = paramsRecord.sortOrder
 
     Object.keys(searchParams).forEach((key) => {
       if (key !== pageKey && key !== sizeKey) {
@@ -494,7 +508,9 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
       searchParams,
       {
         [pageKey]: 1,
-        [sizeKey]: currentSize
+        [sizeKey]: currentSize,
+        ...(currentSortField ? { sortField: currentSortField } : {}),
+        ...(currentSortOrder ? { sortOrder: currentSortOrder } : {})
       },
       params || {}
     )
@@ -553,6 +569,44 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
     } finally {
       isCurrentChanging = false
     }
+  }
+
+  /**
+   * 处理远程排序变化
+   */
+  const handleSortChange = async ({
+    prop,
+    order
+  }: {
+    prop?: string
+    order?: 'ascending' | 'descending' | null
+  }): Promise<void> => {
+    const paramsRecord = searchParams as Record<string, unknown>
+    if (prop && order) {
+      paramsRecord.sortField = prop
+      paramsRecord.sortOrder = order === 'descending' ? 'desc' : 'asc'
+    } else {
+      delete paramsRecord.sortField
+      delete paramsRecord.sortOrder
+    }
+
+    await getDataByPage()
+  }
+
+  /**
+   * 将单元格右键条件以 And 方式加入当前动态查询
+   */
+  const handleCellQuery = async (condition: {
+    field: string
+    operator: string
+    value: unknown
+  }): Promise<void> => {
+    const paramsRecord = searchParams as Record<string, unknown>
+    const currentFilter = paramsRecord.dynamicFilter
+    paramsRecord.dynamicFilter = currentFilter
+      ? { logic: 'And', filters: [currentFilter, condition] }
+      : condition
+    await getDataByPage()
   }
 
   // 针对不同业务场景的刷新方法
@@ -680,6 +734,10 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(
     handleSizeChange,
     /** 当前页变化处理 */
     handleCurrentChange,
+    /** 表头远程排序变化处理 */
+    handleSortChange,
+    /** 单元格右键查询处理 */
+    handleCellQuery,
 
     // 搜索相关 - 统一前缀
     /** 搜索参数 */

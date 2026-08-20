@@ -4,7 +4,13 @@
 <!-- 获取 ref：默认暴露了 elTableRef 外部通过 ref.value.elTableRef 可以调用 el-table 方法 -->
 <template>
   <div class="art-table" :class="{ 'is-empty': isEmpty }" :style="containerHeight">
-    <ElTable ref="elTableRef" v-loading="!!loading" v-bind="mergedTableProps">
+    <ElTable
+      ref="elTableRef"
+      v-loading="!!loading"
+      v-bind="mergedTableProps"
+      @sort-change="handleSortChange"
+      @cell-contextmenu="handleCellContextMenu"
+    >
       <template v-for="col in columns" :key="col.prop || col.type">
         <!-- 渲染全局序号列 -->
         <ElTableColumn v-if="col.type === 'globalIndex'" v-bind="{ ...col }">
@@ -68,11 +74,110 @@
         @current-change="handleCurrentChange"
       />
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="queryMenu.visible"
+        class="cell-query-menu"
+        :style="{ left: `${queryMenu.x}px`, top: `${queryMenu.y}px` }"
+        @contextmenu.prevent
+      >
+        <button type="button" class="cell-query-title" @click="copyQueryValue">
+          <span>{{ queryMenu.label }}</span>
+          <span class="cell-query-copy-hint">点击复制</span>
+        </button>
+        <button
+          v-for="operator in availableOperators"
+          :key="operator.value"
+          type="button"
+          class="cell-query-operation"
+          @click="openQueryDialog(operator.value)"
+        >
+          <span>{{ operator.label }}</span>
+          <span class="cell-query-symbol">{{ operator.symbol }}</span>
+        </button>
+      </div>
+    </Teleport>
+
+    <ElDialog v-model="queryDialogVisible" title="添加查询条件" width="420px" append-to-body>
+      <ElForm label-width="80px">
+        <ElFormItem label="字段">{{ queryMenu.label }}</ElFormItem>
+        <ElFormItem label="操作符">{{ selectedOperatorLabel }}</ElFormItem>
+        <ElFormItem label="值">
+          <ElDatePicker
+            v-if="queryOperator === 'DateRange'"
+            v-model="queryRangeValue"
+            type="datetimerange"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            start-placeholder="开始时间"
+            end-placeholder="结束时间"
+            class="w-full"
+          />
+          <div v-else-if="queryOperator === 'Range'" class="query-range-inputs">
+            <ElInput v-model="queryRangeValue[0]" inputmode="decimal" placeholder="最小值" />
+            <span>至</span>
+            <ElInput v-model="queryRangeValue[1]" inputmode="decimal" placeholder="最大值" />
+          </div>
+          <ElInput
+            v-else-if="queryOperator === 'Any' || queryOperator === 'NotAny'"
+            v-model="queryValue"
+            placeholder="多个值使用逗号分隔"
+            type="textarea"
+            :rows="4"
+            resize="vertical"
+            clearable
+          />
+          <ElSelect
+            v-else-if="queryMenu.valueType === 'boolean'"
+            v-model="queryValue"
+            class="w-full"
+          >
+            <ElOption label="是" :value="true" />
+            <ElOption label="否" :value="false" />
+          </ElSelect>
+          <ElInput
+            v-else-if="queryMenu.valueType === 'number'"
+            v-model="queryValue"
+            inputmode="decimal"
+            clearable
+          />
+          <ElDatePicker
+            v-else-if="queryMenu.valueType === 'date'"
+            v-model="queryValue"
+            type="datetime"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            class="w-full"
+          />
+          <ElInput
+            v-else
+            v-model="queryValue"
+            type="textarea"
+            :rows="4"
+            resize="vertical"
+            clearable
+          />
+        </ElFormItem>
+      </ElForm>
+      <template #footer>
+        <ElButton @click="queryDialogVisible = false">取消</ElButton>
+        <ElButton type="primary" @click="applyCellQuery">确定</ElButton>
+      </template>
+    </ElDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, nextTick, watchEffect, getCurrentInstance, useAttrs } from 'vue'
+  import {
+    ref,
+    reactive,
+    computed,
+    nextTick,
+    watchEffect,
+    getCurrentInstance,
+    useAttrs,
+    onMounted,
+    onUnmounted
+  } from 'vue'
   import type { ElTable, TableProps } from 'element-plus'
   import { storeToRefs } from 'pinia'
   import { ColumnOption } from '@/types'
@@ -89,6 +194,66 @@
   const tableHeaderRef = ref<HTMLElement>()
   const tableStore = useTableStore()
   const { isBorder, isZebra, tableSize, isFullScreen, isHeaderBackground } = storeToRefs(tableStore)
+  type QueryValueType = 'string' | 'number' | 'boolean' | 'date'
+  const queryMenu = reactive({
+    visible: false,
+    x: 0,
+    y: 0,
+    label: '',
+    field: '',
+    valueType: 'string' as QueryValueType,
+    initialValue: undefined as unknown
+  })
+  const queryDialogVisible = ref(false)
+  const queryOperator = ref('Contains')
+  const queryValue = ref<any>('')
+  const queryRangeValue = ref<any[]>([])
+  const stringOperators = [
+    { label: '等于', symbol: '=', value: 'Equal' },
+    { label: '不等于', symbol: '!=', value: 'NotEqual' },
+    { label: '包含', symbol: '*x*', value: 'Contains' },
+    { label: '不包含', symbol: '!*x*', value: 'NotContains' },
+    { label: '开头是', symbol: 'x*', value: 'StartsWith' },
+    { label: '不是以此开头', symbol: '!x*', value: 'NotStartsWith' },
+    { label: '结尾是', symbol: '*x', value: 'EndsWith' },
+    { label: '不是以此结尾', symbol: '!*x', value: 'NotEndsWith' },
+    { label: '任一匹配', symbol: 'IN', value: 'Any' },
+    { label: '均不匹配', symbol: 'NOT IN', value: 'NotAny' }
+  ]
+  const comparableOperators = [
+    { label: '等于', symbol: '=', value: 'Equal' },
+    { label: '不等于', symbol: '!=', value: 'NotEqual' },
+    { label: '大于', symbol: '>', value: 'GreaterThan' },
+    { label: '大于等于', symbol: '>=', value: 'GreaterThanOrEqual' },
+    { label: '小于', symbol: '<', value: 'LessThan' },
+    { label: '小于等于', symbol: '<=', value: 'LessThanOrEqual' },
+    { label: '范围', symbol: 'a <= x <= b', value: 'Range' },
+    { label: '任一匹配', symbol: 'IN', value: 'Any' },
+    { label: '均不匹配', symbol: 'NOT IN', value: 'NotAny' }
+  ]
+  const dateOperators = [
+    ...comparableOperators.filter((item) => item.value !== 'Range'),
+    { label: '日期范围', symbol: 'a <= x < b', value: 'DateRange' }
+  ]
+  const booleanOperators = [
+    { label: '等于', symbol: '=', value: 'Equal' },
+    { label: '不等于', symbol: '!=', value: 'NotEqual' },
+    { label: '任一匹配', symbol: 'IN', value: 'Any' },
+    { label: '均不匹配', symbol: 'NOT IN', value: 'NotAny' }
+  ]
+  const availableOperators = computed(() =>
+    queryMenu.valueType === 'string'
+      ? stringOperators
+      : queryMenu.valueType === 'boolean'
+        ? booleanOperators
+        : queryMenu.valueType === 'date'
+          ? dateOperators
+          : comparableOperators
+  )
+  const selectedOperatorLabel = computed(() => {
+    const operator = availableOperators.value.find((item) => item.value === queryOperator.value)
+    return operator ? `${operator.label} ${operator.symbol}` : ''
+  })
 
   /** 分页配置接口 */
   interface PaginationConfig {
@@ -286,8 +451,115 @@
     delete columnProps.headerSlotName
     delete columnProps.useSlot
     delete columnProps.slotName
+    delete columnProps.queryField
+    delete columnProps.queryValueField
+    delete columnProps.queryValueType
     return columnProps
   }
+
+  const getRowValue = (row: Record<string, unknown>, path: string): unknown =>
+    path
+      .split('.')
+      .reduce<unknown>(
+        (value, key) =>
+          value && typeof value === 'object' ? (value as Record<string, unknown>)[key] : undefined,
+        row
+      )
+
+  const inferValueType = (value: unknown): QueryValueType => {
+    if (typeof value === 'boolean') return 'boolean'
+    if (typeof value === 'number') return 'number'
+    return 'string'
+  }
+
+  const handleCellContextMenu = (
+    row: Record<string, unknown>,
+    column: { property?: string; label?: string },
+    _cell: HTMLElement,
+    event: MouseEvent
+  ) => {
+    const definition = props.columns.find((item) => item.prop === column.property)
+    const queryTarget = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+      '[data-query-field]'
+    )
+    const hasCellQueryListener = Boolean(instance?.vnode.props?.onCellQuery)
+    if (
+      !hasCellQueryListener ||
+      !definition?.prop ||
+      definition.prop === 'operation' ||
+      definition.queryField === false
+    )
+      return
+    event.preventDefault()
+    const valuePath = definition.queryValueField || definition.prop
+    const rowValue = getRowValue(row, valuePath)
+    const targetValue = queryTarget?.dataset.queryValue
+    const value = queryTarget ? targetValue : rowValue
+    const targetValueType = queryTarget?.dataset.queryValueType as QueryValueType | undefined
+    Object.assign(queryMenu, {
+      visible: true,
+      x: Math.min(event.clientX, window.innerWidth - 180),
+      y: Math.min(event.clientY, window.innerHeight - 420),
+      label: queryTarget?.dataset.queryLabel || definition.label || column.label || definition.prop,
+      field: queryTarget?.dataset.queryField || definition.queryField || definition.prop,
+      valueType: targetValueType || definition.queryValueType || inferValueType(value),
+      initialValue: value
+    })
+  }
+
+  const openQueryDialog = (operator: string) => {
+    queryOperator.value = operator
+    queryValue.value = queryMenu.initialValue
+    queryRangeValue.value = [queryMenu.initialValue, queryMenu.initialValue]
+    queryMenu.visible = false
+    queryDialogVisible.value = true
+  }
+
+  const applyCellQuery = () => {
+    const value =
+      queryOperator.value === 'Range' || queryOperator.value === 'DateRange'
+        ? queryRangeValue.value
+        : queryOperator.value === 'Any' || queryOperator.value === 'NotAny'
+          ? String(queryValue.value)
+              .split(/[,，\r\n]+/)
+              .map((item) => item.trim())
+              .filter(Boolean)
+          : queryValue.value
+    emit('cell-query', {
+      field: queryMenu.field,
+      operator: queryOperator.value,
+      value
+    })
+    queryDialogVisible.value = false
+  }
+
+  const closeQueryMenu = () => {
+    queryMenu.visible = false
+  }
+
+  /** 复制右键菜单对应单元格的原始值 */
+  const copyQueryValue = async () => {
+    const text = queryMenu.initialValue == null ? '' : String(queryMenu.initialValue)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        textarea.remove()
+      }
+    } finally {
+      queryMenu.visible = false
+    }
+  }
+
+  onMounted(() => document.addEventListener('click', closeQueryMenu))
+  onUnmounted(() => document.removeEventListener('click', closeQueryMenu))
 
   // 分页大小变化
   const handleSizeChange = (val: number) => {
@@ -298,6 +570,14 @@
   const handleCurrentChange = (val: number) => {
     emit('pagination:current-change', val)
     scrollToTop() // 页码改变后滚动到表格顶部
+  }
+
+  const handleSortChange = (sort: {
+    column: unknown
+    prop: string
+    order: 'ascending' | 'descending' | null
+  }) => {
+    emit('sort-change', sort)
   }
 
   const { scrollToTop: scrollPageToTop } = useCommon()
@@ -320,6 +600,15 @@
   const emit = defineEmits<{
     (e: 'pagination:size-change', val: number): void
     (e: 'pagination:current-change', val: number): void
+    (
+      e: 'sort-change',
+      val: {
+        column: unknown
+        prop: string
+        order: 'ascending' | 'descending' | null
+      }
+    ): void
+    (e: 'cell-query', val: { field: string; operator: string; value: unknown }): void
   }>()
 
   // 查找并绑定表格头部元素 - 使用 VueUse 优化
@@ -365,4 +654,84 @@
 
 <style lang="scss" scoped>
   @use './style';
+
+  .cell-query-menu {
+    position: fixed;
+    z-index: 4000;
+    width: 176px;
+    max-height: 400px;
+    padding: 6px;
+    overflow-y: auto;
+    color: var(--el-text-color-primary);
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 4px;
+    box-shadow: var(--el-box-shadow-light);
+  }
+
+  .cell-query-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 7px 10px;
+    overflow: hidden;
+    font-size: 12px;
+    text-align: left;
+    color: var(--el-text-color-secondary);
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+
+    &:hover {
+      color: var(--el-color-primary);
+      background: var(--el-fill-color-light);
+    }
+  }
+
+  .cell-query-copy-hint {
+    flex: none;
+    margin-left: 8px;
+    color: var(--el-text-color-placeholder);
+  }
+
+  .cell-query-operation {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 7px 10px;
+    margin: 0;
+    color: inherit;
+    font-size: 12px;
+    line-height: 18px;
+    text-align: left;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+
+    &:hover {
+      color: var(--el-color-primary);
+      background: var(--el-fill-color-light);
+    }
+  }
+
+  .cell-query-symbol {
+    flex: none;
+    margin-left: auto;
+    font-family: Consolas, Monaco, monospace;
+    color: var(--el-text-color-secondary);
+  }
+
+  .query-range-inputs {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+  }
 </style>

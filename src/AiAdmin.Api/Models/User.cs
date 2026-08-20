@@ -19,14 +19,14 @@ public sealed class User : EntityBase
     /// <summary>
     ///     电子邮箱
     /// </summary>
-    [ListFilter("listFilter.user.email", Placeholder = "listFilter.placeholder.email", Span = 5)]
+    [ListFilter("listFilter.user.email", Placeholder = "listFilter.placeholder.email", Span = 4)]
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
     ///     性别编码
     /// </summary>
-    [ListFilter("listFilter.user.gender", "select", Span = 3, Options = ["male:listFilter.option.male", "female:listFilter.option.female"])]
-    public string Gender { get; set; } = "male";
+    [ListFilter("listFilter.user.gender", "select", Span = 2, Options = ["1:listFilter.option.male", "2:listFilter.option.female"])]
+    public UserGender Gender { get; set; } = UserGender.Male;
 
     /// <summary>
     ///     用户主键
@@ -41,7 +41,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     是否启用
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Span = 3, Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
+    [ListFilter("listFilter.common.status", "select", Span = 2, Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
@@ -52,7 +52,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     联系电话
     /// </summary>
-    [ListFilter("listFilter.user.phone", Span = 4, Placeholder = "listFilter.placeholder.phone")]
+    [ListFilter("listFilter.user.phone", Span = 3, Placeholder = "listFilter.placeholder.phone")]
     public string Phone { get; set; } = string.Empty;
 
     /// <summary>
@@ -63,7 +63,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     登录用户名
     /// </summary>
-    [ListFilter("listFilter.user.userName", Span = 4, Placeholder = "listFilter.placeholder.userName", Sort = 0)]
+    [ListFilter("listFilter.user.userName", Span = 3, Placeholder = "listFilter.placeholder.userName", Sort = 0)]
     public required string UserName { get; set; }
 
     /// <summary>

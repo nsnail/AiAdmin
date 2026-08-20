@@ -139,8 +139,9 @@ export function handleError(error: AxiosError<ErrorResponse>): never {
   }
 
   // 后端返回业务消息时优先展示，避免 400 等状态码被通用提示覆盖
-  const message = translateServerMessage(error.response?.data?.msg)
-    || (statusCode ? getErrorMessage(statusCode) : errorMessage || $t('httpMsg.requestFailed'))
+  const message =
+    translateServerMessage(error.response?.data?.msg) ||
+    (statusCode ? getErrorMessage(statusCode) : errorMessage || $t('httpMsg.requestFailed'))
   throw new HttpError(message, statusCode || ApiStatus.error, {
     data: error.response.data,
     url: requestConfig?.url,

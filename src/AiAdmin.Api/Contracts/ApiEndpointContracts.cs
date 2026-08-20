@@ -7,6 +7,7 @@ namespace AiAdmin.Api.Contracts;
 /// </summary>
 public sealed record ApiEndpointResult(
     long Id
+    , DateTimeOffset CreatedAt
     , string Name
     , bool AllowAnonymous
     , string Method

@@ -8,33 +8,33 @@
   >
     <ElTabs v-model="activeTab">
       <ElTabPane label="编辑" name="form">
-    <ElForm ref="formRef" :model="form" :rules="rules" label-width="120px">
-      <ElFormItem label="角色名称" prop="roleName">
-        <ElInput v-model="form.roleName" placeholder="请输入角色名称" />
-      </ElFormItem>
-      <ElFormItem label="角色编码" prop="roleCode">
-        <ElInput v-model="form.roleCode" placeholder="请输入角色编码" />
-      </ElFormItem>
-      <ElFormItem label="描述" prop="description">
-        <ElInput
-          v-model="form.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入角色描述"
-        />
-      </ElFormItem>
-      <ElFormItem label="数据权限" prop="dataScope">
-        <ElSelect v-model="form.dataScope" class="w-full">
-          <ElOption label="全部数据" value="all" />
-          <ElOption label="本部门数据" value="department" />
-          <ElOption label="本部门和子部门数据" value="department_and_children" />
-          <ElOption label="本人数据" value="self" />
-        </ElSelect>
-      </ElFormItem>
-      <ElFormItem label="启用">
-        <ElSwitch v-model="form.enabled" />
-      </ElFormItem>
-    </ElForm>
+        <ElForm ref="formRef" :model="form" :rules="rules" label-width="120px">
+          <ElFormItem label="角色名称" prop="roleName">
+            <ElInput v-model="form.roleName" placeholder="请输入角色名称" />
+          </ElFormItem>
+          <ElFormItem label="角色编码" prop="roleCode">
+            <ElInput v-model="form.roleCode" placeholder="请输入角色编码" />
+          </ElFormItem>
+          <ElFormItem label="描述" prop="description">
+            <ElInput
+              v-model="form.description"
+              type="textarea"
+              :rows="3"
+              placeholder="请输入角色描述"
+            />
+          </ElFormItem>
+          <ElFormItem label="数据权限" prop="dataScope">
+            <ElSelect v-model="form.dataScope" class="w-full">
+              <ElOption label="全部数据" value="all" />
+              <ElOption label="本部门数据" value="department" />
+              <ElOption label="本部门和子部门数据" value="department_and_children" />
+              <ElOption label="本人数据" value="self" />
+            </ElSelect>
+          </ElFormItem>
+          <ElFormItem label="启用">
+            <ElSwitch v-model="form.enabled" />
+          </ElFormItem>
+        </ElForm>
       </ElTabPane>
       <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
@@ -110,7 +110,7 @@
     createTime: '',
     enabled: true
   })
-  const rawData = computed(() => props.dialogType === 'edit' ? props.roleData : form)
+  const rawData = computed(() => (props.dialogType === 'edit' ? props.roleData : form))
 
   /**
    * 监听弹窗打开，初始化表单数据
@@ -118,7 +118,10 @@
   watch(
     () => props.modelValue,
     (newVal) => {
-    if (newVal) { activeTab.value = 'form'; initForm() }
+      if (newVal) {
+        activeTab.value = 'form'
+        initForm()
+      }
     }
   )
 

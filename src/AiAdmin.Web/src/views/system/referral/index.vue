@@ -39,29 +39,32 @@
   import { useI18n } from 'vue-i18n'
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import { fetchGetReferralTree } from '@/api/system-manage'
-  import { formatDateTime } from '@/utils/date'
+  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 
   defineOptions({ name: 'MyReferrals' })
 
   type Referral = Api.SystemManage.ReferralTreeItem
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const loading = ref(false)
-  const referralData = reactive<Api.SystemManage.ReferralTreeResult>({ invitationCode: '', children: [] })
+  const referralData = reactive<Api.SystemManage.ReferralTreeResult>({
+    invitationCode: '',
+    children: []
+  })
 
   const countChildren = (items: Referral[]): number =>
     items.reduce((total, item) => total + 1 + countChildren(item.children), 0)
 
   const totalCount = computed(() => countChildren(referralData.children))
   const { columns } = useTableColumns(() => [
+    {
+      prop: 'id',
+      label: 'ID',
+      minWidth: 190,
+      formatter: (row: Referral) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt })
+    },
     { prop: 'userName', label: t('referralManagement.fields.userName'), minWidth: 180 },
     { prop: 'email', label: t('referralManagement.fields.email'), minWidth: 220 },
-    { prop: 'invitationCode', label: t('referralManagement.fields.invitationCode'), minWidth: 150 },
-    {
-      prop: 'createdAt',
-      label: t('referralManagement.fields.createdAt'),
-      minWidth: 180,
-      formatter: (row: Referral) => formatDateTime(row.createdAt, locale.value)
-    }
+    { prop: 'invitationCode', label: t('referralManagement.fields.invitationCode'), minWidth: 150 }
   ])
 
   const loadReferrals = async (): Promise<void> => {

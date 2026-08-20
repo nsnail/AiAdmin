@@ -52,7 +52,9 @@
     fetchUpdateDepartment
   } from '@/api/system-manage'
   import DepartmentDialog from './modules/department-dialog.vue'
-  import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
+  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'Department' })
@@ -62,7 +64,9 @@
   const { t } = useI18n()
   const defaultDepartmentCode = 'DEFAULT'
   const getDepartmentName = (department: Department): string =>
-    department.code === defaultDepartmentCode ? t('userManagement.defaultDepartment') : department.name
+    department.code === defaultDepartmentCode
+      ? t('userManagement.defaultDepartment')
+      : department.name
 
   const loading = ref(false)
   const expanded = ref(false)
@@ -71,12 +75,38 @@
   const dialogVisible = ref(false)
   const dialogType = ref<'add' | 'edit'>('add')
   const currentDepartment = ref<Partial<Department>>({})
-  const searchForm = reactive({ keyword: '' })
+  const searchForm = reactive({ keyword: '', IsEnabled: true as boolean | undefined })
   const appliedKeyword = ref('')
-  const searchItems = [{ label: '部门名称/编码', key: 'keyword', type: 'input', props: { clearable: true } }]
+  const searchItems = [
+    { label: '部门名称/编码', key: 'keyword', type: 'input', span: 6, props: { clearable: true } },
+    {
+      label: '是否启用',
+      key: 'IsEnabled',
+      type: 'select',
+      span: 4,
+      props: {
+        clearable: true,
+        options: [
+          { label: '启用', value: true },
+          { label: '禁用', value: false }
+        ]
+      }
+    }
+  ]
 
   const { columnChecks, columns } = useTableColumns(() => [
-    { prop: 'name', label: '部门名称', minWidth: 200, formatter: (row: Department) => getDepartmentName(row) },
+    {
+      prop: 'id',
+      label: 'ID',
+      minWidth: 190,
+      formatter: (row: Department) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt })
+    },
+    {
+      prop: 'name',
+      label: '部门名称',
+      minWidth: 200,
+      formatter: (row: Department) => getDepartmentName(row)
+    },
     { prop: 'code', label: '部门编码', minWidth: 140 },
     { prop: 'sort', label: '排序', width: 80 },
     { prop: 'leader', label: '负责人', minWidth: 110 },
@@ -84,12 +114,17 @@
     { prop: 'email', label: '邮箱', minWidth: 180 },
     {
       prop: 'isEnabled',
-      label: '状态',
+      label: '是否启用',
       width: 90,
       formatter: (row: Department) =>
-        h(ElTag, { type: row.isEnabled ? 'success' : 'info' }, () =>
-          row.isEnabled ? '启用' : '停用'
-        )
+        h(ArtEnabledSwitch, {
+          id: row.id,
+          resource: 'department',
+          modelValue: row.isEnabled,
+          'onUpdate:modelValue': () => {
+            void loadDepartments()
+          }
+        })
     },
     {
       prop: 'operation',
@@ -110,7 +145,13 @@
     if (!keyword) return items
     return items.flatMap((item) => {
       const children = filterTree(item.children, keyword)
-      const matches = getDepartmentName(item).toLowerCase().includes(keyword) || item.name.toLowerCase().includes(keyword) || item.code.toLowerCase().includes(keyword)
+      const matchesStatus =
+        searchForm.IsEnabled === undefined || item.isEnabled === searchForm.IsEnabled
+      const matches =
+        matchesStatus &&
+        (getDepartmentName(item).toLowerCase().includes(keyword) ||
+          item.name.toLowerCase().includes(keyword) ||
+          item.code.toLowerCase().includes(keyword))
       return matches || children.length ? [{ ...item, children }] : []
     })
   }
@@ -134,13 +175,13 @@
 
   const resetSearch = (): void => {
     searchForm.keyword = ''
+    searchForm.IsEnabled = true
     appliedKeyword.value = ''
   }
 
   const showDialog = (type: 'add' | 'edit', row?: Department): void => {
     dialogType.value = type
-    currentDepartment.value =
-      type === 'edit' ? row ?? {} : { parentId: row?.id ?? null }
+    currentDepartment.value = type === 'edit' ? (row ?? {}) : { parentId: row?.id ?? null }
     dialogVisible.value = true
   }
 

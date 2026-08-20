@@ -9,6 +9,7 @@ namespace AiAdmin.Api.Contracts;
 /// </summary>
 public sealed record DictionaryCategoryResult(
     long Id
+    , DateTimeOffset CreatedAt
     , string Code
     , string Name
     , long? ParentId
@@ -19,7 +20,15 @@ public sealed record DictionaryCategoryResult(
 /// <summary>
 ///     字典内容列表项
 /// </summary>
-public sealed record DictionaryItemResult(long Id, long CategoryId, string Value, string Label, int Sort, bool IsEnabled, string Remark);
+public sealed record DictionaryItemResult(
+    long Id
+    , DateTimeOffset CreatedAt
+    , long CategoryId
+    , string Value
+    , string Label
+    , int Sort
+    , bool IsEnabled
+    , string Remark);
 
 /// <summary>
 ///     字典目录保存请求

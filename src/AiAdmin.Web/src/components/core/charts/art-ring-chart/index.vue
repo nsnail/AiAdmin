@@ -16,9 +16,17 @@
   defineOptions({ name: 'ArtRingChart' })
 
   interface ArtRingChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
-    data: Array<{ name: string; value: number }>; radius?: string[]; borderRadius?: number
-    centerText?: string; showLabel?: boolean; showTooltip?: boolean; showLegend?: boolean
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    data: Array<{ name: string; value: number }>
+    radius?: string[]
+    borderRadius?: number
+    centerText?: string
+    showLabel?: boolean
+    showTooltip?: boolean
+    showLegend?: boolean
     legendPosition?: 'bottom' | 'top' | 'left' | 'right'
   }
 

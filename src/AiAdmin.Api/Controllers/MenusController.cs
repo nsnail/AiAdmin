@@ -62,8 +62,10 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
                 .ConfigureAwait(false);
         var unique = rows.GroupBy(x => x.Id).Select(x => x.First()).OrderBy(x => x.Sort).ToList();
         var nodes = unique.ToDictionary(
-            x => x.Name, x => new MenuItemResult(x.Id, x.Name, x.Path, x.Component, x.ParentName, x.Sort, ParseMeta(x.MetaJson), [])
-            , StringComparer.Ordinal
+            x => x.Name
+            , x => new MenuItemResult(
+                x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.Path, x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
+            ), StringComparer.Ordinal
         );
 
         return Ok(ApiResponse<IReadOnlyList<MenuItemResult>>.Ok(BuildChildren(string.Empty)));
@@ -119,7 +121,21 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     [HttpPost("list")]
     [ApiDescription("Query menu list")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MenuItemResult>>>> ListAsync([FromBody] DynamicQueryRequest request) {
-        var menus = await db.Menus.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter).OrderBy(x => x.Sort).ToListAsync().ConfigureAwait(false);
+        var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["meta.title"] = nameof(Menu.Name)
+            , ["type"] = nameof(Menu.Name)
+            , ["meta.authList"] = nameof(Menu.Name)
+            , ["status"] = nameof(Menu.IsEnabled)
+            , ["date"] = nameof(Menu.UpdatedAt)
+            , ["createdAt"] = nameof(Menu.CreatedAt)
+        };
+        var menus = await db
+            .Menus.AsNoTracking()
+            .ApplyDynamicFilter(request.DynamicFilter)
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Menu.Sort), false, sortAliases)
+            .ToListAsync()
+            .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<MenuItemResult>>.Ok(BuildTree(menus)));
     }
 
@@ -157,13 +173,7 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         return BuildChildren(string.Empty);
 
         IReadOnlyList<MenuItemResult> BuildChildren(string parentName) {
-            return
-            [
-                .. nodes
-                    .Values.Where(x => x.ParentName == parentName)
-                    .OrderBy(x => x.Sort)
-                    .Select(x => x with { Children = BuildChildren(x.Name) })
-            ];
+            return [.. nodes.Values.Where(x => x.ParentName == parentName).Select(x => x with { Children = BuildChildren(x.Name) })];
         }
     }
 
@@ -186,6 +196,9 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     }
 
     private static MenuItemResult ToResult(Menu menu) {
-        return new MenuItemResult(menu.Id, menu.Name, menu.Path, menu.Component, menu.ParentName, menu.Sort, ParseMeta(menu.MetaJson), []);
+        return new MenuItemResult(
+            menu.Id, ServerTime.ToOffset(menu.CreatedAt), menu.Name, menu.Path, menu.Component, menu.ParentName, menu.Sort, menu.IsEnabled
+            , ParseMeta(menu.MetaJson), []
+        );
     }
 }

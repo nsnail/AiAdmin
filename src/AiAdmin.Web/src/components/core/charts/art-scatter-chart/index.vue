@@ -17,10 +17,18 @@
   defineOptions({ name: 'ArtScatterChart' })
 
   interface ArtScatterChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
-    data?: Array<{ value: number[] }>; symbolSize?: number
-    showAxisLabel?: boolean; showAxisLine?: boolean; showSplitLine?: boolean
-    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    data?: Array<{ value: number[] }>
+    symbolSize?: number
+    showAxisLabel?: boolean
+    showAxisLine?: boolean
+    showSplitLine?: boolean
+    showTooltip?: boolean
+    showLegend?: boolean
+    legendPosition?: 'bottom' | 'top' | 'left' | 'right'
   }
 
   const props = withDefaults(defineProps<ArtScatterChartProps>(), {

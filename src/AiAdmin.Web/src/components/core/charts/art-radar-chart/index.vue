@@ -15,9 +15,15 @@
   defineOptions({ name: 'ArtRadarChart' })
 
   interface ArtRadarChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
-    indicator?: Array<{ name: string; max: number }>; data?: Array<{ name: string; value: number[] }>
-    showTooltip?: boolean; showLegend?: boolean; legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
+    indicator?: Array<{ name: string; max: number }>
+    data?: Array<{ name: string; value: number[] }>
+    showTooltip?: boolean
+    showLegend?: boolean
+    legendPosition?: 'bottom' | 'top' | 'left' | 'right'
   }
 
   const props = withDefaults(defineProps<ArtRadarChartProps>(), {

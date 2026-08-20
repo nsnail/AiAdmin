@@ -34,6 +34,55 @@ public static class DynamicFilterExtensions
         return condition is null ? query : query.Where(Expression.Lambda<Func<T, bool>>(condition, parameter));
     }
 
+    /// <summary>
+    ///     根据客户端字段名应用动态排序
+    /// </summary>
+    /// <typeparam name="T">查询实体类型</typeparam>
+    /// <param name="query">待排序的查询</param>
+    /// <param name="sortField">排序字段名称</param>
+    /// <param name="sortOrder">排序方向</param>
+    /// <param name="defaultField">未指定排序字段时使用的默认字段</param>
+    /// <param name="defaultDescending">默认字段是否倒序</param>
+    /// <param name="aliases">客户端字段名到实体字段路径的映射</param>
+    /// <returns>附加排序后的查询</returns>
+    /// <exception cref="DynamicFilterValidationException">排序方向或字段无效时抛出</exception>
+    public static IQueryable<T> ApplyDynamicSort<T>(
+        this IQueryable<T> query
+        , string? sortField
+        , string? sortOrder
+        , string defaultField
+        , bool defaultDescending = false
+        , IReadOnlyDictionary<string, string>? aliases = null
+    ) {
+        var suppliedField = sortField?.Trim();
+        var field = string.IsNullOrWhiteSpace(suppliedField) ? defaultField : suppliedField;
+        if (aliases is not null && aliases.TryGetValue(field, out var mappedField)) {
+            field = mappedField;
+        }
+
+        var descending = string.IsNullOrWhiteSpace(suppliedField)
+            ? defaultDescending
+            : string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        if (!string.IsNullOrWhiteSpace(sortOrder)
+            && !string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase)) {
+            throw new DynamicFilterValidationException("Dynamic sort order must be asc or desc.");
+        }
+
+        var parameter = Expression.Parameter(typeof(T), "entity");
+        Expression member = parameter;
+        foreach (var segment in field.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
+            var property = member.Type.GetProperty(segment, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase)
+                           ?? throw new DynamicFilterValidationException($"Dynamic sort field '{field}' is not available.");
+            member = Expression.Property(member, property);
+        }
+
+        var selector = Expression.Lambda(member, parameter);
+        var method = descending ? nameof(Queryable.OrderByDescending) : nameof(Queryable.OrderBy);
+        var ordered = Expression.Call(typeof(Queryable), method, [typeof(T), member.Type], query.Expression, Expression.Quote(selector));
+        return query.Provider.CreateQuery<T>(ordered);
+    }
+
     private static BinaryExpression BuildAny(
         MemberExpression member
         , JsonElement value
@@ -153,7 +202,15 @@ public static class DynamicFilterExtensions
         }
 
         var lower = BuildComparison(member, values[0], Expression.GreaterThanOrEqual);
-        var upperValue = dateRange ? GetDateRangeEnd(values[1]) : values[1];
+        var upperValue = dateRange switch
+        {
+            true when IsSameDateAtMidnight(values[0], values[1]) => CreateStringElement(
+                ParseDate(values[1]).AddDays(1).ToString("O", CultureInfo.InvariantCulture)
+            )
+            , true => GetDateRangeEnd(values[1])
+            , _ => values[1]
+        };
+
         var upper = BuildComparison(member, upperValue, Expression.LessThan);
         return Expression.AndAlso(lower, upper);
     }
@@ -184,6 +241,10 @@ public static class DynamicFilterExtensions
 
     private static JsonElement GetDateRangeEnd(JsonElement value) {
         var text = value.GetString() ?? throw new DynamicFilterValidationException("Dynamic filter DateRange end value is required.");
+        if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffset)) {
+            return CreateStringElement(dateTimeOffset.ToString("O", CultureInfo.InvariantCulture));
+        }
+
         var end = text.Length switch
         {
             4 => DateTime.ParseExact(text, "yyyy", CultureInfo.InvariantCulture).AddYears(1)
@@ -201,6 +262,37 @@ public static class DynamicFilterExtensions
         return type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
     }
 
+    private static bool IsSameDateAtMidnight(
+        JsonElement start
+        , JsonElement end
+    ) {
+        var startDate = ParseDate(start);
+        var endDate = ParseDate(end);
+        return startDate.Date == endDate.Date && endDate.TimeOfDay == TimeSpan.Zero;
+    }
+
+    private static DateTimeOffset ParseDate(JsonElement value) {
+        var text = value.GetString() ?? throw new DynamicFilterValidationException("Dynamic filter DateRange date is required.");
+        return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result)
+            ? result
+            : throw new DynamicFilterValidationException("Dynamic filter DateRange date format is invalid.");
+    }
+
+    /// <summary>
+    ///     将枚举名称或数字文本转换为枚举值
+    /// </summary>
+    /// <param name="targetType">目标枚举类型</param>
+    /// <param name="value">枚举名称或数字文本</param>
+    /// <returns>转换后的枚举值</returns>
+    private static object ParseEnumValue(
+        Type targetType
+        , string value
+    ) {
+        return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var numeric)
+            ? Enum.ToObject(targetType, numeric)
+            : Enum.Parse(targetType, value, true);
+    }
+
     private static object? ReadValue(
         JsonElement value
         , Type targetType
@@ -215,7 +307,9 @@ public static class DynamicFilterExtensions
                 , _ when targetType == typeof(DateTime) => DateTime.Parse(
                     value.GetString() ?? throw new FormatException(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
                 )
-                , _ when targetType.IsEnum => Enum.Parse(targetType, value.GetString() ?? throw new FormatException(), true)
+                , _ when targetType.IsEnum && value.ValueKind == JsonValueKind.String => ParseEnumValue(
+                    targetType, value.GetString() ?? throw new FormatException()
+                )
                 , _ => JsonSerializer.Deserialize(value.GetRawText(), targetType)
             };
         }

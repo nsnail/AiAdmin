@@ -2,6 +2,7 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
+using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -248,7 +249,9 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
     /// <param name="item">字典内容实体</param>
     /// <returns>字典内容响应模型</returns>
     private static DictionaryItemResult ToItem(DictionaryItem item) {
-        return new DictionaryItemResult(item.Id, item.CategoryId, item.Value, item.Label, item.Sort, item.IsEnabled, item.Remark);
+        return new DictionaryItemResult(
+            item.Id, ServerTime.ToOffset(item.CreatedAt), item.CategoryId, item.Value, item.Label, item.Sort, item.IsEnabled, item.Remark
+        );
     }
 
     /// <summary>
@@ -257,7 +260,10 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
     /// <param name="category">字典目录实体</param>
     /// <returns>字典目录响应模型</returns>
     private static DictionaryCategoryResult ToResult(DictionaryCategory category) {
-        return new DictionaryCategoryResult(category.Id, category.Code, category.Name, category.ParentId, category.Sort, category.IsEnabled, []);
+        return new DictionaryCategoryResult(
+            category.Id, ServerTime.ToOffset(category.CreatedAt), category.Code, category.Name, category.ParentId, category.Sort, category.IsEnabled
+            , []
+        );
     }
 
     /// <summary>

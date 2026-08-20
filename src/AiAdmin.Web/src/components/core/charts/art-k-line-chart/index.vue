@@ -15,9 +15,14 @@
   defineOptions({ name: 'ArtKLineChart' })
 
   interface ArtKLineChartProps {
-    height?: string; loading?: boolean; isEmpty?: boolean; colors?: string[]
+    height?: string
+    loading?: boolean
+    isEmpty?: boolean
+    colors?: string[]
     data?: Array<{ time: string; open: number; close: number; high: number; low: number }>
-    showDataZoom?: boolean; dataZoomStart?: number; dataZoomEnd?: number
+    showDataZoom?: boolean
+    dataZoomStart?: number
+    dataZoomEnd?: number
   }
 
   const props = withDefaults(defineProps<ArtKLineChartProps>(), {
