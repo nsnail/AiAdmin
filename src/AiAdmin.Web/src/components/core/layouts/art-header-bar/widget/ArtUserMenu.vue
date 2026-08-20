@@ -14,7 +14,8 @@
     <template #reference>
       <img
         class="size-8.5 mr-5 c-p rounded-full max-sm:w-6.5 max-sm:h-6.5 max-sm:mr-[16px]"
-        src="@imgs/user/avatar.webp"
+        :src="userInfo.avatar || defaultAvatar"
+        @error="handleAvatarError"
         alt="avatar"
       />
     </template>
@@ -23,7 +24,8 @@
         <div class="flex-c pb-1 px-0">
           <img
             class="w-10 h-10 mr-3 ml-0 overflow-hidden rounded-full float-left"
-            src="@imgs/user/avatar.webp"
+            :src="userInfo.avatar || defaultAvatar"
+            @error="handleAvatarError"
           />
           <div class="w-[calc(100%-60px)] h-full">
             <span class="block text-sm font-medium text-g-800 truncate">{{
@@ -70,6 +72,7 @@
   import { useUserStore } from '@/store/modules/user'
   import { WEB_LINKS } from '@/utils/constants'
   import { mittBus } from '@/utils/sys'
+  import defaultAvatar from '@/assets/images/user/avatar.png'
 
   defineOptions({ name: 'ArtUserMenu' })
 
@@ -79,6 +82,12 @@
 
   const { getUserInfo: userInfo } = storeToRefs(userStore)
   const userMenuPopover = ref()
+
+  /** 图片加载失败时回退到默认头像，避免显示破损图片 */
+  const handleAvatarError = (event: Event): void => {
+    const image = event.target as HTMLImageElement
+    image.src = defaultAvatar
+  }
 
   /**
    * 页面跳转

@@ -5,11 +5,33 @@
       <div class="w-112 mr-5 max-md:w-full max-md:mr-0">
         <div class="art-card-sm relative p-9 pb-6 overflow-hidden text-center">
           <img class="absolute top-0 left-0 w-full h-50 object-cover" src="@imgs/user/bg.webp" />
-          <img
-            class="relative z-10 w-20 h-20 mt-30 mx-auto object-cover border-2 border-white rounded-full"
-            :src="userInfo.avatar || defaultAvatar"
-            :alt="displayName"
-          />
+          <ElUpload
+            accept="image/*"
+            :auto-upload="false"
+            :show-file-list="false"
+            :on-change="handleAvatarChange"
+          >
+            <div class="avatar-upload relative z-10 w-20 h-20 mt-30 mx-auto">
+              <img
+                class="w-full h-full object-cover border-2 border-white rounded-full"
+                :src="userInfo.avatar || defaultAvatar"
+                :alt="displayName"
+                @error="handleAvatarError"
+              />
+              <div class="avatar-upload-mask"><ArtSvgIcon icon="ri:camera-line" /></div>
+              <ElButton
+                v-if="userInfo.avatar"
+                class="avatar-delete"
+                circle
+                text
+                type="danger"
+                aria-label="删除头像"
+                @click.stop.prevent="removeAvatar"
+              >
+                <ArtSvgIcon icon="ri:delete-bin-line" />
+              </ElButton>
+            </div>
+          </ElUpload>
           <h2 class="mt-5 text-xl font-normal">{{ displayName }}</h2>
 
           <div class="w-75 mx-auto mt-7.5 text-left">
@@ -153,10 +175,11 @@
 </template>
 
 <script setup lang="ts">
-  import defaultAvatar from '@/assets/images/user/avatar.webp'
+  import defaultAvatar from '@/assets/images/user/avatar.png'
   import { fetchChangeUserPassword, fetchUpdateUserProfile } from '@/api/auth'
+  import { fetchDeleteUserAvatar, fetchUploadUserAvatar } from '@/api/system-manage'
   import { useUserStore } from '@/store/modules/user'
-  import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
+  import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
   import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'UserCenter' })
@@ -170,6 +193,10 @@
   const ruleFormRef = ref<FormInstance>()
   const pwdFormRef = ref<FormInstance>()
   const displayName = computed(() => userInfo.value.userName || t('userCenter.empty.user'))
+  const handleAvatarError = (event: Event): void => {
+    const image = event.target as HTMLImageElement
+    image.src = defaultAvatar
+  }
   const genderLabel = computed(() =>
     t(userInfo.value.gender === 2 ? 'userCenter.gender.female' : 'userCenter.gender.male')
   )
@@ -261,6 +288,36 @@
     return t(key) === key ? role : t(key)
   }
 
+  const handleAvatarChange = async (uploadFile: UploadFile) => {
+    const file = uploadFile.raw
+    const userId = userInfo.value.userId
+    if (!file || !userId) return
+    const extension = file.name.split('.').pop()?.toLowerCase()
+    if (
+      !file.type.startsWith('image/') ||
+      !extension ||
+      !['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff'].includes(extension)
+    ) {
+      ElMessage.error('头像只允许上传图像格式')
+      return
+    }
+    if (file.size > 500 * 1024) {
+      ElMessage.error('头像大小不能超过 500 KB')
+      return
+    }
+    const result = await fetchUploadUserAvatar(userId, file)
+    userStore.setUserInfo({ ...userInfo.value, avatar: result.avatar } as Api.Auth.UserInfo)
+    ElMessage.success('头像更新成功')
+  }
+
+  const removeAvatar = async (): Promise<void> => {
+    const userId = userInfo.value.userId
+    if (!userId) return
+    const result = await fetchDeleteUserAvatar(userId)
+    userStore.setUserInfo({ ...userInfo.value, avatar: result.avatar || '' } as Api.Auth.UserInfo)
+    ElMessage.success('头像已删除')
+  }
+
   /**
    * 切换用户信息编辑状态
    */
@@ -301,3 +358,35 @@
     ElMessage.success(t('userCenter.messages.passwordChanged'))
   }
 </script>
+
+<style scoped>
+  .avatar-upload-mask {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 22px;
+    cursor: pointer;
+    background: rgb(0 0 0 / 45%);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .avatar-delete {
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    z-index: 2;
+    width: 26px;
+    height: 26px;
+    color: var(--el-color-danger);
+    background: rgb(255 255 255 / 90%);
+  }
+
+  .avatar-upload:hover .avatar-upload-mask {
+    opacity: 1;
+  }
+</style>

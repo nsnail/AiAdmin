@@ -34,8 +34,8 @@
 
     <template #footer>
       <span class="dialog-footer">
-        <ElButton @click="handleCancel">取 消</ElButton>
-        <ElButton type="primary" @click="handleSubmit">确 定</ElButton>
+        <ElButton :disabled="props.saving" @click="handleCancel">取 消</ElButton>
+        <ElButton type="primary" :loading="props.saving" @click="handleSubmit">确 定</ElButton>
       </span>
     </template>
   </ElDialog>
@@ -107,6 +107,7 @@
     editData?: AppRouteRecord | any
     type?: 'menu' | 'button'
     lockType?: boolean
+    saving?: boolean
   }
 
   interface Emits {
@@ -334,13 +335,11 @@
    * 提交表单
    */
   const handleSubmit = async (): Promise<void> => {
-    if (!formRef.value) return
+    if (!formRef.value || props.saving) return
 
     try {
       await formRef.value.validate()
       emit('submit', { ...form })
-      ElMessage.success(`${isEdit.value ? '编辑' : '新增'}成功`)
-      handleCancel()
     } catch {
       ElMessage.error('表单校验失败，请检查输入')
     }

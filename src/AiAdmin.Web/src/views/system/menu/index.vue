@@ -46,6 +46,7 @@
         :type="dialogType"
         :editData="editData"
         :lockType="lockMenuType"
+        :saving="dialogSaving"
         @submit="handleSubmit"
       />
     </ElCard>
@@ -93,6 +94,7 @@
 
   // 弹窗相关
   const dialogVisible = ref(false)
+  const dialogSaving = ref(false)
   const dialogType = ref<'menu' | 'button'>('menu')
   const editData = ref<AppRouteRecord | any>(null)
   const lockMenuType = ref(false)
@@ -233,16 +235,6 @@
 
   // 表格列配置
   const { columnChecks, columns } = useTableColumns(() => [
-    {
-      prop: 'id',
-      label: 'ID',
-      sortable: 'custom',
-      queryField: 'Id',
-      queryValueType: 'number',
-      minWidth: 190,
-      formatter: (row: AppRouteRecord) =>
-        row.meta?.isAuthButton ? '' : h(ArtListIdCell, { id: row.id!, createdAt: row.createdAt })
-    },
     {
       prop: 'meta.title',
       label: '菜单名称',
@@ -538,33 +530,40 @@
    * @param formData 表单数据
    */
   const handleSubmit = async (formData: MenuFormData): Promise<void> => {
-    const meta = {
-      title: formData.name,
-      icon: formData.icon,
-      keepAlive: formData.keepAlive,
-      isHide: formData.isHide,
-      isHideTab: formData.isHideTab,
-      link: formData.link,
-      isIframe: formData.isIframe,
-      showBadge: formData.showBadge,
-      showTextBadge: formData.showTextBadge,
-      fixedTab: formData.fixedTab,
-      activePath: formData.activePath,
-      roles: formData.roles,
-      isFullPage: formData.isFullPage
+    if (dialogSaving.value) return
+    dialogSaving.value = true
+    try {
+      const meta = {
+        title: formData.name,
+        icon: formData.icon,
+        keepAlive: formData.keepAlive,
+        isHide: formData.isHide,
+        isHideTab: formData.isHideTab,
+        link: formData.link,
+        isIframe: formData.isIframe,
+        showBadge: formData.showBadge,
+        showTextBadge: formData.showTextBadge,
+        fixedTab: formData.fixedTab,
+        activePath: formData.activePath,
+        roles: formData.roles,
+        isFullPage: formData.isFullPage
+      }
+      const payload = {
+        name: formData.label || formData.name,
+        path: formData.path,
+        component: formData.component || '',
+        parentName: '',
+        sort: formData.sort || 0,
+        meta,
+        isEnabled: formData.isEnable
+      }
+      if (formData.id) await fetchUpdateMenu(formData.id, payload)
+      else await fetchCreateMenu(payload)
+      await getMenuList()
+      dialogVisible.value = false
+    } finally {
+      dialogSaving.value = false
     }
-    const payload = {
-      name: formData.label || formData.name,
-      path: formData.path,
-      component: formData.component || '',
-      parentName: '',
-      sort: formData.sort || 0,
-      meta,
-      isEnabled: formData.isEnable
-    }
-    if (formData.id) await fetchUpdateMenu(formData.id, payload)
-    else await fetchCreateMenu(payload)
-    await getMenuList()
   }
 
   /**

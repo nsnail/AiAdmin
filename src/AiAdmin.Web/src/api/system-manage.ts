@@ -169,6 +169,16 @@ export function fetchUpdateUser(id: string, data: Api.SystemManage.UpdateUserPar
   return request.put<Api.SystemManage.UserListItem>({ url: `/api/user/${id}`, data })
 }
 
+export function fetchUploadUserAvatar(id: string, file: File) {
+  const data = new FormData()
+  data.append('file', file)
+  return request.post<Api.SystemManage.UserListItem>({ url: `/api/user/${id}/avatar`, data })
+}
+
+export function fetchDeleteUserAvatar(id: string) {
+  return request.del<Api.SystemManage.UserListItem>({ url: `/api/user/${id}/avatar` })
+}
+
 export function fetchGetUserRoles() {
   return request.get<Api.SystemManage.RoleListItem[]>({ url: '/api/user/roles' })
 }

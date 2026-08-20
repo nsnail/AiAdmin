@@ -99,6 +99,17 @@ export const systemManagementRoute: AppRouteRecord = {
           { title: '删除', authMark: 'delete' }
         ]
       }
+    },
+    {
+      path: 'files',
+      name: 'FileManagement',
+      component: '/system/files',
+      meta: {
+        title: 'menus.system.files',
+        icon: 'ri:file-list-3-line',
+        keepAlive: true,
+        roles: ['R_SUPER']
+      }
     }
   ]
 }

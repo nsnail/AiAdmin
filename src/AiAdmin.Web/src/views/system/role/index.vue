@@ -60,7 +60,6 @@
   import { useTable } from '@/hooks/core/useTable'
   import { fetchDeleteRole, fetchGetRoleList } from '@/api/system-manage'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import ArtButtonMore from '@/components/core/forms/art-button-more/index.vue'
   import RoleSearch from './modules/role-search.vue'
   import RoleEditDialog from './modules/role-edit-dialog.vue'
@@ -84,7 +83,7 @@
     IsEnabled: true
   } as RoleSearchFormParams)
 
-  const showSearchBar = ref(false)
+  const showSearchBar = ref(true)
 
   const dialogVisible = ref(false)
   const permissionDialog = ref(false)
@@ -115,14 +114,6 @@
       },
       // 排除 apiParams 中的属性
       columnsFactory: () => [
-        {
-          prop: 'roleId',
-          queryField: 'Id',
-          queryValueType: 'number',
-          label: 'ID',
-          minWidth: 190,
-          formatter: (row) => h(ArtListIdCell, { id: row.roleId, createdAt: row.createTime })
-        },
         {
           prop: 'roleName',
           queryField: 'Name',
@@ -160,7 +151,7 @@
           queryField: 'IsEnabled',
           queryValueType: 'boolean',
           label: '是否启用',
-          width: 100,
+          width: 120,
           formatter: (row) =>
             h(ArtEnabledSwitch, {
               id: row.roleId,

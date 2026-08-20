@@ -21,7 +21,9 @@
     <div v-if="!isLock">
       <ElDialog v-model="visible" :width="370" :show-close="false" @open="handleDialogOpen">
         <div class="flex-c flex-col">
-          <img class="w-16 h-16 rounded-full" src="@imgs/user/avatar.webp" alt="用户头像" />
+          <ElAvatar :size="64" :src="userInfo.avatar" aria-label="用户头像">
+            <ArtSvgIcon icon="ri:user-line" />
+          </ElAvatar>
           <div class="mt-7.5 mb-3.5 text-base font-medium">{{ userInfo.userName }}</div>
           <ElForm
             ref="formRef"
@@ -59,7 +61,9 @@
     <!-- 解锁界面 -->
     <div v-else class="unlock-content">
       <div class="flex-c flex-col w-80">
-        <img class="w-16 h-16 mt-5 rounded-full" src="@imgs/user/avatar.webp" alt="用户头像" />
+        <ElAvatar :size="64" class="mt-5" :src="userInfo.avatar" aria-label="用户头像">
+          <ArtSvgIcon icon="ri:user-line" />
+        </ElAvatar>
         <div class="mt-3 mb-3.5 text-base font-medium">
           {{ userInfo.userName }}
         </div>

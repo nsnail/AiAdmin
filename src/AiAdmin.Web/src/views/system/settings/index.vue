@@ -102,6 +102,7 @@
   }
 
   const saveSettings = async () => {
+    if (saving.value) return
     saving.value = true
     try {
       await Promise.all(

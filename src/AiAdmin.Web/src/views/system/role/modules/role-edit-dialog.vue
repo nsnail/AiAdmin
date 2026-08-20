@@ -39,8 +39,8 @@
       <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
     <template #footer>
-      <ElButton @click="handleClose">取消</ElButton>
-      <ElButton type="primary" @click="handleSubmit">提交</ElButton>
+      <ElButton :disabled="saving" @click="handleClose">取消</ElButton>
+      <ElButton type="primary" :loading="saving" @click="handleSubmit">提交</ElButton>
     </template>
   </ElDialog>
 </template>
@@ -73,6 +73,7 @@
 
   const formRef = ref<FormInstance>()
   const activeTab = ref('form')
+  const saving = ref(false)
 
   /**
    * 弹窗显示状态双向绑定
@@ -160,6 +161,7 @@
    * 关闭弹窗并重置表单
    */
   const handleClose = () => {
+    if (saving.value) return
     visible.value = false
     formRef.value?.resetFields()
   }
@@ -169,10 +171,11 @@
    * 验证通过后调用接口保存数据
    */
   const handleSubmit = async () => {
-    if (!formRef.value) return
+    if (!formRef.value || saving.value) return
 
     try {
       await formRef.value.validate()
+      saving.value = true
       const data: Api.SystemManage.SaveRoleParams = {
         roleName: form.roleName,
         roleCode: form.roleCode,
@@ -191,6 +194,8 @@
       handleClose()
     } catch (error) {
       console.log('表单验证失败:', error)
+    } finally {
+      saving.value = false
     }
   }
 </script>

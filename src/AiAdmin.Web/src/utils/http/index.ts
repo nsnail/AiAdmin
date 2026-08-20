@@ -21,6 +21,7 @@ import { HttpError, handleError, showError, showSuccess } from './error'
 import { $t } from '@/locales'
 import { translateServerMessage } from '@/utils/i18n/server-message'
 import { BaseResponse } from '@/types'
+import { bindRequestButton, releaseRequestButton } from './button-loading'
 
 /** 请求配置常量 */
 const REQUEST_TIMEOUT = 15000
@@ -52,6 +53,10 @@ function removeEmptyRequestValues(value: unknown): unknown {
   if (value && typeof value === 'object' && !(value instanceof Date)) {
     return Object.entries(value as Record<string, unknown>).reduce<Record<string, unknown>>(
       (result, [key, item]) => {
+        if (key.toLowerCase() === 'avatar') {
+          result[key] = item
+          return result
+        }
         if (item === null || item === '') return result
         result[key] = removeEmptyRequestValues(item)
         return result
@@ -87,6 +92,7 @@ const axiosInstance = axios.create({
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
   (request: InternalAxiosRequestConfig) => {
+    bindRequestButton(request)
     const { accessToken } = useUserStore()
     if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)
     request.headers.set('Accept-Language', useUserStore().language)
@@ -114,12 +120,14 @@ axiosInstance.interceptors.request.use(
 /** 响应拦截器 */
 axiosInstance.interceptors.response.use(
   (response: AxiosResponse<BaseResponse>) => {
+    releaseRequestButton(response.config)
     const { code, msg } = response.data
     if (code === ApiStatus.success) return response
     if (code === ApiStatus.unauthorized) handleUnauthorizedError(msg)
     throw createHttpError(translateServerMessage(msg) || $t('httpMsg.requestFailed'), code)
   },
   (error) => {
+    releaseRequestButton(error.config)
     if (error.response?.status === ApiStatus.unauthorized) {
       const message = translateServerMessage(
         (error.response.data as BaseResponse<unknown> | undefined)?.msg

@@ -43,7 +43,7 @@ public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncServi
         var endpoints = await db
             .ApiEndpoints.AsNoTracking()
             .ApplyDynamicFilter(request.DynamicFilter)
-            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ApiEndpoint.Controller))
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ApiEndpoint.CreatedAt), true)
             .Select(x => new ApiEndpointResult(
                     x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.AllowAnonymous, x.Method, x.Path, x.Controller, x.ControllerName, x.Action
                 )

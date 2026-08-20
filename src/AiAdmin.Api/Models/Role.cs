@@ -13,7 +13,7 @@ public sealed class Role : EntityBase
     /// <summary>
     ///     角色编码
     /// </summary>
-    [ListFilter("listFilter.role.code", Placeholder = "listFilter.placeholder.roleCode")]
+    [ListFilter("listFilter.role.code", Placeholder = "listFilter.placeholder.roleCode", Span = 3)]
     public required string Code { get; set; }
 
     /// <summary>
@@ -25,14 +25,13 @@ public sealed class Role : EntityBase
         [
             "all:listFilter.option.allData", "department:listFilter.option.departmentData"
             , "department_and_children:listFilter.option.departmentAndChildren", "self:listFilter.option.ownData"
-        ]
+        ], Span = 4
     )]
     public string DataScope { get; set; } = RoleDataScope.SELF;
 
     /// <summary>
     ///     角色描述
     /// </summary>
-    [ListFilter("listFilter.role.description", Placeholder = "listFilter.placeholder.description")]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
@@ -43,13 +42,13 @@ public sealed class Role : EntityBase
     /// <summary>
     ///     是否启用角色
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
+    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], Span = 2)]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
     ///     角色名称
     /// </summary>
-    [ListFilter("listFilter.role.name", Placeholder = "listFilter.placeholder.roleName")]
+    [ListFilter("listFilter.role.name", Placeholder = "listFilter.placeholder.roleName", Span = 3, Sort = 0)]
     public required string Name { get; set; }
 
     /// <summary>

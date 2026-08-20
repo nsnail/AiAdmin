@@ -91,8 +91,6 @@
 <script setup lang="ts">
   import { Picture, Paperclip, Close } from '@element-plus/icons-vue'
   import { mittBus } from '@/utils/sys'
-  import meAvatar from '@/assets/images/avatar/avatar5.webp'
-  import aiAvatar from '@/assets/images/avatar/avatar10.webp'
 
   defineOptions({ name: 'ArtChatWindow' })
 
@@ -133,7 +131,7 @@
       content: '你好！我是你的AI助手，有什么我可以帮你的吗？',
       time: '10:00',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 2,
@@ -141,7 +139,7 @@
       content: '我想了解一下系统的使用方法。',
       time: '10:01',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 3,
@@ -149,7 +147,7 @@
       content: '好的，我来为您介绍系统的主要功能。首先，您可以通过左侧菜单访问不同的功能模块...',
       time: '10:02',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 4,
@@ -157,7 +155,7 @@
       content: '听起来很不错，能具体讲讲数据分析部分吗？',
       time: '10:05',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 5,
@@ -165,7 +163,7 @@
       content: '当然可以。数据分析模块可以帮助您实时监控关键指标，并生成详细的报表...',
       time: '10:06',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 6,
@@ -173,7 +171,7 @@
       content: '太好了，那我如何开始使用呢？',
       time: '10:08',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 7,
@@ -181,7 +179,7 @@
       content: '您可以先创建一个项目，然后在项目中添加相关的数据源，系统会自动进行分析。',
       time: '10:09',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 8,
@@ -189,7 +187,7 @@
       content: '明白了，谢谢你的帮助！',
       time: '10:10',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 9,
@@ -197,7 +195,7 @@
       content: '不客气，有任何问题随时联系我。',
       time: '10:11',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     }
   ]
 
@@ -232,7 +230,7 @@
       content: text,
       time: formatCurrentTime(),
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     }
 
     messages.value.push(newMessage)

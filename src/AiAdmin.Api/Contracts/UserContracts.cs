@@ -1,3 +1,5 @@
+#pragma warning disable SA1518
+
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 using AiAdmin.Api.Models;
@@ -183,6 +185,11 @@ public sealed class SaveUserRequest
 public sealed class UpdateUserRequest
 {
     /// <summary>
+    ///     用户头像地址，空字符串表示清空头像
+    /// </summary>
+    public string? Avatar { get; init; }
+
+    /// <summary>
     ///     所属部门主键集合
     /// </summary>
     public long[] DepartmentIds { get; init; } = [];
@@ -217,6 +224,11 @@ public sealed class UpdateUserRequest
     /// </summary>
     [StringLength(20)]
     public string Phone { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     是否清空用户头像地址
+    /// </summary>
+    public bool? RemoveAvatar { get; init; }
 
     /// <summary>
     ///     角色编码集合

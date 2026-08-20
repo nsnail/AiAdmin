@@ -96,6 +96,33 @@
           <span>{{ operator.label }}</span>
           <span class="cell-query-symbol">{{ operator.symbol }}</span>
         </button>
+        <div
+          v-if="queryMenu.sortable"
+          class="cell-query-submenu"
+          :class="{ 'opens-left': queryMenu.submenuLeft }"
+          @click.stop
+        >
+          <button type="button" class="cell-query-operation cell-query-submenu-trigger" @click.stop>
+            <span>排序</span>
+            <span class="cell-query-symbol">›</span>
+          </button>
+          <div class="cell-query-submenu-panel">
+            <button
+              type="button"
+              class="cell-query-operation"
+              @click="applyContextSort('ascending')"
+            >
+              <span>顺序</span><span class="cell-query-symbol">↑</span>
+            </button>
+            <button
+              type="button"
+              class="cell-query-operation"
+              @click="applyContextSort('descending')"
+            >
+              <span>倒序</span><span class="cell-query-symbol">↓</span>
+            </button>
+          </div>
+        </div>
       </div>
     </Teleport>
 
@@ -201,6 +228,9 @@
     y: 0,
     label: '',
     field: '',
+    sortField: '',
+    sortable: false,
+    submenuLeft: false,
     valueType: 'string' as QueryValueType,
     initialValue: undefined as unknown
   })
@@ -483,8 +513,9 @@
       '[data-query-field]'
     )
     const hasCellQueryListener = Boolean(instance?.vnode.props?.onCellQuery)
+    const hasSortListener = Boolean(instance?.vnode.props?.onSortChange)
     if (
-      !hasCellQueryListener ||
+      (!hasCellQueryListener && !hasSortListener) ||
       !definition?.prop ||
       definition.prop === 'operation' ||
       definition.queryField === false
@@ -502,6 +533,9 @@
       y: Math.min(event.clientY, window.innerHeight - 420),
       label: queryTarget?.dataset.queryLabel || definition.label || column.label || definition.prop,
       field: queryTarget?.dataset.queryField || definition.queryField || definition.prop,
+      sortField: queryTarget?.dataset.queryField || definition.prop,
+      sortable: hasSortListener && definition.sortable !== false,
+      submenuLeft: event.clientX > window.innerWidth - 360,
       valueType: targetValueType || definition.queryValueType || inferValueType(value),
       initialValue: value
     })
@@ -534,6 +568,16 @@
   }
 
   const closeQueryMenu = () => {
+    queryMenu.visible = false
+  }
+
+  /** 从单元格右键菜单触发服务端字段排序 */
+  const applyContextSort = (order: 'ascending' | 'descending') => {
+    emit('sort-change', {
+      column: null,
+      prop: queryMenu.sortField,
+      order
+    })
     queryMenu.visible = false
   }
 
@@ -661,7 +705,7 @@
     width: 176px;
     max-height: 400px;
     padding: 6px;
-    overflow-y: auto;
+    overflow: visible;
     color: var(--el-text-color-primary);
     background: var(--el-bg-color-overlay);
     border: 1px solid var(--el-border-color-light);
@@ -718,6 +762,40 @@
       color: var(--el-color-primary);
       background: var(--el-fill-color-light);
     }
+  }
+
+  .cell-query-submenu {
+    position: relative;
+    margin-top: 4px;
+    border-top: 1px solid var(--el-border-color-lighter);
+
+    &:hover .cell-query-submenu-panel,
+    &:focus-within .cell-query-submenu-panel {
+      display: block;
+    }
+
+    &.opens-left .cell-query-submenu-panel {
+      right: calc(100% + 4px);
+      left: auto;
+    }
+  }
+
+  .cell-query-submenu-trigger {
+    margin-top: 4px;
+  }
+
+  .cell-query-submenu-panel {
+    position: absolute;
+    top: -5px;
+    left: calc(100% + 4px);
+    display: none;
+    width: 132px;
+    padding: 6px;
+    color: var(--el-text-color-primary);
+    background: var(--el-bg-color-overlay);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: 4px;
+    box-shadow: var(--el-box-shadow-light);
   }
 
   .cell-query-symbol {

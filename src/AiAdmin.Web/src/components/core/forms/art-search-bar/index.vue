@@ -8,6 +8,7 @@
       :model="modelValue"
       :label-position="labelPosition"
       v-bind="{ ...$attrs }"
+      @submit.prevent="handleSearch"
     >
       <ElRow :gutter="gutter">
         <ElCol

@@ -107,7 +107,7 @@
   }
 
   const savePermission = async () => {
-    if (!props.roleData || !treeRef.value) return
+    if (!props.roleData || !treeRef.value || saving.value) return
     saving.value = true
     try {
       const apiIds = (treeRef.value.getCheckedKeys(true) as string[]).filter(

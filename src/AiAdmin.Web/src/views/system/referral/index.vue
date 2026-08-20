@@ -39,7 +39,6 @@
   import { useI18n } from 'vue-i18n'
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import { fetchGetReferralTree } from '@/api/system-manage'
-  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 
   defineOptions({ name: 'MyReferrals' })
 
@@ -56,12 +55,6 @@
 
   const totalCount = computed(() => countChildren(referralData.children))
   const { columns } = useTableColumns(() => [
-    {
-      prop: 'id',
-      label: 'ID',
-      minWidth: 190,
-      formatter: (row: Referral) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt })
-    },
     { prop: 'userName', label: t('referralManagement.fields.userName'), minWidth: 180 },
     { prop: 'email', label: t('referralManagement.fields.email'), minWidth: 220 },
     { prop: 'invitationCode', label: t('referralManagement.fields.invitationCode'), minWidth: 150 }

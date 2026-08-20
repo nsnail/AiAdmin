@@ -2,7 +2,7 @@
   <div class="department-page art-full-height">
     <ArtSearchBar
       v-model="searchForm"
-      :items="searchItems"
+      :filter-fields="filterFields"
       :show-expand="false"
       @search="applySearch"
       @reset="resetSearch"
@@ -37,6 +37,7 @@
       :type="dialogType"
       :department-data="currentDepartment"
       :departments="departments"
+      :saving="dialogSaving"
       @submit="saveDepartment"
     />
   </div>
@@ -49,12 +50,12 @@
     fetchCreateDepartment,
     fetchDeleteDepartment,
     fetchGetDepartmentTree,
+    fetchGetListFilterFields,
     fetchUpdateDepartment
   } from '@/api/system-manage'
   import DepartmentDialog from './modules/department-dialog.vue'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'Department' })
@@ -75,32 +76,12 @@
   const dialogVisible = ref(false)
   const dialogType = ref<'add' | 'edit'>('add')
   const currentDepartment = ref<Partial<Department>>({})
-  const searchForm = reactive({ keyword: '', IsEnabled: true as boolean | undefined })
-  const appliedKeyword = ref('')
-  const searchItems = [
-    { label: '部门名称/编码', key: 'keyword', type: 'input', span: 6, props: { clearable: true } },
-    {
-      label: '是否启用',
-      key: 'IsEnabled',
-      type: 'select',
-      span: 4,
-      props: {
-        clearable: true,
-        options: [
-          { label: '启用', value: true },
-          { label: '禁用', value: false }
-        ]
-      }
-    }
-  ]
+  const dialogSaving = ref(false)
+  const searchForm = reactive<Record<string, unknown>>({ IsEnabled: true })
+  const filterFields = ref<import('@/api/system-manage').ListFilterField[]>([])
+  const appliedFilters = ref<Record<string, unknown>>({ IsEnabled: true })
 
   const { columnChecks, columns } = useTableColumns(() => [
-    {
-      prop: 'id',
-      label: 'ID',
-      minWidth: 190,
-      formatter: (row: Department) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt })
-    },
     {
       prop: 'name',
       label: '部门名称',
@@ -141,24 +122,21 @@
     }
   ])
 
-  const filterTree = (items: Department[], keyword: string): Department[] => {
-    if (!keyword) return items
+  const filterTree = (items: Department[]): Department[] => {
     return items.flatMap((item) => {
-      const children = filterTree(item.children, keyword)
-      const matchesStatus =
-        searchForm.IsEnabled === undefined || item.isEnabled === searchForm.IsEnabled
+      const children = filterTree(item.children)
+      const name = appliedFilters.value.Name
+      const code = appliedFilters.value.Code
+      const enabled = appliedFilters.value.IsEnabled
       const matches =
-        matchesStatus &&
-        (getDepartmentName(item).toLowerCase().includes(keyword) ||
-          item.name.toLowerCase().includes(keyword) ||
-          item.code.toLowerCase().includes(keyword))
+        (typeof name !== 'string' || item.name.toLowerCase().includes(name.toLowerCase())) &&
+        (typeof code !== 'string' || item.code.toLowerCase().includes(code.toLowerCase())) &&
+        (typeof enabled !== 'boolean' || item.isEnabled === enabled)
       return matches || children.length ? [{ ...item, children }] : []
     })
   }
 
-  const filteredDepartments = computed(() =>
-    filterTree(departments.value, appliedKeyword.value.trim().toLowerCase())
-  )
+  const filteredDepartments = computed(() => filterTree(departments.value))
 
   const loadDepartments = async (): Promise<void> => {
     loading.value = true
@@ -169,14 +147,14 @@
     }
   }
 
-  const applySearch = (): void => {
-    appliedKeyword.value = searchForm.keyword
+  const applySearch = (params: Record<string, unknown>): void => {
+    appliedFilters.value = { ...params }
   }
 
   const resetSearch = (): void => {
-    searchForm.keyword = ''
+    Object.keys(searchForm).forEach((key) => delete searchForm[key])
     searchForm.IsEnabled = true
-    appliedKeyword.value = ''
+    appliedFilters.value = { IsEnabled: true }
   }
 
   const showDialog = (type: 'add' | 'edit', row?: Department): void => {
@@ -186,11 +164,17 @@
   }
 
   const saveDepartment = async (form: SaveDepartment): Promise<void> => {
-    if (dialogType.value === 'add') await fetchCreateDepartment(form)
-    else await fetchUpdateDepartment(currentDepartment.value.id!, form)
-    ElMessage.success(dialogType.value === 'add' ? '部门创建成功' : '部门更新成功')
-    dialogVisible.value = false
-    await loadDepartments()
+    if (dialogSaving.value) return
+    dialogSaving.value = true
+    try {
+      if (dialogType.value === 'add') await fetchCreateDepartment(form)
+      else await fetchUpdateDepartment(currentDepartment.value.id!, form)
+      ElMessage.success(dialogType.value === 'add' ? '部门创建成功' : '部门更新成功')
+      dialogVisible.value = false
+      await loadDepartments()
+    } finally {
+      dialogSaving.value = false
+    }
   }
 
   const deleteDepartment = async (row: Department): Promise<void> => {
@@ -215,5 +199,8 @@
     })
   }
 
-  onMounted(loadDepartments)
+  onMounted(async () => {
+    filterFields.value = await fetchGetListFilterFields('department')
+    await loadDepartments()
+  })
 </script>

@@ -124,7 +124,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
             , ["createTime"] = nameof(Role.CreatedAt)
         };
         var roles = await query
-            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Role.Id), false, sortAliases)
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Role.CreatedAt), true, sortAliases)
             .Skip((current - 1) * size)
             .Take(size)
             .ToListAsync()

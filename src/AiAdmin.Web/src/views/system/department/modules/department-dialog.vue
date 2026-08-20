@@ -46,8 +46,8 @@
       <ElTabPane :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
     <template #footer>
-      <ElButton @click="dialogVisible = false">取消</ElButton>
-      <ElButton type="primary" @click="handleSubmit">保存</ElButton>
+      <ElButton :disabled="props.saving" @click="dialogVisible = false">取消</ElButton>
+      <ElButton type="primary" :loading="props.saving" @click="handleSubmit">保存</ElButton>
     </template>
   </ElDialog>
 </template>
@@ -65,6 +65,7 @@
     type: 'add' | 'edit'
     departmentData?: Partial<Department>
     departments: Department[]
+    saving?: boolean
   }>()
 
   const emit = defineEmits<{
@@ -156,6 +157,7 @@
   )
 
   const handleSubmit = async (): Promise<void> => {
+    if (props.saving) return
     if (formRef.value && (await formRef.value.validate())) {
       emit('submit', { ...formData })
     }

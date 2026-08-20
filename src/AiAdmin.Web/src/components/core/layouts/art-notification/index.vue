@@ -107,12 +107,6 @@
   import { useI18n } from 'vue-i18n'
 
   // 导入头像图片
-  import avatar1 from '@/assets/images/avatar/avatar1.webp'
-  import avatar2 from '@/assets/images/avatar/avatar2.webp'
-  import avatar3 from '@/assets/images/avatar/avatar3.webp'
-  import avatar4 from '@/assets/images/avatar/avatar4.webp'
-  import avatar5 from '@/assets/images/avatar/avatar5.webp'
-  import avatar6 from '@/assets/images/avatar/avatar6.webp'
 
   defineOptions({ name: 'ArtNotification' })
 
@@ -211,32 +205,32 @@
       {
         title: '池不胖 关注了你',
         time: '2021-2-26 23:50',
-        avatar: avatar1
+        avatar: ''
       },
       {
         title: '唐不苦 关注了你',
         time: '2021-2-21 8:05',
-        avatar: avatar2
+        avatar: ''
       },
       {
         title: '中小鱼 关注了你',
         time: '2020-1-17 21:12',
-        avatar: avatar3
+        avatar: ''
       },
       {
         title: '何小荷 关注了你',
         time: '2021-01-14 0:20',
-        avatar: avatar4
+        avatar: ''
       },
       {
         title: '誶誶淰 关注了你',
         time: '2020-12-20 0:15',
-        avatar: avatar5
+        avatar: ''
       },
       {
         title: '冷月呆呆 关注了你',
         time: '2020-12-17 22:06',
-        avatar: avatar6
+        avatar: ''
       }
     ])
 

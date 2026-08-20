@@ -35,7 +35,6 @@
             <template #default="{ data }">
               <div class="tree-node">
                 <div class="tree-node-main">
-                  <ArtListIdCell :id="data.id" :created-at="data.createdAt" />
                   <span class="truncate">{{ getCategoryName(data) }}</span>
                   <ArtEnabledSwitch
                     :id="data.id"
@@ -90,11 +89,6 @@
         </ArtTableHeader>
 
         <ElTable v-loading="loading" :data="filteredItems" height="calc(100vh - 220px)">
-          <ElTableColumn prop="id" label="ID" min-width="190" sortable>
-            <template #default="{ row }"
-              ><ArtListIdCell :id="row.id" :created-at="row.createdAt"
-            /></template>
-          </ElTableColumn>
           <ElTableColumn prop="label" label="标签" min-width="160" sortable />
           <ElTableColumn prop="value" label="键值" min-width="160" sortable />
           <ElTableColumn prop="sort" label="排序" width="90" sortable />
@@ -212,7 +206,6 @@
   import { useI18n } from 'vue-i18n'
   import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import {
     fetchCreateDictionaryCategory,
     fetchCreateDictionaryItem,
@@ -315,6 +308,7 @@
     categoryDialogVisible.value = true
   }
   const saveCategory = async () => {
+    if (saving.value) return
     if (!categoryForm.name.trim() || !categoryForm.code.trim()) {
       ElMessage.warning('请填写目录名称和编码')
       return
@@ -356,6 +350,7 @@
     itemDialogVisible.value = true
   }
   const saveItem = async () => {
+    if (saving.value) return
     if (!selectedCategory.value || !itemForm.label.trim() || !itemForm.value.trim()) {
       ElMessage.warning('请填写标签和键值')
       return

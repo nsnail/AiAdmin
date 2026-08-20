@@ -177,6 +177,9 @@ declare namespace Api {
       departmentIds: string[]
       password?: string
       isEnabled: boolean
+      avatarFile?: File
+      avatar?: string
+      removeAvatar?: boolean
     }
 
     type UpdateUserParams = Omit<SaveUserParams, 'userName'>

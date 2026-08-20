@@ -10,6 +10,30 @@
     <ElTabs v-model="activeTab">
       <ElTabPane :label="t('common.edit')" name="form">
         <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
+          <ElFormItem label="头像">
+            <div class="avatar-field">
+              <ElAvatar
+                :size="64"
+                :src="avatarPreview || defaultAvatar"
+                @error="handleAvatarError"
+              />
+              <ElUpload
+                accept="image/*"
+                :auto-upload="false"
+                :show-file-list="false"
+                :on-change="handleAvatarChange"
+              >
+                <ElButton><ArtSvgIcon icon="ri:image-add-line" />选择图片</ElButton>
+              </ElUpload>
+              <ElButton
+                v-if="avatarFile || (dialogType === 'edit' && props.userData?.avatar)"
+                link
+                type="danger"
+                @click="clearAvatar"
+                >{{ avatarFile ? '移除' : '删除头像' }}</ElButton
+              >
+            </div>
+          </ElFormItem>
           <ElFormItem :label="t('userManagement.fields.userName')" prop="userName">
             <ElInput
               v-model.trim="formData.userName"
@@ -18,18 +42,31 @@
             />
           </ElFormItem>
           <ElFormItem :label="t('userManagement.fields.password')" prop="password">
-            <ElInput
-              v-model="formData.password"
-              type="password"
-              show-password
-              :placeholder="
-                t(
-                  dialogType === 'edit'
-                    ? 'userManagement.dialog.passwordKeep'
-                    : 'userManagement.dialog.passwordNew'
-                )
-              "
-            />
+            <div class="password-field">
+              <ElInput
+                v-model="formData.password"
+                type="password"
+                show-password
+                :placeholder="
+                  t(
+                    dialogType === 'edit'
+                      ? 'userManagement.dialog.passwordKeep'
+                      : 'userManagement.dialog.passwordNew'
+                  )
+                "
+              />
+              <div v-if="formData.password" class="password-strength">
+                <div class="password-strength-bars" aria-hidden="true">
+                  <span
+                    v-for="level in 3"
+                    :key="level"
+                    class="password-strength-bar"
+                    :class="{ active: level <= passwordStrengthLevel }"
+                  />
+                </div>
+                <span class="password-strength-text">{{ passwordStrengthText }}</span>
+              </div>
+            </div>
           </ElFormItem>
           <ElFormItem :label="t('userManagement.fields.email')" prop="email">
             <ElInput
@@ -80,8 +117,10 @@
       <ElTabPane :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
     <template #footer>
-      <ElButton @click="dialogVisible = false">{{ t('common.cancel') }}</ElButton>
-      <ElButton type="primary" @click="handleSubmit">{{
+      <ElButton :disabled="props.saving" @click="dialogVisible = false">{{
+        t('common.cancel')
+      }}</ElButton>
+      <ElButton type="primary" :loading="props.saving" @click="handleSubmit">{{
         t('userManagement.actions.save')
       }}</ElButton>
     </template>
@@ -90,14 +129,16 @@
 
 <script setup lang="ts">
   import { fetchGetDepartmentTree, fetchGetUserRoles } from '@/api/system-manage'
-  import type { FormInstance, FormRules } from 'element-plus'
+  import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
   import { useI18n } from 'vue-i18n'
   import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+  import defaultAvatar from '@/assets/images/user/avatar.png'
 
   const props = defineProps<{
     visible: boolean
     type: string
     userData?: Partial<Api.SystemManage.UserListItem>
+    saving?: boolean
   }>()
   const emit = defineEmits<{
     (e: 'update:visible', value: boolean): void
@@ -114,6 +155,13 @@
   const activeTab = ref('form')
   const roleList = ref<Api.SystemManage.RoleListItem[]>([])
   const departmentList = ref<Api.SystemManage.DepartmentTreeItem[]>([])
+  const avatarFile = ref<File>()
+  const avatarPreview = ref('')
+  const avatarRemoved = ref(false)
+
+  const handleAvatarError = (): void => {
+    if (avatarPreview.value !== defaultAvatar) avatarPreview.value = defaultAvatar
+  }
   const localizedDepartments = computed(() => {
     const localize = (
       items: Api.SystemManage.DepartmentTreeItem[]
@@ -139,6 +187,23 @@
     roles: [],
     departmentIds: [],
     isEnabled: true
+  })
+  const passwordStrengthLevel = computed(() => {
+    const password = formData.password
+    if (!password) return 0
+    const valid = password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password)
+    if (!valid) return 1
+    return password.length >= 12 ||
+      (/[a-z]/.test(password) && /[A-Z]/.test(password)) ||
+      /[^A-Za-z0-9]/.test(password)
+      ? 3
+      : 2
+  })
+  const passwordStrengthText = computed(() => {
+    const keys = ['', 'weak', 'medium', 'strong']
+    return passwordStrengthLevel.value
+      ? t(`register.passwordStrength.${keys[passwordStrengthLevel.value]}`)
+      : ''
   })
   const rawData = computed(() => (props.type === 'edit' ? props.userData : formData))
   const rules = computed<FormRules>(() => ({
@@ -181,6 +246,9 @@
       if (!roleList.value.length) roleList.value = await fetchGetUserRoles()
       if (!departmentList.value.length) departmentList.value = await fetchGetDepartmentTree()
       const row = props.userData
+      avatarFile.value = undefined
+      avatarRemoved.value = false
+      avatarPreview.value = props.type === 'edit' ? (row?.avatar ?? '') : ''
       Object.assign(formData, {
         userName: props.type === 'edit' ? (row?.userName ?? '') : '',
         password: '',
@@ -196,12 +264,89 @@
   )
 
   const handleSubmit = async () => {
+    if (props.saving) return
     if (formRef.value && (await formRef.value.validate())) {
       emit('submit', {
         ...formData,
+        avatarFile: avatarFile.value,
+        removeAvatar: avatarRemoved.value,
         roles: [...formData.roles],
         departmentIds: [...formData.departmentIds]
       })
     }
   }
+
+  const handleAvatarChange = (uploadFile: UploadFile) => {
+    const file = uploadFile.raw
+    if (!file) return
+    const extension = file.name.split('.').pop()?.toLowerCase()
+    if (
+      !file.type.startsWith('image/') ||
+      !extension ||
+      !['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff'].includes(extension)
+    ) {
+      ElMessage.error('头像只允许上传图像格式')
+      return
+    }
+    if (file.size > 500 * 1024) {
+      ElMessage.error('头像大小不能超过 500 KB')
+      return
+    }
+    if (avatarPreview.value.startsWith('blob:')) URL.revokeObjectURL(avatarPreview.value)
+    avatarFile.value = file
+    avatarRemoved.value = false
+    avatarPreview.value = URL.createObjectURL(file)
+  }
+
+  const clearAvatar = () => {
+    if (avatarPreview.value.startsWith('blob:')) URL.revokeObjectURL(avatarPreview.value)
+    avatarFile.value = undefined
+    avatarRemoved.value = props.type === 'edit'
+    avatarPreview.value = defaultAvatar
+  }
 </script>
+
+<style scoped>
+  .password-field {
+    width: 100%;
+  }
+  .avatar-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .password-strength {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+  }
+  .password-strength-bars {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .password-strength-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--el-border-color);
+    transition: background-color 0.2s ease;
+  }
+  .password-strength-bar.active {
+    background: #dc2626;
+  }
+  .password-strength-bar.active:nth-child(2) {
+    background: #d97706;
+  }
+  .password-strength-bar.active:nth-child(3) {
+    background: #16a34a;
+  }
+  .password-strength-text {
+    min-width: 28px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    line-height: 1;
+    text-align: right;
+  }
+</style>

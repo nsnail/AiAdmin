@@ -157,17 +157,6 @@
 <script setup lang="ts">
   import { Picture, Paperclip, ArrowDown } from '@element-plus/icons-vue'
   import { mittBus } from '@/utils/sys'
-  import meAvatar from '@/assets/images/avatar/avatar5.webp'
-  import aiAvatar from '@/assets/images/avatar/avatar10.webp'
-  import avatar2 from '@/assets/images/avatar/avatar2.webp'
-  import avatar3 from '@/assets/images/avatar/avatar3.webp'
-  import avatar4 from '@/assets/images/avatar/avatar4.webp'
-  import avatar5 from '@/assets/images/avatar/avatar5.webp'
-  import avatar6 from '@/assets/images/avatar/avatar6.webp'
-  import avatar7 from '@/assets/images/avatar/avatar7.webp'
-  import avatar8 from '@/assets/images/avatar/avatar8.webp'
-  import avatar9 from '@/assets/images/avatar/avatar9.webp'
-  import avatar10 from '@/assets/images/avatar/avatar10.webp'
   import { useAutoLayoutHeight } from '@/hooks/core/useLayoutHeight'
 
   defineOptions({ name: 'TemplateChat' })
@@ -193,7 +182,7 @@
   const selectedPerson = ref<Person | null>(null)
   const messageText = ref('')
   const messageId = ref(10)
-  const userAvatar = ref(meAvatar)
+  const userAvatar = ref('')
   const messageContainer = ref<HTMLElement | null>(null)
 
   /**
@@ -204,7 +193,7 @@
       id: 1,
       name: '梅洛迪·梅西',
       email: 'melody@altbox.com',
-      avatar: meAvatar,
+      avatar: '',
       online: true,
       lastTime: '20小时前',
       unread: 0
@@ -213,7 +202,7 @@
       id: 2,
       name: '马克·史密斯',
       email: 'max@kt.com',
-      avatar: avatar2,
+      avatar: '',
       online: true,
       lastTime: '2周前',
       unread: 6
@@ -222,7 +211,7 @@
       id: 3,
       name: '肖恩·宾',
       email: 'sean@dellito.com',
-      avatar: avatar3,
+      avatar: '',
       online: false,
       lastTime: '5小时前',
       unread: 5
@@ -231,7 +220,7 @@
       id: 4,
       name: '爱丽丝·约翰逊',
       email: 'alice@domain.com',
-      avatar: avatar4,
+      avatar: '',
       online: true,
       lastTime: '1小时前',
       unread: 2
@@ -240,7 +229,7 @@
       id: 5,
       name: '鲍勃·布朗',
       email: 'bob@domain.com',
-      avatar: avatar5,
+      avatar: '',
       online: false,
       lastTime: '3天前',
       unread: 1
@@ -249,7 +238,7 @@
       id: 6,
       name: '查理·戴维斯',
       email: 'charlie@domain.com',
-      avatar: avatar6,
+      avatar: '',
       online: true,
       lastTime: '10分钟前',
       unread: 0
@@ -258,7 +247,7 @@
       id: 7,
       name: '戴安娜·普林斯',
       email: 'diana@domain.com',
-      avatar: avatar7,
+      avatar: '',
       online: true,
       lastTime: '15分钟前',
       unread: 3
@@ -267,7 +256,7 @@
       id: 8,
       name: '伊桑·亨特',
       email: 'ethan@domain.com',
-      avatar: avatar8,
+      avatar: '',
       online: true,
       lastTime: '5分钟前',
       unread: 0
@@ -276,7 +265,7 @@
       id: 9,
       name: '杰西卡·琼斯',
       email: 'jessica@domain.com',
-      avatar: avatar9,
+      avatar: '',
       online: false,
       lastTime: '1天前',
       unread: 4
@@ -285,7 +274,7 @@
       id: 10,
       name: '彼得·帕克',
       email: 'peter@domain.com',
-      avatar: avatar10,
+      avatar: '',
       online: true,
       lastTime: '2小时前',
       unread: 1
@@ -294,7 +283,7 @@
       id: 11,
       name: '克拉克·肯特',
       email: 'clark@domain.com',
-      avatar: avatar3,
+      avatar: '',
       online: true,
       lastTime: '30分钟前',
       unread: 2
@@ -303,7 +292,7 @@
       id: 12,
       name: '布鲁斯·韦恩',
       email: 'bruce@domain.com',
-      avatar: avatar5,
+      avatar: '',
       online: false,
       lastTime: '3天前',
       unread: 0
@@ -312,7 +301,7 @@
       id: 13,
       name: '韦德·威尔逊',
       email: 'wade@domain.com',
-      avatar: avatar6,
+      avatar: '',
       online: true,
       lastTime: '10分钟前',
       unread: 5
@@ -337,7 +326,7 @@
       content: '你好！我是你的AI助手，有什么我可以帮你的吗？',
       time: '10:00',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 2,
@@ -345,7 +334,7 @@
       content: '我想了解一下系统的使用方法。',
       time: '10:01',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 3,
@@ -353,7 +342,7 @@
       content: '好的，我来为您介绍系统的主要功能。首先，您可以通过左侧菜单访问不同的功能模块...',
       time: '10:02',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 4,
@@ -361,7 +350,7 @@
       content: '听起来很不错，能具体讲讲数据分析部分吗？',
       time: '10:05',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 5,
@@ -369,7 +358,7 @@
       content: '当然可以。数据分析模块可以帮助您实时监控关键指标，并生成详细的报表...',
       time: '10:06',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 6,
@@ -377,7 +366,7 @@
       content: '太好了，那我如何开始使用呢？',
       time: '10:08',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 7,
@@ -385,7 +374,7 @@
       content: '您可以先创建一个项目，然后在项目中添加相关的数据源，系统会自动进行分析。',
       time: '10:09',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     },
     {
       id: 8,
@@ -393,7 +382,7 @@
       content: '明白了，谢谢你的帮助！',
       time: '10:10',
       isMe: true,
-      avatar: meAvatar
+      avatar: ''
     },
     {
       id: 9,
@@ -401,7 +390,7 @@
       content: '不客气，有任何问题随时联系我。',
       time: '10:11',
       isMe: false,
-      avatar: aiAvatar
+      avatar: ''
     }
   ])
 

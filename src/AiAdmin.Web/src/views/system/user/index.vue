@@ -38,6 +38,7 @@
         v-model:visible="dialogVisible"
         :type="dialogType"
         :user-data="currentUserData"
+        :saving="dialogSaving"
         @submit="handleDialogSubmit"
       />
     </ElCard>
@@ -48,14 +49,19 @@
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
   import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
-  import { ACCOUNT_TABLE_DATA } from '@/mock/temp/formData'
   import { useTable } from '@/hooks/core/useTable'
-  import { fetchCreateUser, fetchGetUserList, fetchUpdateUser } from '@/api/system-manage'
+  import {
+    fetchCreateUser,
+    fetchGetUserList,
+    fetchUpdateUser,
+    fetchUploadUserAvatar
+  } from '@/api/system-manage'
   import UserSearch from './modules/user-search.vue'
   import UserDialog from './modules/user-dialog.vue'
   import { ElImage, ElMessage, ElTag } from 'element-plus'
   import { DialogType } from '@/types'
   import { useI18n } from 'vue-i18n'
+  import defaultAvatar from '@/assets/images/user/avatar.png'
 
   defineOptions({ name: 'User' })
   const { t, locale } = useI18n()
@@ -66,6 +72,7 @@
   const dialogType = ref<DialogType>('add')
   const dialogVisible = ref(false)
   const currentUserData = ref<Partial<UserListItem>>({})
+  const dialogSaving = ref(false)
 
   // 搜索表单
   const searchForm = ref<Api.SystemManage.UserSearchParams>({
@@ -123,9 +130,14 @@
           formatter: (row) => {
             return h('div', { class: 'user flex-c' }, [
               h(ElImage, {
-                class: 'size-9.5 rounded-md',
-                src: row.avatar,
-                previewSrcList: [row.avatar],
+                class: 'size-9.5 rounded-full',
+                src: row.avatar || defaultAvatar,
+                fallback: defaultAvatar,
+                previewSrcList: row.avatar ? [row.avatar] : [],
+                onError: (event: Event) => {
+                  const image = event.target as HTMLImageElement
+                  image.src = defaultAvatar
+                },
                 // 图片预览是否插入至 body 元素上，用于解决表格内部图片预览样式异常
                 previewTeleported: true
               }),
@@ -237,24 +249,6 @@
             ])
         }
       ]
-    },
-    // 数据处理
-    transform: {
-      // 数据转换器 - 替换头像
-      dataTransformer: (records) => {
-        // 类型守卫检查
-        if (!Array.isArray(records)) {
-          return []
-        }
-
-        // 使用本地头像替换接口返回的头像
-        return records.map((item, index: number) => {
-          return {
-            ...item,
-            avatar: ACCOUNT_TABLE_DATA[index % ACCOUNT_TABLE_DATA.length].avatar
-          }
-        })
-      }
     }
   })
 
@@ -300,15 +294,24 @@
    * 处理弹窗提交事件
    */
   const handleDialogSubmit = async (form: Api.SystemManage.SaveUserParams) => {
+    if (dialogSaving.value) return
+    dialogSaving.value = true
     try {
-      if (dialogType.value === 'add') await fetchCreateUser(form)
-      else {
-        const { userName: _userName, password, ...editableFields } = form
-        await fetchUpdateUser(currentUserData.value.id!, {
+      const { avatarFile, removeAvatar, ...userForm } = form
+      let userId = currentUserData.value.id
+      if (dialogType.value === 'add') {
+        const createdUser = await fetchCreateUser(userForm)
+        userId = createdUser.id
+      } else {
+        const { userName: _userName, password, ...editableFields } = userForm
+        await fetchUpdateUser(userId!, {
           ...editableFields,
-          ...(password ? { password } : {})
+          ...(password ? { password } : {}),
+          ...(removeAvatar ? { avatar: '' } : {}),
+          removeAvatar: Boolean(removeAvatar)
         })
       }
+      if (avatarFile && userId) await fetchUploadUserAvatar(userId, avatarFile)
       ElMessage.success(
         t(
           dialogType.value === 'add'
@@ -321,6 +324,8 @@
       await getData()
     } catch (error) {
       console.error(error)
+    } finally {
+      dialogSaving.value = false
     }
   }
 </script>

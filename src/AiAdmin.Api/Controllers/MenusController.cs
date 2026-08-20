@@ -133,7 +133,7 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         var menus = await db
             .Menus.AsNoTracking()
             .ApplyDynamicFilter(request.DynamicFilter)
-            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Menu.Sort), false, sortAliases)
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Menu.CreatedAt), true, sortAliases)
             .ToListAsync()
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<MenuItemResult>>.Ok(BuildTree(menus)));

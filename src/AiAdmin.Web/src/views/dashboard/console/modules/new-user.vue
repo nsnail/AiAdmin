@@ -53,13 +53,6 @@
 </template>
 
 <script setup lang="ts">
-  import avatar1 from '@/assets/images/avatar/avatar1.webp'
-  import avatar2 from '@/assets/images/avatar/avatar2.webp'
-  import avatar3 from '@/assets/images/avatar/avatar3.webp'
-  import avatar4 from '@/assets/images/avatar/avatar4.webp'
-  import avatar5 from '@/assets/images/avatar/avatar5.webp'
-  import avatar6 from '@/assets/images/avatar/avatar6.webp'
-
   interface UserTableItem {
     username: string
     province: string
@@ -88,7 +81,7 @@
       percentage: 60,
       pro: 0,
       color: 'var(--art-primary)',
-      avatar: avatar1
+      avatar: ''
     },
     {
       username: '何小荷',
@@ -98,7 +91,7 @@
       percentage: 20,
       pro: 0,
       color: 'var(--art-secondary)',
-      avatar: avatar2
+      avatar: ''
     },
     {
       username: '誶誶淰',
@@ -108,7 +101,7 @@
       percentage: 60,
       pro: 0,
       color: 'var(--art-warning)',
-      avatar: avatar3
+      avatar: ''
     },
     {
       username: '发呆草',
@@ -118,7 +111,7 @@
       percentage: 50,
       pro: 0,
       color: 'var(--art-info)',
-      avatar: avatar4
+      avatar: ''
     },
     {
       username: '甜筒',
@@ -128,7 +121,7 @@
       percentage: 70,
       pro: 0,
       color: 'var(--art-error)',
-      avatar: avatar5
+      avatar: ''
     },
     {
       username: '冷月呆呆',
@@ -138,7 +131,7 @@
       percentage: 90,
       pro: 0,
       color: 'var(--art-success)',
-      avatar: avatar6
+      avatar: ''
     }
   ])
 

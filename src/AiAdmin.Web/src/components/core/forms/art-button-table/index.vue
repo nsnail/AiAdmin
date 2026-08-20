@@ -1,6 +1,7 @@
 <!-- 表格按钮 -->
 <template>
   <div
+    data-api-button
     :class="[
       'inline-flex items-center justify-center min-w-8 h-8 px-2.5 mr-2.5 text-sm c-p rounded-md align-middle',
       buttonClass

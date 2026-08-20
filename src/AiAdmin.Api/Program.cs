@@ -1,3 +1,4 @@
+#pragma warning disable SA1518
 // 注册应用服务、认证授权、请求管道，并在启动时初始化和同步接口数据。
 
 using System.Text;
@@ -24,6 +25,7 @@ builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
 builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddSingleton<MinioStorageService>();
 
 var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvariant() ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString(provider)

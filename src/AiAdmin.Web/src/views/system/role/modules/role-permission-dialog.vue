@@ -158,7 +158,7 @@
    * 保存权限配置
    */
   const savePermission = async () => {
-    if (!props.roleData || !treeRef.value) return
+    if (!props.roleData || !treeRef.value || saving.value) return
     saving.value = true
     try {
       const selectedKeys = new Set([

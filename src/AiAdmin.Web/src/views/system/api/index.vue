@@ -26,11 +26,6 @@
         height="calc(100vh - 220px)"
         @sort-change="handleSortChange"
       >
-        <ElTableColumn prop="id" label="ID" min-width="190" sortable="custom">
-          <template #default="{ row }"
-            ><ArtListIdCell v-if="!row.isGroup" :id="row.id" :created-at="row.createdAt"
-          /></template>
-        </ElTableColumn>
         <ElTableColumn
           prop="name"
           label="接口名称"
@@ -86,7 +81,6 @@
 
 <script setup lang="ts">
   import ArtDynamicQueryDrawer from '@/components/core/forms/art-dynamic-query-drawer/index.vue'
-  import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import {
     fetchGetApiEndpointList,
     fetchGetListFilterFields,
@@ -185,6 +179,7 @@
   }
 
   const syncEndpoints = async () => {
+    if (syncing.value) return
     syncing.value = true
     try {
       const result = await fetchSyncApiEndpoints()

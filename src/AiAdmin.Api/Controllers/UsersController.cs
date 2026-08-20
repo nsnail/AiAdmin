@@ -1,3 +1,5 @@
+#pragma warning disable SA1518
+
 using System.Globalization;
 using System.Security.Claims;
 using AiAdmin.Api.Attributes;
@@ -8,6 +10,11 @@ using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp.Formats.Png;
+using SixLabors.ImageSharp.Processing;
+using Color = SixLabors.ImageSharp.Color;
+using ImageSharpImage = SixLabors.ImageSharp.Image;
+using Size = SixLabors.ImageSharp.Size;
 
 // 提供用户增删改查和当前用户信息查询。
 namespace AiAdmin.Api.Controllers;
@@ -19,7 +26,7 @@ namespace AiAdmin.Api.Controllers;
 [ApiDescription("User management")]
 [Authorize]
 [Route("api/user")]
-public sealed class UsersController(AppDbContext db) : ControllerBase
+public sealed class UsersController(AppDbContext db, MinioStorageService storage) : ControllerBase
 {
     /// <summary>
     ///     修改当前登录用户密码
@@ -110,6 +117,35 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     清空用户头像地址
+    /// </summary>
+    /// <param name="id">用户主键</param>
+    /// <returns>更新后的用户列表项</returns>
+    [HttpDelete("{id:long}/avatar")]
+    [ApiDescription("Delete user avatar")]
+    public async Task<ActionResult<ApiResponse<UserListItem>>> DeleteAvatarAsync(long id) {
+        var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        if (id != currentUserId && !User.IsInRole("R_SUPER")) {
+            return StatusCode(403, new ApiResponse<object>(403, "You can only update your own avatar", null));
+        }
+
+        var user = await db
+            .Users.Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .SingleOrDefaultAsync(x => x.Id == id)
+            .ConfigureAwait(false);
+        if (user is null) {
+            return NotFound(new ApiResponse<object>(404, "User not found", null));
+        }
+
+        user.Avatar = null;
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "Avatar deleted"));
+    }
+
+    /// <summary>
     ///     查询用户列表筛选字段元数据
     /// </summary>
     /// <returns>用户筛选字段定义</returns>
@@ -183,7 +219,7 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
                         .Select(department => department.Department.Name)
                         .FirstOrDefault()
                 )
-            , _ => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Models.User.Id), true, sortAliases)
+            , _ => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Models.User.CreatedAt), true, sortAliases)
         };
         var users = await sortedQuery.Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
         var items = users.ConvertAll(ToListItem);
@@ -305,6 +341,13 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         user.Phone = request.Phone.Trim();
         user.Gender = request.Gender;
         user.IsEnabled = request.IsEnabled;
+        if (request.Avatar is not null) {
+            user.Avatar = string.IsNullOrWhiteSpace(request.Avatar) ? null : request.Avatar.Trim();
+        }
+        else if (request.RemoveAvatar == true) {
+            user.Avatar = null;
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Password)) {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
@@ -353,6 +396,66 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
         user.Gender = request.Gender;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<CurrentUserResult>.Ok(ToCurrentUserResult(user), "Profile updated"));
+    }
+
+    /// <summary>
+    ///     上传并更新用户头像
+    /// </summary>
+    /// <param name="id">用户主键</param>
+    /// <param name="file">头像图片文件</param>
+    /// <returns>更新后的用户列表项</returns>
+    [HttpPost("{id:long}/avatar")]
+    [ApiDescription("Upload user avatar")]
+    [RequestSizeLimit(512000)]
+    public async Task<ActionResult<ApiResponse<UserListItem>>> UploadAvatarAsync(
+        long id
+        , IFormFile file
+    ) {
+        var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        if (id != currentUserId && !User.IsInRole("R_SUPER")) {
+            return StatusCode(403, new ApiResponse<object>(403, "You can only update your own avatar", null));
+        }
+
+        var user = await db
+            .Users.Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .SingleOrDefaultAsync(x => x.Id == id)
+            .ConfigureAwait(false);
+        if (user is null) {
+            return NotFound(new ApiResponse<object>(404, "User not found", null));
+        }
+
+        switch (file.Length) {
+            case 0:
+                return BadRequest(new ApiResponse<object>(400, "Avatar file is empty", null));
+            case > 512000:
+                return BadRequest(new ApiResponse<object>(400, "Avatar file must not exceed 500 KB", null));
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        string[] allowedExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".tiff"];
+        if (!file.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+            || !allowedExtensions.Contains(extension, StringComparer.OrdinalIgnoreCase)) {
+            return BadRequest(new ApiResponse<object>(400, "Avatar must be a supported image format", null));
+        }
+
+        var objectName = $"avatars/{id}.png";
+        await using var input = file.OpenReadStream();
+        using var image = await ImageSharpImage.LoadAsync(input).ConfigureAwait(false);
+        image.Mutate(context =>
+            context
+                .Resize(new ResizeOptions { Size = new Size(120, 120), Mode = ResizeMode.Crop, Position = AnchorPositionMode.Center })
+                .BackgroundColor(Color.White)
+        );
+        await using var output = new MemoryStream();
+        await image.SaveAsync(output, new PngEncoder()).ConfigureAwait(false);
+        output.Position = 0;
+        await storage.UploadAsync(objectName, output, output.Length, "image/png").ConfigureAwait(false);
+        user.Avatar = storage.GetPreviewUrl(objectName);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "Avatar uploaded"));
     }
 
     private static CurrentUserResult ToCurrentUserResult(User user) {

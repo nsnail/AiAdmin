@@ -1,3 +1,5 @@
+#pragma warning disable SA1512, SA1518
+
 // 定义系统用户实体及其角色、部门和邀请码
 
 using System.Security.Cryptography;
@@ -14,7 +16,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     头像地址
     /// </summary>
-    public string? Avatar { get; init; }
+    public string? Avatar { get; set; }
 
     /// <summary>
     ///     电子邮箱
