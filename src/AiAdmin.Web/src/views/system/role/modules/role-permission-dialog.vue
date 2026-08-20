@@ -80,7 +80,7 @@
    * 菜单节点类型
    */
   interface MenuNode {
-    id?: string | number
+    id?: string
     name?: string
     label?: string
     meta?: {
@@ -157,8 +157,9 @@
       const selectedNames = new Set(allMenus.filter((item) => selectedKeys.has(String(item.id))).map((item) => item.name))
       const hiddenIds = allMenus
         .filter((item) => item.meta?.isHide === true && selectedNames.has(item.parentName))
-        .map((item) => Number(item.id))
-      const menuIds = [...new Set([...selectedKeys].map(Number).filter(Boolean).concat(hiddenIds))]
+        .map((item) => item.id)
+        .filter((id): id is string => Boolean(id))
+      const menuIds = [...new Set([...selectedKeys].filter(Boolean).concat(hiddenIds))]
       await fetchSaveRoleMenus(props.roleData.roleId, menuIds)
       ElMessage.success('权限保存成功，相关用户下次登录后生效')
       emit('success')

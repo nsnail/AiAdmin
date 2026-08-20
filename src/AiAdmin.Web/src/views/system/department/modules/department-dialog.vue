@@ -96,8 +96,8 @@
     email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }]
   }
 
-  const collectDescendantIds = (node: Department | undefined): Set<number> => {
-    const result = new Set<number>()
+  const collectDescendantIds = (node: Department | undefined): Set<string> => {
+    const result = new Set<string>()
     const visit = (current: Department) => {
       result.add(current.id)
       current.children.forEach(visit)
@@ -106,7 +106,7 @@
     return result
   }
 
-  const findDepartment = (items: Department[], id: number): Department | undefined => {
+  const findDepartment = (items: Department[], id: string): Department | undefined => {
     for (const item of items) {
       if (item.id === id) return item
       const child = findDepartment(item.children, id)

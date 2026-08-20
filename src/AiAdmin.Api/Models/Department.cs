@@ -1,5 +1,7 @@
 // 定义部门树实体及用户部门多对多关联实体。
 
+using AiAdmin.Api.Data;
+
 namespace AiAdmin.Api.Models;
 
 /// <summary>
@@ -40,7 +42,7 @@ public sealed class Department
     /// <summary>
     ///     部门主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     是否启用部门

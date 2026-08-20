@@ -11,3 +11,4 @@
 .vscode/
 *.DotSettings.user
 src/AiAdmin.Web/.auto-import.json
+src/AiAdmin.Api/appsettings.Local.json

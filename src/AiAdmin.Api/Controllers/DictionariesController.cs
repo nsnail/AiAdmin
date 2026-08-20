@@ -76,15 +76,16 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
         }
 
         var value = request.Value.Trim();
-        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == categoryId && x.Value == value).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, "Dictionary value already exists", null));
+        var label = request.Label.Trim();
+        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == categoryId && x.Label == label).ConfigureAwait(false)) {
+            return Conflict(new ApiResponse<object>(409, "Dictionary label already exists", null));
         }
 
         var item = new DictionaryItem
         {
             CategoryId = categoryId
             , Value = value
-            , Label = request.Label.Trim()
+            , Label = label
             , Sort = request.Sort
             , IsEnabled = request.IsEnabled
             , Remark = request.Remark.Trim()
@@ -207,12 +208,13 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
         }
 
         var value = request.Value.Trim();
-        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == item.CategoryId && x.Value == value && x.Id != id).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, "Dictionary value already exists", null));
+        var label = request.Label.Trim();
+        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == item.CategoryId && x.Label == label && x.Id != id).ConfigureAwait(false)) {
+            return Conflict(new ApiResponse<object>(409, "Dictionary label already exists", null));
         }
 
         item.Value = value;
-        item.Label = request.Label.Trim();
+        item.Label = label;
         item.Sort = request.Sort;
         item.IsEnabled = request.IsEnabled;
         item.Remark = request.Remark.Trim();

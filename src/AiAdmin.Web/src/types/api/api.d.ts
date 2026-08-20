@@ -70,6 +70,13 @@ declare namespace Api {
       proof: string
     }
 
+    interface RegisterParams {
+      userName: string
+      password: string
+      email: string
+      verificationCode: string
+    }
+
     /** 登录响应 */
     interface LoginResponse {
       token: string
@@ -78,6 +85,8 @@ declare namespace Api {
 
     interface LoginConfig {
       loginSliderVerification: boolean
+      registrationEnabled: boolean
+      emailVerificationEnabled: boolean
     }
 
     interface LoginChallenge {
@@ -85,11 +94,25 @@ declare namespace Api {
       difficulty: number
     }
 
+    interface RegisterPuzzle {
+      challengeId: string
+      backgroundImage: string
+      pieceImage: string
+      width: number
+      height: number
+      pieceSize: number
+      pieceY: number
+    }
+
+    interface VerifyRegisterPuzzleResult {
+      puzzleTicket: string
+    }
+
     /** 用户信息 */
     interface UserInfo {
       buttons: string[]
       roles: string[]
-      userId: number
+      userId: string
       userName: string
       email: string
       phone: string
@@ -118,7 +141,7 @@ declare namespace Api {
 
     /** 用户列表项 */
     interface UserListItem {
-      id: number
+      id: string
       avatar: string
       status: string
       userName: string
@@ -126,7 +149,7 @@ declare namespace Api {
       userPhone: string
       userEmail: string
       userRoles: string[]
-      departmentIds: number[]
+      departmentIds: string[]
       departmentNames: string[]
       createBy: string
       createTime: string
@@ -146,17 +169,17 @@ declare namespace Api {
       phone: string
       gender: string
       roles: string[]
-      departmentIds: number[]
+      departmentIds: string[]
       password?: string
       isEnabled: boolean
     }
 
     /** 部门树节点 */
     interface DepartmentTreeItem {
-      id: number
+      id: string
       name: string
       code: string
-      parentId: number | null
+      parentId: string | null
       sort: number
       leader: string
       phone: string
@@ -177,7 +200,7 @@ declare namespace Api {
 
     /** 角色列表项 */
     interface RoleListItem {
-      roleId: number
+      roleId: string
       roleName: string
       roleCode: string
       description: string
@@ -191,7 +214,7 @@ declare namespace Api {
     >
 
     interface ApiEndpointItem {
-      id: number
+      id: string
       name: string
       allowAnonymous: boolean
       method: string
@@ -202,18 +225,18 @@ declare namespace Api {
     }
 
     interface DictionaryCategory {
-      id: number
+      id: string
       code: string
       name: string
-      parentId: number | null
+      parentId: string | null
       sort: number
       isEnabled: boolean
       children: DictionaryCategory[]
     }
 
     interface DictionaryItem {
-      id: number
-      categoryId: number
+      id: string
+      categoryId: string
       value: string
       label: string
       sort: number

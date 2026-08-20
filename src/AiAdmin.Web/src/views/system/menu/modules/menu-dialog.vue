@@ -70,7 +70,7 @@
   }
 
   interface MenuFormData {
-    id: number
+    id: string
     name: string
     path: string
     label: string
@@ -121,7 +121,7 @@
 
   const form = reactive<MenuFormData & { menuType: 'menu' | 'button' }>({
     menuType: 'menu',
-    id: 0,
+    id: '',
     name: '',
     path: '',
     label: '',

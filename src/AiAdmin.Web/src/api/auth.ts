@@ -22,6 +22,25 @@ export function fetchLoginChallenge() {
   return request.get<Api.Auth.LoginChallenge>({ url: '/api/auth/challenge' })
 }
 
+export function fetchRegister(params: Api.Auth.RegisterParams) {
+  return request.post<Record<string, never>>({ url: '/api/auth/register', data: params })
+}
+
+export function fetchRegisterCode(email: string, puzzleTicket: string) {
+  return request.post<Record<string, never>>({ url: '/api/auth/register-code', data: { email, puzzleTicket } })
+}
+
+export function fetchRegisterPuzzle() {
+  return request.get<Api.Auth.RegisterPuzzle>({ url: '/api/auth/register-puzzle' })
+}
+
+export function fetchVerifyRegisterPuzzle(challengeId: string, offsetX: number, email: string) {
+  return request.post<Api.Auth.VerifyRegisterPuzzleResult>({
+    url: '/api/auth/register-puzzle/verify',
+    data: { challengeId, offsetX, email }
+  })
+}
+
 /**
  * 获取用户信息
  * @returns 用户信息

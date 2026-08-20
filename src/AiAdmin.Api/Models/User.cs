@@ -1,5 +1,7 @@
 // 定义系统用户实体及其角色关联集合。
 
+using AiAdmin.Api.Data;
+
 namespace AiAdmin.Api.Models;
 
 /// <summary>
@@ -30,7 +32,7 @@ public sealed class User
     /// <summary>
     ///     用户主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     是否启用

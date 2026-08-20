@@ -74,6 +74,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_user");
                 _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => x.UserName).IsUnique();
                 _ = entity.HasIndex(x => x.Email);
                 _ = entity.Property(x => x.UserName).HasMaxLength(50).IsRequired();
@@ -89,6 +90,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_department");
                 _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => x.Code).IsUnique();
                 _ = entity.HasIndex(x => x.ParentId);
                 _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
@@ -114,6 +116,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_role");
                 _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => x.Code).IsUnique();
                 _ = entity.Property(x => x.Name).HasMaxLength(50).IsRequired();
                 _ = entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
@@ -144,6 +147,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_api");
                 _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => new { x.Method, x.Path }).IsUnique();
                 _ = entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
                 _ = entity.Property(x => x.AllowAnonymous).HasDefaultValue(false);
@@ -168,6 +172,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_menu");
                 _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => x.Name).IsUnique();
                 _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Path).HasMaxLength(300).IsRequired();
@@ -181,6 +186,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_dict_category");
                 _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => x.Code).IsUnique();
                 _ = entity.Property(x => x.Code).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
@@ -192,7 +198,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
             {
                 _ = entity.ToTable("sys_dict_item");
                 _ = entity.HasKey(x => x.Id);
-                _ = entity.HasIndex(x => new { x.CategoryId, x.Value }).IsUnique();
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.HasIndex(x => new { x.CategoryId, x.Label }).IsUnique();
                 _ = entity.Property(x => x.Value).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Label).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Remark).HasMaxLength(500);

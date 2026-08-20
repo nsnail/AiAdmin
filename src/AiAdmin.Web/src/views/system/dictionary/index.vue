@@ -116,8 +116,8 @@
   const saving = ref(false)
   const categoryDialogVisible = ref(false)
   const itemDialogVisible = ref(false)
-  const categoryForm = reactive({ id: 0, code: '', name: '', parentId: null as number | null, sort: 0, isEnabled: true })
-  const itemForm = reactive({ id: 0, value: '', label: '', sort: 0, isEnabled: true, remark: '' })
+  const categoryForm = reactive({ id: '', code: '', name: '', parentId: null as string | null, sort: 0, isEnabled: true })
+  const itemForm = reactive({ id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' })
   const { t } = useI18n()
   const getCategoryName = (category: Category) => category.code === 'system_settings' ? t('menus.dictionaryCategories.systemSettings') : category.name
 
@@ -125,7 +125,7 @@
     nodes.flatMap((node) => [{ ...node, label: `${'　'.repeat(depth)}${getCategoryName(node)}` }, ...flattenCategories(node.children, depth + 1)])
   const categoryOptions = computed(() => flattenCategories(categories.value))
 
-  const loadCategories = async (preferredId?: number) => {
+  const loadCategories = async (preferredId?: string) => {
     categories.value = await fetchGetDictionaryCategories()
     const id = preferredId ?? selectedCategory.value?.id ?? categories.value[0]?.id
     const selected = flattenCategories(categories.value).find((item) => item.id === id)
@@ -138,8 +138,8 @@
     try { items.value = await fetchGetDictionaryItems(selectedCategory.value.id) } finally { loading.value = false }
   }
   const selectCategory = async (category: Category) => { selectedCategory.value = category; await loadItems() }
-  const openCategoryDialog = (category?: Category, parentId: number | null = null) => {
-    Object.assign(categoryForm, category ? { ...category } : { id: 0, code: '', name: '', parentId, sort: 0, isEnabled: true })
+  const openCategoryDialog = (category?: Category, parentId: string | null = null) => {
+    Object.assign(categoryForm, category ? { ...category } : { id: '', code: '', name: '', parentId, sort: 0, isEnabled: true })
     categoryDialogVisible.value = true
   }
   const saveCategory = async () => {
@@ -155,7 +155,7 @@
     await ElMessageBox.confirm(`确定删除目录“${category.name}”吗？`, '删除确认', { type: 'warning' })
     await fetchDeleteDictionaryCategory(category.id); if (selectedCategory.value?.id === category.id) selectedCategory.value = undefined; await loadCategories()
   }
-  const openItemDialog = (item?: Partial<Item>) => { Object.assign(itemForm, item || { id: 0, value: '', label: '', sort: 0, isEnabled: true, remark: '' }); itemDialogVisible.value = true }
+  const openItemDialog = (item?: Partial<Item>) => { Object.assign(itemForm, item || { id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' }); itemDialogVisible.value = true }
   const saveItem = async () => {
     if (!selectedCategory.value || !itemForm.label.trim() || !itemForm.value.trim()) { ElMessage.warning('请填写标签和键值'); return }
     saving.value = true

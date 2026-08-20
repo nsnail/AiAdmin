@@ -1,5 +1,7 @@
 // 定义角色、菜单、接口及其关联关系的实体模型。
 
+using AiAdmin.Api.Data;
+
 namespace AiAdmin.Api.Models;
 
 /// <summary>
@@ -25,7 +27,7 @@ public sealed class Role
     /// <summary>
     ///     角色主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     是否启用角色
@@ -86,7 +88,7 @@ public sealed class ApiEndpoint
     /// <summary>
     ///     接口主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     HTTP 请求方法
@@ -179,7 +181,7 @@ public sealed class Menu
     /// <summary>
     ///     菜单主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     是否启用菜单

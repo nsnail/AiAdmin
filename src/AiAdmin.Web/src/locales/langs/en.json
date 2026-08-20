@@ -148,6 +148,7 @@
     },
     "sliderText": "Please slide to verify",
     "sliderSuccessText": "Verification successful",
+    "proofExpired": "Login verification expired, please try again",
     "rememberPwd": "Remember password",
     "forgetPwd": "Forgot password",
     "btnText": "Login",
@@ -169,6 +170,8 @@
     "title": "Create account",
     "subTitle": "Welcome to join us, please fill in the following information to complete the registration",
     "placeholder": {
+      "email": "Please enter your email",
+      "verificationCode": "Please enter the email verification code",
       "username": "Please enter your account",
       "password": "Please enter your password",
       "confirmPassword": "Please enter your password again"
@@ -177,12 +180,29 @@
       "confirmPasswordRequired": "Please enter your password again",
       "passwordMismatch": "The two passwords are inconsistent!",
       "usernameLength": "The length is 3 to 20 characters",
-      "passwordLength": "The password length cannot be less than 6 digits",
+      "emailInvalid": "Please enter a valid email address",
+      "passwordLength": "Password must be at least 8 characters",
+      "passwordStrength": "Password must be at least 8 characters and contain letters and numbers",
       "agreementRequired": "Please agree to the privacy policy"
     },
     "agreeText": "I agree",
     "privacyPolicy": "Privacy policy",
     "submitBtnText": "Register",
+    "success": "Registration successful",
+    "sendCode": "Send code",
+    "codeSent": "Verification code sent",
+    "passwordStrength": {
+      "label": "Password strength: {level}",
+      "weak": "Weak",
+      "medium": "Medium",
+      "strong": "Strong"
+    },
+    "puzzle": {
+      "title": "Complete puzzle verification",
+      "refresh": "Refresh puzzle",
+      "hint": "Drag the slider to complete the puzzle",
+      "verifying": "Verifying..."
+    },
     "hasAccount": "Already have an account?",
     "toLogin": "To login"
   },

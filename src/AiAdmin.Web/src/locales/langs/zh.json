@@ -148,6 +148,7 @@
     },
     "sliderText": "按住滑块拖动",
     "sliderSuccessText": "验证成功",
+    "proofExpired": "登录验证已过期，请重新验证",
     "rememberPwd": "记住密码",
     "forgetPwd": "忘记密码",
     "btnText": "登录",
@@ -169,6 +170,8 @@
     "title": "创建账号",
     "subTitle": "欢迎加入我们，请填写以下信息完成注册",
     "placeholder": {
+      "email": "请输入邮箱",
+      "verificationCode": "请输入邮箱验证码",
       "username": "请输入账号",
       "password": "请输入密码",
       "confirmPassword": "请再次输入密码"
@@ -177,12 +180,29 @@
       "confirmPasswordRequired": "请再次输入密码",
       "passwordMismatch": "两次输入密码不一致!",
       "usernameLength": "长度在 3 到 20 个字符",
-      "passwordLength": "密码长度不能小于6位",
+      "emailInvalid": "请输入有效的邮箱地址",
+      "passwordLength": "密码长度不能小于 8 位",
+      "passwordStrength": "密码至少 8 位，且必须包含字母和数字",
       "agreementRequired": "请同意隐私协议"
     },
     "agreeText": "我同意",
     "privacyPolicy": "《隐私政策》",
     "submitBtnText": "注册",
+    "success": "注册成功",
+    "sendCode": "发送验证码",
+    "codeSent": "验证码已发送",
+    "passwordStrength": {
+      "label": "密码强度：{level}",
+      "weak": "弱",
+      "medium": "中",
+      "strong": "强"
+    },
+    "puzzle": {
+      "title": "完成拼图验证",
+      "refresh": "刷新拼图",
+      "hint": "拖动滑块完成拼图",
+      "verifying": "正在验证..."
+    },
     "hasAccount": "已有账号？",
     "toLogin": "去登录"
   },

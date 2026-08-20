@@ -84,7 +84,7 @@
 
             <div class="mt-5 text-sm text-gray-600">
               <span>{{ $t('login.noAccount') }}</span>
-              <RouterLink class="text-theme" :to="{ name: 'Register' }">{{
+              <RouterLink v-if="registrationEnabled" class="text-theme" :to="{ name: 'Register' }">{{
                 $t('login.register')
               }}</RouterLink>
             </div>
@@ -122,15 +122,17 @@
   const route = useRoute()
   const isPassing = ref(false)
   const loginSliderVerification = ref(true)
+  const registrationEnabled = ref(true)
   const loginChallenge = ref<{ challenge: string; difficulty: number }>()
   const loginProof = ref('')
   const isClickPass = ref(false)
 
   const formRef = ref<FormInstance>()
+  const REMEMBER_LOGIN_KEY = 'aiadmin-remember-login'
 
   const formData = reactive({
-    username: 'admin',
-    password: '123456',
+    username: '',
+    password: '',
     rememberPassword: true
   })
 
@@ -178,6 +180,11 @@
       // 存储 token 和登录状态
       userStore.setToken(token, refreshToken)
       userStore.setLoginStatus(true)
+      if (formData.rememberPassword) {
+        localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({ username, password }))
+      } else {
+        localStorage.removeItem(REMEMBER_LOGIN_KEY)
+      }
 
       // 登录成功处理
       showLoginSuccessNotice(username)
@@ -190,7 +197,7 @@
     } catch (error) {
       // 处理 HttpError
       if (error instanceof HttpError) {
-        // console.log(error.code)
+        if (error.message === t('login.proofExpired')) await refreshLoginChallenge()
       } else {
         // 处理非 HttpError
         // ElMessage.error('登录失败，请稍后重试')
@@ -208,11 +215,30 @@
   }
 
   onMounted(async () => {
+    const remembered = localStorage.getItem(REMEMBER_LOGIN_KEY)
+    if (remembered) {
+      try {
+        const credentials = JSON.parse(remembered) as { username?: string; password?: string }
+        formData.username = credentials.username ?? ''
+        formData.password = credentials.password ?? ''
+      } catch {
+        localStorage.removeItem(REMEMBER_LOGIN_KEY)
+      }
+    }
     try {
-      loginSliderVerification.value = (await fetchLoginConfig()).loginSliderVerification
+      const config = await fetchLoginConfig()
+      loginSliderVerification.value = config.loginSliderVerification
+      registrationEnabled.value = config.registrationEnabled
       loginChallenge.value = await fetchLoginChallenge()
     } catch { loginSliderVerification.value = true }
   })
+
+  const refreshLoginChallenge = async () => {
+    loginChallenge.value = await fetchLoginChallenge()
+    loginProof.value = ''
+    isPassing.value = false
+    isClickPass.value = false
+  }
 
   const solveProof = async (challenge: string, difficulty: number) => {
     const prefix = '0'.repeat(difficulty)

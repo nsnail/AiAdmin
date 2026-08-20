@@ -9,10 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+_ = builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
+SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:WorkerId", 0));
 
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new LongJsonConverter()));
 builder.Services.AddProblemDetails();
-builder.Services.AddMemoryCache();
+var redisConnection = builder.Configuration.GetConnectionString("Redis")
+                      ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
+builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
 builder.Services.AddSingleton<ApiPermissionCache>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<TokenService>();

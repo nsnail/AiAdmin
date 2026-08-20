@@ -1,5 +1,7 @@
 // 定义字典目录树和字典内容实体
 
+using AiAdmin.Api.Data;
+
 namespace AiAdmin.Api.Models;
 
 /// <summary>
@@ -20,7 +22,7 @@ public sealed class DictionaryCategory
     /// <summary>
     ///     目录主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     是否启用
@@ -66,7 +68,7 @@ public sealed class DictionaryItem
     /// <summary>
     ///     内容主键
     /// </summary>
-    public long Id { get; init; }
+    public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
     ///     是否启用

@@ -28,6 +28,7 @@ public static class DatabaseInitializer
     public static async Task InitializeAsync(IServiceProvider services) {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
         _ = await db.Database.EnsureCreatedAsync().ConfigureAwait(false);
 
         if (!await db.Roles.AnyAsync().ConfigureAwait(false)) {
@@ -52,7 +53,7 @@ public static class DatabaseInitializer
             var root = new User
             {
                 UserName = "root"
-                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
+                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
                 , Email = "root@aiadmin.local"
                 , Phone = "13800000000"
                 , Gender = "male"
@@ -62,7 +63,7 @@ public static class DatabaseInitializer
             var admin = new User
             {
                 UserName = "admin"
-                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
+                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
                 , Email = "admin@aiadmin.local"
                 , Phone = "13800000001"
                 , Gender = "male"
@@ -72,7 +73,7 @@ public static class DatabaseInitializer
             var user = new User
             {
                 UserName = "user"
-                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456")
+                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
                 , Email = "user@aiadmin.local"
                 , Phone = "13800000002"
                 , Gender = "male"
@@ -101,24 +102,62 @@ public static class DatabaseInitializer
         }
 
         var systemSettings = await db.DictionaryCategories.SingleAsync(x => x.Code == "system_settings").ConfigureAwait(false);
-        if (!await db
-                .DictionaryItems.AnyAsync(x => x.CategoryId == systemSettings.Id && x.Label == "Enable login slider verification")
-                .ConfigureAwait(false)) {
+        var systemSettingSeeds = new[]
+        {
+            (
+                Label: "Enable login slider verification"
+                , Value: configuration.GetValue("SystemSettings:EnableLoginSliderVerification", false) ? "true" : "false"
+                , Sort: 0
+                , Remark: "Whether login requires slider verification"
+            )
+            , (
+                Label: "Enable user registration"
+                , Value: configuration.GetValue("SystemSettings:EnableUserRegistration", true) ? "true" : "false"
+                , Sort: 1
+                , Remark: "Whether public user registration is enabled"
+            )
+            , (
+                Label: "Enable email verification"
+                , Value: configuration.GetValue("SystemSettings:EnableEmailVerification", true) ? "true" : "false"
+                , Sort: 2
+                , Remark: "Whether registration requires email verification"
+            )
+            , (Label: "SMTP Host", Value: configuration["SystemSettings:Smtp:Host"] ?? string.Empty, Sort: 3, Remark: "SMTP server host")
+            , (Label: "SMTP Port", Value: configuration["SystemSettings:Smtp:Port"] ?? "25", Sort: 4, Remark: "SMTP server port")
+            , (
+                Label: "SMTP SSL"
+                , Value: configuration.GetValue("SystemSettings:Smtp:EnableSsl", true) ? "true" : "false"
+                , Sort: 5
+                , Remark: "Whether SMTP SSL is enabled"
+            )
+            , (Label: "SMTP User", Value: configuration["SystemSettings:Smtp:User"] ?? string.Empty, Sort: 6, Remark: "SMTP login user")
+            , (Label: "SMTP Password", Value: configuration["SystemSettings:Smtp:Password"] ?? string.Empty, Sort: 7, Remark: "SMTP login password")
+            , (Label: "SMTP From", Value: configuration["SystemSettings:Smtp:From"] ?? string.Empty, Sort: 8, Remark: "SMTP sender address")
+        };
+        var existingSystemSettingLabels = await db
+            .DictionaryItems.Where(x => x.CategoryId == systemSettings.Id)
+            .Select(x => x.Label)
+            .ToHashSetAsync()
+            .ConfigureAwait(false);
+
+        // 本地配置仅作为首次建库的种子来源，避免应用重启时覆盖管理后台已经修改的设置
+        foreach (var setting in systemSettingSeeds.Where(x => !existingSystemSettingLabels.Contains(x.Label))) {
             _ = await db
                 .DictionaryItems.AddAsync(
                     new DictionaryItem
                     {
                         CategoryId = systemSettings.Id
-                        , Value = "true"
-                        , Label = "Enable login slider verification"
-                        , Sort = 0
+                        , Label = setting.Label
+                        , Value = setting.Value
+                        , Sort = setting.Sort
                         , IsEnabled = true
-                        , Remark = "Whether login requires slider verification"
+                        , Remark = setting.Remark
                     }
                 )
                 .ConfigureAwait(false);
-            _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
     /// <summary>

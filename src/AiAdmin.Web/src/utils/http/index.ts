@@ -90,7 +90,10 @@ axiosInstance.interceptors.response.use(
     throw createHttpError(msg || $t('httpMsg.requestFailed'), code)
   },
   (error) => {
-    if (error.response?.status === ApiStatus.unauthorized) handleUnauthorizedError()
+    if (error.response?.status === ApiStatus.unauthorized) {
+      const message = (error.response.data as BaseResponse<unknown> | undefined)?.msg
+      handleUnauthorizedError(message)
+    }
     return Promise.reject(handleError(error))
   }
 )

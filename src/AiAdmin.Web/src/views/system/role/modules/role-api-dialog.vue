@@ -37,7 +37,7 @@
   }
 
   interface TreeNode {
-    id: string | number
+    id: string
     label: string
     children?: TreeNode[]
   }
@@ -106,9 +106,9 @@
     if (!props.roleData || !treeRef.value) return
     saving.value = true
     try {
-      const apiIds = (treeRef.value.getCheckedKeys(true) as Array<string | number>)
-        .map(Number)
-        .filter(Number.isFinite)
+      const apiIds = (treeRef.value.getCheckedKeys(true) as string[]).filter(
+        (id) => !id.startsWith('controller:')
+      )
       await fetchSaveRoleApis(props.roleData.roleId, apiIds)
       ElMessage.success('接口权限保存成功，缓存已刷新')
       emit('success')
