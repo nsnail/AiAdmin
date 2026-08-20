@@ -2,6 +2,7 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
+using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -65,6 +66,16 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
         _ = db.Departments.Remove(department);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "Department deleted"));
+    }
+
+    /// <summary>
+    ///     查询部门列表筛选字段元数据
+    /// </summary>
+    /// <returns>部门筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query department filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<Department>()));
     }
 
     /// <summary>

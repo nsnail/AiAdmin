@@ -14,6 +14,7 @@
           <ArtSvgIcon icon="ri:refresh-line" class="mr-1" />
           同步接口
         </ElButton>
+        <ElButton @click="advancedQueryVisible = true">高级查询</ElButton>
       </div>
 
       <ElTable
@@ -53,14 +54,23 @@
         <ElTableColumn prop="action" label="操作" min-width="140" />
       </ElTable>
     </ElCard>
+    <ArtDynamicQueryDrawer
+      v-model:visible="advancedQueryVisible"
+      :fields="advancedQueryFields"
+      @apply="applyAdvancedQuery"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-  import { fetchGetApiEndpointList, fetchSyncApiEndpoints } from '@/api/system-manage'
+  import ArtDynamicQueryDrawer from '@/components/core/forms/art-dynamic-query-drawer/index.vue'
+  import { fetchGetApiEndpointList, fetchGetListFilterFields, fetchSyncApiEndpoints, type ListFilterField } from '@/api/system-manage'
   import { translateServerMessage } from '@/utils/i18n/server-message'
+  import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'ApiManagement' })
+  const { t } = useI18n()
 
   type ApiEndpointItem = Api.SystemManage.ApiEndpointItem
 
@@ -75,6 +85,9 @@
   const keyword = ref('')
   const loading = ref(false)
   const syncing = ref(false)
+  const advancedQueryVisible = ref(false)
+  const filterFields = ref<ListFilterField[]>([])
+  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
 
   const groupedEndpoints = computed<ApiTableRow[]>(() => {
     const value = keyword.value.trim().toLowerCase()
@@ -133,6 +146,15 @@
     }
   }
 
+  const applyAdvancedQuery = async (dynamicFilter: DynamicFilter | undefined) => {
+    loading.value = true
+    try {
+      endpoints.value = await fetchGetApiEndpointList(dynamicFilter)
+    } finally {
+      loading.value = false
+    }
+  }
+
   const methodTagType = (method: string) => {
     const types: Record<string, 'success' | 'warning' | 'danger' | 'info' | 'primary'> = {
       GET: 'success',
@@ -144,5 +166,7 @@
     return types[method] || 'info'
   }
 
-  onMounted(loadEndpoints)
+  onMounted(async () => {
+    await Promise.all([loadEndpoints(), fetchGetListFilterFields('api-endpoint').then((fields) => { filterFields.value = fields })])
+  })
 </script>

@@ -417,6 +417,21 @@
     }
   },
   "rawData": "原始数据",
+  "listFilter": {
+    "common": { "status": "状态" },
+    "user": { "userName": "用户名", "email": "邮箱", "phone": "手机号", "gender": "性别" },
+    "role": { "name": "角色名称", "code": "角色编码", "description": "角色描述", "dataScope": "数据权限" },
+    "menu": { "name": "菜单名称", "parentName": "上级菜单", "path": "路由地址" },
+    "department": { "name": "部门名称", "code": "部门编码" },
+    "api": { "name": "接口名称", "method": "请求方法", "path": "接口路径", "controller": "控制器", "controllerName": "控制器名称", "allowAnonymous": "允许匿名访问" },
+    "placeholder": {
+      "userName": "请输入用户名", "email": "请输入邮箱", "phone": "请输入手机号", "roleName": "请输入角色名称", "roleCode": "请输入角色编码", "description": "请输入角色描述",
+      "menuName": "请输入菜单名称", "parentMenu": "请输入上级菜单", "departmentName": "请输入部门名称", "departmentCode": "请输入部门编码", "controller": "请输入控制器", "controllerName": "请输入控制器名称", "apiName": "请输入接口名称", "path": "请输入路径"
+    },
+    "option": {
+      "enabled": "启用", "disabled": "停用", "male": "男", "female": "女", "allData": "全部数据", "departmentData": "本部门数据", "departmentAndChildren": "本部门和子部门数据", "ownData": "本人数据", "yes": "是", "no": "否", "get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH", "delete": "DELETE"
+    }
+  },
   "table": {
     "form": {
       "reset": "重置",
@@ -425,6 +440,8 @@
     "searchBar": {
       "reset": "重置",
       "search": "查询",
+      "advancedQuery": "高级查询",
+      "noSavedQueries": "暂无已保存的查询条件",
       "expand": "展开",
       "collapse": "收起",
       "searchInputPlaceholder": "请输入",

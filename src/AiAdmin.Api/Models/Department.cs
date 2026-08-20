@@ -1,5 +1,6 @@
 // 定义部门树实体及用户部门多对多关联实体。
 
+using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;
@@ -27,6 +28,7 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     部门编码
     /// </summary>
+    [ListFilter("listFilter.department.code", Placeholder = "listFilter.placeholder.departmentCode")]
     public required string Code { get; set; }
 
     /// <summary>
@@ -42,6 +44,7 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     是否启用部门
     /// </summary>
+    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
@@ -52,6 +55,7 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     部门名称
     /// </summary>
+    [ListFilter("listFilter.department.name", Placeholder = "listFilter.placeholder.departmentName")]
     public required string Name { get; set; }
 
     /// <summary>

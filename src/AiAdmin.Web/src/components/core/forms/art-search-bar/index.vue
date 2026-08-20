@@ -72,11 +72,49 @@
         <ElCol :xs="24" :sm="24" :md="span" :lg="span" :xl="span" class="action-column">
           <div class="action-buttons-wrapper" :style="actionButtonsStyle">
             <div class="form-buttons">
-              <ElButton v-if="showReset" class="reset-button" @click="handleReset" v-ripple>
-                {{ t('table.searchBar.reset') }}
-              </ElButton>
+              <div v-if="showSearch && advancedQueryFields?.length" class="query-button-group">
+                <ElDropdown
+                  trigger="hover"
+                  :disabled="disabledSearch"
+                  @command="applySavedQuery"
+                  @visible-change="handleSavedQueryMenuVisible"
+                >
+                  <ElButton
+                    type="primary"
+                    class="search-button"
+                    :disabled="disabledSearch"
+                    @click="handleSearch"
+                    v-ripple
+                  >
+                    {{ t('table.searchBar.search') }}
+                  </ElButton>
+                  <template #dropdown>
+                    <ElDropdownMenu>
+                      <ElDropdownItem
+                        v-for="query in savedQueries"
+                        :key="query.id"
+                        :command="query.id"
+                      >
+                        {{ query.name }}
+                      </ElDropdownItem>
+                      <ElDropdownItem v-if="!savedQueries.length" disabled>
+                        {{ t('table.searchBar.noSavedQueries') }}
+                      </ElDropdownItem>
+                    </ElDropdownMenu>
+                  </template>
+                </ElDropdown>
+                <ElButton
+                  type="primary"
+                  class="advanced-query-button"
+                  :disabled="disabledSearch"
+                  :aria-label="t('table.searchBar.advancedQuery')"
+                  @click="advancedQueryVisible = true"
+                >
+                  ...
+                </ElButton>
+              </div>
               <ElButton
-                v-if="showSearch"
+                v-else-if="showSearch"
                 type="primary"
                 class="search-button"
                 @click="handleSearch"
@@ -85,6 +123,26 @@
               >
                 {{ t('table.searchBar.search') }}
               </ElButton>
+              <ElBadge
+                v-if="showReset"
+                :value="activeQueryConditionCount"
+                :hidden="activeQueryConditionCount === 0"
+                class="query-count-badge"
+              >
+                <ElTooltip
+                  placement="bottom"
+                  trigger="hover"
+                  effect="light"
+                  popper-class="query-preview-popper"
+                >
+                  <template #content>
+                    <pre class="query-preview" v-html="formattedQueryPreview" />
+                  </template>
+                  <ElButton class="reset-button" @click="handleReset" v-ripple>
+                    {{ t('table.searchBar.reset') }}
+                  </ElButton>
+                </ElTooltip>
+              </ElBadge>
             </div>
             <div v-if="shouldShowExpandToggle" class="filter-toggle" @click="toggleExpand">
               <span>{{ expandToggleText }}</span>
@@ -99,6 +157,13 @@
         </ElCol>
       </ElRow>
     </ElForm>
+    <ArtDynamicQueryDrawer
+      v-if="advancedQueryFields?.length"
+      v-model:visible="advancedQueryVisible"
+      :model-value="activeAdvancedFilter"
+      :fields="advancedQueryFields"
+      @apply="handleAdvancedQueryApply"
+    />
   </section>
 </template>
 
@@ -106,6 +171,7 @@
   import { ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue'
   import { useWindowSize } from '@vueuse/core'
   import { useI18n } from 'vue-i18n'
+  import { useRoute } from 'vue-router'
   import { toRaw, type Component } from 'vue'
   import {
     ElCascader,
@@ -126,6 +192,9 @@
     type FormInstance
   } from 'element-plus'
   import { calculateResponsiveSpan, type ResponsiveBreakpoint } from '@/utils/form/responsive'
+  import ArtDynamicQueryDrawer from '../art-dynamic-query-drawer/index.vue'
+  import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
+  import { fetchGetSavedQueries, type ListFilterField, type SavedQuery } from '@/api/system-manage'
 
   defineOptions({ name: 'ArtSearchBar' })
 
@@ -152,6 +221,7 @@
 
   const { width } = useWindowSize()
   const { t } = useI18n()
+  const route = useRoute()
   const isMobile = computed(() => width.value < 500)
 
   const formInstance = useTemplateRef<FormInstance>('formRef')
@@ -211,6 +281,10 @@
     disabledSearch?: boolean
     /** 搜索时是否清洗空值 */
     sanitizeOutput?: Partial<SanitizeOutputOptions>
+    /** 高级动态查询可选字段 */
+    advancedQueryFields?: DynamicQueryField[]
+    /** 由后端模型筛选特性反射得到的基础筛选字段 */
+    filterFields?: ListFilterField[]
   }
 
   interface SanitizeOutputOptions {
@@ -252,6 +326,9 @@
   const emit = defineEmits<SearchBarEmits>()
 
   const modelValue = defineModel<Record<string, any>>({ default: {} })
+  const advancedQueryVisible = ref(false)
+  const savedQueries = ref<SavedQuery[]>([])
+  const activeAdvancedFilter = ref<DynamicFilter>()
   const initialModelValue = ref<Record<string, any>>({})
 
   // 保存组件初始化时的表单快照，用于 reset 时恢复默认筛选条件。
@@ -264,9 +341,9 @@
       }
 
       if (source && typeof source === 'object') {
-        const rawSource = toRaw(source)
-        return Object.keys(rawSource).reduce<Record<string, unknown>>((accumulator, key) => {
-          accumulator[key] = deepClone((rawSource as Record<string, unknown>)[key])
+        const sourceRecord = source as Record<string, unknown>
+        return Object.keys(sourceRecord).reduce<Record<string, unknown>>((accumulator, key) => {
+          accumulator[key] = deepClone(sourceRecord[key])
           return accumulator
         }, {})
       }
@@ -274,7 +351,7 @@
       return source
     }
 
-    return deepClone(toRaw(value)) as Record<string, any>
+    return deepClone(value) as Record<string, any>
   }
 
   initialModelValue.value = cloneModelValue(modelValue.value)
@@ -409,6 +486,45 @@
     return (sanitizeOutputValue(cloneModelValue(modelValue.value)) || {}) as Record<string, any>
   }
 
+  const countDynamicFilterConditions = (filter: DynamicFilter | undefined): number => {
+    if (!filter) return 0
+    if (filter.filters?.length) {
+      return filter.filters.reduce((count, child) => count + countDynamicFilterConditions(child), 0)
+    }
+    return filter.field && filter.operator ? 1 : 0
+  }
+
+  const activeQueryConditionCount = computed(() => {
+    if (activeAdvancedFilter.value) {
+      return countDynamicFilterConditions(activeAdvancedFilter.value)
+    }
+    return Object.keys(getSanitizedOutput()).length
+  })
+
+  // 将当前查询条件转换为已转义的高亮 JSON，避免提示内容被当作 HTML 执行。
+  const formattedQueryPreview = computed(() => {
+    const query = activeAdvancedFilter.value
+      ? { dynamicFilter: activeAdvancedFilter.value }
+      : getSanitizedOutput()
+    const json = JSON.stringify(query, null, 2)
+    const escaped = json
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+
+    return escaped.replace(
+      /(&quot;(?:\\.|[^&])*?&quot;)(?=\s*:)|(&quot;(?:\\.|[^&])*?&quot;)|\b(true|false|null)\b|-?\b\d+(?:\.\d+)?\b/g,
+      (match, key, stringValue, literal) => {
+        if (key) return `<span class="json-key">${key}</span>`
+        if (stringValue) return `<span class="json-string">${stringValue}</span>`
+        if (literal === 'true' || literal === 'false') return `<span class="json-boolean">${literal}</span>`
+        if (literal === 'null') return `<span class="json-null">${literal}</span>`
+        return `<span class="json-number">${match}</span>`
+      }
+    )
+  })
+
   // 组件
   const getComponent = (item: SearchFormItem) => {
     // 优先使用 render 函数或组件渲染自定义组件
@@ -423,12 +539,47 @@
   /**
    * 可见的表单项
    */
+  const backendFormItems = computed<SearchFormItem[]>(() => (props.filterFields || []).map((field) => ({
+    key: field.field,
+    label: t(field.label),
+    type: field.control === 'select' ? 'select' : field.control === 'date' ? 'date' : field.control === 'number' ? 'number' : 'input',
+    span: field.span,
+    placeholder: field.placeholder ? t(field.placeholder) : undefined,
+    props: field.control === 'select' ? { options: field.options.map((option) => ({ ...option, label: t(option.label) })), clearable: true } : { clearable: true }
+  })))
+  const activeItems = computed(() => props.filterFields?.length ? backendFormItems.value : props.items)
+  const currentBreakpoint = computed<ResponsiveBreakpoint>(() => {
+    if (width.value < 768) return 'xs'
+    if (width.value < 992) return 'sm'
+    if (width.value < 1200) return 'md'
+    if (width.value < 1920) return 'lg'
+    return 'xl'
+  })
+  const actionReservedSpan = computed(() => {
+    const searchSpan = props.showSearch ? 2 : 0
+    const advancedQuerySpan = props.showSearch && props.advancedQueryFields?.length ? 1 : 0
+    const resetSpan = props.showReset ? 1 : 0
+    const expandSpan = !props.isExpand && props.showExpand ? 1 : 0
+    return Math.max(1, Math.min(props.span, searchSpan + advancedQuerySpan + resetSpan + expandSpan))
+  })
+  const collapsedItems = computed(() => {
+    const actionUsesSeparateRow = currentBreakpoint.value === 'xs' || currentBreakpoint.value === 'sm'
+    const availableSpan = actionUsesSeparateRow ? 24 : 24 - actionReservedSpan.value
+    let occupiedSpan = 0
+
+    return activeItems.value.filter((item) => !item.hidden).filter((item) => {
+      const itemSpan = getColSpan(item.span, currentBreakpoint.value)
+      if (occupiedSpan + itemSpan > availableSpan) return false
+
+      occupiedSpan += itemSpan
+      return true
+    })
+  })
   const visibleFormItems = computed(() => {
-    const filteredItems = props.items.filter((item) => !item.hidden)
+    const filteredItems = activeItems.value.filter((item) => !item.hidden)
     const shouldShowLess = !props.isExpand && !isExpanded.value
     if (shouldShowLess) {
-      const maxItemsPerRow = Math.floor(24 / props.span) - 1
-      return filteredItems.slice(0, maxItemsPerRow)
+      return collapsedItems.value
     }
     return filteredItems
   })
@@ -437,9 +588,9 @@
    * 是否应该显示展开/收起按钮
    */
   const shouldShowExpandToggle = computed(() => {
-    const filteredItems = props.items.filter((item) => !item.hidden)
+    const filteredItems = activeItems.value.filter((item) => !item.hidden)
     return (
-      !props.isExpand && props.showExpand && filteredItems.length > Math.floor(24 / props.span) - 1
+      !props.isExpand && props.showExpand && filteredItems.length > collapsedItems.value.length
     )
   })
 
@@ -456,7 +607,7 @@
   const actionButtonsStyle = computed(() => ({
     'justify-content': isMobile.value
       ? 'flex-end'
-      : props.items.filter((item) => !item.hidden).length <= props.buttonLeftLimit
+      : activeItems.value.filter((item) => !item.hidden).length <= props.buttonLeftLimit
         ? 'flex-start'
         : 'flex-end'
   }))
@@ -480,6 +631,7 @@
       delete modelValue.value[key]
     })
     Object.assign(modelValue.value, cloneModelValue(initialModelValue.value))
+    activeAdvancedFilter.value = undefined
 
     // 触发 reset 事件
     emit('reset')
@@ -489,9 +641,39 @@
    * 处理搜索事件
    */
   const handleSearch = () => {
+    activeAdvancedFilter.value = undefined
+    delete modelValue.value.dynamicFilter
     // 对外只抛出清洗后的查询参数，避免接口收到空数组/空字符串。
     emit('search', getSanitizedOutput())
   }
+
+  // 每次展开菜单时刷新数据，使高级查询层中新保存的条件立即可用。
+  const handleSavedQueryMenuVisible = async (visible: boolean) => {
+    if (visible) {
+      savedQueries.value = await fetchGetSavedQueries(route.path)
+    }
+  }
+
+  // 选择已保存条件后直接交给页面现有的高级查询处理流程。
+  const applySavedQuery = (id: string | number) => {
+    const query = savedQueries.value.find((item) => String(item.id) === String(id))
+    if (query) {
+      applyAdvancedFilter(query.dynamicFilter)
+    }
+  }
+
+  const applyAdvancedFilter = (filter: DynamicFilter | undefined) => {
+    activeAdvancedFilter.value = filter
+    Object.keys(modelValue.value).forEach((key) => {
+      delete modelValue.value[key]
+    })
+    if (filter) {
+      modelValue.value.dynamicFilter = filter
+    }
+    emit('search', getSanitizedOutput())
+  }
+
+  const handleAdvancedQueryApply = (filter: DynamicFilter | undefined) => applyAdvancedFilter(filter)
 
   defineExpose({
     ref: formInstance,
@@ -524,6 +706,25 @@
       .form-buttons {
         display: flex;
         gap: 8px;
+
+        .query-button-group {
+          display: flex;
+
+          .search-button {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+          }
+
+          .advanced-query-button {
+            width: 34px;
+            min-width: 34px;
+            padding: 0;
+            margin-left: 1px;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            letter-spacing: 0;
+          }
+        }
       }
 
       .filter-toggle {
@@ -553,6 +754,46 @@
         }
       }
     }
+
+  }
+
+  .query-preview {
+    max-width: min(560px, 70vw);
+    max-height: 360px;
+    margin: 0;
+    overflow: auto;
+    color: var(--el-text-color-primary);
+    font: 12px/1.5 Consolas, Monaco, monospace;
+    white-space: pre;
+
+    :deep(.json-key) {
+      color: var(--el-color-primary);
+    }
+
+    :deep(.json-string) {
+      color: var(--el-color-success);
+    }
+
+    :deep(.json-number) {
+      color: var(--el-color-warning);
+    }
+
+    :deep(.json-boolean),
+    :deep(.json-null) {
+      color: var(--el-color-danger);
+    }
+  }
+
+  :global(.query-preview-popper.el-popper) {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color-light);
+    color: var(--el-text-color-primary);
+    box-shadow: var(--el-box-shadow-light);
+  }
+
+  :global(.query-preview-popper.el-popper .el-popper__arrow::before) {
+    background: var(--el-bg-color-overlay);
+    border-color: var(--el-border-color-light);
   }
 
   // 响应式优化

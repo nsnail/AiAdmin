@@ -1,7 +1,6 @@
 // 定义列表接口通用的动态筛选和分页请求模型。
 
 using System.ComponentModel.DataAnnotations;
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -18,19 +17,14 @@ public sealed class DynamicFilter
     public string? Field { get; init; }
 
     /// <summary>
-    ///     子条件的连接逻辑，支持 And 或 Or
-    /// </summary>
-    public string Logic { get; init; } = "And";
-
-    /// <summary>
-    ///     操作符名称
-    /// </summary>
-    public string? Operator { get; init; }
-
-    /// <summary>
     ///     子筛选条件
     /// </summary>
     public List<DynamicFilter> Filters { get; init; } = [];
+
+    /// <summary>
+    ///     子条件的连接逻辑，支持 And 或 Or
+    /// </summary>
+    public string Logic { get; init; } = "And";
 
     /// <summary>
     ///     可嵌套的筛选节点包装，兼容 FreeSql DynamicFilterInfo 的请求格式
@@ -39,10 +33,14 @@ public sealed class DynamicFilter
     public DynamicFilter? NestedDynamicFilter { get; init; }
 
     /// <summary>
+    ///     操作符名称
+    /// </summary>
+    public string? Operator { get; init; }
+
+    /// <summary>
     ///     筛选值
     /// </summary>
-    [SuppressMessage("Sonar", "S6964:Value type property used as input in a controller action should be nullable", Justification = "分组节点无需筛选值，筛选值缺失时由动态筛选服务按操作符校验")]
-    public JsonElement Value { get; init; }
+    public JsonElement? Value { get; init; }
 }
 
 /// <summary>

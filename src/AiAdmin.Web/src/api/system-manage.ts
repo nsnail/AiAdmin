@@ -1,12 +1,45 @@
 import request from '@/utils/http'
 import { AppRouteRecord } from '@/types/router'
 
-type DynamicFilter = {
+export type DynamicFilter = {
   field?: string
   operator?: string
   value?: unknown
   logic?: 'And' | 'Or'
   filters?: DynamicFilter[]
+}
+
+export interface SavedQuery {
+  id: string
+  name: string
+  dynamicFilter: DynamicFilter
+}
+
+export interface ListFilterField {
+  field: string
+  label: string
+  control: 'input' | 'select' | 'date' | 'number'
+  span: number
+  sort: number
+  placeholder: string
+  options: Array<{ label: string; value: string }>
+  valueType: 'string' | 'number' | 'boolean' | 'date'
+}
+
+export function fetchGetListFilterFields(resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint') {
+  return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
+}
+
+export function fetchGetSavedQueries(route: string) {
+  return request.get<SavedQuery[]>({ url: '/api/saved-query', params: { route } })
+}
+
+export function fetchSaveQuery(data: { name: string; route: string; dynamicFilter: DynamicFilter }) {
+  return request.post<SavedQuery>({ url: '/api/saved-query', data })
+}
+
+export function fetchDeleteSavedQuery(id: string) {
+  return request.del<void>({ url: `/api/saved-query/${id}` })
 }
 
 type DynamicQuery = {
@@ -30,7 +63,16 @@ function getTextFilter(field: string, value: string | undefined): DynamicFilter 
 
 // 获取用户列表
 export function fetchGetUserList(params: Api.SystemManage.UserSearchParams) {
-  const filters = [
+  if ('dynamicFilter' in params && params.dynamicFilter) {
+    return request.post<Api.SystemManage.UserList>({
+      url: '/api/user/list',
+      data: { current: params.current, size: params.size, dynamicFilter: params.dynamicFilter }
+    })
+  }
+  const generatedFilters = Object.entries(params)
+    .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
+    .map(([field, value]) => ({ field, operator: typeof value === 'boolean' || value === 'true' || value === 'false' ? 'Equal' : 'Contains', value: value === 'true' ? true : value === 'false' ? false : value }))
+  const filters = generatedFilters.length ? generatedFilters : [
     getTextFilter('UserName', params.userName),
     getTextFilter('Phone', params.userPhone),
     getTextFilter('Email', params.userEmail),
@@ -90,7 +132,16 @@ export function fetchDeleteDepartment(id: string) {
 
 // 获取角色列表
 export function fetchGetRoleList(params: Api.SystemManage.RoleSearchParams) {
-  const filters = [
+  if ('dynamicFilter' in params && params.dynamicFilter) {
+    return request.post<Api.SystemManage.RoleList>({
+      url: '/api/role/list',
+      data: { current: params.current, size: params.size, dynamicFilter: params.dynamicFilter }
+    })
+  }
+  const generatedFilters = Object.entries(params)
+    .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
+    .map(([field, value]) => ({ field, operator: typeof value === 'boolean' || value === 'true' || value === 'false' ? 'Equal' : 'Contains', value: value === 'true' ? true : value === 'false' ? false : value }))
+  const filters = generatedFilters.length ? generatedFilters : [
     getTextFilter('Name', params.roleName),
     getTextFilter('Code', params.roleCode),
     getTextFilter('Description', params.description),

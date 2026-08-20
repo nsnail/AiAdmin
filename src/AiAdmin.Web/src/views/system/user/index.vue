@@ -67,13 +67,7 @@
   const selectedRows = ref<UserListItem[]>([])
 
   // 搜索表单
-  const searchForm = ref({
-    userName: undefined,
-    userGender: undefined,
-    userPhone: undefined,
-    userEmail: undefined,
-    status: '1'
-  })
+  const searchForm = ref<Api.SystemManage.UserSearchParams>({})
 
   // 用户状态配置
   /**

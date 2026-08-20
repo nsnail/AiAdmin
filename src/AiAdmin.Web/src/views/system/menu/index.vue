@@ -5,6 +5,7 @@
     <ArtSearchBar
       v-model="formFilters"
       :items="formItems"
+      :advanced-query-fields="advancedQueryFields"
       :showExpand="false"
       @reset="handleReset"
       @search="handleSearch"
@@ -55,15 +56,20 @@
   import { useTableColumns } from '@/hooks/core/useTableColumns'
   import type { AppRouteRecord } from '@/types/router'
   import MenuDialog from './modules/menu-dialog.vue'
-  import { fetchCreateMenu, fetchDeleteMenu, fetchGetMenuList, fetchUpdateMenu } from '@/api/system-manage'
+  import { fetchCreateMenu, fetchDeleteMenu, fetchGetListFilterFields, fetchGetMenuList, fetchUpdateMenu, type ListFilterField } from '@/api/system-manage'
   import { ElTag, ElMessageBox } from 'element-plus'
+  import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import { useI18n } from 'vue-i18n'
 
   defineOptions({ name: 'Menus' })
+  const { t } = useI18n()
 
   // 状态管理
   const loading = ref(false)
   const isExpanded = ref(false)
   const tableRef = ref()
+  const filterFields = ref<ListFilterField[]>([])
+  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
 
   // 弹窗相关
   const dialogVisible = ref(false)
@@ -97,6 +103,7 @@
 
   onMounted(() => {
     getMenuList()
+    fetchGetListFilterFields('menu').then((fields) => { filterFields.value = fields })
   })
 
   /**
@@ -110,6 +117,19 @@
       tableData.value = list
     } catch (error) {
       throw error instanceof Error ? error : new Error('获取菜单失败')
+    } finally {
+      loading.value = false
+    }
+  }
+
+  /**
+   * 应用服务端动态查询条件
+   * @param dynamicFilter 动态筛选根节点
+   */
+  const handleAdvancedSearch = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    loading.value = true
+    try {
+      tableData.value = await fetchGetMenuList(dynamicFilter)
     } finally {
       loading.value = false
     }
@@ -244,9 +264,13 @@
   /**
    * 执行搜索
    */
-  const handleSearch = (): void => {
+  const handleSearch = async (params: Record<string, unknown>): Promise<void> => {
+    if (params.dynamicFilter) {
+      await handleAdvancedSearch(params.dynamicFilter as DynamicFilter)
+      return
+    }
     Object.assign(appliedFilters, { ...formFilters })
-    getMenuList()
+    await getMenuList()
   }
 
   /**

@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,6 +21,16 @@ namespace AiAdmin.Api.Controllers;
 [SuppressMessage("Design", "S6960:Controllers should not have too many responsibilities", Justification = "接口查询和同步共同属于接口管理边界。")]
 public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncService syncService) : ControllerBase
 {
+    /// <summary>
+    ///     查询接口列表筛选字段元数据
+    /// </summary>
+    /// <returns>接口筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query API filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<ApiEndpoint>()));
+    }
+
     /// <summary>
     ///     查询系统接口列表
     /// </summary>

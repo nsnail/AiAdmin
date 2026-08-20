@@ -417,6 +417,21 @@
     }
   },
   "rawData": "Raw Data",
+  "listFilter": {
+    "common": { "status": "Status" },
+    "user": { "userName": "Username", "email": "Email", "phone": "Phone", "gender": "Gender" },
+    "role": { "name": "Role name", "code": "Role code", "description": "Description", "dataScope": "Data scope" },
+    "menu": { "name": "Menu name", "parentName": "Parent menu", "path": "Route path" },
+    "department": { "name": "Department name", "code": "Department code" },
+    "api": { "name": "API name", "method": "HTTP method", "path": "Path", "controller": "Controller", "controllerName": "Controller name", "allowAnonymous": "Anonymous access" },
+    "placeholder": {
+      "userName": "Enter username", "email": "Enter email", "phone": "Enter phone", "roleName": "Enter role name", "roleCode": "Enter role code", "description": "Enter description",
+      "menuName": "Enter menu name", "parentMenu": "Enter parent menu", "departmentName": "Enter department name", "departmentCode": "Enter department code", "controller": "Enter controller", "controllerName": "Enter controller name", "apiName": "Enter API name", "path": "Enter path"
+    },
+    "option": {
+      "enabled": "Enabled", "disabled": "Disabled", "male": "Male", "female": "Female", "allData": "All data", "departmentData": "Department data", "departmentAndChildren": "Department and children", "ownData": "Own data", "yes": "Yes", "no": "No", "get": "GET", "post": "POST", "put": "PUT", "patch": "PATCH", "delete": "DELETE"
+    }
+  },
   "table": {
     "form": {
       "reset": "Reset",
@@ -425,6 +440,8 @@
     "searchBar": {
       "reset": "Reset",
       "search": "Search",
+      "advancedQuery": "Advanced query",
+      "noSavedQueries": "No saved queries",
       "expand": "Expand",
       "collapse": "Collapse",
       "searchInputPlaceholder": "Please enter",

@@ -116,6 +116,16 @@ public sealed class UsersController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     查询用户列表筛选字段元数据
+    /// </summary>
+    /// <returns>用户筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query user filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<User>()));
+    }
+
+    /// <summary>
     ///     查询当前登录用户信息
     /// </summary>
     /// <returns>当前用户信息</returns>

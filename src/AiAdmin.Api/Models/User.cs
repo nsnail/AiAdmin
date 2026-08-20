@@ -1,6 +1,7 @@
 // 定义系统用户实体及其角色、部门和邀请码
 
 using System.Security.Cryptography;
+using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;
@@ -18,11 +19,13 @@ public sealed class User : EntityBase
     /// <summary>
     ///     电子邮箱
     /// </summary>
+    [ListFilter("listFilter.user.email", Placeholder = "listFilter.placeholder.email", Span = 5)]
     public string Email { get; set; } = string.Empty;
 
     /// <summary>
     ///     性别编码
     /// </summary>
+    [ListFilter("listFilter.user.gender", "select", Span = 3, Options = ["male:listFilter.option.male", "female:listFilter.option.female"])]
     public string Gender { get; set; } = "male";
 
     /// <summary>
@@ -38,6 +41,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     是否启用
     /// </summary>
+    [ListFilter("listFilter.common.status", "select", Span = 3, Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
@@ -48,6 +52,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     联系电话
     /// </summary>
+    [ListFilter("listFilter.user.phone", Span = 4, Placeholder = "listFilter.placeholder.phone")]
     public string Phone { get; set; } = string.Empty;
 
     /// <summary>
@@ -58,6 +63,7 @@ public sealed class User : EntityBase
     /// <summary>
     ///     登录用户名
     /// </summary>
+    [ListFilter("listFilter.user.userName", Span = 4, Placeholder = "listFilter.placeholder.userName", Sort = 0)]
     public required string UserName { get; set; }
 
     /// <summary>

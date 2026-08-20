@@ -1,5 +1,6 @@
 // 定义角色、菜单、接口及其关联关系的实体模型。
 
+using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;
@@ -12,16 +13,26 @@ public sealed class Role : EntityBase
     /// <summary>
     ///     角色编码
     /// </summary>
+    [ListFilter("listFilter.role.code", Placeholder = "listFilter.placeholder.roleCode")]
     public required string Code { get; set; }
 
     /// <summary>
     ///     角色数据权限范围代码
     /// </summary>
+    [ListFilter(
+        "listFilter.role.dataScope", "select"
+        , Options =
+        [
+            "all:listFilter.option.allData", "department:listFilter.option.departmentData"
+            , "department_and_children:listFilter.option.departmentAndChildren", "self:listFilter.option.ownData"
+        ]
+    )]
     public string DataScope { get; set; } = RoleDataScope.SELF;
 
     /// <summary>
     ///     角色描述
     /// </summary>
+    [ListFilter("listFilter.role.description", Placeholder = "listFilter.placeholder.description")]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
@@ -32,11 +43,13 @@ public sealed class Role : EntityBase
     /// <summary>
     ///     是否启用角色
     /// </summary>
+    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
     ///     角色名称
     /// </summary>
+    [ListFilter("listFilter.role.name", Placeholder = "listFilter.placeholder.roleName")]
     public required string Name { get; set; }
 
     /// <summary>
@@ -68,16 +81,19 @@ public sealed class ApiEndpoint : EntityBase
     /// <summary>
     ///     是否允许匿名访问
     /// </summary>
+    [ListFilter("listFilter.api.allowAnonymous", "select", Options = ["true:listFilter.option.yes", "false:listFilter.option.no"])]
     public bool AllowAnonymous { get; set; }
 
     /// <summary>
     ///     控制器代码名称
     /// </summary>
+    [ListFilter("listFilter.api.controller", Placeholder = "listFilter.placeholder.controller")]
     public string Controller { get; set; } = string.Empty;
 
     /// <summary>
     ///     控制器显示名称
     /// </summary>
+    [ListFilter("listFilter.api.controllerName", Placeholder = "listFilter.placeholder.controllerName")]
     public string ControllerName { get; set; } = string.Empty;
 
     /// <summary>
@@ -88,16 +104,26 @@ public sealed class ApiEndpoint : EntityBase
     /// <summary>
     ///     HTTP 请求方法
     /// </summary>
+    [ListFilter(
+        "listFilter.api.method", "select"
+        , Options =
+        [
+            "GET:listFilter.option.get", "POST:listFilter.option.post", "PUT:listFilter.option.put", "PATCH:listFilter.option.patch"
+            , "DELETE:listFilter.option.delete"
+        ]
+    )]
     public string Method { get; set; } = string.Empty;
 
     /// <summary>
     ///     接口显示名称
     /// </summary>
+    [ListFilter("listFilter.api.name", Placeholder = "listFilter.placeholder.apiName")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     ///     接口路由路径
     /// </summary>
+    [ListFilter("listFilter.api.path", Placeholder = "listFilter.placeholder.path")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>
@@ -176,6 +202,7 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     是否启用菜单
     /// </summary>
+    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
@@ -186,16 +213,19 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     菜单名称
     /// </summary>
+    [ListFilter("listFilter.menu.name", Placeholder = "listFilter.placeholder.menuName")]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
     ///     父级菜单名称
     /// </summary>
+    [ListFilter("listFilter.menu.parentName", Placeholder = "listFilter.placeholder.parentMenu")]
     public string ParentName { get; set; } = string.Empty;
 
     /// <summary>
     ///     菜单路由路径
     /// </summary>
+    [ListFilter("listFilter.menu.path", Placeholder = "listFilter.placeholder.path")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>

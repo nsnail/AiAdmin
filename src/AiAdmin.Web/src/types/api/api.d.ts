@@ -162,7 +162,7 @@ declare namespace Api {
     type UserSearchParams = Partial<
       Pick<UserListItem, 'id' | 'userName' | 'userGender' | 'userPhone' | 'userEmail' | 'status'> &
         Api.Common.CommonSearchParams
-    >
+    > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
 
     interface SaveUserParams {
       userName: string
@@ -286,6 +286,6 @@ declare namespace Api {
           startTime: string | null
           endTime: string | null
         }
-    >
+    > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
   }
 }

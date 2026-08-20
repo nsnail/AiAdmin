@@ -3,6 +3,8 @@
     ref="searchBarRef"
     v-model="formData"
     :items="formItems"
+    :filter-fields="filterFields"
+    :advanced-query-fields="advancedQueryFields"
     :rules="rules"
     @reset="handleReset"
     @search="handleSearch"
@@ -11,6 +13,9 @@
 </template>
 
 <script setup lang="ts">
+  import { fetchGetListFilterFields, type ListFilterField } from '@/api/system-manage'
+  import type { DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import { useI18n } from 'vue-i18n'
   type RoleSearchFormParams = Api.SystemManage.RoleSearchParams & {
     daterange?: string[]
   }
@@ -27,8 +32,11 @@
 
   const props = defineProps<Props>()
   const emit = defineEmits<Emits>()
+  const { t } = useI18n()
 
   const searchBarRef = ref()
+  const filterFields = ref<ListFilterField[]>([])
+  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
 
   /**
    * 表单数据双向绑定
@@ -122,4 +130,6 @@
     await searchBarRef.value.validate()
     emit('search', params)
   }
+
+  onMounted(async () => { filterFields.value = await fetchGetListFilterFields('role') })
 </script>

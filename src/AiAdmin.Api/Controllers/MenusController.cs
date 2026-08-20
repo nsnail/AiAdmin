@@ -102,6 +102,16 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     查询菜单列表筛选字段元数据
+    /// </summary>
+    /// <returns>菜单筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query menu filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<Menu>()));
+    }
+
+    /// <summary>
     ///     查询全部菜单树
     /// </summary>
     /// <param name="request">包含动态筛选信息的请求体</param>

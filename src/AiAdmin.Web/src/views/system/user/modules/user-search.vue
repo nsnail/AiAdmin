@@ -3,6 +3,8 @@
     ref="searchBarRef"
     v-model="formData"
     :items="formItems"
+    :filter-fields="filterFields"
+    :advanced-query-fields="advancedQueryFields"
     :rules="rules"
     @reset="handleReset"
     @search="handleSearch"
@@ -12,6 +14,8 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n'
+  import { fetchGetListFilterFields, type ListFilterField } from '@/api/system-manage'
+  import type { DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
 
   const { t } = useI18n()
   interface Props {
@@ -27,6 +31,8 @@
 
   // 表单数据双向绑定
   const searchBarRef = ref()
+  const filterFields = ref<ListFilterField[]>([])
+  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })))
   const formData = computed({
     get: () => props.modelValue,
     set: (val) => emit('update:modelValue', val)
@@ -94,4 +100,6 @@
     await searchBarRef.value.validate()
     emit('search', params)
   }
+
+  onMounted(async () => { filterFields.value = await fetchGetListFilterFields('user') })
 </script>

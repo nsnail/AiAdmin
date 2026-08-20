@@ -64,6 +64,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     public DbSet<Role> Roles => Set<Role>();
 
     /// <summary>
+    ///     用户保存的查询条件集合
+    /// </summary>
+    public DbSet<SavedQuery> SavedQueries => Set<SavedQuery>();
+
+    /// <summary>
     ///     用户部门关联集合
     /// </summary>
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
@@ -185,6 +190,20 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Description).HasMaxLength(200);
                 _ = entity.Property(x => x.DataScope).HasMaxLength(50).HasDefaultValue(RoleDataScope.SELF);
                 _ = entity.Property(x => x.IsEnabled).HasDefaultValue(true);
+            }
+        );
+
+        _ = modelBuilder.Entity<SavedQuery>(entity =>
+            {
+                _ = entity.ToTable("sys_saved_query");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.HasIndex(x => new { x.UserId, x.Route, x.Name }).IsUnique();
+                _ = entity.HasIndex(x => new { x.UserId, x.Route });
+                _ = entity.Property(x => x.Route).HasMaxLength(300).IsRequired();
+                _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.FilterJson).HasColumnType("TEXT").IsRequired();
+                _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             }
         );
 

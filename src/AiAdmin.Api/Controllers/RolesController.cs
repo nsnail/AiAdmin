@@ -93,6 +93,16 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     }
 
     /// <summary>
+    ///     查询角色列表筛选字段元数据
+    /// </summary>
+    /// <returns>角色筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query role filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<Role>()));
+    }
+
+    /// <summary>
     ///     分页查询角色
     /// </summary>
     /// <param name="request">包含动态筛选和分页信息的请求体</param>

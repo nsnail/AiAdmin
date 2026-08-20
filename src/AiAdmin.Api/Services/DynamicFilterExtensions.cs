@@ -118,24 +118,25 @@ public static class DynamicFilterExtensions
 
         var member = ResolveMember(parameter, filter.Field);
         var operation = filter.Operator.Trim();
+        var value = filter.Value ?? throw new DynamicFilterValidationException("Dynamic filter value is required.");
         return operation.ToUpperInvariant() switch
         {
-            "CONTAINS" => BuildStringCondition(member, filter.Value, nameof(string.Contains), false)
-            , "STARTSWITH" => BuildStringCondition(member, filter.Value, nameof(string.StartsWith), false)
-            , "ENDSWITH" => BuildStringCondition(member, filter.Value, nameof(string.EndsWith), false)
-            , "NOTCONTAINS" => BuildStringCondition(member, filter.Value, nameof(string.Contains), true)
-            , "NOTSTARTSWITH" => BuildStringCondition(member, filter.Value, nameof(string.StartsWith), true)
-            , "NOTENDSWITH" => BuildStringCondition(member, filter.Value, nameof(string.EndsWith), true)
-            , "EQUAL" or "EQUALS" or "EQ" => Expression.Equal(member, BuildConstant(member.Type, filter.Value))
-            , "NOTEQUAL" => Expression.NotEqual(member, BuildConstant(member.Type, filter.Value))
-            , "GREATERTHAN" => BuildComparison(member, filter.Value, Expression.GreaterThan)
-            , "GREATERTHANOREQUAL" => BuildComparison(member, filter.Value, Expression.GreaterThanOrEqual)
-            , "LESSTHAN" => BuildComparison(member, filter.Value, Expression.LessThan)
-            , "LESSTHANOREQUAL" => BuildComparison(member, filter.Value, Expression.LessThanOrEqual)
-            , "RANGE" => BuildRange(member, filter.Value, false)
-            , "DATERANGE" => BuildRange(member, filter.Value, true)
-            , "ANY" => BuildAny(member, filter.Value, false)
-            , "NOTANY" => BuildAny(member, filter.Value, true)
+            "CONTAINS" => BuildStringCondition(member, value, nameof(string.Contains), false)
+            , "STARTSWITH" => BuildStringCondition(member, value, nameof(string.StartsWith), false)
+            , "ENDSWITH" => BuildStringCondition(member, value, nameof(string.EndsWith), false)
+            , "NOTCONTAINS" => BuildStringCondition(member, value, nameof(string.Contains), true)
+            , "NOTSTARTSWITH" => BuildStringCondition(member, value, nameof(string.StartsWith), true)
+            , "NOTENDSWITH" => BuildStringCondition(member, value, nameof(string.EndsWith), true)
+            , "EQUAL" or "EQUALS" or "EQ" => Expression.Equal(member, BuildConstant(member.Type, value))
+            , "NOTEQUAL" => Expression.NotEqual(member, BuildConstant(member.Type, value))
+            , "GREATERTHAN" => BuildComparison(member, value, Expression.GreaterThan)
+            , "GREATERTHANOREQUAL" => BuildComparison(member, value, Expression.GreaterThanOrEqual)
+            , "LESSTHAN" => BuildComparison(member, value, Expression.LessThan)
+            , "LESSTHANOREQUAL" => BuildComparison(member, value, Expression.LessThanOrEqual)
+            , "RANGE" => BuildRange(member, value, false)
+            , "DATERANGE" => BuildRange(member, value, true)
+            , "ANY" => BuildAny(member, value, false)
+            , "NOTANY" => BuildAny(member, value, true)
             , "CUSTOM" => throw new DynamicFilterValidationException("Dynamic filter operator Custom is not supported.")
             , _ => throw new DynamicFilterValidationException($"Unsupported dynamic filter operator '{filter.Operator}'.")
         };
