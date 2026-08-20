@@ -73,6 +73,8 @@
     </div>
 
     <ElDialog v-model="categoryDialogVisible" :title="categoryForm.id ? '编辑字典目录' : '新增字典目录'" width="520px" destroy-on-close>
+      <ElTabs v-model="categoryDialogTab">
+        <ElTabPane label="编辑" name="form">
       <ElForm label-width="90px">
         <ElFormItem label="上级目录"><ElSelect v-model="categoryForm.parentId" clearable class="w-full" placeholder="根目录"><ElOption v-for="option in categoryOptions" :key="option.id" :label="option.label" :value="option.id" :disabled="categoryForm.id === option.id" /></ElSelect></ElFormItem>
         <ElFormItem label="目录名称" required><ElInput v-model="categoryForm.name" maxlength="100" /></ElFormItem>
@@ -80,10 +82,15 @@
         <ElFormItem label="排序"><ElInputNumber v-model="categoryForm.sort" :min="0" :max="9999" /></ElFormItem>
         <ElFormItem label="状态"><ElSwitch v-model="categoryForm.isEnabled" /></ElFormItem>
       </ElForm>
+        </ElTabPane>
+        <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="categoryRawData" /></ElTabPane>
+      </ElTabs>
       <template #footer><ElButton @click="categoryDialogVisible = false">取消</ElButton><ElButton type="primary" :loading="saving" @click="saveCategory">保存</ElButton></template>
     </ElDialog>
 
     <ElDialog v-model="itemDialogVisible" :title="itemForm.id ? '编辑字典内容' : '新增字典内容'" width="520px" destroy-on-close>
+      <ElTabs v-model="itemDialogTab">
+        <ElTabPane label="编辑" name="form">
       <ElForm label-width="80px">
         <ElFormItem label="标签" required><ElInput v-model="itemForm.label" maxlength="100" /></ElFormItem>
         <ElFormItem label="键值" required><ElInput v-model="itemForm.value" maxlength="100" /></ElFormItem>
@@ -91,6 +98,9 @@
         <ElFormItem label="状态"><ElSwitch v-model="itemForm.isEnabled" /></ElFormItem>
         <ElFormItem label="备注"><ElInput v-model="itemForm.remark" type="textarea" :rows="3" maxlength="500" show-word-limit /></ElFormItem>
       </ElForm>
+        </ElTabPane>
+        <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="itemRawData" /></ElTabPane>
+      </ElTabs>
       <template #footer><ElButton @click="itemDialogVisible = false">取消</ElButton><ElButton type="primary" :loading="saving" @click="saveItem">保存</ElButton></template>
     </ElDialog>
   </div>
@@ -99,6 +109,7 @@
 <script setup lang="ts">
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { useI18n } from 'vue-i18n'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
   import {
     fetchCreateDictionaryCategory, fetchCreateDictionaryItem, fetchDeleteDictionaryCategory,
     fetchDeleteDictionaryItem, fetchGetDictionaryCategories, fetchGetDictionaryItems,
@@ -116,6 +127,10 @@
   const saving = ref(false)
   const categoryDialogVisible = ref(false)
   const itemDialogVisible = ref(false)
+  const categoryDialogTab = ref('form')
+  const itemDialogTab = ref('form')
+  const categoryRawData = ref<Partial<Category> | Record<string, unknown>>({})
+  const itemRawData = ref<Partial<Item> | Record<string, unknown>>({})
   const categoryForm = reactive({ id: '', code: '', name: '', parentId: null as string | null, sort: 0, isEnabled: true })
   const itemForm = reactive({ id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' })
   const { t } = useI18n()
@@ -140,6 +155,8 @@
   const selectCategory = async (category: Category) => { selectedCategory.value = category; await loadItems() }
   const openCategoryDialog = (category?: Category, parentId: string | null = null) => {
     Object.assign(categoryForm, category ? { ...category } : { id: '', code: '', name: '', parentId, sort: 0, isEnabled: true })
+    categoryRawData.value = category ? { ...category } : { ...categoryForm }
+    categoryDialogTab.value = 'form'
     categoryDialogVisible.value = true
   }
   const saveCategory = async () => {
@@ -155,7 +172,7 @@
     await ElMessageBox.confirm(`确定删除目录“${category.name}”吗？`, '删除确认', { type: 'warning' })
     await fetchDeleteDictionaryCategory(category.id); if (selectedCategory.value?.id === category.id) selectedCategory.value = undefined; await loadCategories()
   }
-  const openItemDialog = (item?: Partial<Item>) => { Object.assign(itemForm, item || { id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' }); itemDialogVisible.value = true }
+  const openItemDialog = (item?: Partial<Item>) => { Object.assign(itemForm, item || { id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' }); itemRawData.value = item ? { ...item } : { ...itemForm }; itemDialogTab.value = 'form'; itemDialogVisible.value = true }
   const saveItem = async () => {
     if (!selectedCategory.value || !itemForm.label.trim() || !itemForm.value.trim()) { ElMessage.warning('请填写标签和键值'); return }
     saving.value = true

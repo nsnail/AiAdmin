@@ -32,6 +32,8 @@
 
     <!-- 事件编辑弹窗 -->
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @closed="resetForm">
+      <ElTabs v-model="activeTab">
+        <ElTabPane label="编辑" name="form">
       <ElForm :model="eventForm" label-width="80px">
         <ElFormItem label="活动标题" required>
           <ElInput v-model="eventForm.content" placeholder="请输入活动标题" />
@@ -65,6 +67,9 @@
           />
         </ElFormItem>
       </ElForm>
+        </ElTabPane>
+        <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+      </ElTabs>
       <template #footer>
         <span class="dialog-footer">
           <ElButton v-if="isEditing" type="danger" @click="handleDeleteEvent"> 删除 </ElButton>
@@ -78,6 +83,8 @@
 </template>
 
 <script setup lang="ts">
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+
   defineOptions({ name: 'TemplateCalendar' })
 
   /**
@@ -106,6 +113,8 @@
   const dialogVisible = ref(false)
   const dialogTitle = ref('添加事件')
   const editingEventIndex = ref<number>(-1)
+  const activeTab = ref('form')
+  const rawData = ref<CalendarEvent>({ date: '', endDate: '', content: '', type: 'primary' })
 
   /**
    * 事件列表数据
@@ -196,6 +205,7 @@
       type: 'primary'
     }
     editingEventIndex.value = -1
+    activeTab.value = 'form'
   }
 
   /**
@@ -211,6 +221,8 @@
       type: 'primary'
     }
     editingEventIndex.value = -1
+    rawData.value = { ...eventForm.value }
+    activeTab.value = 'form'
     dialogVisible.value = true
   }
 
@@ -222,9 +234,11 @@
   const handleEventClick = (event: CalendarEvent) => {
     dialogTitle.value = '编辑事件'
     eventForm.value = { ...event }
+    rawData.value = { ...event }
     editingEventIndex.value = events.value.findIndex(
       (e) => e.date === event.date && e.content === event.content
     )
+    activeTab.value = 'form'
     dialogVisible.value = true
   }
 

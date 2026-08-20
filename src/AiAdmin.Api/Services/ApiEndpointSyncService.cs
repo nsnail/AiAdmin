@@ -70,7 +70,7 @@ public sealed class ApiEndpointSyncService(
     }
 
     private Dictionary<string, ApiEndpoint> ReflectEndpoints() {
-        // 读取控制器和操作上的描述、HTTP 方法及匿名特性。
+        // 读取控制器和操作上的描述、HTTP 方法及 Action 标记的匿名特性。
         var result = new Dictionary<string, ApiEndpoint>(StringComparer.Ordinal);
         foreach (var action in actionDescriptorProvider.ActionDescriptors.Items.OfType<ControllerActionDescriptor>()) {
             var template = action.AttributeRouteInfo?.Template;
@@ -97,7 +97,7 @@ public sealed class ApiEndpointSyncService(
                 var endpoint = new ApiEndpoint
                 {
                     Name = description
-                    , AllowAnonymous = action.EndpointMetadata?.OfType<IAllowAnonymous>().Any() == true
+                    , AllowAnonymous = action.MethodInfo.GetCustomAttribute<AllowAnonymousAttribute>(true) is not null
                     , Method = method.ToUpperInvariant()
                     , Path = normalizedPath
                     , Controller = action.ControllerName

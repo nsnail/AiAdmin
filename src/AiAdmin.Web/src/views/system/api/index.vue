@@ -45,11 +45,9 @@
         <ElTableColumn prop="path" label="路径" min-width="280" show-overflow-tooltip />
         <ElTableColumn label="允许匿名访问" width="140">
           <template #default="{ row }">
-            <ElSwitch
-              v-if="!row.isGroup"
-              v-model="row.allowAnonymous"
-              @change="updateAnonymous(row)"
-            />
+            <ElTag v-if="!row.isGroup" :type="row.allowAnonymous ? 'success' : 'info'" effect="plain">
+              {{ row.allowAnonymous ? '是' : '否' }}
+            </ElTag>
           </template>
         </ElTableColumn>
         <ElTableColumn prop="action" label="操作" min-width="140" />
@@ -59,11 +57,8 @@
 </template>
 
 <script setup lang="ts">
-    import {
-      fetchGetApiEndpointList,
-      fetchSyncApiEndpoints,
-      fetchUpdateApiAnonymous
-    } from '@/api/system-manage'
+  import { fetchGetApiEndpointList, fetchSyncApiEndpoints } from '@/api/system-manage'
+  import { translateServerMessage } from '@/utils/i18n/server-message'
 
   defineOptions({ name: 'ApiManagement' })
 
@@ -85,7 +80,7 @@
     const value = keyword.value.trim().toLowerCase()
     const groups = new Map<string, ApiEndpointItem[]>()
     endpoints.value.forEach((item) => {
-      const controllerName = item.controllerName || item.controller
+      const controllerName = translateServerMessage(item.controllerName || item.controller) || item.controller
       const items = groups.get(controllerName) || []
       items.push(item)
       groups.set(controllerName, items)
@@ -95,7 +90,7 @@
       const controllerMatched = controller.toLowerCase().includes(value)
       const matchedItems = value && !controllerMatched
         ? items.filter((item) =>
-            [item.name, item.method, item.path, item.action].some((field) =>
+            [translateServerMessage(item.name) || item.name, item.method, item.path, item.action].some((field) =>
               field.toLowerCase().includes(value)
             )
           )
@@ -108,6 +103,7 @@
         isGroup: true,
         children: matchedItems.map((item) => ({
           ...item,
+          name: translateServerMessage(item.name) || item.name,
           key: `api:${item.id}`,
           isGroup: false
         }))
@@ -134,16 +130,6 @@
       await loadEndpoints()
     } finally {
       syncing.value = false
-    }
-  }
-
-  const updateAnonymous = async (row: ApiTableRow) => {
-    if (!row.id) return
-    try {
-      await fetchUpdateApiAnonymous(row.id, Boolean(row.allowAnonymous))
-      ElMessage.success('匿名访问设置已更新')
-    } catch {
-      row.allowAnonymous = !row.allowAnonymous
     }
   }
 

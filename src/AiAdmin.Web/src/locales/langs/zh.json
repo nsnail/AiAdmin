@@ -171,6 +171,7 @@
     "subTitle": "欢迎加入我们，请填写以下信息完成注册",
     "placeholder": {
       "email": "请输入邮箱",
+      "invitationCode": "请输入邀请码（选填）",
       "verificationCode": "请输入邮箱验证码",
       "username": "请输入账号",
       "password": "请输入密码",
@@ -322,7 +323,13 @@
       "userCenter": "个人中心",
         "menu": "菜单管理",
         "api": "接口管理",
+        "settings": "系统设置",
         "dictionary": "字典管理"
+        , "referrals": "我的邀请"
+      },
+      "marketing": {
+        "title": "营销管理",
+        "referrals": "我的邀请"
       },
       "dictionaryCategories": {
         "systemSettings": "系统设置"
@@ -377,6 +384,39 @@
     "message": { "created": "创建成功", "updated": "更新成功" },
     "defaultDepartment": "默认部门"
   },
+  "referralManagement": {
+    "invitationCode": "我的邀请码",
+    "copy": "复制邀请码",
+    "copied": "邀请码已复制",
+    "total": "共 {count} 位下级",
+    "fields": {
+      "userName": "用户名",
+      "email": "邮箱",
+      "invitationCode": "邀请码",
+      "createdAt": "注册时间"
+    }
+  },
+  "systemSettings": {
+    "save": "保存设置",
+    "saved": "系统设置已保存",
+    "loadFailed": "未找到系统设置目录",
+    "sections": {
+      "registration": "注册与验证",
+      "smtp": "邮件服务"
+    },
+    "fields": {
+      "enableLoginSliderVerification": "开启登录滑块验证",
+      "enableUserRegistration": "开启用户注册",
+      "enableEmailVerification": "开启邮箱验证",
+      "smtpHost": "SMTP 服务器",
+      "smtpPort": "SMTP 端口",
+      "smtpSsl": "启用 SMTP SSL",
+      "smtpUser": "SMTP 用户名",
+      "smtpPassword": "SMTP 密码",
+      "smtpFrom": "发件人"
+    }
+  },
+  "rawData": "原始数据",
   "table": {
     "form": {
       "reset": "重置",

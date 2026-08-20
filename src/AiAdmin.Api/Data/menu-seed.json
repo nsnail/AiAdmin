@@ -98,15 +98,15 @@
           ],
           "authList": [
             {
-              "title": "新增",
+              "title": "Create",
               "authMark": "add"
             },
             {
-              "title": "编辑",
+              "title": "Edit",
               "authMark": "edit"
             },
             {
-              "title": "删除",
+              "title": "Delete",
               "authMark": "delete"
             }
           ]
@@ -125,15 +125,15 @@
           ],
           "authList": [
             {
-              "title": "新增",
+              "title": "Create",
               "authMark": "add"
             },
             {
-              "title": "编辑",
+              "title": "Edit",
               "authMark": "edit"
             },
             {
-              "title": "删除",
+              "title": "Delete",
               "authMark": "delete"
             }
           ]
@@ -155,6 +155,37 @@
     ]
   },
   {
+    "path": "/marketing",
+    "name": "MarketingManagement",
+    "component": "/index/index",
+    "meta": {
+      "title": "menus.marketing.title",
+      "icon": "ri:megaphone-line",
+      "roles": [
+        "R_SUPER",
+        "R_ADMIN",
+        "R_USER"
+      ]
+    },
+    "children": [
+      {
+        "path": "referrals",
+        "name": "MyReferrals",
+        "component": "/system/referral",
+        "meta": {
+          "title": "menus.marketing.referrals",
+          "icon": "ri:node-tree",
+          "keepAlive": true,
+          "roles": [
+            "R_SUPER",
+            "R_ADMIN",
+            "R_USER"
+          ]
+        }
+      }
+    ]
+  },
+  {
     "path": "/system-management",
     "name": "SystemManagement",
     "component": "/index/index",
@@ -166,6 +197,19 @@
       ]
     },
     "children": [
+      {
+        "path": "settings",
+        "name": "SystemSettings",
+        "component": "/system/settings",
+        "meta": {
+          "title": "menus.system.settings",
+          "icon": "ri:settings-3-line",
+          "keepAlive": true,
+          "roles": [
+            "R_SUPER"
+          ]
+        }
+      },
       {
         "path": "dictionary",
         "name": "DictionaryManagement",
@@ -179,15 +223,15 @@
           ],
           "authList": [
             {
-              "title": "新增",
+              "title": "Create",
               "authMark": "add"
             },
             {
-              "title": "编辑",
+              "title": "Edit",
               "authMark": "edit"
             },
             {
-              "title": "删除",
+              "title": "Delete",
               "authMark": "delete"
             }
           ]
@@ -501,35 +545,35 @@
                       "keepAlive": true,
                       "authList": [
                         {
-                          "title": "新增",
+                          "title": "Create",
                           "authMark": "add"
                         },
                         {
-                          "title": "编辑",
+                          "title": "Edit",
                           "authMark": "edit"
                         },
                         {
-                          "title": "删除",
+                          "title": "Delete",
                           "authMark": "delete"
                         },
                         {
-                          "title": "导出",
+                          "title": "Export",
                           "authMark": "export"
                         },
                         {
-                          "title": "查看",
+                          "title": "View",
                           "authMark": "view"
                         },
                         {
-                          "title": "发布",
+                          "title": "Publish",
                           "authMark": "publish"
                         },
                         {
-                          "title": "配置",
+                          "title": "Configure",
                           "authMark": "config"
                         },
                         {
-                          "title": "管理",
+                          "title": "Manage",
                           "authMark": "manage"
                         }
                       ]
@@ -644,11 +688,11 @@
                   "keepAlive": true,
                   "authList": [
                     {
-                      "title": "新增",
+                      "title": "Create",
                       "authMark": "add"
                     },
                     {
-                      "title": "编辑",
+                      "title": "Edit",
                       "authMark": "edit"
                     }
                   ]
@@ -685,7 +729,7 @@
                   "keepAlive": true,
                   "authList": [
                     {
-                      "title": "发布",
+                      "title": "Publish",
                       "authMark": "add"
                     }
                   ]

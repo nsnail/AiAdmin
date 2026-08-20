@@ -1,5 +1,6 @@
-// 定义系统用户实体及其角色关联集合。
+// 定义系统用户实体及其角色、部门和邀请码
 
+using System.Security.Cryptography;
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;
@@ -7,17 +8,12 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统用户实体
 /// </summary>
-public sealed class User
+public sealed class User : EntityBase
 {
     /// <summary>
     ///     头像地址
     /// </summary>
     public string? Avatar { get; init; }
-
-    /// <summary>
-    ///     创建时间
-    /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     电子邮箱
@@ -35,6 +31,11 @@ public sealed class User
     public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
+    ///     该用户用于邀请新用户的邀请码
+    /// </summary>
+    public string InvitationCode { get; init; } = Convert.ToHexString(RandomNumberGenerator.GetBytes(6));
+
+    /// <summary>
     ///     是否启用
     /// </summary>
     public bool IsEnabled { get; set; } = true;
@@ -48,11 +49,6 @@ public sealed class User
     ///     联系电话
     /// </summary>
     public string Phone { get; set; } = string.Empty;
-
-    /// <summary>
-    ///     最后更新时间
-    /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
     /// <summary>
     ///     用户部门关联集合

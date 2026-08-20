@@ -26,12 +26,14 @@ public sealed record LoginChallengeResult(string Challenge, int Difficulty);
 /// <param name="Password">登录密码</param>
 /// <param name="Email">电子邮箱</param>
 /// <param name="VerificationCode">邮箱验证码</param>
+/// <param name="InvitationCode">邀请码</param>
 public sealed record RegisterRequest(
     string UserName
     , [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).{8,}$")]
     string Password
     , string Email
-    , string VerificationCode);
+    , string VerificationCode
+    , string? InvitationCode);
 
 /// <summary>
 ///     发送注册邮箱验证码请求
@@ -58,7 +60,11 @@ public sealed record RegisterPuzzleResult(
 /// <param name="ChallengeId">挑战主键</param>
 /// <param name="OffsetX">拼图横向偏移</param>
 /// <param name="Email">接收验证码的电子邮箱</param>
-public sealed record VerifyRegisterPuzzleRequest(string ChallengeId, [property: JsonRequired] int OffsetX, string Email);
+public sealed record VerifyRegisterPuzzleRequest(
+    string ChallengeId
+    , [property: JsonRequired]
+    int OffsetX
+    , string Email);
 
 /// <summary>
 ///     拼图校验结果

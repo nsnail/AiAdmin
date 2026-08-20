@@ -7,6 +7,8 @@
     class="el-dialog-border"
     @close="handleClose"
   >
+    <ElTabs v-model="activeTab">
+      <ElTabPane label="编辑" name="form">
     <ElScrollbar height="70vh">
       <ElTree
         ref="treeRef"
@@ -28,6 +30,9 @@
         </template>
       </ElTree>
     </ElScrollbar>
+      </ElTabPane>
+      <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="props.roleData" /></ElTabPane>
+    </ElTabs>
     <template #footer>
       <ElButton @click="toggleExpandAll">{{ isExpandAll ? '全部收起' : '全部展开' }}</ElButton>
       <ElButton @click="toggleSelectAll" style="margin-left: 8px">{{
@@ -41,6 +46,7 @@
 <script setup lang="ts">
   import { fetchGetMenuList, fetchGetRoleMenus, fetchSaveRoleMenus } from '@/api/system-manage'
   import { formatMenuTitle } from '@/utils/router'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
   type RoleListItem = Api.SystemManage.RoleListItem
 
@@ -66,6 +72,7 @@
   const isSelectAll = ref(false)
   const loading = ref(false)
   const saving = ref(false)
+  const activeTab = ref('form')
   const menuList = ref<MenuNode[]>([])
 
   /**
@@ -120,6 +127,7 @@
     () => props.modelValue,
     async (newVal) => {
       if (newVal && props.roleData) {
+        activeTab.value = 'form'
         loading.value = true
         try {
           menuList.value = (await fetchGetMenuList()) as unknown as MenuNode[]

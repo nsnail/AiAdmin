@@ -14,10 +14,14 @@ SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:W
 
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new LongJsonConverter()));
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
+builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
+builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<TokenService>();
 
@@ -25,8 +29,12 @@ var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvaria
 var connectionString = builder.Configuration.GetConnectionString(provider)
                        ?? throw new InvalidOperationException($"Missing connection string for provider '{provider}'.");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>((
+        serviceProvider
+        , options
+    ) =>
     {
+        _ = options.AddInterceptors(serviceProvider.GetRequiredService<DatabaseCommandAuditInterceptor>());
         _ = provider switch
         {
             "sqlite" => options.UseSqlite(connectionString)
@@ -68,6 +76,7 @@ app.UseExceptionHandler();
 app.UseCors("Web");
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<DataScopeMiddleware>();
 app.UseMiddleware<ApiPermissionMiddleware>();
 app.UseAuthorization();
 app.MapControllers();

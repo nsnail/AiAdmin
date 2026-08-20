@@ -7,7 +7,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统角色实体
 /// </summary>
-public sealed class Role
+public sealed class Role : EntityBase
 {
     /// <summary>
     ///     角色编码
@@ -15,9 +15,9 @@ public sealed class Role
     public required string Code { get; set; }
 
     /// <summary>
-    ///     创建时间
+    ///     角色数据权限范围代码
     /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
+    public string DataScope { get; set; } = RoleDataScope.SELF;
 
     /// <summary>
     ///     角色描述
@@ -58,7 +58,7 @@ public sealed class Role
 /// <summary>
 ///     系统接口实体
 /// </summary>
-public sealed class ApiEndpoint
+public sealed class ApiEndpoint : EntityBase
 {
     /// <summary>
     ///     操作方法名称
@@ -79,11 +79,6 @@ public sealed class ApiEndpoint
     ///     控制器显示名称
     /// </summary>
     public string ControllerName { get; set; } = string.Empty;
-
-    /// <summary>
-    ///     创建时间
-    /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     接口主键
@@ -114,7 +109,7 @@ public sealed class ApiEndpoint
 /// <summary>
 ///     角色与接口关联实体
 /// </summary>
-public sealed class RoleApi
+public sealed class RoleApi : EntityBase
 {
     /// <summary>
     ///     关联接口
@@ -140,7 +135,7 @@ public sealed class RoleApi
 /// <summary>
 ///     角色与菜单关联实体
 /// </summary>
-public sealed class RoleMenu
+public sealed class RoleMenu : EntityBase
 {
     /// <summary>
     ///     关联菜单
@@ -166,17 +161,12 @@ public sealed class RoleMenu
 /// <summary>
 ///     系统菜单实体
 /// </summary>
-public sealed class Menu
+public sealed class Menu : EntityBase
 {
     /// <summary>
     ///     前端组件路径
     /// </summary>
     public string Component { get; set; } = string.Empty;
-
-    /// <summary>
-    ///     创建时间
-    /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     菜单主键
@@ -222,7 +212,7 @@ public sealed class Menu
 /// <summary>
 ///     用户与角色关联实体
 /// </summary>
-public sealed class UserRole
+public sealed class UserRole : EntityBase
 {
     /// <summary>
     ///     关联角色

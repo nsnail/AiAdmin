@@ -7,6 +7,8 @@
     class="el-dialog-border"
     @close="handleClose"
   >
+    <ElTabs v-model="activeTab">
+      <ElTabPane label="编辑" name="form">
     <ElScrollbar height="65vh" v-loading="loading">
       <ElTree
         ref="treeRef"
@@ -17,6 +19,9 @@
         :props="{ children: 'children', label: 'label' }"
       />
     </ElScrollbar>
+      </ElTabPane>
+      <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="props.roleData" /></ElTabPane>
+    </ElTabs>
     <template #footer>
       <ElButton @click="handleClose">取消</ElButton>
       <ElButton type="primary" :loading="saving" @click="savePermission">保存</ElButton>
@@ -30,6 +35,7 @@
     fetchGetRoleApis,
     fetchSaveRoleApis
   } from '@/api/system-manage'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
   interface Props {
     modelValue: boolean
@@ -55,6 +61,7 @@
   const endpoints = ref<Api.SystemManage.ApiEndpointItem[]>([])
   const loading = ref(false)
   const saving = ref(false)
+  const activeTab = ref('form')
   const visible = computed({
     get: () => props.modelValue,
     set: (value) => emit('update:modelValue', value)
@@ -82,6 +89,7 @@
     () => props.modelValue,
     async (opened) => {
       if (!opened || !props.roleData) return
+      activeTab.value = 'form'
       loading.value = true
       try {
         const [endpointList, selectedIds] = await Promise.all([

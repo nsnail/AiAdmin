@@ -7,7 +7,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     字典目录实体
 /// </summary>
-public sealed class DictionaryCategory
+public sealed class DictionaryCategory : EntityBase
 {
     /// <summary>
     ///     子目录集合
@@ -53,7 +53,7 @@ public sealed class DictionaryCategory
 /// <summary>
 ///     字典内容实体
 /// </summary>
-public sealed class DictionaryItem
+public sealed class DictionaryItem : EntityBase
 {
     /// <summary>
     ///     所属目录

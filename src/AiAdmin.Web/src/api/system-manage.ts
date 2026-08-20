@@ -1,11 +1,50 @@
 import request from '@/utils/http'
 import { AppRouteRecord } from '@/types/router'
 
+type DynamicFilter = {
+  field?: string
+  operator?: string
+  value?: unknown
+  logic?: 'And' | 'Or'
+  filters?: DynamicFilter[]
+}
+
+type DynamicQuery = {
+  current?: number
+  size?: number
+  dynamicFilter?: DynamicFilter
+}
+
+function createDynamicQuery(current: number | undefined, size: number | undefined, filters: DynamicFilter[]): DynamicQuery {
+  return {
+    current,
+    size,
+    ...(filters.length > 0 ? { dynamicFilter: { logic: 'And', filters } } : {})
+  }
+}
+
+function getTextFilter(field: string, value: string | undefined): DynamicFilter | undefined {
+  const text = value?.trim()
+  return text ? { field, operator: 'Contains', value: text } : undefined
+}
+
 // 获取用户列表
 export function fetchGetUserList(params: Api.SystemManage.UserSearchParams) {
-  return request.get<Api.SystemManage.UserList>({
+  const filters = [
+    getTextFilter('UserName', params.userName),
+    getTextFilter('Phone', params.userPhone),
+    getTextFilter('Email', params.userEmail),
+    params.userGender ? { field: 'Gender', operator: 'Equal', value: params.userGender } : undefined,
+    params.status === '1'
+      ? { field: 'IsEnabled', operator: 'Equal', value: true }
+      : params.status === '2'
+        ? { field: 'IsEnabled', operator: 'Equal', value: false }
+        : undefined
+  ].filter((filter): filter is DynamicFilter => Boolean(filter))
+
+  return request.post<Api.SystemManage.UserList>({
     url: '/api/user/list',
-    params
+    data: createDynamicQuery(params.current, params.size, filters)
   })
 }
 
@@ -23,6 +62,11 @@ export function fetchDeleteUser(id: string) {
 
 export function fetchGetUserRoles() {
   return request.get<Api.SystemManage.RoleListItem[]>({ url: '/api/user/roles' })
+}
+
+// 获取当前用户的全部下级邀请关系树
+export function fetchGetReferralTree() {
+  return request.get<Api.SystemManage.ReferralTreeResult>({ url: '/api/user/referrals' })
 }
 
 export function fetchGetDepartmentTree() {
@@ -46,9 +90,23 @@ export function fetchDeleteDepartment(id: string) {
 
 // 获取角色列表
 export function fetchGetRoleList(params: Api.SystemManage.RoleSearchParams) {
-  return request.get<Api.SystemManage.RoleList>({
+  const filters = [
+    getTextFilter('Name', params.roleName),
+    getTextFilter('Code', params.roleCode),
+    getTextFilter('Description', params.description),
+    typeof params.enabled === 'boolean' ? { field: 'IsEnabled', operator: 'Equal', value: params.enabled } : undefined,
+    params.startTime && params.endTime
+      ? { field: 'CreatedAt', operator: 'Range', value: [params.startTime, params.endTime] }
+      : params.startTime
+        ? { field: 'CreatedAt', operator: 'GreaterThanOrEqual', value: params.startTime }
+        : params.endTime
+          ? { field: 'CreatedAt', operator: 'LessThan', value: params.endTime }
+          : undefined
+  ].filter((filter): filter is DynamicFilter => Boolean(filter))
+
+  return request.post<Api.SystemManage.RoleList>({
     url: '/api/role/list',
-    params
+    data: createDynamicQuery(params.current, params.size, filters)
   })
 }
 
@@ -80,16 +138,15 @@ export function fetchSaveRoleApis(id: string, apiIds: string[]) {
   return request.put<void>({ url: `/api/role/${id}/apis`, data: { apiIds } })
 }
 
-export function fetchGetApiEndpointList() {
-  return request.get<Api.SystemManage.ApiEndpointItem[]>({ url: '/api/api-endpoint/list' })
+export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter) {
+  return request.post<Api.SystemManage.ApiEndpointItem[]>({
+    url: '/api/api-endpoint/list',
+    data: dynamicFilter ? { dynamicFilter } : {}
+  })
 }
 
 export function fetchSyncApiEndpoints() {
   return request.post<Api.SystemManage.ApiSyncResult>({ url: '/api/api-endpoint/sync' })
-}
-
-export function fetchUpdateApiAnonymous(id: string, allowAnonymous: boolean) {
-  return request.put<void>({ url: `/api/api-endpoint/${id}/anonymous`, data: { allowAnonymous } })
 }
 
 export function fetchGetCurrentMenuNames() {
@@ -97,9 +154,10 @@ export function fetchGetCurrentMenuNames() {
 }
 
 // 获取菜单列表
-export function fetchGetMenuList() {
-  return request.get<AppRouteRecord[]>({
-    url: '/api/menu/list'
+export function fetchGetMenuList(dynamicFilter?: DynamicFilter) {
+  return request.post<AppRouteRecord[]>({
+    url: '/api/menu/list',
+    data: dynamicFilter ? { dynamicFilter } : {}
   })
 }
 

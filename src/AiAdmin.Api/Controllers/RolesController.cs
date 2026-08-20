@@ -46,11 +46,23 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     [ApiDescription("Create role")]
     public async Task<ActionResult<ApiResponse<RoleListItem>>> CreateAsync(SaveRoleRequest request) {
         var code = request.RoleCode.Trim();
+        var dataScope = request.DataScope.Trim();
+        if (!RoleDataScope.IsValid(dataScope)) {
+            return BadRequest(new ApiResponse<object>(400, "Invalid data scope", null));
+        }
+
         if (await db.Roles.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Role code already exists", null));
         }
 
-        var role = new Role { Name = request.RoleName.Trim(), Code = code, Description = request.Description.Trim(), IsEnabled = request.Enabled };
+        var role = new Role
+        {
+            Name = request.RoleName.Trim()
+            , Code = code
+            , Description = request.Description.Trim()
+            , DataScope = dataScope
+            , IsEnabled = request.Enabled
+        };
         _ = await db.Roles.AddAsync(role).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         permissionCache.Invalidate();
@@ -83,55 +95,14 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <summary>
     ///     分页查询角色
     /// </summary>
-    /// <param name="current">当前页码</param>
-    /// <param name="size">每页记录数</param>
-    /// <param name="roleName">角色名称筛选</param>
-    /// <param name="roleCode">角色编码筛选</param>
-    /// <param name="description">角色描述筛选</param>
-    /// <param name="enabled">启用状态筛选</param>
-    /// <param name="startTime">创建时间起点</param>
-    /// <param name="endTime">创建时间终点</param>
+    /// <param name="request">包含动态筛选和分页信息的请求体</param>
     /// <returns>角色分页结果</returns>
-    [HttpGet("list")]
+    [HttpPost("list")]
     [ApiDescription("Query role list")]
-    public async Task<ActionResult<ApiResponse<PagedResponse<RoleListItem>>>> ListAsync(
-        [FromQuery] int current = 1
-        , [FromQuery] int size = 20
-        , [FromQuery] string? roleName = null
-        , [FromQuery] string? roleCode = null
-        , [FromQuery] string? description = null
-        , [FromQuery] bool? enabled = null
-        , [FromQuery] DateTimeOffset? startTime = null
-        , [FromQuery] DateTimeOffset? endTime = null
-    ) {
-        current = Math.Max(current, 1);
-        size = Math.Clamp(size, 1, 100);
-        var query = db.Roles.AsNoTracking().AsQueryable();
-        if (!string.IsNullOrWhiteSpace(roleName)) {
-            query = query.Where(x => x.Name.Contains(roleName));
-        }
-
-        if (!string.IsNullOrWhiteSpace(roleCode)) {
-            query = query.Where(x => x.Code.Contains(roleCode));
-        }
-
-        if (!string.IsNullOrWhiteSpace(description)) {
-            query = query.Where(x => x.Description.Contains(description));
-        }
-
-        if (enabled.HasValue) {
-            query = query.Where(x => x.IsEnabled == enabled.Value);
-        }
-
-        if (startTime.HasValue) {
-            var from = ServerTime.ToLocal(startTime.Value);
-            query = query.Where(x => x.CreatedAt >= from);
-        }
-
-        if (endTime.HasValue) {
-            var to = ServerTime.ToLocal(endTime.Value);
-            query = query.Where(x => x.CreatedAt < to);
-        }
+    public async Task<ActionResult<ApiResponse<PagedResponse<RoleListItem>>>> ListAsync([FromBody] DynamicQueryRequest request) {
+        var current = request.Current;
+        var size = request.Size;
+        var query = db.Roles.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter);
 
         var total = await query.CountAsync().ConfigureAwait(false);
         var roles = await query.OrderBy(x => x.Id).Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
@@ -235,6 +206,11 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         }
 
         var code = request.RoleCode.Trim();
+        var dataScope = request.DataScope.Trim();
+        if (!RoleDataScope.IsValid(dataScope)) {
+            return BadRequest(new ApiResponse<object>(400, "Invalid data scope", null));
+        }
+
         if (await db.Roles.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Role code already exists", null));
         }
@@ -242,6 +218,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         role.Name = request.RoleName.Trim();
         role.Code = code;
         role.Description = request.Description.Trim();
+        role.DataScope = dataScope;
         role.IsEnabled = request.Enabled;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         permissionCache.Invalidate();
@@ -272,6 +249,6 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     }
 
     private static RoleListItem ToListItem(Role role) {
-        return new RoleListItem(role.Id, role.Name, role.Code, role.Description, role.IsEnabled, ServerTime.ToOffset(role.CreatedAt));
+        return new RoleListItem(role.Id, role.Name, role.Code, role.Description, role.DataScope, role.IsEnabled, ServerTime.ToOffset(role.CreatedAt));
     }
 }

@@ -2,7 +2,6 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
-using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -29,17 +28,17 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> CreateAsync(SaveDepartmentRequest request) {
         var code = request.Code.Trim();
         if (await db.Departments.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "departmentCodeExists"), null));
+            return Conflict(new ApiResponse<object>(409, "Department code already exists", null));
         }
 
         if (!await ParentExistsAsync(request.ParentId).ConfigureAwait(false)) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentParentNotFound"), null));
+            return BadRequest(new ApiResponse<object>(400, "Parent department not found", null));
         }
 
         var department = FromRequest(request);
         _ = await db.Departments.AddAsync(department).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<DepartmentTreeItem>.Ok(ToTreeItem(department), ApiMessages.Get(Request, "departmentCreated")));
+        return Ok(ApiResponse<DepartmentTreeItem>.Ok(ToTreeItem(department), "Department created"));
     }
 
     /// <summary>
@@ -52,20 +51,20 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
         if (department is null) {
-            return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "departmentNotFound"), null));
+            return NotFound(new ApiResponse<object>(404, "Department not found", null));
         }
 
         if (await db.Departments.AnyAsync(x => x.ParentId == id).ConfigureAwait(false)) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentHasChildren"), null));
+            return BadRequest(new ApiResponse<object>(400, "Delete child departments first", null));
         }
 
         if (await db.UserDepartments.AnyAsync(x => x.DepartmentId == id).ConfigureAwait(false)) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentHasUsers"), null));
+            return BadRequest(new ApiResponse<object>(400, "The department has assigned users", null));
         }
 
         _ = db.Departments.Remove(department);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, ApiMessages.Get(Request, "departmentDeleted")));
+        return Ok(ApiResponse<object>.Ok(new { }, "Department deleted"));
     }
 
     /// <summary>
@@ -93,26 +92,25 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     ) {
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
         if (department is null) {
-            return NotFound(new ApiResponse<object>(404, ApiMessages.Get(Request, "departmentNotFound"), null));
+            return NotFound(new ApiResponse<object>(404, "Department not found", null));
         }
 
         var code = request.Code.Trim();
         if (await db.Departments.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "departmentCodeExists"), null));
+            return Conflict(new ApiResponse<object>(409, "Department code already exists", null));
         }
 
         if (!await ParentExistsAsync(request.ParentId).ConfigureAwait(false)) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentParentNotFound"), null));
+            return BadRequest(new ApiResponse<object>(400, "Parent department not found", null));
         }
 
         if (await CreatesCycleAsync(id, request.ParentId).ConfigureAwait(false)) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "departmentCycle"), null));
+            return BadRequest(new ApiResponse<object>(400, "Parent department cannot be itself or its descendant", null));
         }
 
         ApplyRequest(department, request);
-        department.UpdatedAt = ServerTime.Now;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<DepartmentTreeItem>.Ok(ToTreeItem(department), ApiMessages.Get(Request, "departmentUpdated")));
+        return Ok(ApiResponse<DepartmentTreeItem>.Ok(ToTreeItem(department), "Department updated"));
     }
 
     /// <summary>

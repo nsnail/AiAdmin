@@ -134,6 +134,18 @@
           showOverflowTooltip: true
         },
         {
+          prop: 'dataScope',
+          label: '数据权限',
+          minWidth: 150,
+          formatter: (row) =>
+            ({
+              all: '全部数据',
+              department: '本部门数据',
+              department_and_children: '本部门和子部门数据',
+              self: '本人数据'
+            })[row.dataScope] || row.dataScope
+        },
+        {
           prop: 'enabled',
           label: '角色状态',
           width: 100,

@@ -75,6 +75,7 @@ declare namespace Api {
       password: string
       email: string
       verificationCode: string
+      invitationCode?: string
     }
 
     /** 登录响应 */
@@ -154,7 +155,7 @@ declare namespace Api {
       createBy: string
       createTime: string
       updateBy: string
-      updateTime: string
+      updateTime: string | null
     }
 
     /** 用户搜索参数 */
@@ -172,6 +173,22 @@ declare namespace Api {
       departmentIds: string[]
       password?: string
       isEnabled: boolean
+    }
+
+    /** 当前用户邀请关系查询结果 */
+    interface ReferralTreeResult {
+      invitationCode: string
+      children: ReferralTreeItem[]
+    }
+
+    /** 邀请关系树节点 */
+    interface ReferralTreeItem {
+      id: string
+      userName: string
+      email: string
+      invitationCode: string
+      createdAt: string
+      children: ReferralTreeItem[]
     }
 
     /** 部门树节点 */
@@ -204,13 +221,14 @@ declare namespace Api {
       roleName: string
       roleCode: string
       description: string
+      dataScope: 'all' | 'department' | 'department_and_children' | 'self'
       enabled: boolean
       createTime: string
     }
 
     type SaveRoleParams = Pick<
       RoleListItem,
-      'roleName' | 'roleCode' | 'description' | 'enabled'
+      'roleName' | 'roleCode' | 'description' | 'dataScope' | 'enabled'
     >
 
     interface ApiEndpointItem {

@@ -5,6 +5,8 @@
     width="560px"
     align-center
   >
+    <ElTabs v-model="activeTab">
+      <ElTabPane label="编辑" name="form">
     <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
       <ElFormItem label="上级部门" prop="parentId">
         <ElTreeSelect
@@ -40,6 +42,9 @@
         <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="停用" />
       </ElFormItem>
     </ElForm>
+      </ElTabPane>
+      <ElTabPane :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+    </ElTabs>
     <template #footer>
       <ElButton @click="dialogVisible = false">取消</ElButton>
       <ElButton type="primary" @click="handleSubmit">保存</ElButton>
@@ -50,6 +55,7 @@
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
   import { useI18n } from 'vue-i18n'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
   type Department = Api.SystemManage.DepartmentTreeItem
   type SaveDepartment = Api.SystemManage.SaveDepartmentParams
@@ -74,6 +80,7 @@
   const { t } = useI18n()
   const defaultDepartmentCode = 'DEFAULT'
   const formRef = ref<FormInstance>()
+  const activeTab = ref('form')
   const formData = reactive<SaveDepartment>({
     name: '',
     code: '',
@@ -84,6 +91,7 @@
     email: '',
     isEnabled: true
   })
+  const rawData = computed(() => props.type === 'edit' ? props.departmentData : formData)
   const localizedTree = (items: Department[]): Department[] =>
     items.map((item) => ({
       ...item,
@@ -131,6 +139,7 @@
     () => props.visible,
     (visible) => {
       if (!visible) return
+      activeTab.value = 'form'
       const row = props.departmentData
       Object.assign(formData, {
         name: props.type === 'edit' ? row?.name ?? '' : '',

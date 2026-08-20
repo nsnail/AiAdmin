@@ -5,6 +5,8 @@
     width="520px"
     align-center
   >
+    <ElTabs v-model="activeTab">
+      <ElTabPane :label="t('common.edit')" name="form">
     <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
       <ElFormItem :label="t('userManagement.fields.userName')" prop="userName">
         <ElInput v-model.trim="formData.userName" :placeholder="t('userManagement.placeholder.userName')" />
@@ -51,6 +53,9 @@
         />
       </ElFormItem>
     </ElForm>
+      </ElTabPane>
+      <ElTabPane :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+    </ElTabs>
     <template #footer>
       <ElButton @click="dialogVisible = false">{{ t('common.cancel') }}</ElButton>
       <ElButton type="primary" @click="handleSubmit">{{ t('userManagement.actions.save') }}</ElButton>
@@ -62,6 +67,7 @@
   import { fetchGetDepartmentTree, fetchGetUserRoles } from '@/api/system-manage'
   import type { FormInstance, FormRules } from 'element-plus'
   import { useI18n } from 'vue-i18n'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
   const props = defineProps<{
     visible: boolean
@@ -80,6 +86,7 @@
   })
   const dialogType = computed(() => props.type)
   const formRef = ref<FormInstance>()
+  const activeTab = ref('form')
   const roleList = ref<Api.SystemManage.RoleListItem[]>([])
   const departmentList = ref<Api.SystemManage.DepartmentTreeItem[]>([])
   const localizedDepartments = computed(() => {
@@ -98,6 +105,7 @@
   const formData = reactive<Api.SystemManage.SaveUserParams>({
     userName: '', password: '', email: '', phone: '', gender: 'male', roles: [], departmentIds: [], isEnabled: true
   })
+  const rawData = computed(() => props.type === 'edit' ? props.userData : formData)
   const rules = computed<FormRules>(() => ({
     userName: [
       { required: true, message: t('userManagement.validation.userNameRequired'), trigger: 'blur' },
@@ -120,6 +128,7 @@
 
   watch(() => props.visible, async (visible) => {
     if (!visible) return
+    activeTab.value = 'form'
     if (!roleList.value.length) roleList.value = await fetchGetUserRoles()
     if (!departmentList.value.length) departmentList.value = await fetchGetDepartmentTree()
     const row = props.userData

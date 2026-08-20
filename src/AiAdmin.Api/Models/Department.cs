@@ -7,7 +7,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统部门实体
 /// </summary>
-public sealed class Department
+public sealed class Department : EntityBase
 {
     /// <summary>
     ///     默认部门编码
@@ -28,11 +28,6 @@ public sealed class Department
     ///     部门编码
     /// </summary>
     public required string Code { get; set; }
-
-    /// <summary>
-    ///     创建时间
-    /// </summary>
-    public DateTime CreatedAt { get; init; } = DateTime.Now;
 
     /// <summary>
     ///     部门邮箱
@@ -80,11 +75,6 @@ public sealed class Department
     public int Sort { get; set; }
 
     /// <summary>
-    ///     最后更新时间
-    /// </summary>
-    public DateTime UpdatedAt { get; set; } = DateTime.Now;
-
-    /// <summary>
     ///     用户部门关联集合
     /// </summary>
     public ICollection<UserDepartment> UserDepartments { get; init; } = [];
@@ -93,7 +83,7 @@ public sealed class Department
 /// <summary>
 ///     用户与部门关联实体
 /// </summary>
-public sealed class UserDepartment
+public sealed class UserDepartment : EntityBase
 {
     /// <summary>
     ///     关联部门

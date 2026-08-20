@@ -171,6 +171,7 @@
     "subTitle": "Welcome to join us, please fill in the following information to complete the registration",
     "placeholder": {
       "email": "Please enter your email",
+      "invitationCode": "Invitation code (optional)",
       "verificationCode": "Please enter the email verification code",
       "username": "Please enter your account",
       "password": "Please enter your password",
@@ -322,7 +323,13 @@
       "userCenter": "User Center",
         "menu": "Menu Manage",
         "api": "API Management",
+        "settings": "System Settings",
         "dictionary": "Dictionary Management"
+        , "referrals": "My Referrals"
+      },
+      "marketing": {
+        "title": "Marketing Management",
+        "referrals": "My Referrals"
       },
       "dictionaryCategories": {
         "systemSettings": "System Settings"
@@ -377,6 +384,39 @@
     "message": { "created": "User created", "updated": "User updated" },
     "defaultDepartment": "Default Department"
   },
+  "referralManagement": {
+    "invitationCode": "My invitation code",
+    "copy": "Copy invitation code",
+    "copied": "Invitation code copied",
+    "total": "{count} referrals",
+    "fields": {
+      "userName": "Username",
+      "email": "Email",
+      "invitationCode": "Invitation code",
+      "createdAt": "Registered at"
+    }
+  },
+  "systemSettings": {
+    "save": "Save settings",
+    "saved": "System settings saved",
+    "loadFailed": "System settings category was not found",
+    "sections": {
+      "registration": "Registration and Verification",
+      "smtp": "Email Service"
+    },
+    "fields": {
+      "enableLoginSliderVerification": "Enable login slider verification",
+      "enableUserRegistration": "Enable user registration",
+      "enableEmailVerification": "Enable email verification",
+      "smtpHost": "SMTP host",
+      "smtpPort": "SMTP port",
+      "smtpSsl": "Enable SMTP SSL",
+      "smtpUser": "SMTP username",
+      "smtpPassword": "SMTP password",
+      "smtpFrom": "Sender address"
+    }
+  },
+  "rawData": "Raw Data",
   "table": {
     "form": {
       "reset": "Reset",

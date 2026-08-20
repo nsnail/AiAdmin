@@ -19,6 +19,7 @@ import { useUserStore } from '@/store/modules/user'
 import { ApiStatus } from './status'
 import { HttpError, handleError, showError, showSuccess } from './error'
 import { $t } from '@/locales'
+import { translateServerMessage } from '@/utils/i18n/server-message'
 import { BaseResponse } from '@/types'
 
 /** 请求配置常量 */
@@ -87,11 +88,11 @@ axiosInstance.interceptors.response.use(
     const { code, msg } = response.data
     if (code === ApiStatus.success) return response
     if (code === ApiStatus.unauthorized) handleUnauthorizedError(msg)
-    throw createHttpError(msg || $t('httpMsg.requestFailed'), code)
+    throw createHttpError(translateServerMessage(msg) || $t('httpMsg.requestFailed'), code)
   },
   (error) => {
     if (error.response?.status === ApiStatus.unauthorized) {
-      const message = (error.response.data as BaseResponse<unknown> | undefined)?.msg
+      const message = translateServerMessage((error.response.data as BaseResponse<unknown> | undefined)?.msg)
       handleUnauthorizedError(message)
     }
     return Promise.reject(handleError(error))
@@ -105,7 +106,7 @@ function createHttpError(message: string, code: number) {
 
 /** 处理401错误（带防抖） */
 function handleUnauthorizedError(message?: string): never {
-  const error = createHttpError(message || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
+  const error = createHttpError(translateServerMessage(message) || $t('httpMsg.unauthorized'), ApiStatus.unauthorized)
 
   if (!isUnauthorizedErrorShown) {
     isUnauthorizedErrorShown = true
@@ -183,7 +184,7 @@ async function request<T = any>(config: ExtendedAxiosRequestConfig): Promise<T> 
 
     // 显示成功消息
     if (config.showSuccessMessage && res.data.msg) {
-      showSuccess(res.data.msg)
+      showSuccess(translateServerMessage(res.data.msg) || res.data.msg)
     }
 
     return res.data.data as T

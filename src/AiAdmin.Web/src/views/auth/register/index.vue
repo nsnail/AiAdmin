@@ -29,6 +29,14 @@
             <ElFormItem prop="email">
               <ElInput class="custom-height" v-model.trim="formData.email" :placeholder="$t('register.placeholder.email')" />
             </ElFormItem>
+            <ElFormItem prop="invitationCode">
+              <ElInput
+                class="custom-height"
+                v-model.trim="formData.invitationCode"
+                :placeholder="$t('register.placeholder.invitationCode')"
+                maxlength="12"
+              />
+            </ElFormItem>
             <ElFormItem v-if="emailVerificationEnabled" prop="verificationCode">
               <div class="verification-row">
                 <ElInput class="custom-height" v-model.trim="formData.verificationCode" :placeholder="$t('register.placeholder.verificationCode')" />
@@ -168,6 +176,7 @@
     username: string
     email: string
     verificationCode: string
+    invitationCode: string
     password: string
     confirmPassword: string
     agreement: boolean
@@ -203,6 +212,7 @@
     username: '',
     email: '',
     verificationCode: '',
+    invitationCode: '',
     password: '',
     confirmPassword: '',
     agreement: false
@@ -318,7 +328,13 @@
       await formRef.value.validate()
       loading.value = true
 
-      await fetchRegister({ userName: formData.username, password: formData.password, email: formData.email, verificationCode: formData.verificationCode })
+      await fetchRegister({
+        userName: formData.username,
+        password: formData.password,
+        email: formData.email,
+        verificationCode: formData.verificationCode,
+        invitationCode: formData.invitationCode || undefined
+      })
       ElMessage.success(t('register.success'))
       toLogin()
     } catch (error) {

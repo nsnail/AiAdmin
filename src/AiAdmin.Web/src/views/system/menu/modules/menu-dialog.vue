@@ -8,6 +8,8 @@
     class="menu-dialog"
     @closed="handleClosed"
   >
+    <ElTabs v-model="activeTab">
+      <ElTabPane label="编辑" name="form">
     <ArtForm
       ref="formRef"
       v-model="form"
@@ -26,6 +28,9 @@
         </ElRadioGroup>
       </template>
     </ArtForm>
+      </ElTabPane>
+      <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+    </ElTabs>
 
     <template #footer>
       <span class="dialog-footer">
@@ -44,6 +49,7 @@
   import type { AppRouteRecord } from '@/types/router'
   import type { FormItem } from '@/components/core/forms/art-form/index.vue'
   import ArtForm from '@/components/core/forms/art-form/index.vue'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
   import { useWindowSize } from '@vueuse/core'
 
   const { width } = useWindowSize()
@@ -118,6 +124,7 @@
 
   const formRef = ref()
   const isEdit = ref(false)
+  const activeTab = ref('form')
 
   const form = reactive<MenuFormData & { menuType: 'menu' | 'button' }>({
     menuType: 'menu',
@@ -146,6 +153,7 @@
     authIcon: '',
     authSort: 1
   })
+  const rawData = computed(() => props.editData ?? form)
 
   const rules = reactive<FormRules>({
     name: [
@@ -360,6 +368,7 @@
     () => props.visible,
     (newVal) => {
       if (newVal) {
+        activeTab.value = 'form'
         form.menuType = props.type
         nextTick(() => {
           if (props.editData) {

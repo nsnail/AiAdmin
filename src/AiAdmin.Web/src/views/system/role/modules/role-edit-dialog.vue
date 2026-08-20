@@ -6,6 +6,8 @@
     align-center
     @close="handleClose"
   >
+    <ElTabs v-model="activeTab">
+      <ElTabPane label="编辑" name="form">
     <ElForm ref="formRef" :model="form" :rules="rules" label-width="120px">
       <ElFormItem label="角色名称" prop="roleName">
         <ElInput v-model="form.roleName" placeholder="请输入角色名称" />
@@ -21,10 +23,21 @@
           placeholder="请输入角色描述"
         />
       </ElFormItem>
+      <ElFormItem label="数据权限" prop="dataScope">
+        <ElSelect v-model="form.dataScope" class="w-full">
+          <ElOption label="全部数据" value="all" />
+          <ElOption label="本部门数据" value="department" />
+          <ElOption label="本部门和子部门数据" value="department_and_children" />
+          <ElOption label="本人数据" value="self" />
+        </ElSelect>
+      </ElFormItem>
       <ElFormItem label="启用">
         <ElSwitch v-model="form.enabled" />
       </ElFormItem>
     </ElForm>
+      </ElTabPane>
+      <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+    </ElTabs>
     <template #footer>
       <ElButton @click="handleClose">取消</ElButton>
       <ElButton type="primary" @click="handleSubmit">提交</ElButton>
@@ -35,6 +48,7 @@
 <script setup lang="ts">
   import type { FormInstance, FormRules } from 'element-plus'
   import { fetchCreateRole, fetchUpdateRole } from '@/api/system-manage'
+  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
   type RoleListItem = Api.SystemManage.RoleListItem
 
@@ -58,6 +72,7 @@
   const emit = defineEmits<Emits>()
 
   const formRef = ref<FormInstance>()
+  const activeTab = ref('form')
 
   /**
    * 弹窗显示状态双向绑定
@@ -79,7 +94,8 @@
       { required: true, message: '请输入角色编码', trigger: 'blur' },
       { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
     ],
-    description: [{ required: true, message: '请输入角色描述', trigger: 'blur' }]
+    description: [{ required: true, message: '请输入角色描述', trigger: 'blur' }],
+    dataScope: [{ required: true, message: '请选择数据权限', trigger: 'change' }]
   })
 
   /**
@@ -90,9 +106,11 @@
     roleName: '',
     roleCode: '',
     description: '',
+    dataScope: 'self',
     createTime: '',
     enabled: true
   })
+  const rawData = computed(() => props.dialogType === 'edit' ? props.roleData : form)
 
   /**
    * 监听弹窗打开，初始化表单数据
@@ -100,7 +118,7 @@
   watch(
     () => props.modelValue,
     (newVal) => {
-      if (newVal) initForm()
+    if (newVal) { activeTab.value = 'form'; initForm() }
     }
   )
 
@@ -128,6 +146,7 @@
         roleName: '',
         roleCode: '',
         description: '',
+        dataScope: 'self',
         createTime: '',
         enabled: true
       })
@@ -155,6 +174,7 @@
         roleName: form.roleName,
         roleCode: form.roleCode,
         description: form.description,
+        dataScope: form.dataScope,
         enabled: form.enabled
       }
       if (props.dialogType === 'edit') {

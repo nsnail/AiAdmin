@@ -82,11 +82,11 @@
               </ElButton>
             </div>
 
-            <div class="mt-5 text-sm text-gray-600">
+            <div class="mt-5 text-sm text-gray-600" v-if="registrationEnabled">
               <span>{{ $t('login.noAccount') }}</span>
-              <RouterLink v-if="registrationEnabled" class="text-theme" :to="{ name: 'Register' }">{{
-                $t('login.register')
-              }}</RouterLink>
+              <RouterLink class="text-theme" :to="{ name: 'Register' }">
+                {{ $t('login.register') }}</RouterLink
+              >
             </div>
           </ElForm>
         </div>
@@ -163,7 +163,11 @@
       // 登录请求
       const { username, password } = formData
       if (!loginChallenge.value) return
-      if (!loginProof.value) loginProof.value = await solveProof(loginChallenge.value.challenge, loginChallenge.value.difficulty)
+      if (!loginProof.value)
+        loginProof.value = await solveProof(
+          loginChallenge.value.challenge,
+          loginChallenge.value.difficulty
+        )
 
       const { token, refreshToken } = await fetchLogin({
         userName: username,
@@ -230,7 +234,9 @@
       loginSliderVerification.value = config.loginSliderVerification
       registrationEnabled.value = config.registrationEnabled
       loginChallenge.value = await fetchLoginChallenge()
-    } catch { loginSliderVerification.value = true }
+    } catch {
+      loginSliderVerification.value = true
+    }
   })
 
   const refreshLoginChallenge = async () => {
@@ -244,11 +250,16 @@
     const prefix = '0'.repeat(difficulty)
     let nonce = 0
     while (true) {
-      const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${challenge}:${nonce}`))
-      const hash = Array.from(new Uint8Array(bytes), byte => byte.toString(16).padStart(2, '0')).join('')
+      const bytes = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(`${challenge}:${nonce}`)
+      )
+      const hash = Array.from(new Uint8Array(bytes), (byte) =>
+        byte.toString(16).padStart(2, '0')
+      ).join('')
       if (hash.startsWith(prefix)) return String(nonce)
       nonce++
-      if (nonce % 1000 === 0) await new Promise(resolve => setTimeout(resolve, 0))
+      if (nonce % 1000 === 0) await new Promise((resolve) => setTimeout(resolve, 0))
     }
   }
 

@@ -24,6 +24,7 @@
 import { AxiosError } from 'axios'
 import { ApiStatus } from './status'
 import { $t } from '@/locales'
+import { translateServerMessage } from '@/utils/i18n/server-message'
 
 // 错误响应接口
 export interface ErrorResponse {
@@ -126,7 +127,7 @@ export function handleError(error: AxiosError<ErrorResponse>): never {
   }
 
   const statusCode = error.response?.status
-  const errorMessage = error.response?.data?.msg || error.message
+  const errorMessage = translateServerMessage(error.response?.data?.msg) || error.message
   const requestConfig = error.config
 
   // 处理网络错误
@@ -138,7 +139,7 @@ export function handleError(error: AxiosError<ErrorResponse>): never {
   }
 
   // 后端返回业务消息时优先展示，避免 400 等状态码被通用提示覆盖
-  const message = error.response?.data?.msg
+  const message = translateServerMessage(error.response?.data?.msg)
     || (statusCode ? getErrorMessage(statusCode) : errorMessage || $t('httpMsg.requestFailed'))
   throw new HttpError(message, statusCode || ApiStatus.error, {
     data: error.response.data,

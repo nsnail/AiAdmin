@@ -1,6 +1,4 @@
-// 定义接口管理页面使用的查询、同步和更新请求响应模型。
-
-using System.Text.Json.Serialization;
+// 定义接口管理页面使用的查询、同步和授权请求响应模型。
 
 namespace AiAdmin.Api.Contracts;
 
@@ -31,16 +29,4 @@ public sealed class SaveRoleApisRequest
     ///     接口主键集合
     /// </summary>
     public long[] ApiIds { get; init; } = [];
-}
-
-/// <summary>
-///     更新接口匿名访问配置请求
-/// </summary>
-public sealed class UpdateApiAnonymousRequest
-{
-    /// <summary>
-    ///     是否允许匿名访问
-    /// </summary>
-    [JsonRequired]
-    public bool AllowAnonymous { get; init; }
 }

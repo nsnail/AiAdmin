@@ -16,6 +16,7 @@ public static class DatabaseInitializer
     [
         ApiEndpointKey.Create("GET", "api/user/info"), ApiEndpointKey.Create("GET", "api/menu/current")
         , ApiEndpointKey.Create("PUT", "api/user/profile"), ApiEndpointKey.Create("PUT", "api/user/password")
+        , ApiEndpointKey.Create("GET", "api/user/referrals")
     ];
 
     private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -34,9 +35,14 @@ public static class DatabaseInitializer
         if (!await db.Roles.AnyAsync().ConfigureAwait(false)) {
             await db
                 .Roles.AddRangeAsync(
-                    new Role { Name = "Super administrator", Code = "R_SUPER", Description = "Full system access" }
-                    , new Role { Name = "Administrator", Code = "R_ADMIN", Description = "User administration" }
-                    , new Role { Name = "User", Code = "R_USER", Description = "Basic access" }
+                    new Role { Name = "Super administrator", Code = "R_SUPER", Description = "Full system access", DataScope = RoleDataScope.ALL }
+                    , new Role
+                    {
+                        Name = "Administrator"
+                        , Code = "R_ADMIN"
+                        , Description = "User administration"
+                        , DataScope = RoleDataScope.DEPARTMENT_AND_CHILDREN
+                    }, new Role { Name = "User", Code = "R_USER", Description = "Basic access", DataScope = RoleDataScope.SELF }
                 )
                 .ConfigureAwait(false);
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
@@ -104,34 +110,21 @@ public static class DatabaseInitializer
         var systemSettings = await db.DictionaryCategories.SingleAsync(x => x.Code == "system_settings").ConfigureAwait(false);
         var systemSettingSeeds = new[]
         {
-            (
-                Label: "Enable login slider verification"
-                , Value: configuration.GetValue("SystemSettings:EnableLoginSliderVerification", false) ? "true" : "false"
-                , Sort: 0
-                , Remark: "Whether login requires slider verification"
-            )
-            , (
-                Label: "Enable user registration"
-                , Value: configuration.GetValue("SystemSettings:EnableUserRegistration", true) ? "true" : "false"
-                , Sort: 1
-                , Remark: "Whether public user registration is enabled"
-            )
-            , (
-                Label: "Enable email verification"
-                , Value: configuration.GetValue("SystemSettings:EnableEmailVerification", true) ? "true" : "false"
-                , Sort: 2
-                , Remark: "Whether registration requires email verification"
-            )
+            (Label: "Enable login slider verification"
+                , Value: configuration.GetValue("SystemSettings:EnableLoginSliderVerification", false) ? "true" : "false", Sort: 0
+                , Remark: "Whether login requires slider verification")
+            , (Label: "Enable user registration", Value: configuration.GetValue("SystemSettings:EnableUserRegistration", true) ? "true" : "false"
+                , Sort: 1, Remark: "Whether public user registration is enabled")
+            , (Label: "Enable email verification"
+                , Value: configuration.GetValue("SystemSettings:EnableEmailVerification", true) ? "true" : "false", Sort: 2
+                , Remark: "Whether registration requires email verification")
             , (Label: "SMTP Host", Value: configuration["SystemSettings:Smtp:Host"] ?? string.Empty, Sort: 3, Remark: "SMTP server host")
             , (Label: "SMTP Port", Value: configuration["SystemSettings:Smtp:Port"] ?? "25", Sort: 4, Remark: "SMTP server port")
-            , (
-                Label: "SMTP SSL"
-                , Value: configuration.GetValue("SystemSettings:Smtp:EnableSsl", true) ? "true" : "false"
-                , Sort: 5
-                , Remark: "Whether SMTP SSL is enabled"
-            )
+            , (Label: "SMTP SSL", Value: configuration.GetValue("SystemSettings:Smtp:EnableSsl", true) ? "true" : "false", Sort: 5
+                , Remark: "Whether SMTP SSL is enabled")
             , (Label: "SMTP User", Value: configuration["SystemSettings:Smtp:User"] ?? string.Empty, Sort: 6, Remark: "SMTP login user")
-            , (Label: "SMTP Password", Value: configuration["SystemSettings:Smtp:Password"] ?? string.Empty, Sort: 7, Remark: "SMTP login password")
+            , (Label: "SMTP Password", Value: configuration["SystemSettings:Smtp:Password"] ?? string.Empty, Sort: 7
+                , Remark: "SMTP login password")
             , (Label: "SMTP From", Value: configuration["SystemSettings:Smtp:From"] ?? string.Empty, Sort: 8, Remark: "SMTP sender address")
         };
         var existingSystemSettingLabels = await db
@@ -216,7 +209,6 @@ public static class DatabaseInitializer
         if (department is not null) {
             if (department.Name != Department.DEFAULT_NAME) {
                 department.Name = Department.DEFAULT_NAME;
-                department.UpdatedAt = ServerTime.Now;
                 _ = await db.SaveChangesAsync().ConfigureAwait(false);
             }
 

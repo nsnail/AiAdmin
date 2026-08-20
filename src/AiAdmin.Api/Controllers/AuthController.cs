@@ -80,11 +80,12 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     /// <param name="request">登录凭据</param>
     /// <returns>登录结果或失败响应</returns>
     [HttpPost("login")]
+    [AllowAnonymous]
     [ApiDescription("Sign in to the system")]
     public async Task<ActionResult<ApiResponse<LoginResult>>> LoginAsync(LoginRequest request) {
         if (string.IsNullOrWhiteSpace(await cache.GetStringAsync($"login-proof:{request.Challenge}").ConfigureAwait(false))
             || !IsValidProof(request.Challenge, request.Proof, _PROOF_DIFFICULTY)) {
-            return Unauthorized(new ApiResponse<object>(401, ApiMessages.Get(Request, "loginProofInvalid"), null));
+            return Unauthorized(new ApiResponse<object>(401, "Login verification expired, please try again", null));
         }
 
         await cache.RemoveAsync($"login-proof:{request.Challenge}").ConfigureAwait(false);
@@ -96,58 +97,8 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
             .SingleOrDefaultAsync(x => x.UserName == request.UserName)
             .ConfigureAwait(false);
         return user?.IsEnabled != true || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)
-            ? Unauthorized(new ApiResponse<object>(401, ApiMessages.Get(Request, "invalidCredentials"), null))
-            : Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty), ApiMessages.Get(Request, "loginSuccess")));
-    }
-
-    /// <summary>
-    ///     创建发送邮箱验证码前的拼图挑战
-    /// </summary>
-    /// <returns>拼图挑战</returns>
-    [HttpGet("register-puzzle")]
-    [AllowAnonymous]
-    [ApiDescription("Create registration email puzzle")]
-    public async Task<ActionResult<ApiResponse<RegisterPuzzleResult>>> RegisterPuzzleAsync() {
-        var challengeId = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
-        var targetX = RandomNumberGenerator.GetInt32(90, _PUZZLE_WIDTH - _PUZZLE_PIECE_SIZE - 15);
-        var targetY = RandomNumberGenerator.GetInt32(35, _PUZZLE_HEIGHT - _PUZZLE_PIECE_SIZE - 15);
-        var (background, piece) = CreatePuzzleImages(targetX, targetY);
-        await cache.SetStringAsync(
-                $"register-puzzle:{challengeId}", targetX.ToString(CultureInfo.InvariantCulture)
-                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _challengeLifetime }
-                , HttpContext.RequestAborted
-            )
-            .ConfigureAwait(false);
-        return Ok(ApiResponse<RegisterPuzzleResult>.Ok(new RegisterPuzzleResult(
-            challengeId, background, piece, _PUZZLE_WIDTH, _PUZZLE_HEIGHT, _PUZZLE_PIECE_SIZE, targetY
-        )));
-    }
-
-    /// <summary>
-    ///     校验发送邮箱验证码前的拼图位置
-    /// </summary>
-    /// <param name="request">拼图校验请求</param>
-    /// <returns>一次性发送凭证</returns>
-    [HttpPost("register-puzzle/verify")]
-    [AllowAnonymous]
-    [ApiDescription("Verify registration email puzzle")]
-    public async Task<ActionResult<ApiResponse<VerifyRegisterPuzzleResult>>> VerifyRegisterPuzzleAsync(VerifyRegisterPuzzleRequest request) {
-        var key = $"register-puzzle:{request.ChallengeId}";
-        var expected = await cache.GetStringAsync(key, HttpContext.RequestAborted).ConfigureAwait(false);
-        await cache.RemoveAsync(key, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (!int.TryParse(expected, NumberStyles.None, CultureInfo.InvariantCulture, out var targetX)
-            || Math.Abs(targetX - request.OffsetX) > 5) {
-            return BadRequest(new ApiResponse<object>(400, "Puzzle verification failed", null));
-        }
-
-        var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
-        await cache.SetStringAsync(
-                $"register-puzzle-ticket:{ticket}", request.Email.Trim().ToLowerInvariant()
-                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _challengeLifetime }
-                , HttpContext.RequestAborted
-            )
-            .ConfigureAwait(false);
-        return Ok(ApiResponse<VerifyRegisterPuzzleResult>.Ok(new VerifyRegisterPuzzleResult(ticket)));
+            ? Unauthorized(new ApiResponse<object>(401, "Invalid username or password", null))
+            : Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty), "Login successful"));
     }
 
     /// <summary>
@@ -161,7 +112,7 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     public async Task<ActionResult<ApiResponse<object>>> RegisterAsync(RegisterRequest request) {
         var enabled = await IsSettingEnabledAsync("Enable user registration").ConfigureAwait(false);
         if (!enabled) {
-            return BadRequest(new ApiResponse<object>(400, ApiMessages.Get(Request, "registrationDisabled"), null));
+            return BadRequest(new ApiResponse<object>(400, "User registration is disabled", null));
         }
 
         var codeValid = !await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false)
@@ -174,33 +125,57 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
         var userName = request.UserName.Trim();
         var email = request.Email.Trim();
         if (await db.Users.AnyAsync(x => x.UserName == userName).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "userExists"), null));
+            return Conflict(new ApiResponse<object>(409, "Username already exists", null));
         }
 
         if (await db.Users.AnyAsync(x => x.Email == email).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, ApiMessages.Get(Request, "emailExists"), null));
+            return Conflict(new ApiResponse<object>(409, "Email already exists", null));
+        }
+
+        var invitationCode = request.InvitationCode?.Trim().ToUpperInvariant();
+        var inviter = string.IsNullOrWhiteSpace(invitationCode)
+            ? null
+            : await db.Users.SingleOrDefaultAsync(x => x.InvitationCode == invitationCode).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(invitationCode) && inviter is null) {
+            return BadRequest(new ApiResponse<object>(400, "Invitation code is invalid", null));
         }
 
         var role = await db.Roles.SingleAsync(x => x.Code == "R_USER").ConfigureAwait(false);
         var defaultDepartment = await db.Departments.SingleAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
+        Department? inviterDepartment = null;
+        if (inviter is not null) {
+            // 有邀请者时，新用户个人部门挂在邀请者个人部门下，确保部门数据权限覆盖多级邀请关系
+            inviterDepartment = await db.Departments.SingleOrDefaultAsync(x => x.Code == $"USER_{inviter.Id}").ConfigureAwait(false);
+            if (inviterDepartment is null) {
+                return StatusCode(500, new ApiResponse<object>(500, "Inviter department does not exist", null));
+            }
+        }
+
         var user = new User { UserName = userName, Email = email, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password) };
         user.UserRoles.Add(new UserRole { User = user, Role = role });
 
-        // 用户主键由数据库生成，事务确保用户、个人部门及关联数据同时创建成功
+        var personalDepartment = new Department
+        {
+            Name = user.UserName, Code = $"USER_{user.Id}", ParentId = inviterDepartment?.Id ?? defaultDepartment.Id, Sort = 0
+        };
+        user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
+
+        // 事务确保用户、邀请关系、个人部门及关联数据同时创建成功
         await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);
         _ = await db.Users.AddAsync(user).ConfigureAwait(false);
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        var department = new Department
-        {
-            Name = user.UserName
-            , Code = $"USER_{user.Id}"
-            , ParentId = defaultDepartment.Id
-            , Sort = 0
-        };
-        user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
+        if (inviterDepartment is not null) {
+            // 受邀用户同时加入邀请人的个人部门，用于按邀请关系管理成员
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = inviterDepartment });
+            _ = await db
+                .UserReferrals.AddAsync(
+                    new UserReferral { Invitee = user, InviteeUserId = user.Id, OwnerId = inviter!.Id, OwnerDepartmentId = inviterDepartment.Id }
+                )
+                .ConfigureAwait(false);
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         await transaction.CommitAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, ApiMessages.Get(Request, "registerSuccess")));
+        return Ok(ApiResponse<object>.Ok(new { }, "Registration successful"));
     }
 
     /// <summary>
@@ -224,7 +199,9 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
         }
 
         await cache.RemoveAsync(ticketKey, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (!string.IsNullOrWhiteSpace(await cache.GetStringAsync($"register-code-cooldown:{normalizedEmail}", HttpContext.RequestAborted).ConfigureAwait(false))) {
+        if (!string.IsNullOrWhiteSpace(
+                await cache.GetStringAsync($"register-code-cooldown:{normalizedEmail}", HttpContext.RequestAborted).ConfigureAwait(false)
+            )) {
             return StatusCode(StatusCodes.Status429TooManyRequests, new ApiResponse<object>(429, "Verification code was sent recently", null));
         }
 
@@ -259,29 +236,70 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
                 , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) }
             )
             .ConfigureAwait(false);
-        await cache.SetStringAsync(
+        await cache
+            .SetStringAsync(
                 $"register-code-cooldown:{normalizedEmail}", "1"
-                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) }
-                , HttpContext.RequestAborted
+                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) }, HttpContext.RequestAborted
             )
             .ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
-    private static bool IsValidProof(
-        string challenge
-        , string proof
-        , int difficulty
-    ) {
-        if (string.IsNullOrWhiteSpace(proof) || proof.Length > 32) {
-            return false;
-        }
-
-        var digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{challenge}:{proof}")));
-        return digest.StartsWith(new string('0', difficulty), StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    ///     创建发送邮箱验证码前的拼图挑战
+    /// </summary>
+    /// <returns>拼图挑战</returns>
+    [HttpGet("register-puzzle")]
+    [AllowAnonymous]
+    [ApiDescription("Create registration email puzzle")]
+    public async Task<ActionResult<ApiResponse<RegisterPuzzleResult>>> RegisterPuzzleAsync() {
+        var challengeId = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+        var targetX = RandomNumberGenerator.GetInt32(90, _PUZZLE_WIDTH - _PUZZLE_PIECE_SIZE - 15);
+        var targetY = RandomNumberGenerator.GetInt32(35, _PUZZLE_HEIGHT - _PUZZLE_PIECE_SIZE - 15);
+        var (background, piece) = CreatePuzzleImages(targetX, targetY);
+        await cache
+            .SetStringAsync(
+                $"register-puzzle:{challengeId}", targetX.ToString(CultureInfo.InvariantCulture)
+                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _challengeLifetime }, HttpContext.RequestAborted
+            )
+            .ConfigureAwait(false);
+        return Ok(
+            ApiResponse<RegisterPuzzleResult>.Ok(
+                new RegisterPuzzleResult(challengeId, background, piece, _PUZZLE_WIDTH, _PUZZLE_HEIGHT, _PUZZLE_PIECE_SIZE, targetY)
+            )
+        );
     }
 
-    private static (string Background, string Piece) CreatePuzzleImages(int targetX, int targetY) {
+    /// <summary>
+    ///     校验发送邮箱验证码前的拼图位置
+    /// </summary>
+    /// <param name="request">拼图校验请求</param>
+    /// <returns>一次性发送凭证</returns>
+    [HttpPost("register-puzzle/verify")]
+    [AllowAnonymous]
+    [ApiDescription("Verify registration email puzzle")]
+    public async Task<ActionResult<ApiResponse<VerifyRegisterPuzzleResult>>> VerifyRegisterPuzzleAsync(VerifyRegisterPuzzleRequest request) {
+        var key = $"register-puzzle:{request.ChallengeId}";
+        var expected = await cache.GetStringAsync(key, HttpContext.RequestAborted).ConfigureAwait(false);
+        await cache.RemoveAsync(key, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (!int.TryParse(expected, NumberStyles.None, CultureInfo.InvariantCulture, out var targetX) || Math.Abs(targetX - request.OffsetX) > 5) {
+            return BadRequest(new ApiResponse<object>(400, "Puzzle verification failed", null));
+        }
+
+        var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
+        await cache
+            .SetStringAsync(
+                $"register-puzzle-ticket:{ticket}", request.Email.Trim().ToLowerInvariant()
+                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _challengeLifetime }, HttpContext.RequestAborted
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<VerifyRegisterPuzzleResult>.Ok(new VerifyRegisterPuzzleResult(ticket)));
+    }
+
+    private static (string Background, string Piece) CreatePuzzleImages(
+        int targetX
+        , int targetY
+    ) {
         var hue = RandomNumberGenerator.GetInt32(0, 360);
         var background = $"""
                           <svg xmlns="http://www.w3.org/2000/svg" width="{_PUZZLE_WIDTH}" height="{_PUZZLE_HEIGHT}">
@@ -303,6 +321,19 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
                      </svg>
                      """;
         return (ToSvgDataUrl(background), ToSvgDataUrl(piece));
+    }
+
+    private static bool IsValidProof(
+        string challenge
+        , string proof
+        , int difficulty
+    ) {
+        if (string.IsNullOrWhiteSpace(proof) || proof.Length > 32) {
+            return false;
+        }
+
+        var digest = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{challenge}:{proof}")));
+        return digest.StartsWith(new string('0', difficulty), StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ToSvgDataUrl(string svg) {

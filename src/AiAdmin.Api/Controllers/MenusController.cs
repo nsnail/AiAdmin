@@ -4,6 +4,7 @@ using System.Text.Json;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -103,11 +104,12 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     /// <summary>
     ///     查询全部菜单树
     /// </summary>
+    /// <param name="request">包含动态筛选信息的请求体</param>
     /// <returns>菜单树</returns>
-    [HttpGet("list")]
+    [HttpPost("list")]
     [ApiDescription("Query menu list")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<MenuItemResult>>>> ListAsync() {
-        var menus = await db.Menus.AsNoTracking().OrderBy(x => x.Sort).ToListAsync().ConfigureAwait(false);
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MenuItemResult>>>> ListAsync([FromBody] DynamicQueryRequest request) {
+        var menus = await db.Menus.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter).OrderBy(x => x.Sort).ToListAsync().ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<MenuItemResult>>.Ok(BuildTree(menus)));
     }
 
