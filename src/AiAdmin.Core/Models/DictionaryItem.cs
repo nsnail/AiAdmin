@@ -1,4 +1,3 @@
-// 定义字典目录树和字典内容实体
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;

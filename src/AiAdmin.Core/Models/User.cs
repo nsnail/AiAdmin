@@ -1,5 +1,3 @@
-// 定义系统用户实体及其角色、部门和邀请码
-
 using System.Security.Cryptography;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;

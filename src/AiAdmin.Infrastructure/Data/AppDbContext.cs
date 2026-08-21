@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Menu = AiAdmin.Api.Models.Menu;
 
-// 配置业务实体与数据库表、索引及关联关系的映射。
 namespace AiAdmin.Api.Data;
 
 /// <summary>

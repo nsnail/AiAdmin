@@ -1,5 +1,3 @@
-// 定义登录和当前用户信息相关的数据传输模型。
-
 using AiAdmin.Api.Models;
 
 namespace AiAdmin.Api.Contracts;

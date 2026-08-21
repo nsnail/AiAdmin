@@ -1,5 +1,3 @@
-// 定义所有接口统一返回格式以及分页结果格式。
-
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-// 定义部门树查询和部门维护请求响应模型。
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

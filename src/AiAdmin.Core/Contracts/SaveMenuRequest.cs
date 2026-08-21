@@ -1,7 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-// 定义菜单树、菜单维护和角色菜单授权的数据传输模型。
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

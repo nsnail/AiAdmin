@@ -1,4 +1,3 @@
-// 定义保存动态查询条件的接口契约
 using System.ComponentModel.DataAnnotations;
 
 namespace AiAdmin.Api.Contracts;

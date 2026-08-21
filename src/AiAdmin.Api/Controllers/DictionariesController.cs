@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// 提供字典目录树和字典内容的维护接口。
 namespace AiAdmin.Api.Controllers;
 
 /// <summary>

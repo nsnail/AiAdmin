@@ -1,4 +1,3 @@
-// 缓存接口匿名配置和角色接口权限，避免每次请求访问数据库。
 namespace AiAdmin.Api.Services;
 
 /// <summary>

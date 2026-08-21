@@ -1,5 +1,3 @@
-// 清理 JSON 响应中的无效空字段，减少接口响应体积
-
 using System.Text.Json;
 using System.Text.Json.Nodes;
 

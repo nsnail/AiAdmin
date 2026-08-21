@@ -1,5 +1,3 @@
-// 定义保存动态查询条件的接口契约
-
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

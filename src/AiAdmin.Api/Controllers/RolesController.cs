@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Menu = AiAdmin.Api.Models.Menu;
 
-// 提供角色维护及角色菜单、接口权限映射管理。
 namespace AiAdmin.Api.Controllers;
 
 /// <summary>

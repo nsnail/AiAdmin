@@ -1,4 +1,3 @@
-// 定义所有数据库实体共用的审计时间字段
 using AiAdmin.Api.Attributes;
 
 namespace AiAdmin.Api.Models;

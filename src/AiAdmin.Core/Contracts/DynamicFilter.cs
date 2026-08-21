@@ -1,5 +1,3 @@
-// 定义列表接口通用的动态筛选和分页请求模型。
-
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

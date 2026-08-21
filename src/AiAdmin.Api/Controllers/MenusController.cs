@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Menu = AiAdmin.Api.Models.Menu;
 
-// 提供菜单维护、当前用户菜单树和角色菜单数据所需的接口。
 namespace AiAdmin.Api.Controllers;
 
 /// <summary>

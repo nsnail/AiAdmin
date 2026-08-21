@@ -14,7 +14,6 @@ using Color = SixLabors.ImageSharp.Color;
 using ImageSharpImage = SixLabors.ImageSharp.Image;
 using Size = SixLabors.ImageSharp.Size;
 
-// 提供用户增删改查和当前用户信息查询。
 namespace AiAdmin.Api.Controllers;
 
 /// <summary>

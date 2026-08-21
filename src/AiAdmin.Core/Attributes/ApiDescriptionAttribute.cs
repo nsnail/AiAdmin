@@ -1,4 +1,3 @@
-// 标注控制器或操作的接口描述，供接口同步和多语言展示使用。
 namespace AiAdmin.Api.Attributes;
 
 /// <summary>

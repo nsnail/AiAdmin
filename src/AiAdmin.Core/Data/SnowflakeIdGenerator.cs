@@ -1,4 +1,3 @@
-// 生成适用于多实例部署的 Snowflake 数字主键
 namespace AiAdmin.Api.Data;
 
 /// <summary>

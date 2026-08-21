@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-// 定义字典管理接口的请求和响应模型
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

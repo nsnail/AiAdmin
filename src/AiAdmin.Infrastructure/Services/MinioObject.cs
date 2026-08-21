@@ -1,5 +1,3 @@
-// 提供文件管理所需的 MinIO 对象存储操作
-
 namespace AiAdmin.Api.Services;
 
 /// <summary>

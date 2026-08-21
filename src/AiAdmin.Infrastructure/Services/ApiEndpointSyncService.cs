@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-// 通过 MVC 动作描述器反射系统接口，并将变化同步到接口权限表。
 namespace AiAdmin.Api.Services;
 
 /// <summary>

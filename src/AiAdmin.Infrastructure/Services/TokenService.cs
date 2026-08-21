@@ -5,7 +5,6 @@ using System.Text;
 using AiAdmin.Api.Models;
 using Microsoft.IdentityModel.Tokens;
 
-// 根据用户身份和角色生成用于 Bearer 鉴权的 JWT。
 namespace AiAdmin.Api.Services;
 
 /// <summary>

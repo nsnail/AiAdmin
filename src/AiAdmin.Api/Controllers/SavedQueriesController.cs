@@ -1,5 +1,3 @@
-// 提供当前用户动态查询条件的持久化管理接口
-
 using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Security.Claims;

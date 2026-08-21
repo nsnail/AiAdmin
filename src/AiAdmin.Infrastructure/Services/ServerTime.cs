@@ -1,4 +1,3 @@
-// 提供服务器本地时间读写和 API 时间响应转换能力。
 namespace AiAdmin.Api.Services;
 
 /// <summary>

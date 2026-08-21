@@ -1,4 +1,3 @@
-// 定义需要受数据权限控制的实体所有者信息
 namespace AiAdmin.Api.Models;
 
 /// <summary>

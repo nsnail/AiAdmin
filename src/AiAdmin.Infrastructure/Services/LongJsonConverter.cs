@@ -1,4 +1,3 @@
-// 将 Int64 API 值序列化为字符串，避免浏览器解析随机主键时发生精度丢失
 using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;

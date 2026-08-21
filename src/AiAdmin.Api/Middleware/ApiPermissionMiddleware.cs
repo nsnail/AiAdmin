@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.EntityFrameworkCore;
 
-// 在 ASP.NET 授权中间件前执行接口级权限校验和匿名接口放行。
 namespace AiAdmin.Api.Middleware;
 
 /// <summary>

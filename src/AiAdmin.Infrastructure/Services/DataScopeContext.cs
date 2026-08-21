@@ -1,4 +1,3 @@
-// 保存当前请求的数据权限范围，供数据库上下文统一执行过滤和写入校验
 using AiAdmin.Api.Models;
 
 namespace AiAdmin.Api.Services;

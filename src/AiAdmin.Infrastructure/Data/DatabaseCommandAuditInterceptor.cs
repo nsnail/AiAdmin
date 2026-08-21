@@ -1,4 +1,3 @@
-// 记录所有 EF Core 数据库命令的读取和写入审计日志
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 

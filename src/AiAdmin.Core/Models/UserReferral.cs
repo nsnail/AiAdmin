@@ -1,4 +1,3 @@
-// 定义用户邀请关系及其数据权限归属
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;

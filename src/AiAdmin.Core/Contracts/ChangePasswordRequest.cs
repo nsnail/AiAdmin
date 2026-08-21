@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 
-// 定义用户查询和用户维护请求响应模型。
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

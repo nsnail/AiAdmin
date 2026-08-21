@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// 提供部门树查询、部门维护以及删除约束校验接口。
 namespace AiAdmin.Api.Controllers;
 
 /// <summary>

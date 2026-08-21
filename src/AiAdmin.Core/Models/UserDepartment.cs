@@ -1,5 +1,3 @@
-// 定义部门树实体及用户部门多对多关联实体。
-
 namespace AiAdmin.Api.Models;
 
 /// <summary>

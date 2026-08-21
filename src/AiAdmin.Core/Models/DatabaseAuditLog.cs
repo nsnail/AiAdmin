@@ -1,4 +1,3 @@
-// 定义数据库读写审计日志实体
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;

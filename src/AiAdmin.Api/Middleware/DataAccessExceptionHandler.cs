@@ -1,5 +1,3 @@
-// 将数据权限不足异常统一转换为接口权限响应
-
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Diagnostics;

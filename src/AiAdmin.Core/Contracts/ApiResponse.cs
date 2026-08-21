@@ -1,4 +1,3 @@
-// 定义所有接口统一返回格式以及分页结果格式。
 using System.Diagnostics.CodeAnalysis;
 
 namespace AiAdmin.Api.Contracts;

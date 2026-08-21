@@ -1,4 +1,3 @@
-// 生成统一的请求方法与路径键，确保同步和鉴权使用同一标识。
 namespace AiAdmin.Api.Services;
 
 /// <summary>

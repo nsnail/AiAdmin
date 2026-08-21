@@ -1,4 +1,3 @@
-// 定义分布式缓存使用的接口权限序列化模型
 namespace AiAdmin.Api.Services;
 
 /// <summary>

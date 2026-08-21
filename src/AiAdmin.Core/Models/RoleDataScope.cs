@@ -1,4 +1,3 @@
-// 定义角色可授予的数据权限范围
 namespace AiAdmin.Api.Models;
 
 /// <summary>

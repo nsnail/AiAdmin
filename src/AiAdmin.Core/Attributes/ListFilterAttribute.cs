@@ -1,4 +1,3 @@
-// 标记实体字段在列表筛选栏中的控件呈现方式
 namespace AiAdmin.Api.Attributes;
 
 /// <summary>

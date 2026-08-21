@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using AiAdmin.Api.Models;
 
-// 定义角色查询和保存请求响应模型。
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

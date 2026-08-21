@@ -1,4 +1,3 @@
-// 定义角色、菜单、接口及其关联关系的实体模型。
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 

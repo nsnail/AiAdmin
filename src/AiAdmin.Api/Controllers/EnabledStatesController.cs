@@ -1,5 +1,3 @@
-// 提供系统管理列表行启用状态的统一更新接口
-
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;

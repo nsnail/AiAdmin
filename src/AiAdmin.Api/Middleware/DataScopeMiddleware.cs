@@ -1,5 +1,3 @@
-// 在控制器执行前计算当前用户的数据权限范围
-
 using System.Globalization;
 using System.Security.Claims;
 using AiAdmin.Api.Data;
@@ -77,9 +75,7 @@ public sealed class DataScopeMiddleware(RequestDelegate next)
             .SingleOrDefaultAsync(context.RequestAborted)
             .ConfigureAwait(false);
 
-        dataScope.Initialize(
-            userId, hasAllData, scopes.Contains(RoleDataScope.SELF), allowedDepartments, personalDepartmentId ?? 0
-        );
+        dataScope.Initialize(userId, hasAllData, scopes.Contains(RoleDataScope.SELF), allowedDepartments, personalDepartmentId ?? 0);
         await next(context).ConfigureAwait(false);
     }
 }

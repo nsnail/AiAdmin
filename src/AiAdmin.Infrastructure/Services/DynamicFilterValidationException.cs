@@ -1,4 +1,3 @@
-// 定义动态筛选请求校验失败时使用的业务异常。
 namespace AiAdmin.Api.Services;
 
 /// <summary>

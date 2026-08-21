@@ -1,4 +1,3 @@
-// 定义数据权限范围不足时抛出的业务异常
 namespace AiAdmin.Api.Services;
 
 /// <summary>

@@ -1,5 +1,3 @@
-// 定义后端模型反射生成的列表筛选字段元数据
-
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>

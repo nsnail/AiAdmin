@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
-// 提供接口列表和反射同步管理。
 namespace AiAdmin.Api.Controllers;
 
 /// <summary>
