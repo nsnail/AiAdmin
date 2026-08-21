@@ -34,13 +34,13 @@
           sortable="custom"
         >
           <template #default="{ row }">
-            <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-2 whitespace-nowrap">
               <ArtSvgIcon v-if="row.isGroup" icon="ri:code-box-line" class="text-g-500" />
               <span :class="{ 'font-medium': row.isGroup }">{{ row.name }}</span>
               <ElTag v-if="row.isGroup" type="info" effect="plain" size="small">
                 {{ row.children.length }} 个接口
               </ElTag>
-            </div>
+            </span>
           </template>
         </ElTableColumn>
         <ElTableColumn prop="method" label="方法" width="100" sortable="custom">
