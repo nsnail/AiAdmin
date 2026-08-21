@@ -470,6 +470,10 @@
   "systemLog": {
     "filters": {
       "level": "日志级别",
+      "logType": "日志类型",
+      "timestamp": "日志时间",
+      "startTime": "开始时间",
+      "endTime": "结束时间",
       "category": "日志分类",
       "searchField": "搜索字段",
       "keyword": "搜索日志内容"
@@ -502,6 +506,12 @@
       "threadId": "线程号",
       "userAgent": "User-Agent",
       "userName": "用户名"
+    },
+    "types": {
+      "System": "系统",
+      "Api": "API",
+      "Sql": "SQL",
+      "Http": "HTTP 调用"
     },
     "detail": {
       "operation": "操作",

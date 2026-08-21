@@ -61,6 +61,8 @@ export function fetchDeleteSavedQuery(id: string) {
 
 export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
   level?: string
+  logType?: string
+  timestamp?: string[]
   category?: string
   keyword?: string
   searchField?: string
@@ -70,6 +72,19 @@ export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
 }
 
 export function fetchGetSystemLogs(params: SystemLogSearchParams) {
+  const dynamicFilters: DynamicFilter[] = params.dynamicFilter ? [params.dynamicFilter] : []
+  if (params.logType) {
+    dynamicFilters.push({ field: 'logType', operator: 'Equal', value: params.logType })
+  }
+  if (params.timestamp?.length === 2) {
+    dynamicFilters.push({ field: 'timestamp', operator: 'DateRange', value: params.timestamp })
+  }
+  const dynamicFilter = dynamicFilters.length === 0
+    ? undefined
+    : dynamicFilters.length === 1
+      ? dynamicFilters[0]
+      : { logic: 'And' as const, filters: dynamicFilters }
+
   return request.post<Api.Common.PaginatedResponse<Api.SystemManage.SystemLogItem>>({
     url: '/api/system-log/list',
     data: {
@@ -79,7 +94,7 @@ export function fetchGetSystemLogs(params: SystemLogSearchParams) {
       category: params.category?.trim() || undefined,
       keyword: params.keyword?.trim() || undefined
       , searchField: params.searchField || undefined
-      , dynamicFilter: params.dynamicFilter || undefined
+      , dynamicFilter
       , sortField: params.sortField || undefined
       , sortOrder: params.sortOrder || undefined
     }

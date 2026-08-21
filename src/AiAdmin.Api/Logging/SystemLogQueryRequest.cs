@@ -33,6 +33,11 @@ public sealed class SystemLogQueryRequest
     public DynamicFilter? DynamicFilter { get; set; }
 
     /// <summary>
+    ///     日志类型
+    /// </summary>
+    public string? LogType { get; set; }
+
+    /// <summary>
     ///     日志级别
     /// </summary>
     public string? Level { get; set; }

@@ -474,6 +474,10 @@
   "systemLog": {
     "filters": {
       "level": "Log level",
+      "logType": "Log type",
+      "timestamp": "Log time",
+      "startTime": "Start time",
+      "endTime": "End time",
       "category": "Log category",
       "searchField": "Search field",
       "keyword": "Search log message"
@@ -506,6 +510,12 @@
       "threadId": "Thread ID",
       "userAgent": "User-Agent",
       "userName": "User name"
+    },
+    "types": {
+      "System": "System",
+      "Api": "API",
+      "Sql": "SQL",
+      "Http": "HTTP call"
     },
     "detail": {
       "operation": "Actions",

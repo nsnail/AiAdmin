@@ -63,12 +63,117 @@
   defineOptions({ name: 'SystemLog' })
   const { t, locale } = useI18n()
   const levels = ['Trace', 'Debug', 'Information', 'Warning', 'Error', 'Critical']
-  const searchForm = ref<SystemLogSearchParams>({ current: 1, size: 20 })
+  const logTypes = ['System', 'Api', 'Sql', 'Http']
+  const getTimestampShortcuts = () => {
+    const now = new Date()
+    const today = new Date(now)
+    today.setHours(0, 0, 0, 0)
+    const tomorrow = new Date(today)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const currentHour = new Date(now)
+    currentHour.setMinutes(0, 0, 0)
+    const nextHour = new Date(currentHour)
+    nextHour.setHours(nextHour.getHours() + 1)
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const weekStart = new Date(today)
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
+    const nextWeek = new Date(weekStart)
+    nextWeek.setDate(nextWeek.getDate() + 7)
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+    const range = (start: Date, end: Date) => [start, end]
+    return [
+      {
+        text: t('table.searchBar.lastHour'),
+        value: () => range(new Date(now.getTime() - 3600000), new Date())
+      },
+      {
+        text: t('table.searchBar.currentHour'),
+        value: () => range(new Date(currentHour), new Date(nextHour))
+      },
+      {
+        text: t('table.searchBar.previousHour'),
+        value: () => range(new Date(now.getTime() - 7200000), new Date(now.getTime() - 3600000))
+      },
+      {
+        text: t('table.searchBar.yesterdayAtThisTime'),
+        value: () =>
+          range(new Date(yesterday.getTime() + (now.getTime() - today.getTime())), new Date())
+      },
+      { text: t('table.searchBar.today'), value: () => range(new Date(today), new Date(tomorrow)) },
+      {
+        text: t('table.searchBar.yesterday'),
+        value: () => range(new Date(yesterday), new Date(today))
+      },
+      {
+        text: t('table.searchBar.previousDay'),
+        value: () => {
+          const start = new Date(yesterday)
+          start.setDate(start.getDate() - 1)
+          return range(start, new Date(yesterday))
+        }
+      },
+      {
+        text: t('table.searchBar.thisWeek'),
+        value: () => range(new Date(weekStart), new Date(nextWeek))
+      },
+      {
+        text: t('table.searchBar.previousWeek'),
+        value: () => {
+          const start = new Date(weekStart)
+          start.setDate(start.getDate() - 7)
+          return range(start, new Date(weekStart))
+        }
+      },
+      {
+        text: t('table.searchBar.thisMonth'),
+        value: () => range(new Date(monthStart), new Date(nextMonth))
+      },
+      {
+        text: t('table.searchBar.previousMonth'),
+        value: () => {
+          const start = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
+          return range(start, new Date(monthStart))
+        }
+      }
+    ]
+  }
+  const getTodayTimestampRange = (): string[] => {
+    const start = new Date()
+    start.setHours(0, 0, 0, 0)
+    const end = new Date(start)
+    end.setDate(end.getDate() + 1)
+    return [start.toISOString(), end.toISOString()]
+  }
+  const searchForm = ref<SystemLogSearchParams>({
+    current: 1,
+    size: 20,
+    timestamp: getTodayTimestampRange()
+  })
   const searchItems = computed(() => [
+    {
+      label: '',
+      key: 'timestamp',
+      type: 'datetime',
+      span: 6,
+      props: {
+        style: { width: '100%' },
+        placeholder: t('systemLog.filters.timestamp'),
+        type: 'datetimerange',
+        rangeSeparator: t('table.searchBar.to'),
+        valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
+        startPlaceholder: t('systemLog.filters.startTime'),
+        endPlaceholder: t('systemLog.filters.endTime'),
+        clearable: true,
+        shortcuts: getTimestampShortcuts()
+      }
+    },
     {
       label: '',
       key: 'level',
       type: 'select',
+      span: 3,
       props: {
         placeholder: t('systemLog.filters.level'),
         options: levels.map((level) => ({ label: level, value: level }))
@@ -76,12 +181,17 @@
     },
     {
       label: '',
-      key: 'category',
-      type: 'input',
-      props: { placeholder: t('systemLog.filters.category') }
+      key: 'logType',
+      type: 'select',
+      span: 3,
+      props: {
+        placeholder: t('systemLog.filters.logType'),
+        options: logTypes.map((type) => ({ label: t(`systemLog.types.${type}`), value: type }))
+      }
     },
     {
       label: '',
+      span: 6,
       key: 'keyword',
       type: 'input',
       props: { placeholder: t('systemLog.filters.keyword') }
@@ -306,6 +416,7 @@
             prop: 'level',
             label: t('systemLog.fields.level'),
             width: 120,
+            align: 'center',
             formatter: (row: Api.SystemManage.SystemLogItem) =>
               h(ElTag, { type: levelType(row.level), size: 'small' }, () => row.level)
           },
@@ -327,7 +438,8 @@
             label: t('systemLog.fields.elapsedMilliseconds'),
             width: 130,
             align: 'right',
-            formatter: (row: Api.SystemManage.SystemLogItem) => `${row.elapsedMilliseconds} ms`
+            formatter: (row: Api.SystemManage.SystemLogItem) =>
+              row.elapsedMilliseconds ? `${row.elapsedMilliseconds} ms` : ''
           },
           { prop: 'threadId', label: t('systemLog.fields.threadId'), width: 100, align: 'right' },
           {
@@ -439,6 +551,7 @@
             queryField: false,
             label: t('systemLog.detail.operation'),
             width: 110,
+            align: 'center',
             fixed: 'right',
             formatter: (row: Api.SystemManage.SystemLogItem) =>
               h(ArtButtonTable, {
@@ -469,7 +582,7 @@
   }
 
   async function handleReset() {
-    searchForm.value = { current: 1, size: pagination.size }
+    searchForm.value = { current: 1, size: pagination.size, timestamp: getTodayTimestampRange() }
     replaceSearchParams(searchForm.value)
     await getData()
   }

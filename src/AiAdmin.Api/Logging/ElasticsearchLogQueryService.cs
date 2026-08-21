@@ -43,6 +43,10 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             must.Add(new { match = new { level = request.Level.Trim() } });
         }
 
+        if (!string.IsNullOrWhiteSpace(request.LogType)) {
+            must.Add(new { match = new { logType = request.LogType.Trim() } });
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Category)) {
             must.Add(new { wildcard = new { category = $"*{EscapeWildcard(request.Category.Trim())}*" } });
         }
@@ -164,7 +168,9 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             var logic = filter.Logic.Equals("Or", StringComparison.OrdinalIgnoreCase) ? "should" : "must";
 
             return children.Length == 0 ? null : new Dictionary<string, object> {
-                [logic] = children
+                ["bool"] = new Dictionary<string, object> {
+                    [logic] = children
+                }
             };
         }
 
@@ -174,6 +180,15 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         }
 
         var value = filter.Value.Value;
+        if (filter.Operator.Equals("DateRange", StringComparison.OrdinalIgnoreCase)
+            && value.ValueKind == JsonValueKind.Array
+            && value.GetArrayLength() >= 2) {
+            var rangeValues = value.EnumerateArray().Take(2).ToArray();
+            return new { range = new Dictionary<string, object> {
+                [field] = new { gte = GetScalarValue(rangeValues[0]), lt = GetScalarValue(rangeValues[1]) }
+            } };
+        }
+
         var text = value.ToString();
         if (value.ValueKind == JsonValueKind.String) {
             text = value.GetString() ?? string.Empty;
@@ -185,12 +200,16 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             "CONTAINS" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}*" } },
             "STARTS_WITH" => new { wildcard = new Dictionary<string, object> { [field] = $"{EscapeWildcard(text)}*" } },
             "ENDS_WITH" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}" } },
-            "GREATER_THAN" => new { range = new Dictionary<string, object> { [field] = new { gt = value } } },
-            "GREATER_THAN_OR_EQUAL" => new { range = new Dictionary<string, object> { [field] = new { gte = value } } },
-            "LESS_THAN" => new { range = new Dictionary<string, object> { [field] = new { lt = value } } },
-            "LESS_THAN_OR_EQUAL" => new { range = new Dictionary<string, object> { [field] = new { lte = value } } },
+            "GREATER_THAN" => new { range = new Dictionary<string, object> { [field] = new { gt = GetScalarValue(value) } } },
+            "GREATER_THAN_OR_EQUAL" => new { range = new Dictionary<string, object> { [field] = new { gte = GetScalarValue(value) } } },
+            "LESS_THAN" => new { range = new Dictionary<string, object> { [field] = new { lt = GetScalarValue(value) } } },
+            "LESS_THAN_OR_EQUAL" => new { range = new Dictionary<string, object> { [field] = new { lte = GetScalarValue(value) } } },
             _ => new { match = new Dictionary<string, object> { [field] = text } }
         };
+    }
+
+    private static object GetScalarValue(JsonElement value) {
+        return value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value;
     }
 
     private void AddAuthentication(HttpRequestMessage request) {
