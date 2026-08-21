@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using AiAdmin.Api.Caching;
 using StackExchange.Redis;
 
 namespace AiAdmin.Api.Services;
@@ -26,7 +27,7 @@ public sealed class ScheduledJobLockService(IConnectionMultiplexer connectionMul
     )
     {
         var database = connectionMultiplexer.GetDatabase();
-        RedisKey key = $"aiadmin:scheduled-job:lock:{jobId}";
+        RedisKey key = $"{RedisKeyPrefix.Value}scheduled-job:lock:{jobId}";
         RedisValue value = Guid.NewGuid().ToString("N");
         var startedAt = Stopwatch.GetTimestamp();
         while (true)

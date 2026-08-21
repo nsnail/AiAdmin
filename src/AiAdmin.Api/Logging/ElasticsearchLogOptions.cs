@@ -1,3 +1,5 @@
+using AiAdmin.Api.Caching;
+
 namespace AiAdmin.Api.Logging;
 
 /// <summary>
@@ -38,7 +40,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     Redis 日志队列键名
     /// </summary>
-    public string QueueKey { get; set; } = "aiadmin:logs:elasticsearch";
+    public string QueueKey { get; set; } = RedisKeyPrefix.Value + "logs:elasticsearch";
 
     /// <summary>
     ///     Elasticsearch 服务地址

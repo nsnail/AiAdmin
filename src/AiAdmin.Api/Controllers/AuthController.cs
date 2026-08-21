@@ -23,7 +23,12 @@ namespace AiAdmin.Api.Controllers;
 [ApiController]
 [ApiDescription("Authentication")]
 [Route("api/auth")]
-public sealed class AuthController(AppDbContext db, TokenService tokenService, IDistributedCache cache, ILogger<AuthController> logger)
+public sealed class AuthController(
+    AppDbContext db
+    , TokenService tokenService
+    , IDistributedCache cache
+    , DictionarySnapshotService dictionarySnapshotService
+    , ILogger<AuthController> logger)
     : ControllerBase
 {
     private const int _PROOF_DIFFICULTY = 4;
@@ -43,7 +48,8 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpGet("challenge")]
     [AllowAnonymous]
     [ApiDescription("Create login proof challenge")]
-    public async Task<ActionResult<ApiResponse<LoginChallengeResult>>> ChallengeEndpointAsync() {
+    public async Task<ActionResult<ApiResponse<LoginChallengeResult>>> ChallengeEndpointAsync()
+    {
         var challenge = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
         await cache
             .SetStringAsync(
@@ -60,17 +66,12 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpGet("config")]
     [AllowAnonymous]
     [ApiDescription("Query login configuration")]
-    public async Task<ActionResult<ApiResponse<LoginConfigResult>>> ConfigAsync() {
-        var sliderEnabled = await db
-            .DictionaryItems.AnyAsync(x =>
-                x.Category.Code == "system_settings" && x.Label == "Enable login slider verification" && x.Value == "true" && x.IsEnabled
-            )
-            .ConfigureAwait(false);
-        var registrationEnabled = await db
-            .DictionaryItems
-            .AnyAsync(x => x.Category.Code == "system_settings" && x.Label == "Enable user registration" && x.Value == "true" && x.IsEnabled)
-            .ConfigureAwait(false);
-        var emailVerificationEnabled = await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false);
+    public async Task<ActionResult<ApiResponse<LoginConfigResult>>> ConfigAsync()
+    {
+        var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SystemSettingsCode).ConfigureAwait(false);
+        var sliderEnabled = IsSettingEnabled(settings, "Enable login slider verification");
+        var registrationEnabled = IsSettingEnabled(settings, "Enable user registration");
+        var emailVerificationEnabled = IsSettingEnabled(settings, "Enable email verification");
         return Ok(ApiResponse<LoginConfigResult>.Ok(new LoginConfigResult(sliderEnabled, registrationEnabled, emailVerificationEnabled)));
     }
 
@@ -82,9 +83,11 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpPost("login")]
     [AllowAnonymous]
     [ApiDescription("Sign in to the system")]
-    public async Task<ActionResult<ApiResponse<LoginResult>>> LoginAsync(LoginRequest request) {
+    public async Task<ActionResult<ApiResponse<LoginResult>>> LoginAsync(LoginRequest request)
+    {
         if (string.IsNullOrWhiteSpace(await cache.GetStringAsync($"login-proof:{request.Challenge}").ConfigureAwait(false))
-            || !IsValidProof(request.Challenge, request.Proof, _PROOF_DIFFICULTY)) {
+            || !IsValidProof(request.Challenge, request.Proof, _PROOF_DIFFICULTY))
+        {
             return Unauthorized(new ApiResponse<object>(401, "Login verification expired, please try again", null));
         }
 
@@ -109,26 +112,31 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpPost("register")]
     [AllowAnonymous]
     [ApiDescription("Register user")]
-    public async Task<ActionResult<ApiResponse<object>>> RegisterAsync(RegisterRequest request) {
+    public async Task<ActionResult<ApiResponse<object>>> RegisterAsync(RegisterRequest request)
+    {
         var enabled = await IsSettingEnabledAsync("Enable user registration").ConfigureAwait(false);
-        if (!enabled) {
+        if (!enabled)
+        {
             return BadRequest(new ApiResponse<object>(400, "User registration is disabled", null));
         }
 
         var codeValid = !await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false)
                         || await cache.GetStringAsync($"register-code:{request.Email.Trim().ToLowerInvariant()}").ConfigureAwait(false)
                         == request.VerificationCode.Trim();
-        if (!codeValid) {
+        if (!codeValid)
+        {
             return BadRequest(new ApiResponse<object>(400, "Invalid email verification code", null));
         }
 
         var userName = request.UserName.Trim();
         var email = request.Email.Trim();
-        if (await db.Users.AnyAsync(x => x.UserName == userName).ConfigureAwait(false)) {
+        if (await db.Users.AnyAsync(x => x.UserName == userName).ConfigureAwait(false))
+        {
             return Conflict(new ApiResponse<object>(409, "Username already exists", null));
         }
 
-        if (await db.Users.AnyAsync(x => x.Email == email).ConfigureAwait(false)) {
+        if (await db.Users.AnyAsync(x => x.Email == email).ConfigureAwait(false))
+        {
             return Conflict(new ApiResponse<object>(409, "Email already exists", null));
         }
 
@@ -136,17 +144,20 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
         var inviter = string.IsNullOrWhiteSpace(invitationCode)
             ? null
             : await db.Users.SingleOrDefaultAsync(x => x.InvitationCode == invitationCode).ConfigureAwait(false);
-        if (!string.IsNullOrWhiteSpace(invitationCode) && inviter is null) {
+        if (!string.IsNullOrWhiteSpace(invitationCode) && inviter is null)
+        {
             return BadRequest(new ApiResponse<object>(400, "Invitation code is invalid", null));
         }
 
         var role = await db.Roles.SingleAsync(x => x.Code == "R_USER").ConfigureAwait(false);
         var defaultDepartment = await db.Departments.SingleAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
         Department? inviterDepartment = null;
-        if (inviter is not null) {
+        if (inviter is not null)
+        {
             // 有邀请者时，新用户个人部门挂在邀请者个人部门下，确保部门数据权限覆盖多级邀请关系
             inviterDepartment = await db.Departments.SingleOrDefaultAsync(x => x.Code == $"USER_{inviter.Id}").ConfigureAwait(false);
-            if (inviterDepartment is null) {
+            if (inviterDepartment is null)
+            {
                 return StatusCode(500, new ApiResponse<object>(500, "Inviter department does not exist", null));
             }
         }
@@ -156,14 +167,18 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
 
         var personalDepartment = new Department
         {
-            Name = user.UserName, Code = $"USER_{user.Id}", ParentId = inviterDepartment?.Id ?? defaultDepartment.Id, Sort = 0
+            Name = user.UserName,
+            Code = $"USER_{user.Id}",
+            ParentId = inviterDepartment?.Id ?? defaultDepartment.Id,
+            Sort = 0
         };
         user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
 
         // 事务确保用户、邀请关系、个人部门及关联数据同时创建成功
         await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);
         _ = await db.Users.AddAsync(user).ConfigureAwait(false);
-        if (inviterDepartment is not null) {
+        if (inviterDepartment is not null)
+        {
             // 受邀用户同时加入邀请人的个人部门，用于按邀请关系管理成员
             user.UserDepartments.Add(new UserDepartment { User = user, Department = inviterDepartment });
             _ = await db
@@ -186,28 +201,33 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpPost("register-code")]
     [AllowAnonymous]
     [ApiDescription("Send registration verification code")]
-    public async Task<ActionResult<ApiResponse<object>>> RegisterCodeAsync(RegisterCodeRequest request) {
-        if (!await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false)) {
+    public async Task<ActionResult<ApiResponse<object>>> RegisterCodeAsync(RegisterCodeRequest request)
+    {
+        if (!await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false))
+        {
             return Ok(ApiResponse<object>.Ok(new { }));
         }
 
         var ticketKey = $"register-puzzle-ticket:{request.PuzzleTicket}";
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
         var ticketEmail = await cache.GetStringAsync(ticketKey, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (!string.Equals(ticketEmail, normalizedEmail, StringComparison.Ordinal)) {
+        if (!string.Equals(ticketEmail, normalizedEmail, StringComparison.Ordinal))
+        {
             return BadRequest(new ApiResponse<object>(400, "Puzzle verification is required", null));
         }
 
         await cache.RemoveAsync(ticketKey, HttpContext.RequestAborted).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(
                 await cache.GetStringAsync($"register-code-cooldown:{normalizedEmail}", HttpContext.RequestAborted).ConfigureAwait(false)
-            )) {
+            ))
+        {
             return StatusCode(StatusCodes.Status429TooManyRequests, new ApiResponse<object>(429, "Verification code was sent recently", null));
         }
 
         var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString(CultureInfo.InvariantCulture);
         var smtp = await GetSmtpSettingsAsync().ConfigureAwait(false);
-        if (string.IsNullOrWhiteSpace(smtp.Host) || string.IsNullOrWhiteSpace(smtp.From)) {
+        if (string.IsNullOrWhiteSpace(smtp.Host) || string.IsNullOrWhiteSpace(smtp.From))
+        {
             return BadRequest(new ApiResponse<object>(400, "SMTP is not configured", null));
         }
 
@@ -220,13 +240,15 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
         using var client = new SmtpClient();
         var socket = smtp.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
         await client.ConnectAsync(smtp.Host, smtp.Port, socket, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (!string.IsNullOrWhiteSpace(smtp.User)) {
+        if (!string.IsNullOrWhiteSpace(smtp.User))
+        {
             await client.AuthenticateAsync(smtp.User, smtp.Password, HttpContext.RequestAborted).ConfigureAwait(false);
         }
 
         var smtpResponse = await client.SendAsync(mail, HttpContext.RequestAborted).ConfigureAwait(false);
         await client.DisconnectAsync(true, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (logger.IsEnabled(LogLevel.Information)) {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
             _logSmtpAccepted(logger, mail.MessageId, request.Email.Trim(), smtpResponse, null);
         }
 
@@ -252,7 +274,8 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpGet("register-puzzle")]
     [AllowAnonymous]
     [ApiDescription("Create registration email puzzle")]
-    public async Task<ActionResult<ApiResponse<RegisterPuzzleResult>>> RegisterPuzzleAsync() {
+    public async Task<ActionResult<ApiResponse<RegisterPuzzleResult>>> RegisterPuzzleAsync()
+    {
         var challengeId = Convert.ToHexString(RandomNumberGenerator.GetBytes(24));
         var targetX = RandomNumberGenerator.GetInt32(90, _PUZZLE_WIDTH - _PUZZLE_PIECE_SIZE - 15);
         var targetY = RandomNumberGenerator.GetInt32(35, _PUZZLE_HEIGHT - _PUZZLE_PIECE_SIZE - 15);
@@ -278,11 +301,13 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     [HttpPost("register-puzzle/verify")]
     [AllowAnonymous]
     [ApiDescription("Verify registration email puzzle")]
-    public async Task<ActionResult<ApiResponse<VerifyRegisterPuzzleResult>>> VerifyRegisterPuzzleAsync(VerifyRegisterPuzzleRequest request) {
+    public async Task<ActionResult<ApiResponse<VerifyRegisterPuzzleResult>>> VerifyRegisterPuzzleAsync(VerifyRegisterPuzzleRequest request)
+    {
         var key = $"register-puzzle:{request.ChallengeId}";
         var expected = await cache.GetStringAsync(key, HttpContext.RequestAborted).ConfigureAwait(false);
         await cache.RemoveAsync(key, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (!int.TryParse(expected, NumberStyles.None, CultureInfo.InvariantCulture, out var targetX) || Math.Abs(targetX - request.OffsetX) > 5) {
+        if (!int.TryParse(expected, NumberStyles.None, CultureInfo.InvariantCulture, out var targetX) || Math.Abs(targetX - request.OffsetX) > 5)
+        {
             return BadRequest(new ApiResponse<object>(400, "Puzzle verification failed", null));
         }
 
@@ -299,7 +324,8 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
     private static (string Background, string Piece) CreatePuzzleImages(
         int targetX
         , int targetY
-    ) {
+    )
+    {
         var hue = RandomNumberGenerator.GetInt32(0, 360);
         var background = $"""
                           <svg xmlns="http://www.w3.org/2000/svg" width="{_PUZZLE_WIDTH}" height="{_PUZZLE_HEIGHT}">
@@ -327,8 +353,10 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
         string challenge
         , string proof
         , int difficulty
-    ) {
-        if (string.IsNullOrWhiteSpace(proof) || proof.Length > 32) {
+    )
+    {
+        if (string.IsNullOrWhiteSpace(proof) || proof.Length > 32)
+        {
             return false;
         }
 
@@ -336,22 +364,47 @@ public sealed class AuthController(AppDbContext db, TokenService tokenService, I
         return digest.StartsWith(new string('0', difficulty), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string ToSvgDataUrl(string svg) {
+    private static string ToSvgDataUrl(string svg)
+    {
         return $"data:image/svg+xml;base64,{Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))}";
     }
 
-    private async Task<(string Host, int Port, bool EnableSsl, string User, string Password, string From)> GetSmtpSettingsAsync() {
-        var values = await db
-            .DictionaryItems.Where(x => x.Category.Code == "system_settings" && x.Label.StartsWith("SMTP "))
-            .ToDictionaryAsync(x => x.Label, x => x.Value)
-            .ConfigureAwait(false);
+    /// <summary>
+    ///     判断系统设置快照中的指定开关是否启用
+    /// </summary>
+    /// <param name="settings">系统设置快照</param>
+    /// <param name="label">设置标签</param>
+    /// <returns>设置存在、已启用且值为 true 时返回 true</returns>
+    private static bool IsSettingEnabled(
+        IEnumerable<DictionarySnapshotItem> settings
+        , string label
+    )
+    {
+        return settings.Any(x => x.Label == label && x.Value == "true" && x.IsEnabled);
+    }
+
+    /// <summary>
+    ///     从系统设置快照读取 SMTP 配置
+    /// </summary>
+    /// <returns>SMTP 连接与发件配置</returns>
+    private async Task<(string Host, int Port, bool EnableSsl, string User, string Password, string From)> GetSmtpSettingsAsync()
+    {
+        var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SystemSettingsCode).ConfigureAwait(false);
+        var values = settings.Where(x => x.Label.StartsWith("SMTP ", StringComparison.Ordinal)).ToDictionary(x => x.Label, x => x.Value);
         return (values.GetValueOrDefault("SMTP Host", string.Empty)
             , int.TryParse(values.GetValueOrDefault("SMTP Port", "25"), out var port) ? port : 25
             , values.GetValueOrDefault("SMTP SSL", "true") == "true", values.GetValueOrDefault("SMTP User", string.Empty)
             , values.GetValueOrDefault("SMTP Password", string.Empty), values.GetValueOrDefault("SMTP From", string.Empty));
     }
 
-    private Task<bool> IsSettingEnabledAsync(string label) {
-        return db.DictionaryItems.AnyAsync(x => x.Category.Code == "system_settings" && x.Label == label && x.Value == "true" && x.IsEnabled);
+    /// <summary>
+    ///     判断指定系统设置开关是否启用
+    /// </summary>
+    /// <param name="label">设置标签</param>
+    /// <returns>设置存在、已启用且值为 true 时返回 true</returns>
+    private async Task<bool> IsSettingEnabledAsync(string label)
+    {
+        var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SystemSettingsCode).ConfigureAwait(false);
+        return IsSettingEnabled(settings, label);
     }
 }

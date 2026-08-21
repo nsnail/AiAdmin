@@ -87,16 +87,11 @@ public sealed class ScheduledJobHostedService(
         }
 
         var triggeredAt = job.LastTriggeredAt;
-        var placeholderCatalog = await db.DictionaryCategories
-            .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders", cancellationToken)
+        var dictionarySnapshotService = scope.ServiceProvider.GetRequiredService<DictionarySnapshotService>();
+        var placeholderItems = await dictionarySnapshotService
+            .GetItemsAsync(DictionarySnapshotService.ScheduledJobPlaceholdersCode, cancellationToken)
             .ConfigureAwait(false);
-        var values = placeholderCatalog is null
-            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            : await db
-            .DictionaryItems.Where(x => x.CategoryId == placeholderCatalog.Id && x.IsEnabled)
-            .ToDictionaryAsync(x => x.Label, x => x.Value, StringComparer.OrdinalIgnoreCase, cancellationToken)
-            .ConfigureAwait(false);
+        var values = placeholderItems.Where(x => x.IsEnabled).ToDictionary(x => x.Label, x => x.Value, StringComparer.OrdinalIgnoreCase);
         var url = Resolve(job.RequestUrl, values);
         var headers = Resolve(job.RequestHeadersJson, values);
         var body = Resolve(job.RequestBody, values);
