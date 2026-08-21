@@ -6,14 +6,6 @@
           <div class="flex items-center justify-between">
             <span class="font-medium">字典目录</span>
             <div class="flex items-center gap-2">
-              <ElSelect
-                v-model="categoryEnabledFilter"
-                clearable
-                placeholder="全部"
-                class="enabled-filter"
-              >
-                <ElOption label="启用" :value="true" /><ElOption label="禁用" :value="false" />
-              </ElSelect>
               <ElButton v-auth="'add'" text circle title="新增根目录" @click="openCategoryDialog()">
                 <ArtSvgIcon icon="ri:add-line" />
               </ElButton>
@@ -24,7 +16,7 @@
         <ElScrollbar>
           <ElTree
             ref="treeRef"
-            :data="filteredCategories"
+            :data="categories"
             :props="{ label: 'name', children: 'children' }"
             node-key="id"
             default-expand-all
@@ -36,13 +28,6 @@
               <div class="tree-node">
                 <div class="tree-node-main">
                   <span class="truncate">{{ getCategoryName(data) }}</span>
-                  <ArtEnabledSwitch
-                    :id="data.id"
-                    v-model="data.isEnabled"
-                    resource="dictionary-category"
-                    @click.stop
-                    @update:model-value="loadCategories()"
-                  />
                 </div>
                 <div class="node-actions">
                   <ElButton
@@ -149,7 +134,6 @@
             <ElFormItem label="排序"
               ><ElInputNumber v-model="categoryForm.sort" :min="0" :max="9999"
             /></ElFormItem>
-            <ElFormItem label="是否启用"><ElSwitch v-model="categoryForm.isEnabled" /></ElFormItem>
           </ElForm>
         </ElTabPane>
         <ElTabPane label="原始数据" name="raw-data"
@@ -226,7 +210,6 @@
   const treeRef = ref()
   const loading = ref(false)
   const saving = ref(false)
-  const categoryEnabledFilter = ref<boolean | undefined>(true)
   const itemEnabledFilter = ref<boolean | undefined>(true)
   const categoryDialogVisible = ref(false)
   const itemDialogVisible = ref(false)
@@ -239,8 +222,7 @@
     code: '',
     name: '',
     parentId: null as string | null,
-    sort: 0,
-    isEnabled: true
+    sort: 0
   })
   const itemForm = reactive({ id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' })
   const { t } = useI18n()
@@ -255,14 +237,6 @@
       ...flattenCategories(node.children, depth + 1)
     ])
   const categoryOptions = computed(() => flattenCategories(categories.value))
-  const filterCategoryTree = (nodes: Category[]): Category[] =>
-    nodes.flatMap((node) => {
-      const children = filterCategoryTree(node.children)
-      const matches =
-        categoryEnabledFilter.value === undefined || node.isEnabled === categoryEnabledFilter.value
-      return matches || children.length ? [{ ...node, children }] : []
-    })
-  const filteredCategories = computed(() => filterCategoryTree(categories.value))
   const filteredItems = computed(() =>
     items.value.filter(
       (item) => itemEnabledFilter.value === undefined || item.isEnabled === itemEnabledFilter.value
@@ -301,7 +275,7 @@
       categoryForm,
       category
         ? { ...category }
-        : { id: '', code: '', name: '', parentId, sort: 0, isEnabled: true }
+        : { id: '', code: '', name: '', parentId, sort: 0 }
     )
     categoryRawData.value = category ? { ...category } : { ...categoryForm }
     categoryDialogTab.value = 'form'
@@ -319,8 +293,7 @@
         code: categoryForm.code,
         name: categoryForm.name,
         parentId: categoryForm.parentId,
-        sort: categoryForm.sort,
-        isEnabled: categoryForm.isEnabled
+        sort: categoryForm.sort
       }
       const saved = categoryForm.id
         ? await fetchUpdateDictionaryCategory(categoryForm.id, data)

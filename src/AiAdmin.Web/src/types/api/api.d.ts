@@ -290,7 +290,6 @@ declare namespace Api {
       name: string
       parentId: string | null
       sort: number
-      isEnabled: boolean
       children: DictionaryCategory[]
     }
 
@@ -307,7 +306,7 @@ declare namespace Api {
 
     type SaveDictionaryCategoryParams = Pick<
       DictionaryCategory,
-      'code' | 'name' | 'parentId' | 'sort' | 'isEnabled'
+      'code' | 'name' | 'parentId' | 'sort'
     >
 
     type SaveDictionaryItemParams = Pick<

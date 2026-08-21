@@ -70,7 +70,8 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
             .ToListAsync()
             .ConfigureAwait(false);
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
-                x.Id, ServerTime.ToOffset(x.StartedAt), x.FinishedAt.HasValue ? ServerTime.ToOffset(x.FinishedAt.Value) : null, x.RequestUrl
+                x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null
+                , ServerTime.ToOffset(x.StartedAt), x.FinishedAt.HasValue ? ServerTime.ToOffset(x.FinishedAt.Value) : null, x.RequestUrl
                 , x.RequestMethod, x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
             )
         );
@@ -101,7 +102,8 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
         var total = await query.CountAsync().ConfigureAwait(false);
         var rows = await query.Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
-                x.Id, ServerTime.ToOffset(x.StartedAt), x.FinishedAt.HasValue ? ServerTime.ToOffset(x.FinishedAt.Value) : null, x.RequestUrl
+                x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null
+                , ServerTime.ToOffset(x.StartedAt), x.FinishedAt.HasValue ? ServerTime.ToOffset(x.FinishedAt.Value) : null, x.RequestUrl
                 , x.RequestMethod, x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
             )
         );

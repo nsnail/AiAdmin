@@ -10,5 +10,4 @@ public sealed record DictionaryCategoryResult(
     , string Name
     , long? ParentId
     , int Sort
-    , bool IsEnabled
     , IReadOnlyList<DictionaryCategoryResult> Children);

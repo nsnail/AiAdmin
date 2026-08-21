@@ -89,7 +89,7 @@ public sealed class ScheduledJobHostedService(
         var triggeredAt = job.LastTriggeredAt;
         var placeholderCatalog = await db.DictionaryCategories
             .AsNoTracking()
-            .SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders" && x.IsEnabled, cancellationToken)
+            .SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders", cancellationToken)
             .ConfigureAwait(false);
         var values = placeholderCatalog is null
             ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)

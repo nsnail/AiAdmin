@@ -27,7 +27,7 @@ export interface ListFilterField {
 }
 
 export type EnabledStateResource =
-  'user' | 'role' | 'menu' | 'department' | 'dictionary-category' | 'dictionary-item'
+  'user' | 'role' | 'menu' | 'department' | 'dictionary-item'
 
 export function fetchUpdateEnabledState(
   resource: EnabledStateResource,
@@ -420,6 +420,9 @@ export interface ScheduledJob {
 
 export interface ScheduledJobExecution {
   id: string
+  scheduledJobId: string
+  createdAt: string
+  updatedAt: string | null
   startedAt: string
   finishedAt: string | null
   requestUrl: string

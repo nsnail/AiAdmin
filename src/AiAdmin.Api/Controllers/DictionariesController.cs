@@ -52,7 +52,6 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
             , Name = request.Name.Trim()
             , ParentId = request.ParentId
             , Sort = request.Sort
-            , IsEnabled = request.IsEnabled
         };
         _ = await db.DictionaryCategories.AddAsync(category).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
@@ -185,7 +184,6 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
         category.Name = request.Name.Trim();
         category.ParentId = request.ParentId;
         category.Sort = request.Sort;
-        category.IsEnabled = request.IsEnabled;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<DictionaryCategoryResult>.Ok(ToResult(category), "Dictionary category updated"));
     }
@@ -260,8 +258,7 @@ public sealed class DictionariesController(AppDbContext db) : ControllerBase
     /// <returns>字典目录响应模型</returns>
     private static DictionaryCategoryResult ToResult(DictionaryCategory category) {
         return new DictionaryCategoryResult(
-            category.Id, ServerTime.ToOffset(category.CreatedAt), category.Code, category.Name, category.ParentId, category.Sort, category.IsEnabled
-            , []
+            category.Id, ServerTime.ToOffset(category.CreatedAt), category.Code, category.Name, category.ParentId, category.Sort, []
         );
     }
 

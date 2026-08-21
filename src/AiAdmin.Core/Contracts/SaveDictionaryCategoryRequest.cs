@@ -16,11 +16,6 @@ public sealed class SaveDictionaryCategoryRequest
     public string Code { get; init; } = string.Empty;
 
     /// <summary>
-    ///     启用状态
-    /// </summary>
-    public bool IsEnabled { get; init; } = true;
-
-    /// <summary>
     ///     目录名称
     /// </summary>
     [Required]

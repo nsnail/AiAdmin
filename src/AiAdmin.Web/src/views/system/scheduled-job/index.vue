@@ -19,33 +19,29 @@
       </ArtTable>
     </ElCard>
     <ScheduledJobDialog v-model:visible="dialogVisible" :job-data="currentJob" :saving="saving" @submit="saveJob" />
-    <ElDialog v-model="executionVisible" :title="`${executionJob?.name || '作业'}执行记录`" fullscreen destroy-on-close>
-      <ArtSearchBar
-        v-show="executionShowSearchBar"
-        v-model="executionSearchForm"
-        :items="executionSearchItems"
-        :advanced-query-fields="executionAdvancedQueryFields"
-        @search="handleExecutionSearch"
-        @reset="resetExecutionSearch"
-      />
-      <ArtTableHeader v-model:columns="executionColumnChecks" v-model:showSearchBar="executionShowSearchBar" :loading="executionLoading" @refresh="executionRefreshData" />
-      <ArtTable
-        :loading="executionLoading" :data="executionData" :columns="executionColumns" :pagination="executionPagination"
-        @pagination:size-change="executionHandleSizeChange" @pagination:current-change="executionHandleCurrentChange"
-        @sort-change="executionHandleSortChange" @cell-query="executionHandleCellQuery"
-      />
+    <ElDialog v-model="executionVisible" class="execution-dialog" :title="`${executionJob?.name || '作业'}执行记录`" fullscreen destroy-on-close>
+      <div class="execution-page">
+        <ArtSearchBar
+          v-show="executionShowSearchBar"
+          v-model="executionSearchForm"
+          :items="executionSearchItems"
+          :advanced-query-fields="executionAdvancedQueryFields"
+          @search="handleExecutionSearch"
+          @reset="resetExecutionSearch"
+        />
+        <ElCard class="art-table-card" :style="{ 'margin-top': executionShowSearchBar ? '12px' : '0' }">
+          <ArtTableHeader v-model:columns="executionColumnChecks" v-model:showSearchBar="executionShowSearchBar" :loading="executionLoading" @refresh="executionRefreshData" />
+          <ArtTable
+            class="execution-table"
+            :loading="executionLoading" :data="executionData" :columns="executionColumns" :pagination="executionPagination"
+            @pagination:size-change="executionHandleSizeChange" @pagination:current-change="executionHandleCurrentChange"
+            @sort-change="executionHandleSortChange" @cell-query="executionHandleCellQuery"
+          />
+        </ElCard>
+      </div>
       <template #footer><ElButton @click="executionVisible = false">关闭</ElButton></template>
     </ElDialog>
-    <ElDialog v-model="detailVisible" title="执行详情" width="760px" destroy-on-close>
-      <ElDescriptions v-if="selectedExecution" :column="1" border>
-        <ElDescriptionsItem label="请求头"><pre>{{ selectedExecution.requestHeaders || '{}' }}</pre></ElDescriptionsItem>
-        <ElDescriptionsItem label="请求体"><pre>{{ selectedExecution.requestBody || '-' }}</pre></ElDescriptionsItem>
-        <ElDescriptionsItem label="响应头"><pre>{{ selectedExecution.responseHeaders || '{}' }}</pre></ElDescriptionsItem>
-        <ElDescriptionsItem label="响应体"><pre>{{ selectedExecution.responseBody || '-' }}</pre></ElDescriptionsItem>
-        <ElDescriptionsItem label="错误信息">{{ selectedExecution.errorMessage || '-' }}</ElDescriptionsItem>
-      </ElDescriptions>
-      <template #footer><ElButton @click="detailVisible = false">关闭</ElButton></template>
-    </ElDialog>
+    <ScheduledJobExecutionDialog v-model:visible="detailVisible" :execution="selectedExecution" />
   </div>
 </template>
 
@@ -53,6 +49,7 @@
   import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
   import { useI18n } from 'vue-i18n'
   import ArtButtonMore, { type ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
+  import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
   import { useTable } from '@/hooks/core/useTable'
   import type { DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
@@ -62,6 +59,7 @@
     type ScheduledJobExecution, type ScheduledJobExecutionSearchParams, type ScheduledJobSearchParams
   } from '@/api/system-manage'
   import ScheduledJobDialog from './modules/scheduled-job-dialog.vue'
+  import ScheduledJobExecutionDialog from './modules/scheduled-job-execution-dialog.vue'
   import ScheduledJobSearch from './modules/scheduled-job-search.vue'
 
   defineOptions({ name: 'ScheduledJobManagement' })
@@ -170,16 +168,18 @@
       apiParams: { current: 1, size: 20 },
       immediate: false,
       columnsFactory: () => [
-        { prop: 'startedAt', queryField: 'StartedAt', label: '开始时间', width: 180, sortable: true, formatter: (row) => formatTime(row.startedAt) },
-        { prop: 'finishedAt', queryField: 'FinishedAt', label: '完成时间', width: 180, sortable: true, formatter: (row) => formatTime(row.finishedAt) },
+        { prop: 'startedAt', queryField: 'StartedAt', label: '开始时间', width: 190, sortable: true, formatter: (row) => formatTime(row.startedAt) },
+        { prop: 'finishedAt', queryField: 'FinishedAt', label: '完成时间', width: 190, sortable: true, formatter: (row) => formatTime(row.finishedAt) },
         { prop: 'requestMethod', queryField: 'RequestMethod', label: '方法', width: 90, sortable: true },
         { prop: 'requestUrl', queryField: 'RequestUrl', label: '请求地址', minWidth: 240, sortable: true, showOverflowTooltip: true },
-        { prop: 'responseStatusCode', queryField: 'ResponseStatusCode', queryValueType: 'number', label: '响应状态', width: 100, sortable: true, formatter: (row) => row.responseStatusCode ?? '-' },
-        { prop: 'status', queryField: 'Status', queryValueType: 'number', label: '执行状态', width: 110, sortable: true,
+        { prop: 'responseStatusCode', queryField: 'ResponseStatusCode', queryValueType: 'number', label: '响应状态', width: 130, sortable: true, formatter: (row) => row.responseStatusCode ?? '-' },
+        { prop: 'status', queryField: 'Status', queryValueType: 'number', label: '执行状态', width: 130, sortable: true,
           formatter: (row) => h(ElTag, { size: 'small', type: statusMap[row.status]?.type || 'info' }, () => statusMap[row.status]?.label || '未知') },
         { prop: 'errorMessage', queryField: 'ErrorMessage', label: '错误信息', minWidth: 180, sortable: true, showOverflowTooltip: true,
           formatter: (row) => row.errorMessage || '-' },
-        { prop: 'operation', queryField: false, label: '详情', width: 80, fixed: 'right', formatter: (row) => h(ElButton, { link: true, type: 'primary', onClick: () => showExecutionDetail(row) }, () => '查看') }
+        { prop: 'operation', queryField: false, label: '详情', width: 70, fixed: 'right', formatter: (row) => h(ArtButtonTable, {
+          type: 'view', title: t('scheduledJob.executionDetail.title'), onClick: () => showExecutionDetail(row)
+        }) }
       ]
     }
   })
@@ -244,9 +244,32 @@
     color: var(--el-text-color-secondary);
     font-size: 12px;
   }
+  .execution-page {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .execution-page :deep(.art-table-card .el-card__body) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .execution-table :deep(.el-table th .cell) {
+    white-space: nowrap;
+  }
   .execution-pagination {
     display: flex;
     justify-content: flex-end;
     margin-top: 16px;
+  }
+  :global(.execution-dialog.el-dialog) {
+    display: flex;
+    flex-direction: column;
+  }
+  :global(.execution-dialog.el-dialog .el-dialog__body) {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
   }
 </style>

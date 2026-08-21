@@ -23,11 +23,6 @@ public sealed class DictionaryCategory : EntityBase
     public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
-    ///     是否启用
-    /// </summary>
-    public bool IsEnabled { get; set; } = true;
-
-    /// <summary>
     ///     字典内容集合
     /// </summary>
     public ICollection<DictionaryItem> Items { get; init; } = [];

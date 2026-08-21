@@ -49,10 +49,6 @@ public sealed class EnabledStatesController(AppDbContext db, ApiPermissionCache 
                 .Departments.Where(x => x.Id == id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
                 .ConfigureAwait(false)
-            , "dictionary-category" => await db
-                .DictionaryCategories.Where(x => x.Id == id)
-                .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
-                .ConfigureAwait(false)
             , "dictionary-item" => await db
                 .DictionaryItems.Where(x => x.Id == id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))

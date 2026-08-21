@@ -527,6 +527,31 @@
       "success": "执行成功",
       "failed": "执行失败",
       "timeout": "超时"
+    },
+    "executionDetail": {
+      "title": "执行详情",
+      "close": "关闭",
+      "unknown": "未知",
+      "durationValue": "{value} 毫秒",
+      "tabs": { "overview": "概览", "request": "请求", "response": "响应" },
+      "fields": {
+        "id": "执行记录 ID",
+        "scheduledJobId": "计划作业 ID",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间",
+        "status": "执行状态",
+        "startedAt": "开始时间",
+        "finishedAt": "完成时间",
+        "duration": "执行耗时",
+        "requestUrl": "请求地址",
+        "requestMethod": "请求方法",
+        "requestHeaders": "请求头",
+        "requestBody": "请求体",
+        "responseStatusCode": "响应状态码",
+        "responseHeaders": "响应头",
+        "responseBody": "响应体",
+        "errorMessage": "错误信息"
+      }
     }
   },
   "cronEditor": {

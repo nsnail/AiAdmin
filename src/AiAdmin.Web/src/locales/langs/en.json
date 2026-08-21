@@ -531,6 +531,31 @@
       "success": "Succeeded",
       "failed": "Failed",
       "timeout": "Timed out"
+    },
+    "executionDetail": {
+      "title": "Execution Details",
+      "close": "Close",
+      "unknown": "Unknown",
+      "durationValue": "{value} ms",
+      "tabs": { "overview": "Overview", "request": "Request", "response": "Response" },
+      "fields": {
+        "id": "Execution ID",
+        "scheduledJobId": "Scheduled job ID",
+        "createdAt": "Created at",
+        "updatedAt": "Updated at",
+        "status": "Execution status",
+        "startedAt": "Started at",
+        "finishedAt": "Finished at",
+        "duration": "Duration",
+        "requestUrl": "Request URL",
+        "requestMethod": "Request method",
+        "requestHeaders": "Request headers",
+        "requestBody": "Request body",
+        "responseStatusCode": "Response status code",
+        "responseHeaders": "Response headers",
+        "responseBody": "Response body",
+        "errorMessage": "Error message"
+      }
     }
   },
   "cronEditor": {
