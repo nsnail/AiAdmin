@@ -74,8 +74,8 @@
           />
         </div>
       </div>
-      <ElTable
-        v-loading="loading"
+      <ArtTable
+        :loading="loading"
         :data="displayFiles"
         stripe
         @sort-change="handleSortChange"
@@ -131,7 +131,7 @@
             <ArtButtonTable v-if="!row.isParent" type="delete" @click="remove(row)" />
           </template>
         </ElTableColumn>
-      </ElTable>
+      </ArtTable>
       <ArtMenuRight
         ref="menuRef"
         :menu-items="contextMenuItems"

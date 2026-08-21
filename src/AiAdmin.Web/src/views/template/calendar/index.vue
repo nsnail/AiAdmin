@@ -33,7 +33,7 @@
     <!-- 事件编辑弹窗 -->
     <ElDialog v-model="dialogVisible" :title="dialogTitle" width="600px" @closed="resetForm">
       <ElTabs v-model="activeTab">
-        <ElTabPane label="编辑" name="form">
+        <ElTabPane label="基本信息" name="form">
           <ElForm :model="eventForm" label-width="80px">
             <ElFormItem label="活动标题" required>
               <ElInput v-model="eventForm.content" placeholder="请输入活动标题" />
@@ -68,7 +68,7 @@
             </ElFormItem>
           </ElForm>
         </ElTabPane>
-        <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+        <ElTabPane v-if="isEditing" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
       </ElTabs>
       <template #footer>
         <span class="dialog-footer">

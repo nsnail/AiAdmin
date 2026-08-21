@@ -19,6 +19,17 @@ namespace AiAdmin.Api.Controllers;
 public sealed class DictionariesController(AppDbContext db, DictionarySnapshotService dictionarySnapshotService) : ControllerBase
 {
     /// <summary>
+    ///     查询字典内容筛选字段元数据
+    /// </summary>
+    /// <returns>字典内容筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query dictionary item filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields()
+    {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<DictionaryItem>()));
+    }
+
+    /// <summary>
     ///     查询字典目录树
     /// </summary>
     /// <returns>字典目录树</returns>

@@ -11,7 +11,6 @@
     <ElCard class="art-table-card" :style="{ 'margin-top': showSearchBar ? '12px' : '0' }">
       <ArtTableHeader
         v-model:columns="columnChecks"
-        v-model:showSearchBar="showSearchBar"
         :loading="loading"
         @refresh="refreshData"
       >

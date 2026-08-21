@@ -9,7 +9,7 @@
     @closed="handleClosed"
   >
     <ElTabs v-model="activeTab">
-      <ElTabPane label="编辑" name="form">
+      <ElTabPane label="基本信息" name="form">
         <ArtForm
           ref="formRef"
           v-model="form"
@@ -29,7 +29,7 @@
           </template>
         </ArtForm>
       </ElTabPane>
-      <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+      <ElTabPane v-if="props.editData?.id" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
 
     <template #footer>

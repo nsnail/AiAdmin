@@ -342,7 +342,8 @@
       "referrals": "My Referrals"
     },
     "dictionaryCategories": {
-      "systemSettings": "System Settings"
+      "systemSettings": "System Settings",
+      "scheduledJobPlaceholders": "Scheduled Job Placeholders"
     },
     "safeguard": {
       "title": "Safeguard",
@@ -610,6 +611,7 @@
     },
     "menu": { "name": "Menu name", "parentName": "Parent menu", "path": "Route path" },
     "department": { "name": "Department name", "code": "Department code" },
+    "dictionary": { "label": "Label", "value": "Value", "remark": "Remark", "sort": "Sort", "isEnabled": "Enabled" },
     "api": {
       "name": "API name",
       "method": "HTTP method",
@@ -629,6 +631,9 @@
       "parentMenu": "Enter parent menu",
       "departmentName": "Enter department name",
       "departmentCode": "Enter department code",
+      "dictionaryLabel": "Enter label",
+      "dictionaryValue": "Enter value",
+      "dictionaryRemark": "Enter remark",
       "controller": "Enter controller",
       "controllerName": "Enter controller name",
       "apiName": "Enter API name",

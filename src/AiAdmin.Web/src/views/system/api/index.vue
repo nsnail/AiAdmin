@@ -17,8 +17,8 @@
         <ElButton @click="advancedQueryVisible = true">高级查询</ElButton>
       </div>
 
-      <ElTable
-        v-loading="loading"
+      <ArtTable
+        :loading="loading"
         :data="groupedEndpoints"
         row-key="key"
         default-expand-all
@@ -69,7 +69,7 @@
           </template>
         </ElTableColumn>
         <ElTableColumn prop="action" label="操作" min-width="140" sortable="custom" />
-      </ElTable>
+      </ArtTable>
     </ElCard>
     <ArtDynamicQueryDrawer
       v-model:visible="advancedQueryVisible"

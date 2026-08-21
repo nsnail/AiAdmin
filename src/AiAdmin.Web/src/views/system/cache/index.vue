@@ -17,14 +17,14 @@
     </ElCard>
     <ElCard class="art-table-card">
       <template #header><div class="flex items-center justify-between gap-3"><ElInput v-model="pattern" clearable :placeholder="t('redisCache.filters.pattern')" @keyup.enter="loadKeys"><template #prefix><ArtSvgIcon icon="ri:search-line" /></template></ElInput><div class="flex shrink-0 gap-2"><ElButton @click="openDialog()"><ArtSvgIcon icon="ri:add-line" class="mr-1" />{{ t('redisCache.actions.add') }}</ElButton><ElButton text circle :title="t('redisCache.actions.refresh')" @click="loadKeys"><ArtSvgIcon icon="ri:refresh-line" /></ElButton></div></div></template>
-      <ElTable v-loading="loading" :data="keys" height="calc(100vh - 330px)">
+      <ArtTable :loading="loading" :data="keys" height="calc(100vh - 330px)">
         <ElTableColumn prop="key" :label="t('redisCache.fields.key')" min-width="300" show-overflow-tooltip />
         <ElTableColumn prop="type" :label="t('redisCache.fields.type')" width="120" />
         <ElTableColumn :label="t('redisCache.fields.memory')" width="140"><template #default="{ row }">{{ formatMemory(row.memoryBytes) }}</template></ElTableColumn>
         <ElTableColumn prop="length" :label="t('redisCache.fields.length')" width="100" />
         <ElTableColumn :label="t('redisCache.fields.ttl')" width="160"><template #default="{ row }">{{ formatTtl(row.timeToLiveMilliseconds) }}</template></ElTableColumn>
-        <ElTableColumn :label="t('redisCache.fields.actions')" width="150" fixed="right"><template #default="{ row }"><ArtButtonTable type="view" :title="t('redisCache.actions.view')" @click="openDialog(row.key, true)" /><ArtButtonTable v-if="row.type === 'String'" type="edit" :title="t('redisCache.actions.edit')" @click="openDialog(row.key)" /><ArtButtonTable type="delete" :title="t('redisCache.actions.delete')" @click="deleteKey(row.key)" /></template></ElTableColumn>
-      </ElTable>
+        <ElTableColumn class-name="cache-actions-column" :label="t('redisCache.fields.actions')" width="210" fixed="right"><template #default="{ row }"><ArtButtonTable type="view" :title="t('redisCache.actions.view')" @click="openDialog(row.key, true)" /><ArtButtonTable v-if="row.type === 'String'" type="edit" :title="t('redisCache.actions.edit')" @click="openDialog(row.key)" /><ArtButtonTable type="delete" :title="t('redisCache.actions.delete')" @click="deleteKey(row.key)" /></template></ElTableColumn>
+      </ArtTable>
     </ElCard>
     <ElDialog v-model="dialogVisible" :title="dialogReadonly ? t('redisCache.dialog.view') : form.key ? t('redisCache.dialog.edit') : t('redisCache.dialog.add')" width="680px" destroy-on-close>
       <ElForm label-width="110px"><ElFormItem :label="t('redisCache.fields.key')" required><ElInput v-model="form.key" :disabled="dialogReadonly || Boolean(editingKey)" /></ElFormItem><ElFormItem :label="t('redisCache.fields.type')"><ElInput :model-value="valueType" disabled /></ElFormItem><ElFormItem :label="t('redisCache.fields.value')" required><ElInput v-model="form.value" type="textarea" :rows="12" :disabled="dialogReadonly" /></ElFormItem><ElFormItem :label="t('redisCache.fields.expireSeconds')"><ElInputNumber v-model="form.expireSeconds" :min="0" :disabled="dialogReadonly" /></ElFormItem></ElForm>
@@ -72,4 +72,8 @@
   .cache-page > .art-table-card { flex: 1; min-height: 0; }
   .cache-page > .art-table-card :deep(.el-card__body) { height: calc(100% - 58px); }
   .cache-page > .art-table-card :deep(.el-input) { max-width: 420px; }
+  .cache-page :deep(.cache-actions-column .cell) {
+    overflow: visible;
+    text-overflow: clip;
+  }
 </style>

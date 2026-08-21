@@ -2,7 +2,7 @@
   <div class="art-full-height">
     <ScheduledJobSearch v-show="showSearchBar" v-model="searchForm" @search="handleSearch" @reset="resetSearchParams" />
     <ElCard class="art-table-card" :style="{ 'margin-top': showSearchBar ? '12px' : '0' }">
-      <ArtTableHeader v-model:columns="columnChecks" v-model:showSearchBar="showSearchBar" :loading="loading" @refresh="refreshData">
+      <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
         <template #left><ElButton v-ripple @click="openDialog()">新增作业</ElButton></template>
       </ArtTableHeader>
       <ArtTable
@@ -30,7 +30,7 @@
           @reset="resetExecutionSearch"
         />
         <ElCard class="art-table-card" :style="{ 'margin-top': executionShowSearchBar ? '12px' : '0' }">
-          <ArtTableHeader v-model:columns="executionColumnChecks" v-model:showSearchBar="executionShowSearchBar" :loading="executionLoading" @refresh="executionRefreshData" />
+          <ArtTableHeader v-model:columns="executionColumnChecks" :loading="executionLoading" @refresh="executionRefreshData" />
           <ArtTable
             class="execution-table"
             :loading="executionLoading" :data="executionData" :columns="executionColumns" :pagination="executionPagination"

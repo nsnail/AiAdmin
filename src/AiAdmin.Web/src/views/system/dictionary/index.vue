@@ -1,5 +1,12 @@
 <template>
   <div class="art-full-height">
+    <ArtSearchBar
+      v-model="searchForm"
+      :filter-fields="filterFields"
+      :advanced-query-fields="advancedQueryFields"
+      @search="handleSearch"
+      @reset="resetSearch"
+    />
     <div class="dictionary-layout">
       <ElCard class="directory-panel art-card-xs">
         <template #header>
@@ -58,15 +65,6 @@
               <ElButton v-auth="'add'" :disabled="!selectedCategory" @click="openItemDialog()">
                 <ArtSvgIcon icon="ri:add-line" class="mr-1" />新增字典内容
               </ElButton>
-              <ElSelect
-                v-model="itemEnabledFilter"
-                clearable
-                filterable
-                placeholder="全部"
-                class="enabled-filter"
-              >
-                <ElOption label="启用" :value="true" /><ElOption label="禁用" :value="false" />
-              </ElSelect>
               <span class="text-g-500">{{
                 selectedCategory ? getCategoryName(selectedCategory) : '请选择字典目录'
               }}</span>
@@ -74,7 +72,12 @@
           </template>
         </ArtTableHeader>
 
-        <ElTable v-loading="loading" :data="filteredItems" height="calc(100vh - 220px)">
+        <ArtTable
+          :loading="loading"
+          :data="filteredItems"
+          height="calc(100vh - 220px)"
+          @row-contextmenu="showContextMenu"
+        >
           <ElTableColumn prop="label" label="标签" min-width="160" sortable />
           <ElTableColumn prop="value" label="键值" min-width="160" sortable />
           <ElTableColumn prop="sort" label="排序" width="90" sortable />
@@ -100,7 +103,12 @@
               /></ElButton>
             </template>
           </ElTableColumn>
-        </ElTable>
+        </ArtTable>
+        <ArtMenuRight
+          ref="menuRef"
+          :menu-items="contextMenuItems"
+          @select="handleContextMenuSelect"
+        />
       </ElCard>
     </div>
 
@@ -111,7 +119,7 @@
       destroy-on-close
     >
       <ElTabs v-model="categoryDialogTab">
-        <ElTabPane label="编辑" name="form">
+        <ElTabPane label="基本信息" name="form">
           <ElForm label-width="90px">
             <ElFormItem label="上级目录"
               ><ElSelect
@@ -138,7 +146,7 @@
             /></ElFormItem>
           </ElForm>
         </ElTabPane>
-        <ElTabPane label="原始数据" name="raw-data"
+        <ElTabPane v-if="categoryForm.id" label="原始数据" name="raw-data"
           ><ArtRawData :data="categoryRawData"
         /></ElTabPane>
       </ElTabs>
@@ -155,7 +163,7 @@
       destroy-on-close
     >
       <ElTabs v-model="itemDialogTab">
-        <ElTabPane label="编辑" name="form">
+        <ElTabPane label="基本信息" name="form">
           <ElForm label-width="80px">
             <ElFormItem label="标签" required
               ><ElInput v-model="itemForm.label" maxlength="100"
@@ -177,7 +185,7 @@
             /></ElFormItem>
           </ElForm>
         </ElTabPane>
-        <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="itemRawData" /></ElTabPane>
+        <ElTabPane v-if="itemForm.id" label="原始数据" name="raw-data"><ArtRawData :data="itemRawData" /></ElTabPane>
       </ElTabs>
       <template #footer
         ><ElButton @click="itemDialogVisible = false">取消</ElButton
@@ -192,12 +200,16 @@
   import { useI18n } from 'vue-i18n'
   import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
+  import ArtMenuRight from '@/components/core/others/art-menu-right/index.vue'
+  import type { MenuItemType } from '@/components/core/others/art-menu-right/index.vue'
+  import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
   import {
     fetchCreateDictionaryCategory,
     fetchCreateDictionaryItem,
     fetchDeleteDictionaryCategory,
     fetchDeleteDictionaryItem,
     fetchGetDictionaryCategories,
+    fetchGetDictionaryFilterFields,
     fetchGetDictionaryItems,
     fetchUpdateDictionaryCategory,
     fetchUpdateDictionaryItem
@@ -212,13 +224,17 @@
   const treeRef = ref()
   const loading = ref(false)
   const saving = ref(false)
-  const itemEnabledFilter = ref<boolean | undefined>(true)
+  const filterFields = ref<import('@/api/system-manage').ListFilterField[]>([])
+  const searchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
+  const appliedSearchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
   const categoryDialogVisible = ref(false)
   const itemDialogVisible = ref(false)
   const categoryDialogTab = ref('form')
   const itemDialogTab = ref('form')
   const categoryRawData = ref<Partial<Category> | Record<string, unknown>>({})
   const itemRawData = ref<Partial<Item> | Record<string, unknown>>({})
+  const menuRef = ref<InstanceType<typeof ArtMenuRight>>()
+  const contextItem = ref<Item>()
   const categoryForm = reactive({
     id: '',
     code: '',
@@ -231,6 +247,8 @@
   const getCategoryName = (category: Category) =>
     category.code === 'system_settings'
       ? t('menus.dictionaryCategories.systemSettings')
+      : category.code === 'scheduled_job_placeholders'
+        ? t('menus.dictionaryCategories.scheduledJobPlaceholders')
       : category.name
 
   const flattenCategories = (nodes: Category[], depth = 0): Array<Category & { label: string }> =>
@@ -239,10 +257,58 @@
       ...flattenCategories(node.children, depth + 1)
     ])
   const categoryOptions = computed(() => flattenCategories(categories.value))
-  const filteredItems = computed(() =>
-    items.value.filter(
-      (item) => itemEnabledFilter.value === undefined || item.isEnabled === itemEnabledFilter.value
-    )
+  const translate = (key: string) => {
+    const value = t(key)
+    return value === key ? key : value
+  }
+  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({
+    field: field.field,
+    label: translate(field.label),
+    type: field.valueType
+  })))
+  const getItemFieldValue = (item: Item, field: string) => {
+    const property = field.charAt(0).toLowerCase() + field.slice(1)
+    return item[property as keyof Item]
+  }
+  const matchesFilter = (item: Item, filter?: DynamicFilter): boolean => {
+    if (!filter) return true
+    if (filter.filters?.length) {
+      const results = filter.filters.map((child) => matchesFilter(item, child))
+      return filter.logic === 'Or' ? results.some(Boolean) : results.every(Boolean)
+    }
+    if (!filter.field || !filter.operator) return true
+    const actual = getItemFieldValue(item, filter.field)
+    const expected = filter.value
+    if (filter.operator === 'Equal') return actual === expected
+    if (filter.operator === 'NotEqual') return actual !== expected
+    if (filter.operator === 'Contains') return String(actual ?? '').toLowerCase().includes(String(expected ?? '').toLowerCase())
+    if (filter.operator === 'StartsWith') return String(actual ?? '').toLowerCase().startsWith(String(expected ?? '').toLowerCase())
+    if (filter.operator === 'EndsWith') return String(actual ?? '').toLowerCase().endsWith(String(expected ?? '').toLowerCase())
+    if (filter.operator === 'GreaterThan') return Number(actual) > Number(expected)
+    if (filter.operator === 'GreaterThanOrEqual') return Number(actual) >= Number(expected)
+    if (filter.operator === 'LessThan') return Number(actual) < Number(expected)
+    if (filter.operator === 'LessThanOrEqual') return Number(actual) <= Number(expected)
+    return true
+  }
+  const filteredItems = computed(() => {
+    return items.value.filter((item) => {
+      const matchesFields = filterFields.value.every((field) => {
+        const expected = appliedSearchForm[field.field]
+        if (expected === undefined || expected === null || expected === '') return true
+        const actual = getItemFieldValue(item, field.field)
+        return field.control === 'select' ? String(actual) === String(expected) : String(actual ?? '').toLowerCase().includes(String(expected).toLowerCase())
+      })
+      return matchesFields && matchesFilter(item, appliedSearchForm.dynamicFilter)
+    })
+  })
+  const contextMenuItems = computed<MenuItemType[]>(() =>
+    contextItem.value
+      ? [
+          { key: 'edit', label: '编辑', icon: 'ri:edit-2-line' },
+          { key: 'delete', label: '删除', icon: 'ri:delete-bin-4-line', showLine: true },
+          { key: 'refresh', label: '刷新', icon: 'ri:refresh-line' }
+        ]
+      : []
   )
 
   const loadCategories = async (preferredId?: string) => {
@@ -267,6 +333,29 @@
     } finally {
       loading.value = false
     }
+  }
+  const handleSearch = (params: typeof searchForm) => {
+    Object.keys(appliedSearchForm).forEach((key) => delete appliedSearchForm[key])
+    Object.assign(appliedSearchForm, {
+      ...params,
+      dynamicFilter: params.dynamicFilter ? structuredClone(params.dynamicFilter) : undefined
+    })
+  }
+  const resetSearch = () => {
+    Object.keys(searchForm).forEach((key) => delete searchForm[key])
+    Object.keys(appliedSearchForm).forEach((key) => delete appliedSearchForm[key])
+  }
+  const showContextMenu = (row: Item, _column: unknown, event: MouseEvent) => {
+    contextItem.value = row
+    event.preventDefault()
+    menuRef.value?.show(event)
+  }
+  const handleContextMenuSelect = async (item: MenuItemType) => {
+    const selectedItem = contextItem.value
+    if (!selectedItem) return
+    if (item.key === 'edit') openItemDialog(selectedItem)
+    else if (item.key === 'delete') await deleteItem(selectedItem)
+    else if (item.key === 'refresh') await loadItems()
   }
   const selectCategory = async (category: Category) => {
     selectedCategory.value = category
@@ -355,7 +444,10 @@
     await fetchDeleteDictionaryItem(item.id)
     await loadItems()
   }
-  onMounted(() => loadCategories())
+  onMounted(async () => {
+    filterFields.value = await fetchGetDictionaryFilterFields()
+    await loadCategories()
+  })
 </script>
 
 <style scoped>
@@ -364,10 +456,12 @@
     grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
     gap: 12px;
     height: 100%;
+    margin-top: 12px;
   }
   .directory-panel,
   .content-panel {
     min-height: 0;
+    margin-top: 0;
   }
   .directory-panel :deep(.el-card__body) {
     height: calc(100% - 57px);

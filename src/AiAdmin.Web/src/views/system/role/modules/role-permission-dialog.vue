@@ -8,7 +8,7 @@
     @close="handleClose"
   >
     <ElTabs v-model="activeTab">
-      <ElTabPane label="编辑" name="form">
+      <ElTabPane label="基本信息" name="form">
         <ElScrollbar height="70vh">
           <ElTree
             ref="treeRef"

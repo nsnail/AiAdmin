@@ -342,7 +342,8 @@
       "referrals": "我的邀请"
     },
     "dictionaryCategories": {
-      "systemSettings": "系统设置"
+      "systemSettings": "系统设置",
+      "scheduledJobPlaceholders": "计划作业占位符"
     },
     "safeguard": {
       "title": "运维管理",
@@ -606,6 +607,7 @@
     },
     "menu": { "name": "菜单名称", "parentName": "上级菜单", "path": "路由地址" },
     "department": { "name": "部门名称", "code": "部门编码" },
+    "dictionary": { "label": "标签", "value": "键值", "remark": "备注", "sort": "排序", "isEnabled": "是否启用" },
     "api": {
       "name": "接口名称",
       "method": "请求方法",
@@ -625,6 +627,9 @@
       "parentMenu": "请输入上级菜单",
       "departmentName": "请输入部门名称",
       "departmentCode": "请输入部门编码",
+      "dictionaryLabel": "请输入标签",
+      "dictionaryValue": "请输入键值",
+      "dictionaryRemark": "请输入备注",
       "controller": "请输入控制器",
       "controllerName": "请输入控制器名称",
       "apiName": "请输入接口名称",

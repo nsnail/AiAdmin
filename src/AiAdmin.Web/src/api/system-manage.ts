@@ -398,6 +398,10 @@ export function fetchGetDictionaryCategories() {
   return request.get<Api.SystemManage.DictionaryCategory[]>({ url: '/api/dictionary/categories' })
 }
 
+export function fetchGetDictionaryFilterFields() {
+  return request.get<ListFilterField[]>({ url: '/api/dictionary/filter-fields' })
+}
+
 export function fetchCreateDictionaryCategory(data: Api.SystemManage.SaveDictionaryCategoryParams) {
   return request.post<Api.SystemManage.DictionaryCategory>({
     url: '/api/dictionary/categories',

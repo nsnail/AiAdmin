@@ -7,7 +7,7 @@
     @close="handleClose"
   >
     <ElTabs v-model="activeTab">
-      <ElTabPane label="编辑" name="form">
+      <ElTabPane label="基本信息" name="form">
         <ElForm ref="formRef" :model="form" :rules="rules" label-width="120px">
           <ElFormItem label="角色名称" prop="roleName">
             <ElInput v-model="form.roleName" placeholder="请输入角色名称" />
@@ -36,7 +36,7 @@
           </ElFormItem>
         </ElForm>
       </ElTabPane>
-      <ElTabPane label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+      <ElTabPane v-if="props.dialogType === 'edit'" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
     <template #footer>
       <ElButton :disabled="saving" @click="handleClose">取消</ElButton>

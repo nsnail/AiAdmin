@@ -6,7 +6,7 @@
     align-center
   >
     <ElTabs v-model="activeTab">
-      <ElTabPane label="编辑" name="form">
+      <ElTabPane label="基本信息" name="form">
         <ElForm ref="formRef" :model="formData" :rules="rules" label-width="90px">
           <ElFormItem label="上级部门" prop="parentId">
             <ElTreeSelect
@@ -44,7 +44,7 @@
           </ElFormItem>
         </ElForm>
       </ElTabPane>
-      <ElTabPane :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+      <ElTabPane v-if="props.type === 'edit'" :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
     </ElTabs>
     <template #footer>
       <ElButton :disabled="props.saving" @click="dialogVisible = false">取消</ElButton>
