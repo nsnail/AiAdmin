@@ -330,9 +330,11 @@
   }
   const handleCellQuery = (condition: DynamicFilter) => {
     const currentFilter = appliedSearchForm.dynamicFilter
-    appliedSearchForm.dynamicFilter = currentFilter
+    const dynamicFilter = currentFilter
       ? { logic: 'And', filters: [currentFilter, condition] }
       : condition
+    appliedSearchForm.dynamicFilter = dynamicFilter
+    searchForm.dynamicFilter = structuredClone(dynamicFilter)
   }
   const selectCategory = async (category: Category) => {
     selectedCategory.value = category
