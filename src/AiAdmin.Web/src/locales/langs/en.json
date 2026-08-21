@@ -483,7 +483,7 @@
       "level": "Level",
       "category": "Category",
       "clientIp": "Client IP",
-      "elapsedMilliseconds": "Elapsed (ms)",
+      "elapsedMilliseconds": "Elapsed",
       "message": "Message",
       "eventId": "Event ID",
       "eventName": "Event name",
@@ -494,8 +494,8 @@
       "requestHeaders": "Request headers",
       "requestId": "Request ID",
       "requestMethod": "Request method",
-      "requestRelativeUrl": "Request relative URL",
-      "requestUrl": "Request URL",
+      "requestRelativeUrl": "API path",
+      "requestUrl": "Call URL",
       "responseBody": "Response body",
       "responseContentType": "Response Content-Type",
       "responseHeaders": "Response headers",
@@ -506,6 +506,19 @@
       "threadId": "Thread ID",
       "userAgent": "User-Agent",
       "userName": "User name"
+    },
+    "detail": {
+      "operation": "Actions",
+      "view": "View details",
+      "title": "Log details",
+      "close": "Close",
+      "tabs": {
+        "basic": "Basic",
+        "api": "API",
+        "sql": "SQL",
+        "http": "HTTP call",
+        "other": "Other"
+      }
     }
   },
   "scheduledJob": {

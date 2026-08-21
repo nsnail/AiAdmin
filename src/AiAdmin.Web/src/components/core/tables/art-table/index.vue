@@ -232,6 +232,7 @@
     sortable: false,
     submenuLeft: false,
     valueType: 'string' as QueryValueType,
+    operators: undefined as string[] | undefined,
     initialValue: undefined as unknown
   })
   const queryDialogVisible = ref(false)
@@ -272,13 +273,13 @@
     { label: '均不匹配', symbol: 'NOT IN', value: 'NotAny' }
   ]
   const availableOperators = computed(() =>
-    queryMenu.valueType === 'string'
+    (queryMenu.valueType === 'string'
       ? stringOperators
       : queryMenu.valueType === 'boolean'
         ? booleanOperators
         : queryMenu.valueType === 'date'
           ? dateOperators
-          : comparableOperators
+          : comparableOperators).filter((operator) => !queryMenu.operators || queryMenu.operators.includes(operator.value))
   )
   const selectedOperatorLabel = computed(() => {
     const operator = availableOperators.value.find((item) => item.value === queryOperator.value)
@@ -486,6 +487,7 @@
     delete columnProps.queryField
     delete columnProps.queryValueField
     delete columnProps.queryValueType
+    delete columnProps.queryOperators
     return columnProps
   }
 
@@ -539,6 +541,7 @@
       sortable: hasSortListener && definition.sortable !== false,
       submenuLeft: event.clientX > window.innerWidth - 360,
       valueType: targetValueType || definition.queryValueType || inferValueType(value),
+      operators: definition.queryOperators,
       initialValue: value
     })
   }

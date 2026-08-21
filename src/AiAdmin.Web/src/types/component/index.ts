@@ -67,6 +67,8 @@ export interface ColumnOption<T = any> {
   queryValueField?: string
   // 右键查询字段值类型
   queryValueType?: 'string' | 'number' | 'boolean' | 'date'
+  // 右键查询允许的操作符
+  queryOperators?: string[]
   // 过滤器选项
   filters?: any[]
   // 过滤方法

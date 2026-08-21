@@ -41,6 +41,7 @@
                   :is="getComponent(item)"
                   :model-value="getFieldValue(item.key)"
                   @update:model-value="setFieldValue(item.key, $event)"
+                  @keydown.enter="handleInputEnter(item, $event)"
                   v-bind="getProps(item)"
                 >
                   <template v-if="item.type === 'select' && getProps(item)?.options">
@@ -79,6 +80,7 @@
                 :is="getComponent(item)"
                 :model-value="getFieldValue(item.key)"
                 @update:model-value="setFieldValue(item.key, $event)"
+                @keydown.enter="handleInputEnter(item, $event)"
                 v-bind="getProps(item)"
               >
                 <template v-if="item.type === 'select' && getProps(item)?.options">
@@ -606,7 +608,7 @@
   const queryPreviewText = ref('{}')
   const queryPreviewError = ref('')
   watch(
-    formattedQueryPreview,
+    [() => modelValue.value, activeAdvancedFilter],
     () => {
       queryPreviewText.value = JSON.stringify(
         activeAdvancedFilter.value
@@ -617,7 +619,7 @@
       )
       queryPreviewError.value = ''
     },
-    { immediate: true }
+    { deep: true, immediate: true }
   )
 
   const parseQueryPreview = (): Record<string, any> | undefined => {
@@ -687,6 +689,15 @@
     // 使用 type 获取预定义组件
     const { type } = item
     return componentMap[type as keyof typeof componentMap] || componentMap['input']
+  }
+
+  const handleInputEnter = (item: SearchFormItem, event: KeyboardEvent) => {
+    const target = event.target as HTMLElement | null
+    if (target?.tagName === 'TEXTAREA') return
+    const inputTypes = ['input', 'number', 'inputTag']
+    if (item.type && !inputTypes.includes(item.type)) return
+    event.preventDefault()
+    handleSearch()
   }
 
   /**

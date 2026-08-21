@@ -479,7 +479,7 @@
       "level": "级别",
       "category": "分类",
       "clientIp": "客户端 IP",
-      "elapsedMilliseconds": "耗时（毫秒）",
+      "elapsedMilliseconds": "耗时",
       "message": "消息",
       "eventId": "事件编号",
       "eventName": "事件名称",
@@ -490,8 +490,8 @@
       "requestHeaders": "请求头",
       "requestId": "请求 ID",
       "requestMethod": "请求方法",
-      "requestRelativeUrl": "请求相对 URL",
-      "requestUrl": "请求 URL",
+      "requestRelativeUrl": "API 路径",
+      "requestUrl": "调用 URL",
       "responseBody": "响应体",
       "responseContentType": "响应 Content-Type",
       "responseHeaders": "响应头",
@@ -502,6 +502,19 @@
       "threadId": "线程号",
       "userAgent": "User-Agent",
       "userName": "用户名"
+    },
+    "detail": {
+      "operation": "操作",
+      "view": "查看详情",
+      "title": "日志详情",
+      "close": "关闭",
+      "tabs": {
+        "basic": "基础信息",
+        "api": "API 信息",
+        "sql": "SQL 信息",
+        "http": "HTTP 调用信息",
+        "other": "其他信息"
+      }
     }
   },
   "scheduledJob": {

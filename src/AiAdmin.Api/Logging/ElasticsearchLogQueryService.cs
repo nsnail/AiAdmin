@@ -14,10 +14,12 @@ namespace AiAdmin.Api.Logging;
 public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions<ElasticsearchLogOptions> options)
 {
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
+
+    // 通用关键词只查询文本字段，避免 Elasticsearch 将文字转换为数值或日期
     private static readonly string[] _keywordFields = [
-        "category", "clientIp", "elapsedMilliseconds", "eventId", "eventName", "exception", "level", "logType", "message", "requestBody"
+        "category", "clientIp", "eventName", "exception", "level", "logType", "message", "requestBody"
         , "requestContentType", "requestHeaders", "requestId", "requestMethod", "requestRelativeUrl", "requestUrl", "responseBody"
-        , "responseContentType", "responseHeaders", "serverIp", "source", "sql", "statusCode", "threadId", "userAgent", "userName"
+        , "responseContentType", "responseHeaders", "serverIp", "source", "sql", "userAgent", "userName"
     ];
 
     /// <summary>
@@ -49,7 +51,7 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             var keyword = request.Keyword.Trim();
             var searchField = ResolveSearchField(request.SearchField);
             must.Add(searchField is null
-                ? new { multi_match = new { query = keyword, fields = _keywordFields } }
+                ? new { multi_match = new { query = keyword, fields = _keywordFields, lenient = true } }
                 : new { match = new Dictionary<string, string> { [searchField] = keyword } });
         }
 
