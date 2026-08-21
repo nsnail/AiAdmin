@@ -522,7 +522,10 @@
     _cell: HTMLElement,
     event: MouseEvent
   ) => {
-    const definition = props.columns.find((item) => item.prop === column.property) || column
+    const definition = props.columns.find((item) => item.prop === column.property) || {
+      ...column,
+      prop: column.prop || column.property
+    }
     const queryTarget = (event.target as HTMLElement | null)?.closest<HTMLElement>(
       '[data-query-field]'
     )
