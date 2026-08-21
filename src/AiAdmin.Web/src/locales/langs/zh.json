@@ -330,6 +330,7 @@
       "dictionary": "字典管理",
       "files": "文件管理",
       "scheduledJob": "计划作业",
+      "cache": "缓存管理",
       "referrals": "我的邀请"
     },
     "log": {
@@ -467,6 +468,14 @@
     }
   },
   "rawData": "原始数据",
+  "redisCache": {
+    "server": { "title": "Redis 服务器", "endpoint": "地址", "version": "版本", "mode": "模式", "clients": "连接数", "usedMemory": "已用内存", "maxMemory": "最大内存", "databaseSize": "键数量", "cpuUsage": "CPU 使用率", "uptime": "运行时间", "hitRate": "缓存命中率" },
+    "filters": { "pattern": "键匹配模式，例如 user:*" },
+    "fields": { "key": "键", "type": "类型", "ttl": "过期时间", "memory": "占用内存", "length": "长度", "value": "值", "expireSeconds": "过期时间（秒）", "persistent": "永不过期", "actions": "操作" },
+    "actions": { "refresh": "刷新", "add": "新增缓存", "view": "查看", "edit": "编辑", "delete": "删除", "close": "关闭", "save": "保存" },
+    "dialog": { "view": "查看缓存", "edit": "编辑缓存", "add": "新增缓存" },
+    "messages": { "saved": "缓存已保存", "deleted": "缓存已删除", "confirmDelete": "确定删除缓存键“{key}”吗？" }
+  },
   "systemLog": {
     "filters": {
       "level": "日志级别",

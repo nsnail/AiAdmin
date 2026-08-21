@@ -121,6 +121,17 @@ export const systemManagementRoute: AppRouteRecord = {
         keepAlive: true,
         roles: ['R_SUPER']
       }
+    },
+    {
+      path: 'cache',
+      name: 'RedisCacheManagement',
+      component: '/system/cache',
+      meta: {
+        title: 'menus.system.cache',
+        icon: 'ri:database-2-line',
+        keepAlive: true,
+        roles: ['R_SUPER']
+      }
     }
   ]
 }

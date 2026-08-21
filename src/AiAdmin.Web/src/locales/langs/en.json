@@ -330,6 +330,7 @@
       "dictionary": "Dictionary Management",
       "files": "File Management",
       "scheduledJob": "Scheduled Jobs",
+      "cache": "Cache Management",
       "referrals": "My Referrals"
     },
     "log": {
@@ -471,6 +472,14 @@
     }
   },
   "rawData": "Raw Data",
+  "redisCache": {
+    "server": { "title": "Redis Server", "endpoint": "Endpoint", "version": "Version", "mode": "Mode", "clients": "Clients", "usedMemory": "Used memory", "maxMemory": "Max memory", "databaseSize": "Key count", "cpuUsage": "CPU usage", "uptime": "Uptime", "hitRate": "Cache hit rate" },
+    "filters": { "pattern": "Key pattern, for example user:*" },
+    "fields": { "key": "Key", "type": "Type", "ttl": "Expiration", "memory": "Memory", "length": "Length", "value": "Value", "expireSeconds": "Expiration (seconds)", "persistent": "Persistent", "actions": "Actions" },
+    "actions": { "refresh": "Refresh", "add": "Add cache", "view": "View", "edit": "Edit", "delete": "Delete", "close": "Close", "save": "Save" },
+    "dialog": { "view": "View cache", "edit": "Edit cache", "add": "Add cache" },
+    "messages": { "saved": "Cache saved", "deleted": "Cache deleted", "confirmDelete": "Delete cache key \"{key}\"?" }
+  },
   "systemLog": {
     "filters": {
       "level": "Log level",

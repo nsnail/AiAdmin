@@ -34,7 +34,13 @@ builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
-builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+
+// 复用同一条 Redis 连接，并允许缓存管理读取服务器级 INFO/DBSIZE 等指标
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => {
+    var redisOptions = ConfigurationOptions.Parse(redisConnection);
+    redisOptions.AllowAdmin = true;
+    return ConnectionMultiplexer.Connect(redisOptions);
+});
 builder.Services.AddSingleton<ElasticsearchLogQueue>();
 builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddHttpContextAccessor();

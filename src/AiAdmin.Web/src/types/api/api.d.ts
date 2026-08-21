@@ -293,6 +293,22 @@ declare namespace Api {
       children: DictionaryCategory[]
     }
 
+    interface RedisServerInfo {
+      endpoint: string
+      version: string
+      mode: string
+      connectedClients: number
+      usedMemory: string
+      maxMemory: string
+      databaseSize: number
+    }
+
+    interface RedisCacheKey {
+      key: string
+      type: string
+      timeToLiveMilliseconds: number
+    }
+
     interface DictionaryItem {
       id: string
       createdAt: string

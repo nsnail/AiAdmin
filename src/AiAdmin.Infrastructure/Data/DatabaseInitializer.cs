@@ -97,6 +97,7 @@ public static class DatabaseInitializer
         }
 
         await EnsureScheduledJobMenuAsync(db).ConfigureAwait(false);
+        await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
@@ -277,6 +278,32 @@ public static class DatabaseInitializer
                 }
             )
             .ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保已有数据库包含 Redis 缓存管理菜单
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureRedisCacheMenuAsync(AppDbContext db) {
+        if (await db.Menus.AnyAsync(x => x.Name == "RedisCacheManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        if (!await db.Menus.AnyAsync(x => x.Name == "SystemManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        _ = await db.Menus.AddAsync(new Menu {
+            Name = "RedisCacheManagement"
+            , Path = "cache"
+            , Component = "/system/cache"
+            , ParentName = "SystemManagement"
+            , Sort = 40
+            , IsEnabled = true
+            , MetaJson = /*lang=json,strict*/ "{\"title\":\"menus.system.cache\",\"icon\":\"ri:database-2-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\"]}"
+        }).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

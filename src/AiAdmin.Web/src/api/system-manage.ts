@@ -29,6 +29,57 @@ export interface ListFilterField {
 export type EnabledStateResource =
   'user' | 'role' | 'menu' | 'department' | 'dictionary-item'
 
+export interface RedisServerInfo {
+  endpoint: string
+  version: string
+  mode: string
+  connectedClients: number
+  usedMemory: string
+  maxMemory: string
+  databaseSize: number
+  cpuUsagePercent: number
+  uptimeSeconds: number
+  cacheHitRatePercent: number
+}
+
+export interface RedisCacheKey {
+  key: string
+  type: string
+  timeToLiveMilliseconds: number
+  memoryBytes: number
+  length: number
+}
+
+export interface RedisCacheValue extends RedisCacheKey {
+  value: string
+}
+
+export interface SaveRedisCacheParams {
+  key: string
+  value: string
+  expireSeconds: number
+}
+
+export function fetchGetRedisServerInfo() {
+  return request.get<RedisServerInfo>({ url: '/api/redis-cache/server-info' })
+}
+
+export function fetchGetRedisKeys(pattern?: string, limit = 100) {
+  return request.get<RedisCacheKey[]>({ url: '/api/redis-cache/keys', params: { pattern, limit } })
+}
+
+export function fetchGetRedisValue(key: string) {
+  return request.get<RedisCacheValue>({ url: '/api/redis-cache/value', params: { key } })
+}
+
+export function fetchSaveRedisValue(data: SaveRedisCacheParams) {
+  return request.put<RedisCacheValue>({ url: '/api/redis-cache/value', data })
+}
+
+export function fetchDeleteRedisValue(key: string) {
+  return request.del<void>({ url: '/api/redis-cache/value', params: { key } })
+}
+
 export function fetchUpdateEnabledState(
   resource: EnabledStateResource,
   id: string,
