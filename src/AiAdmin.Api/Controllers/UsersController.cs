@@ -1,5 +1,3 @@
-#pragma warning disable SA1518
-
 using System.Globalization;
 using System.Security.Claims;
 using AiAdmin.Api.Attributes;

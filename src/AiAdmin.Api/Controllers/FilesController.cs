@@ -18,6 +18,8 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/files")]
 public sealed class FilesController(MinioStorageService storage) : ControllerBase
 {
+    private const long _MAX_UPLOAD_SIZE = 100 * 1024 * 1024;
+
     /// <summary>
     ///     创建文件目录
     /// </summary>
@@ -113,13 +115,17 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
     /// <returns>文件对象信息</returns>
     [HttpPost("upload")]
     [ApiDescription("Upload file")]
-    [RequestSizeLimit(1073741824)]
+    [RequestSizeLimit(_MAX_UPLOAD_SIZE)]
     public async Task<ActionResult<ApiResponse<MinioObject>>> UploadAsync(
         IFormFile file
         , [FromQuery] string? path
     ) {
-        if (file.Length == 0) {
-            return BadRequest(new ApiResponse<object>(400, "File is empty", null));
+        switch (file.Length) {
+            // 限制单个文件大小，避免超大请求占用过多内存和存储资源
+            case 0:
+                return BadRequest(new ApiResponse<object>(400, "File is empty", null));
+            case > _MAX_UPLOAD_SIZE:
+                return BadRequest(new ApiResponse<object>(400, "File must not exceed 100 MB", null));
         }
 
         var normalizedPath = NormalizePath(path);

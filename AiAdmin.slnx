@@ -1,6 +1,8 @@
 <Solution>
     <Folder Name="/src/">
         <Project Path="src/AiAdmin.Api/AiAdmin.Api.csproj"/>
+        <Project Path="src/AiAdmin.Core/AiAdmin.Core.csproj"/>
+        <Project Path="src/AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
     </Folder>
     <Folder Name="/build/">
         <File Path="build/code.quality.props"/>

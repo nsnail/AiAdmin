@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <Import Project="$(SolutionDir)/build/code.quality.props"/>
+
+    <PropertyGroup>
+        <RootNamespace>AiAdmin.Api</RootNamespace>
+    </PropertyGroup>
+</Project>
