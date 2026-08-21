@@ -110,6 +110,17 @@ export const systemManagementRoute: AppRouteRecord = {
         keepAlive: true,
         roles: ['R_SUPER']
       }
+    },
+    {
+      path: 'scheduled-job',
+      name: 'ScheduledJobManagement',
+      component: '/system/scheduled-job',
+      meta: {
+        title: 'menus.system.scheduledJob',
+        icon: 'ri:timer-line',
+        keepAlive: true,
+        roles: ['R_SUPER']
+      }
     }
   ]
 }

@@ -3,7 +3,7 @@ import { AppRouteRecord } from '@/types/router'
 export const templateRoutes: AppRouteRecord = {
   path: '/template',
   name: 'Template',
-  component: '/index/index',
+  component: '',
   meta: {
     title: 'menus.template.title',
     icon: 'ri:apps-2-line'

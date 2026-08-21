@@ -1,4 +1,5 @@
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace AiAdmin.Api.Data;
@@ -6,10 +7,16 @@ namespace AiAdmin.Api.Data;
 /// <summary>
 ///     记录数据库读取和写入命令审计信息
 /// </summary>
+[SuppressMessage(
+    "StyleCop.CSharp.DocumentationRules", "SA1625:Element documentation should not be copied and pasted"
+    , Justification = "Interceptor overloads intentionally document the same database command parameters."
+)]
 public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAuditInterceptor> logger) : DbCommandInterceptor
 {
-    private static readonly Action<ILogger, string, long?, string?, Exception?> _logCommand = LoggerMessage.Define<string, long?, string?>(
-        LogLevel.Information, new EventId(2001, "DatabaseCommandAudit"), "Database {Operation} command executed by user {UserId} for {ContextType}"
+    private static readonly Action<ILogger, string, string, string, long, Exception?> _logCommand = LoggerMessage.Define<string, string, string, long>(
+        LogLevel.Information
+        , new EventId(2001, "DatabaseCommandAudit")
+        , "SQL command executed; LogType={LogType}; Source={Source}; Sql={Sql}; ElapsedMilliseconds={ElapsedMilliseconds}"
     );
 
     /// <summary>
@@ -23,8 +30,8 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         DbCommand command
         , CommandEventData eventData
         , InterceptionResult<int> result
-    ) {
-        WriteAudit("write", eventData);
+    )
+    {
         return base.NonQueryExecuting(command, eventData, result);
     }
 
@@ -41,8 +48,8 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         , CommandEventData eventData
         , InterceptionResult<int> result
         , CancellationToken cancellationToken = default
-    ) {
-        WriteAudit("write", eventData);
+    )
+    {
         return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
     }
 
@@ -57,8 +64,8 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         DbCommand command
         , CommandEventData eventData
         , InterceptionResult<DbDataReader> result
-    ) {
-        WriteAudit("read", eventData);
+    )
+    {
         return base.ReaderExecuting(command, eventData, result);
     }
 
@@ -75,8 +82,8 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         , CommandEventData eventData
         , InterceptionResult<DbDataReader> result
         , CancellationToken cancellationToken = default
-    ) {
-        WriteAudit("read", eventData);
+    )
+    {
         return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
     }
 
@@ -91,8 +98,8 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         DbCommand command
         , CommandEventData eventData
         , InterceptionResult<object> result
-    ) {
-        WriteAudit("read", eventData);
+    )
+    {
         return base.ScalarExecuting(command, eventData, result);
     }
 
@@ -109,22 +116,114 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         , CommandEventData eventData
         , InterceptionResult<object> result
         , CancellationToken cancellationToken = default
-    ) {
-        WriteAudit("read", eventData);
+    )
+    {
         return base.ScalarExecutingAsync(command, eventData, result, cancellationToken);
     }
 
     /// <summary>
-    ///     输出不包含 SQL 参数的数据库操作审计日志
+    ///     记录同步非查询命令完成信息
     /// </summary>
-    /// <param name="operation">数据库操作类型</param>
+    /// <param name="command">数据库命令</param>
     /// <param name="eventData">命令事件数据</param>
-    private void WriteAudit(
-        string operation
-        , CommandEventData eventData
-    ) {
-        var context = eventData.Context as AppDbContext;
-        var userId = context?.CurrentAuditActorUserId;
-        _logCommand(logger, operation, userId, eventData.Context?.GetType().Name, null);
+    /// <param name="result">命令执行结果</param>
+    /// <returns>命令执行结果</returns>
+    public override int NonQueryExecuted(DbCommand command, CommandExecutedEventData eventData, int result)
+    {
+        WriteAudit(command, eventData);
+        return base.NonQueryExecuted(command, eventData, result);
+    }
+
+    /// <summary>
+    ///     记录异步非查询命令完成信息
+    /// </summary>
+    /// <param name="command">数据库命令</param>
+    /// <param name="eventData">命令事件数据</param>
+    /// <param name="result">命令执行结果</param>
+    /// <param name="cancellationToken">取消操作令牌</param>
+    /// <returns>异步命令执行结果</returns>
+    public override ValueTask<int> NonQueryExecutedAsync(
+        DbCommand command
+        , CommandExecutedEventData eventData
+        , int result
+        , CancellationToken cancellationToken = default
+    )
+    {
+        WriteAudit(command, eventData);
+        return base.NonQueryExecutedAsync(command, eventData, result, cancellationToken);
+    }
+
+    /// <summary>
+    ///     记录同步读取命令完成信息
+    /// </summary>
+    /// <param name="command">数据库命令</param>
+    /// <param name="eventData">命令事件数据</param>
+    /// <param name="result">命令执行结果</param>
+    /// <returns>读取结果</returns>
+    public override DbDataReader ReaderExecuted(DbCommand command, CommandExecutedEventData eventData, DbDataReader result)
+    {
+        WriteAudit(command, eventData);
+        return base.ReaderExecuted(command, eventData, result);
+    }
+
+    /// <summary>
+    ///     记录异步读取命令完成信息
+    /// </summary>
+    /// <param name="command">数据库命令</param>
+    /// <param name="eventData">命令事件数据</param>
+    /// <param name="result">命令执行结果</param>
+    /// <param name="cancellationToken">取消操作令牌</param>
+    /// <returns>异步读取结果</returns>
+    public override ValueTask<DbDataReader> ReaderExecutedAsync(
+        DbCommand command
+        , CommandExecutedEventData eventData
+        , DbDataReader result
+        , CancellationToken cancellationToken = default
+    )
+    {
+        WriteAudit(command, eventData);
+        return base.ReaderExecutedAsync(command, eventData, result, cancellationToken);
+    }
+
+    /// <summary>
+    ///     记录同步标量命令完成信息
+    /// </summary>
+    /// <param name="command">数据库命令</param>
+    /// <param name="eventData">命令事件数据</param>
+    /// <param name="result">命令执行结果</param>
+    /// <returns>标量结果</returns>
+    public override object? ScalarExecuted(DbCommand command, CommandExecutedEventData eventData, object? result)
+    {
+        WriteAudit(command, eventData);
+        return base.ScalarExecuted(command, eventData, result);
+    }
+
+    /// <summary>
+    ///     记录异步标量命令完成信息
+    /// </summary>
+    /// <param name="command">数据库命令</param>
+    /// <param name="eventData">命令事件数据</param>
+    /// <param name="result">命令执行结果</param>
+    /// <param name="cancellationToken">取消操作令牌</param>
+    /// <returns>异步标量结果</returns>
+    public override ValueTask<object?> ScalarExecutedAsync(
+        DbCommand command
+        , CommandExecutedEventData eventData
+        , object? result
+        , CancellationToken cancellationToken = default
+    )
+    {
+        WriteAudit(command, eventData);
+        return base.ScalarExecutedAsync(command, eventData, result, cancellationToken);
+    }
+
+    /// <summary>
+    ///     输出数据库操作审计日志
+    /// </summary>
+    /// <param name="command">数据库命令</param>
+    /// <param name="eventData">命令事件数据</param>
+    private void WriteAudit(DbCommand command, CommandExecutedEventData eventData)
+    {
+        _logCommand(logger, "Sql", "SQL", command.CommandText, (long)eventData.Duration.TotalMilliseconds, null);
     }
 }

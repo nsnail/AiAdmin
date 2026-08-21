@@ -1,5 +1,3 @@
-#pragma warning disable SA1210, SA1518, IDE0022, IDE0011, SA1503, SA1625, S5693
-
 using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
@@ -110,7 +108,7 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
     /// <summary>
     ///     上传文件
     /// </summary>
-    /// <param name="file">上传文件</param>
+    /// <param name="file">上传的文件</param>
     /// <param name="path">当前目录相对路径</param>
     /// <returns>文件对象信息</returns>
     [HttpPost("upload")]

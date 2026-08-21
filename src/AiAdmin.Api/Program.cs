@@ -1,9 +1,11 @@
 using System.Text;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Logging;
 using AiAdmin.Api.Middleware;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +15,13 @@ SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:W
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new LongJsonConverter()));
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
+builder.Services.Configure<ElasticsearchLogOptions>(builder.Configuration.GetSection("Elasticsearch"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ElasticsearchLogOptions>>().Value);
+builder.Services.AddSingleton<ElasticsearchLogQueue>();
+builder.Services.AddSingleton<ILoggerProvider, ElasticsearchLoggerProvider>();
+builder.Services.AddHttpClient<ElasticsearchLogWriter>();
+builder.Services.AddHttpClient<ElasticsearchLogQueryService>();
+builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
@@ -23,6 +32,9 @@ builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<MinioStorageService>();
+builder.Services.AddHttpClient();
+builder.Services.AddTransient<ExternalHttpRequestService>();
+builder.Services.AddHostedService<ScheduledJobHostedService>();
 
 var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvariant() ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString(provider)
@@ -37,10 +49,14 @@ builder.Services.AddDbContext<AppDbContext>((
         _ = provider switch
         {
             "sqlite" => options.UseSqlite(connectionString)
-            , "sqlserver" => options.UseSqlServer(connectionString)
-            , "postgresql" or "postgres" => options.UseNpgsql(connectionString)
-            , "mysql" => options.UseMySQL(connectionString)
-            , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
+            ,
+            "sqlserver" => options.UseSqlServer(connectionString)
+            ,
+            "postgresql" or "postgres" => options.UseNpgsql(connectionString)
+            ,
+            "mysql" => options.UseMySQL(connectionString)
+            ,
+            _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
         };
     }
 );
@@ -53,13 +69,20 @@ builder
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true
-                , ValidateAudience = true
-                , ValidateLifetime = true
-                , ValidateIssuerSigningKey = true
-                , ValidIssuer = builder.Configuration["Jwt:Issuer"]
-                , ValidAudience = builder.Configuration["Jwt:Audience"]
-                , IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-                , ClockSkew = TimeSpan.FromSeconds(30)
+                ,
+                ValidateAudience = true
+                ,
+                ValidateLifetime = true
+                ,
+                ValidateIssuerSigningKey = true
+                ,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"]
+                ,
+                ValidAudience = builder.Configuration["Jwt:Audience"]
+                ,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                ,
+                ClockSkew = TimeSpan.FromSeconds(30)
             };
         }
     );
@@ -75,6 +98,7 @@ app.UseExceptionHandler();
 app.UseCors("Web");
 app.UseRouting();
 app.UseAuthentication();
+app.UseMiddleware<ApiHttpLoggingMiddleware>();
 app.UseMiddleware<ResponseJsonCleanupMiddleware>();
 app.UseMiddleware<DataScopeMiddleware>();
 app.UseMiddleware<ApiPermissionMiddleware>();
@@ -82,7 +106,8 @@ app.UseAuthorization();
 app.MapControllers();
 
 await DatabaseInitializer.InitializeAsync(app.Services).ConfigureAwait(false);
-await using (var scope = app.Services.CreateAsyncScope()) {
+await using (var scope = app.Services.CreateAsyncScope())
+{
     _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
 }
 

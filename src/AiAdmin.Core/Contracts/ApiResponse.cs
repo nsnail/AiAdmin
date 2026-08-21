@@ -15,7 +15,10 @@ public sealed record ApiResponse<T>(int Code, string Msg, T? Data)
     /// <param name="message">响应消息</param>
     /// <returns>成功响应对象</returns>
     // 创建成功响应，统一使用业务成功码。
-    [SuppressMessage("Design", "CA1000:Do not declare static members on generic types", Justification = "工厂方法需保留现有统一响应调用方式。")]
+    [SuppressMessage(
+        "Design", "CA1000:Do not declare static members on generic types"
+        , Justification = "Factory method preserves the existing unified response API."
+    )]
     public static ApiResponse<T> Ok(
         T data
         , string message = "OK"

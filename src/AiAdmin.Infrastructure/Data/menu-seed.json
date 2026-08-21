@@ -253,6 +253,33 @@
     ]
   },
   {
+    "path": "/log-management",
+    "name": "LogManagement",
+    "component": "/index/index",
+    "meta": {
+      "title": "menus.log.title",
+      "icon": "ri:file-search-line",
+      "roles": [
+        "R_SUPER"
+      ]
+    },
+    "children": [
+      {
+        "path": "system-log",
+        "name": "SystemLog",
+        "component": "/system/system-log",
+        "meta": {
+          "title": "menus.log.systemLog",
+          "icon": "ri:file-search-line",
+          "keepAlive": true,
+          "roles": [
+            "R_SUPER"
+          ]
+        }
+      }
+    ]
+  },
+  {
     "path": "/system",
     "name": "System",
     "component": "/index/index",
@@ -297,7 +324,7 @@
           {
             "path": "template",
             "name": "Template",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.template.title",
               "icon": "ri:apps-2-line"
@@ -379,7 +406,7 @@
           {
             "path": "widgets",
             "name": "Widgets",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.widgets.title",
               "icon": "ri:apps-2-add-line"
@@ -523,7 +550,7 @@
           {
             "path": "examples",
             "name": "Examples",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.examples.title",
               "icon": "ri:sparkling-line"
@@ -681,7 +708,7 @@
           {
             "path": "article",
             "name": "Article",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.article.title",
               "icon": "ri:book-2-line",
@@ -753,7 +780,7 @@
           {
             "path": "result",
             "name": "Result",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.result.title",
               "icon": "ri:checkbox-circle-line"
@@ -784,7 +811,7 @@
           {
             "path": "exception",
             "name": "Exception",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.exception.title",
               "icon": "ri:error-warning-line"
@@ -828,7 +855,7 @@
           {
             "path": "safeguard",
             "name": "Safeguard",
-            "component": "/index/index",
+            "component": "",
             "meta": {
               "title": "menus.safeguard.title",
               "icon": "ri:shield-check-line",

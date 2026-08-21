@@ -17,7 +17,10 @@ namespace AiAdmin.Api.Controllers;
 [ApiDescription("API management")]
 [Authorize]
 [Route("api/api-endpoint")]
-[SuppressMessage("Design", "S6960:Controllers should not have too many responsibilities", Justification = "接口查询和同步共同属于接口管理边界。")]
+[SuppressMessage(
+    "Design", "S6960:Controllers should not have too many responsibilities"
+    , Justification = "Endpoint querying and synchronization share the endpoint management boundary."
+)]
 public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncService syncService) : ControllerBase
 {
     /// <summary>

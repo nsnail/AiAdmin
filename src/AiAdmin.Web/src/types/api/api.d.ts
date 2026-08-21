@@ -140,6 +140,17 @@ declare namespace Api {
 
   /** 系统管理类型 */
   namespace SystemManage {
+    /** 系统日志列表项 */
+    interface SystemLogItem {
+      timestamp: string
+      level: string
+      category: string
+      message: string
+      exception: string | null
+      eventId: number
+      eventName: string | null
+    }
+
     /** 用户列表 */
     type UserList = Api.Common.PaginatedResponse<UserListItem>
 

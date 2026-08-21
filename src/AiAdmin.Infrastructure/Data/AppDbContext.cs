@@ -68,6 +68,16 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     public DbSet<SavedQuery> SavedQueries => Set<SavedQuery>();
 
     /// <summary>
+    ///     计划作业执行记录集合
+    /// </summary>
+    public DbSet<ScheduledJobExecution> ScheduledJobExecutions => Set<ScheduledJobExecution>();
+
+    /// <summary>
+    ///     计划作业实体集合
+    /// </summary>
+    public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
+
+    /// <summary>
     ///     用户部门关联集合
     /// </summary>
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
@@ -203,6 +213,45 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.FilterJson).HasColumnType("TEXT").IsRequired();
                 _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            }
+        );
+
+        _ = modelBuilder.Entity<ScheduledJob>(entity =>
+            {
+                _ = entity.ToTable("sys_scheduled_job");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.CronExpression).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.RequestUrl).HasMaxLength(2000).IsRequired();
+                _ = entity.Property(x => x.RequestMethod).HasMaxLength(20).IsRequired();
+                _ = entity.Property(x => x.RequestHeadersJson).HasColumnType("TEXT");
+                _ = entity.Property(x => x.RequestBody).HasColumnType("TEXT");
+                _ = entity.Property(x => x.LastError).HasColumnType("TEXT");
+                _ = entity.Property(x => x.Status).HasConversion<int>();
+                _ = entity.HasIndex(x => new { x.IsEnabled, x.Status });
+            }
+        );
+
+        _ = modelBuilder.Entity<ScheduledJobExecution>(entity =>
+            {
+                _ = entity.ToTable("sys_scheduled_job_execution");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.RequestUrl).HasMaxLength(2000);
+                _ = entity.Property(x => x.RequestMethod).HasMaxLength(20);
+                _ = entity.Property(x => x.RequestHeaders).HasColumnType("TEXT");
+                _ = entity.Property(x => x.RequestBody).HasColumnType("TEXT");
+                _ = entity.Property(x => x.ResponseHeaders).HasColumnType("TEXT");
+                _ = entity.Property(x => x.ResponseBody).HasColumnType("TEXT");
+                _ = entity.Property(x => x.ErrorMessage).HasColumnType("TEXT");
+                _ = entity.Property(x => x.Status).HasConversion<int>();
+                _ = entity.HasIndex(x => new { x.ScheduledJobId, x.StartedAt });
+                _ = entity
+                    .HasOne(x => x.ScheduledJob)
+                    .WithMany(x => x.Executions)
+                    .HasForeignKey(x => x.ScheduledJobId)
+                    .OnDelete(DeleteBehavior.Cascade);
             }
         );
 

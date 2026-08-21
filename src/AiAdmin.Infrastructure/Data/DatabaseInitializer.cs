@@ -96,6 +96,8 @@ public static class DatabaseInitializer
             await SeedMenusAsync(db).ConfigureAwait(false);
         }
 
+        await EnsureScheduledJobMenuAsync(db).ConfigureAwait(false);
+
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
@@ -219,6 +221,38 @@ public static class DatabaseInitializer
         _ = await db.Departments.AddAsync(department).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return department;
+    }
+
+    /// <summary>
+    ///     确保计划作业菜单存在，兼容已有数据库和旧菜单种子
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureScheduledJobMenuAsync(AppDbContext db) {
+        if (await db.Menus.AnyAsync(x => x.Name == "ScheduledJobManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        if (!await db.Menus.AnyAsync(x => x.Name == "SystemManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        _ = await db
+            .Menus.AddAsync(
+                new Menu
+                {
+                    Name = "ScheduledJobManagement"
+                    , Path = "scheduled-job"
+                    , Component = "/system/scheduled-job"
+                    , ParentName = "SystemManagement"
+                    , Sort = 30
+                    , IsEnabled = true
+                    , MetaJson = /*lang=json,strict*/
+                        "{\"title\":\"menus.system.scheduledJob\",\"icon\":\"ri:timer-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\"]}"
+                }
+            )
+            .ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
     private static MenuItemRequest[] FilterByRole(

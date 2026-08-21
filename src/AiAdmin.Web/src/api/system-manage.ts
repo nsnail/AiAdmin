@@ -38,7 +38,7 @@ export function fetchUpdateEnabledState(
 }
 
 export function fetchGetListFilterFields(
-  resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint'
+  resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint' | 'scheduled-job'
 ) {
   return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
 }
@@ -57,6 +57,25 @@ export function fetchSaveQuery(data: {
 
 export function fetchDeleteSavedQuery(id: string) {
   return request.del<void>({ url: `/api/saved-query/${id}` })
+}
+
+export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
+  level?: string
+  category?: string
+  keyword?: string
+}
+
+export function fetchGetSystemLogs(params: SystemLogSearchParams) {
+  return request.post<Api.Common.PaginatedResponse<Api.SystemManage.SystemLogItem>>({
+    url: '/api/system-log/list',
+    data: {
+      current: params.current,
+      size: params.size,
+      level: params.level || undefined,
+      category: params.category?.trim() || undefined,
+      keyword: params.keyword?.trim() || undefined
+    }
+  })
 }
 
 type DynamicQuery = {
@@ -372,4 +391,119 @@ export function fetchUpdateDictionaryItem(
 
 export function fetchDeleteDictionaryItem(id: string) {
   return request.del<void>({ url: `/api/dictionary/items/${id}`, showSuccessMessage: true })
+}
+
+export interface ScheduledJob {
+  id: string
+  createdAt: string
+  name: string
+  cronExpression: string
+  requestUrl: string
+  requestMethod: string
+  requestHeadersJson?: string
+  requestBody?: string
+  timeoutSeconds: number
+  isEnabled: boolean
+  status: number
+  lastTriggeredAt: string | null
+  lastFinishedAt: string | null
+  lastError: string
+}
+
+export interface ScheduledJobExecution {
+  id: string
+  startedAt: string
+  finishedAt: string | null
+  requestUrl: string
+  requestMethod: string
+  requestHeaders: string
+  requestBody: string
+  responseStatusCode: number | null
+  responseHeaders: string
+  responseBody: string
+  status: number
+  errorMessage: string
+}
+
+export type ScheduledJobExecutionSearchParams = DynamicQuery & {
+  RequestUrl?: string
+  RequestMethod?: string
+  ResponseStatusCode?: number
+  Status?: number
+  ErrorMessage?: string
+}
+
+export type SaveScheduledJob = Pick<
+  ScheduledJob,
+  | 'name'
+  | 'cronExpression'
+  | 'requestUrl'
+  | 'requestMethod'
+  | 'requestHeadersJson'
+  | 'requestBody'
+  | 'timeoutSeconds'
+  | 'isEnabled'
+>
+
+export type ScheduledJobSearchParams = DynamicQuery & {
+  Name?: string
+  CronExpression?: string
+  RequestUrl?: string
+  RequestMethod?: string
+  IsEnabled?: boolean
+  Status?: number
+}
+
+export function fetchGetScheduledJobs(params: ScheduledJobSearchParams) {
+  const filters: DynamicFilter[] = Object.entries(params)
+    .filter(
+      ([field, value]) =>
+        /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== ''
+    )
+    .map(([field, value]) => ({
+      field,
+      operator: typeof value === 'string' && !['RequestMethod'].includes(field) ? 'Contains' : 'Equal',
+      value
+    }))
+  if (params.dynamicFilter) filters.push(params.dynamicFilter)
+  return request.post<Api.Common.PaginatedResponse<ScheduledJob>>({
+    url: '/api/scheduled-job/list',
+    data: createDynamicQuery(
+      params.current,
+      params.size,
+      filters,
+      params.sortField,
+      params.sortOrder
+    )
+  })
+}
+
+export function fetchCreateScheduledJob(data: SaveScheduledJob) {
+  return request.post<ScheduledJob>({ url: '/api/scheduled-job', data })
+}
+
+export function fetchUpdateScheduledJob(id: string, data: SaveScheduledJob) {
+  return request.put<ScheduledJob>({ url: `/api/scheduled-job/${id}`, data })
+}
+
+export function fetchDeleteScheduledJob(id: string) {
+  return request.del<void>({ url: `/api/scheduled-job/${id}`, showSuccessMessage: true })
+}
+
+export function fetchRunScheduledJob(id: string) {
+  return request.post<void>({ url: `/api/scheduled-job/${id}/run` })
+}
+
+export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExecutionSearchParams) {
+  const filters: DynamicFilter[] = Object.entries(params)
+    .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
+    .map(([field, value]) => ({
+      field,
+      operator: typeof value === 'number' ? 'Equal' : 'Contains',
+      value
+    }))
+  return request.post<Api.Common.PaginatedResponse<ScheduledJobExecution>>({
+    url: `/api/scheduled-job/${id}/executions/list`,
+    data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder)
+  })
 }

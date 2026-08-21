@@ -39,7 +39,9 @@
     "edit": "Edit",
     "cancel": "Cancel",
     "confirm": "Confirm",
-    "logOutTips": "Do you want to log out?"
+    "logOutTips": "Do you want to log out?",
+    "search": "Search",
+    "reset": "Reset"
   },
   "search": {
     "placeholder": "Search page",
@@ -327,7 +329,12 @@
       "settings": "System Settings",
       "dictionary": "Dictionary Management",
       "files": "File Management",
+      "scheduledJob": "Scheduled Jobs",
       "referrals": "My Referrals"
+    },
+    "log": {
+      "title": "Log Management",
+      "systemLog": "System Logs"
     },
     "marketing": {
       "title": "Marketing Management",
@@ -464,6 +471,54 @@
     }
   },
   "rawData": "Raw Data",
+  "systemLog": {
+    "filters": {
+      "level": "Log level",
+      "category": "Log category",
+      "keyword": "Search log message"
+    },
+    "fields": {
+      "timestamp": "Time",
+      "level": "Level",
+      "category": "Category",
+      "message": "Message",
+      "eventId": "Event ID",
+      "eventName": "Event name",
+      "exception": "Exception"
+    }
+  },
+  "scheduledJob": {
+    "fields": {
+      "name": "Job name",
+      "cronExpression": "Cron expression",
+      "requestUrl": "Request URL",
+      "requestMethod": "HTTP method",
+      "timeoutSeconds": "Timeout seconds",
+      "status": "Execution status",
+      "lastTriggeredAt": "Last triggered",
+      "lastFinishedAt": "Last finished",
+      "lastError": "Last error"
+    },
+    "placeholder": {
+      "name": "Enter job name",
+      "cronExpression": "Enter Cron expression",
+      "requestUrl": "Enter request URL"
+    },
+    "status": {
+      "waiting": "Waiting",
+      "running": "Running",
+      "success": "Succeeded",
+      "failed": "Failed",
+      "timeout": "Timed out"
+    }
+  },
+  "cronEditor": {
+    "title": "Cron Rule Generator", "type": "Type", "any": "Any", "range": "Range", "step": "Step", "list": "Specified", "to": "to", "every": "Every", "custom": "Custom rule", "currentExpression": "Current expression",
+    "fields": { "second": "Second", "minute": "Minute", "hour": "Hour", "day": "Day", "month": "Month", "week": "Week" },
+    "units": { "second": "seconds", "minute": "minutes", "hour": "hours", "day": "days", "month": "months", "week": "weeks" },
+    "shortcuts": { "everySecond": "Every second", "everyMinute": "Every minute", "everyHour": "Every hour", "daily": "Every day at midnight", "weekly": "Every Sunday at midnight" },
+    "description": { "everySecond": "Every second", "everyMinute": "Every minute", "hourly": "Every hour at the start", "everySeconds": "Every {value} seconds", "everyMinutes": "Every {value} minutes", "daily": "Every day at {time}", "weekly0": "Every Sunday at {time}", "weekly1": "Every Monday at {time}", "weekly2": "Every Tuesday at {time}", "weekly3": "Every Wednesday at {time}", "weekly4": "Every Thursday at {time}", "weekly5": "Every Friday at {time}", "weekly6": "Every Saturday at {time}", "custom": "Run according to Cron rule ({value})" }
+  },
   "listFilter": {
     "common": { "status": "Enabled" },
     "user": { "userName": "Username", "email": "Email", "phone": "Phone", "gender": "Gender" },
