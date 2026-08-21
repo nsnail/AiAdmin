@@ -5,12 +5,18 @@ using AiAdmin.Api.Middleware;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 _ = builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
 SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:WorkerId", 0));
+
+builder.Logging.AddConsoleFormatter<AiAdminConsoleFormatter, ConsoleFormatterOptions>();
+builder.Logging.AddConsole(options => options.FormatterName = "aiadmin");
+builder.Logging.AddFilter("AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware", LogLevel.Information);
+builder.Logging.AddFilter("AiAdmin.Api.Services.ExternalHttpRequestService", LogLevel.Information);
 
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new LongJsonConverter()));
 builder.Services.AddProblemDetails();
@@ -49,14 +55,10 @@ builder.Services.AddDbContext<AppDbContext>((
         _ = provider switch
         {
             "sqlite" => options.UseSqlite(connectionString)
-            ,
-            "sqlserver" => options.UseSqlServer(connectionString)
-            ,
-            "postgresql" or "postgres" => options.UseNpgsql(connectionString)
-            ,
-            "mysql" => options.UseMySQL(connectionString)
-            ,
-            _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
+            , "sqlserver" => options.UseSqlServer(connectionString)
+            , "postgresql" or "postgres" => options.UseNpgsql(connectionString)
+            , "mysql" => options.UseMySQL(connectionString)
+            , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
         };
     }
 );
@@ -69,20 +71,13 @@ builder
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true
-                ,
-                ValidateAudience = true
-                ,
-                ValidateLifetime = true
-                ,
-                ValidateIssuerSigningKey = true
-                ,
-                ValidIssuer = builder.Configuration["Jwt:Issuer"]
-                ,
-                ValidAudience = builder.Configuration["Jwt:Audience"]
-                ,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-                ,
-                ClockSkew = TimeSpan.FromSeconds(30)
+                , ValidateAudience = true
+                , ValidateLifetime = true
+                , ValidateIssuerSigningKey = true
+                , ValidIssuer = builder.Configuration["Jwt:Issuer"]
+                , ValidAudience = builder.Configuration["Jwt:Audience"]
+                , IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                , ClockSkew = TimeSpan.FromSeconds(30)
             };
         }
     );
@@ -106,8 +101,7 @@ app.UseAuthorization();
 app.MapControllers();
 
 await DatabaseInitializer.InitializeAsync(app.Services).ConfigureAwait(false);
-await using (var scope = app.Services.CreateAsyncScope())
-{
+await using (var scope = app.Services.CreateAsyncScope()) {
     _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
 }
 

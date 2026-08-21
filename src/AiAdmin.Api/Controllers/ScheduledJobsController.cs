@@ -18,7 +18,9 @@ namespace AiAdmin.Api.Controllers;
 [ApiDescription("Scheduled job management")]
 public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
 {
-    /// <summary>新增计划作业</summary>
+    /// <summary>
+    ///     新增计划作业
+    /// </summary>
     /// <param name="request">作业保存请求</param>
     /// <returns>新增作业</returns>
     [HttpPost]
@@ -27,7 +29,9 @@ public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
         return SaveAsync(null, request);
     }
 
-    /// <summary>删除计划作业</summary>
+    /// <summary>
+    ///     删除计划作业
+    /// </summary>
     /// <param name="id">作业主键</param>
     /// <returns>删除结果</returns>
     [HttpDelete("{id:long}")]
@@ -43,7 +47,9 @@ public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
-    /// <summary>分页查询作业执行记录</summary>
+    /// <summary>
+    ///     分页查询作业执行记录
+    /// </summary>
     /// <param name="id">作业主键</param>
     /// <param name="request">包含筛选、排序和分页信息的请求体</param>
     /// <returns>执行记录分页结果</returns>
@@ -73,7 +79,9 @@ public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
         );
     }
 
-    /// <summary>查询作业执行记录</summary>
+    /// <summary>
+    ///     查询作业执行记录
+    /// </summary>
     /// <param name="id">作业主键</param>
     /// <param name="current">当前页码</param>
     /// <param name="size">每页记录数</param>
@@ -133,7 +141,9 @@ public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
         );
     }
 
-    /// <summary>立即执行指定作业</summary>
+    /// <summary>
+    ///     立即执行指定作业
+    /// </summary>
     /// <param name="id">作业主键</param>
     /// <returns>执行结果</returns>
     [HttpPost("{id:long}/run")]
@@ -154,7 +164,9 @@ public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
-    /// <summary>修改计划作业</summary>
+    /// <summary>
+    ///     修改计划作业
+    /// </summary>
     /// <param name="id">作业主键</param>
     /// <param name="request">作业保存请求</param>
     /// <returns>修改后的作业</returns>

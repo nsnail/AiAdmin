@@ -5,9 +5,13 @@ namespace AiAdmin.Api.Contracts;
 /// </summary>
 public sealed class DeleteFileRequest
 {
-    /// <summary>是否递归删除目录</summary>
+    /// <summary>
+    ///     是否递归删除目录
+    /// </summary>
     public bool? Directory { get; init; }
 
-    /// <summary>对象相对路径</summary>
+    /// <summary>
+    ///     对象相对路径
+    /// </summary>
     public string Name { get; init; } = string.Empty;
 }

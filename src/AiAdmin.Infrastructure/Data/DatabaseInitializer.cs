@@ -97,19 +97,17 @@ public static class DatabaseInitializer
         }
 
         await EnsureScheduledJobMenuAsync(db).ConfigureAwait(false);
-
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
 
-        if (!await db.DictionaryCategories.AnyAsync().ConfigureAwait(false)) {
-            _ = await db
-                .DictionaryCategories.AddAsync(new DictionaryCategory { Code = "system_settings", Name = "System Settings", Sort = 0 })
-                .ConfigureAwait(false);
+        var systemSettings = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "system_settings").ConfigureAwait(false);
+        if (systemSettings is null) {
+            systemSettings = new DictionaryCategory { Code = "system_settings", Name = "System Settings", Sort = 0 };
+            _ = await db.DictionaryCategories.AddAsync(systemSettings).ConfigureAwait(false);
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
-        var systemSettings = await db.DictionaryCategories.SingleAsync(x => x.Code == "system_settings").ConfigureAwait(false);
         var systemSettingSeeds = new[]
         {
             (Label: "Enable login slider verification"
@@ -150,6 +148,33 @@ public static class DatabaseInitializer
                     }
                 )
                 .ConfigureAwait(false);
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        await EnsureScheduledJobSeedAsync(db).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     初始化计划作业占位符目录和公共 IP 示例作业
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    public static async Task EnsureScheduledJobSeedAsync(AppDbContext db) {
+        var catalog = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders").ConfigureAwait(false);
+        if (catalog is null) {
+            catalog = new DictionaryCategory { Code = "scheduled_job_placeholders", Name = "Scheduled Job Placeholders", Sort = 10 };
+            _ = await db.DictionaryCategories.AddAsync(catalog).ConfigureAwait(false);
+        }
+
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == "Get Public IP").ConfigureAwait(false)) {
+            _ = await db.ScheduledJobs.AddAsync(new ScheduledJob {
+                Name = "Get Public IP"
+                , CronExpression = "*/10 * * * * *"
+                , RequestUrl = "https://httpbin.org/ip"
+                , RequestMethod = "GET"
+                , IsEnabled = true
+                , TimeoutSeconds = 30
+            }).ConfigureAwait(false);
         }
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);

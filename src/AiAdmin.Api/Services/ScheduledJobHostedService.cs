@@ -81,9 +81,14 @@ public sealed class ScheduledJobHostedService(
             return;
         }
 
-        var values = await db
-            .DictionaryItems.Where(x => x.IsEnabled)
-            .Include(x => x.Category)
+        var placeholderCatalog = await db.DictionaryCategories
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders" && x.IsEnabled, cancellationToken)
+            .ConfigureAwait(false);
+        var values = placeholderCatalog is null
+            ? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            : await db
+            .DictionaryItems.Where(x => x.CategoryId == placeholderCatalog.Id && x.IsEnabled)
             .ToDictionaryAsync(x => x.Label, x => x.Value, StringComparer.OrdinalIgnoreCase, cancellationToken)
             .ConfigureAwait(false);
         var url = Resolve(job.RequestUrl, values);
