@@ -7,6 +7,17 @@
     margin-top: 10px;
   }
 
+  // 表头标题保持单行，避免窄列导致标题换行并改变表格高度
+  :deep(.el-table__header-wrapper .el-table__header .cell),
+  :deep(.el-table__fixed-header-wrapper .el-table__header .cell),
+  :deep(.el-table__body-wrapper .el-table__body .cell),
+  :deep(.el-table__fixed-body-wrapper .el-table__body .cell) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: keep-all;
+  }
+
   :deep(.el-loading-mask) {
     z-index: 100;
     background-color: var(--default-box-color) !important;
