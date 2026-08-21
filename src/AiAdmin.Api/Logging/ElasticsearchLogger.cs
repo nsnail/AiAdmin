@@ -3,10 +3,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 namespace AiAdmin.Api.Logging;
 
 /// <summary>
-///     将单个日志分类写入内存队列的记录器
+///     将单个日志分类写入 Redis 队列的记录器
 /// </summary>
 /// <param name="categoryName">日志分类名称</param>
-/// <param name="queue">日志内存队列</param>
+/// <param name="queue">Redis 日志队列</param>
 /// <param name="options">日志输出配置</param>
 internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQueue queue, ElasticsearchLogOptions options) : ILogger
 {
@@ -33,7 +33,7 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     }
 
     /// <summary>
-    ///     格式化日志并写入内存队列
+    ///     格式化日志并异步写入 Redis 队列
     /// </summary>
     /// <typeparam name="TState">日志状态类型</typeparam>
     /// <param name="logLevel">日志级别</param>
@@ -56,7 +56,7 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
 
         var message = formatter(state, exception);
         var fields = ReadFields(state);
-        _ = queue.TryEnqueue(
+        _ = EnqueueAsync(
             new ElasticsearchLogEntry
             {
                 Timestamp = DateTimeOffset.UtcNow
@@ -185,5 +185,22 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
             ,
             _ => "System"
         };
+    }
+
+    /// <summary>
+    ///     将日志写入 Redis 队列并隔离队列故障
+    /// </summary>
+    /// <param name="entry">日志内容</param>
+    /// <returns>异步写入任务</returns>
+    private async Task EnqueueAsync(ElasticsearchLogEntry entry)
+    {
+        try
+        {
+            _ = await queue.EnqueueAsync(entry).ConfigureAwait(false);
+        }
+        catch
+        {
+            // 日志管道故障不能影响业务请求
+        }
     }
 }

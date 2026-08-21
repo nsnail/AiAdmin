@@ -1,9 +1,9 @@
 namespace AiAdmin.Api.Logging;
 
 /// <summary>
-///     将 Microsoft 日志转换并写入 Elasticsearch 内存队列的日志提供程序
+///     将 Microsoft 日志转换并写入 Elasticsearch Redis 队列的日志提供程序
 /// </summary>
-/// <param name="queue">日志内存队列</param>
+/// <param name="queue">Redis 日志队列</param>
 /// <param name="options">日志输出配置</param>
 public sealed class ElasticsearchLoggerProvider(ElasticsearchLogQueue queue, ElasticsearchLogOptions options) : ILoggerProvider
 {

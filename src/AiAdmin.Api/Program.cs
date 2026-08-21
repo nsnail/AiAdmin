@@ -27,7 +27,6 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
 builder.Services.Configure<ElasticsearchLogOptions>(builder.Configuration.GetSection("Elasticsearch"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ElasticsearchLogOptions>>().Value);
-builder.Services.AddSingleton<ElasticsearchLogQueue>();
 builder.Services.AddSingleton<ILoggerProvider, ElasticsearchLoggerProvider>();
 builder.Services.AddHttpClient<ElasticsearchLogWriter>();
 builder.Services.AddHttpClient<ElasticsearchLogQueryService>();
@@ -36,6 +35,7 @@ var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+builder.Services.AddSingleton<ElasticsearchLogQueue>();
 builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();

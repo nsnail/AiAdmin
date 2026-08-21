@@ -36,6 +36,11 @@ public sealed class ElasticsearchLogOptions
     public int QueueCapacity { get; set; } = 10_000;
 
     /// <summary>
+    ///     Redis 日志队列键名
+    /// </summary>
+    public string QueueKey { get; set; } = "aiadmin:logs:elasticsearch";
+
+    /// <summary>
     ///     Elasticsearch 服务地址
     /// </summary>
     public string Uri { get; set; } = "http://localhost:9200";
