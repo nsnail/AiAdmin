@@ -13,6 +13,7 @@ namespace AiAdmin.Api.Logging;
 /// <param name="options">Elasticsearch 配置</param>
 public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions<ElasticsearchLogOptions> options)
 {
+    private const int MaxResultWindow = 10000;
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     // 通用关键词只查询文本字段，避免 Elasticsearch 将文字转换为数值或日期
@@ -64,12 +65,15 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             must.Add(dynamicQuery);
         }
 
+        var from = (long)(Math.Max(request.Current, 1) - 1) * Math.Max(request.Size, 1);
+        var isDeepPage = from >= MaxResultWindow;
+        var size = isDeepPage ? 0 : Math.Min(Math.Max(request.Size, 1), MaxResultWindow - (int)from);
         object query = must.Count == 0 ? new { match_all = new { } } : new { @bool = new { must } };
         var payload = JsonSerializer.Serialize(
             new
             {
-                from = (request.Current - 1) * request.Size
-                , size = request.Size
+                from = isDeepPage ? 0 : (int)from
+                , size
                 , track_total_hits = true
                 , query
                 , sort = new[] { new Dictionary<string, object> {
