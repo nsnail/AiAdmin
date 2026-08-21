@@ -16,7 +16,7 @@
         @remove="model.filters.splice(index, 1)"
       />
       <div v-else class="condition-row">
-        <ElSelect v-model="item.field" class="field-select" placeholder="字段">
+        <ElSelect v-model="item.field" class="field-select" placeholder="字段" filterable>
           <ElOption
             v-for="field in fields"
             :key="field.field"
@@ -24,7 +24,7 @@
             :value="field.field"
           />
         </ElSelect>
-        <ElSelect v-model="item.operator" class="operator-select" placeholder="操作符">
+        <ElSelect v-model="item.operator" class="operator-select" placeholder="操作符" filterable>
           <ElOption
             v-for="operator in operators"
             :key="operator.value"
@@ -37,10 +37,23 @@
           v-model="item.value"
           class="value-input"
           placeholder="值"
+          filterable
         >
           <ElOption label="true" value="true" />
           <ElOption label="false" value="false" />
         </ElSelect>
+        <ElDatePicker
+          v-else-if="selectedField(item.field)?.type === 'date'"
+          v-model="item.value"
+          class="value-input"
+          :type="item.operator === 'DateRange' ? 'datetimerange' : 'datetime'"
+          value-format="YYYY-MM-DDTHH:mm:ss.SSSZ"
+          range-separator="至"
+          start-placeholder="开始时间"
+          end-placeholder="结束时间"
+          placeholder="时间"
+          clearable
+        />
         <ElInput
           v-else
           v-model="item.value"

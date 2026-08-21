@@ -86,6 +86,7 @@
                   v-model="form.gender"
                   :placeholder="t('userCenter.validation.genderRequired')"
                   :disabled="!isEdit"
+                  filterable
                 >
                   <ElOption
                     v-for="item in options"

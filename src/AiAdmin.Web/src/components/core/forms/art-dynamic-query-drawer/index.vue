@@ -11,6 +11,7 @@
         <ElSelect
           v-model="selectedSaved"
           clearable
+          filterable
           placeholder="已保存查询"
           class="saved-select"
           @change="loadSaved"
@@ -18,7 +19,7 @@
           <ElOption
             v-for="item in savedQueries"
             :key="item.id"
-            :label="item.name"
+            :label="item.isGlobal ? `${item.name} (${globalLabel})` : item.name"
             :value="String(item.id)"
           />
         </ElSelect>
@@ -26,7 +27,7 @@
           ><ElButton circle @click="saveQuery"><ArtSvgIcon icon="ri:save-line" /></ElButton
         ></ElTooltip>
         <ElTooltip content="删除已保存查询"
-          ><ElButton circle :disabled="!selectedSaved" @click="deleteSaved"
+          ><ElButton circle :disabled="!selectedSaved || (selectedQueryIsGlobal && !isSuperAdmin)" @click="deleteSaved"
             ><ArtSvgIcon icon="ri:delete-bin-line" /></ElButton
         ></ElTooltip>
       </div>
@@ -61,7 +62,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { ElMessage, ElMessageBox, ElSwitch } from 'element-plus'
   import {
     fetchDeleteSavedQuery,
     fetchGetSavedQueries,
@@ -69,6 +70,9 @@
     type SavedQuery
   } from '@/api/system-manage'
   import { useRoute } from 'vue-router'
+  import { defineComponent, h } from 'vue'
+  import { useI18n } from 'vue-i18n'
+  import { useUserStore } from '@/store/modules/user'
   import DynamicQueryGroup from './dynamic-query-group.vue'
   import ArtJsonEditor from '../art-json-editor/index.vue'
   import type { DynamicFilter, DynamicQueryField, QueryGroup, QueryNode } from './types'
@@ -77,26 +81,44 @@
   const props = defineProps<{ fields: DynamicQueryField[]; modelValue?: DynamicFilter }>()
   const emit = defineEmits<{ apply: [filter: DynamicFilter | undefined] }>()
   const route = useRoute()
+  const { t } = useI18n()
+  const userStore = useUserStore()
+  const isSuperAdmin = computed(() => userStore.getUserInfo.roles?.includes('R_SUPER') === true)
+  const createGlobalSwitch = (state: { value: boolean }) =>
+    defineComponent({
+      setup: () => () =>
+        h(ElSwitch, {
+          modelValue: state.value,
+          'onUpdate:modelValue': (value: boolean) => (state.value = value),
+          activeText: t('table.searchBar.globalQuery')
+        })
+    })
+  const globalLabel = computed(() => t('table.searchBar.globalQuery'))
   const draft = ref<QueryGroup>({ logic: 'And', filters: [] })
   const selectedSaved = ref('')
   const savedQueries = ref<SavedQuery[]>([])
+  const selectedQueryIsGlobal = computed(
+    () => savedQueries.value.find((item) => String(item.id) === selectedSaved.value)?.isGlobal === true
+  )
   const jsonText = ref('{}')
   const jsonError = ref('')
   const highlightRef = ref<HTMLElement>()
   let syncingFromJson = false
 
   const convertValue = (
-    value: string,
+    value: unknown,
     field: DynamicQueryField | undefined,
     operator: string
   ): unknown => {
     const values = ['Range', 'DateRange', 'Any', 'NotAny'].includes(operator)
-      ? value
-          .split(',')
-          .map((item) => item.trim())
-          .filter(Boolean)
+      ? Array.isArray(value)
+        ? value
+        : String(value ?? '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
       : undefined
-    const convert = (item: string) =>
+    const convert = (item: unknown) =>
       field?.type === 'number' ? Number(item) : field?.type === 'boolean' ? item === 'true' : item
     return values ? values.map(convert) : convert(value)
   }
@@ -104,7 +126,10 @@
     const filters = group.filters
       .map((node): DynamicFilter | undefined => {
         if (node.kind === 'group') return toFilter(node.group)
-        if (!node.field || !node.operator || !node.value.trim()) return undefined
+        const hasValue = Array.isArray(node.value)
+          ? node.value.length > 0
+          : node.value !== undefined && node.value !== null && String(node.value).trim() !== ''
+        if (!node.field || !node.operator || !hasValue) return undefined
         return {
           field: node.field,
           operator: node.operator,
@@ -128,7 +153,7 @@
             kind: 'condition',
             field: item.field || '',
             operator: item.operator || 'Contains',
-            value: Array.isArray(item.value) ? item.value.join(', ') : String(item.value ?? '')
+            value: item.value ?? ''
           }
     )
   })
@@ -274,22 +299,41 @@
     const currentQuery = savedQueries.value.find(
       (query) => String(query.id) === selectedSaved.value
     )
-    const { value } = await ElMessageBox.prompt('请输入查询名称', '保存查询', {
+    if (currentQuery?.isGlobal && !isSuperAdmin.value) {
+      ElMessage.warning(t('table.searchBar.globalQueryReadOnly'))
+      return
+    }
+    const global = ref(currentQuery?.isGlobal === true)
+    const { value } = await ElMessageBox({
+      title: t('table.searchBar.saveQueryTitle'),
+      message: isSuperAdmin.value
+        ? h('div', [
+            h(createGlobalSwitch(global))
+          ])
+        : undefined,
+      showInput: true,
       inputValue: currentQuery?.name || '',
+      inputPlaceholder: t('table.searchBar.queryNamePlaceholder'),
       inputPattern: /\S+/,
-      inputErrorMessage: '请输入查询名称'
+      inputErrorMessage: t('table.searchBar.queryNameRequired'),
+      showCancelButton: true
     })
-    const saved = await fetchSaveQuery({ name: value.trim(), route: route.path, dynamicFilter })
+    const saved = await fetchSaveQuery({
+      name: value.trim(),
+      route: route.path,
+      dynamicFilter,
+      isGlobal: global.value
+    })
     savedQueries.value = [
+      saved,
       ...savedQueries.value.filter(
         (item) => String(item.id) !== String(saved.id) && item.name !== saved.name
-      ),
-      saved
-    ].sort((left, right) => left.name.localeCompare(right.name))
+      )
+    ]
     selectedSaved.value = String(saved.id)
   }
   const deleteSaved = async () => {
-    if (!selectedSaved.value) return
+    if (!selectedSaved.value || (selectedQueryIsGlobal.value && !isSuperAdmin.value)) return
     await fetchDeleteSavedQuery(selectedSaved.value)
     savedQueries.value = savedQueries.value.filter(
       (item) => String(item.id) !== selectedSaved.value

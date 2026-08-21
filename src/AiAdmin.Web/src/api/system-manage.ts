@@ -12,6 +12,7 @@ export type DynamicFilter = {
 export interface SavedQuery {
   id: string
   name: string
+  isGlobal: boolean
   dynamicFilter: DynamicFilter
 }
 
@@ -102,6 +103,7 @@ export function fetchSaveQuery(data: {
   name: string
   route: string
   dynamicFilter: DynamicFilter
+  isGlobal: boolean
 }) {
   return request.post<SavedQuery>({ url: '/api/saved-query', data })
 }
@@ -111,43 +113,20 @@ export function fetchDeleteSavedQuery(id: string) {
 }
 
 export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
-  level?: string
-  logType?: string
-  timestamp?: string[]
-  category?: string
-  keyword?: string
-  searchField?: string
   dynamicFilter?: DynamicFilter
   sortField?: string
   sortOrder?: 'asc' | 'desc'
 }
 
 export function fetchGetSystemLogs(params: SystemLogSearchParams) {
-  const dynamicFilters: DynamicFilter[] = params.dynamicFilter ? [params.dynamicFilter] : []
-  if (params.logType) {
-    dynamicFilters.push({ field: 'logType', operator: 'Equal', value: params.logType })
-  }
-  if (params.timestamp?.length === 2) {
-    dynamicFilters.push({ field: 'timestamp', operator: 'DateRange', value: params.timestamp })
-  }
-  const dynamicFilter = dynamicFilters.length === 0
-    ? undefined
-    : dynamicFilters.length === 1
-      ? dynamicFilters[0]
-      : { logic: 'And' as const, filters: dynamicFilters }
-
   return request.post<Api.Common.PaginatedResponse<Api.SystemManage.SystemLogItem>>({
     url: '/api/system-log/list',
     data: {
       current: params.current,
       size: params.size,
-      level: params.level || undefined,
-      category: params.category?.trim() || undefined,
-      keyword: params.keyword?.trim() || undefined
-      , searchField: params.searchField || undefined
-      , dynamicFilter
-      , sortField: params.sortField || undefined
-      , sortOrder: params.sortOrder || undefined
+      dynamicFilter: params.dynamicFilter,
+      sortField: params.sortField || undefined,
+      sortOrder: params.sortOrder || undefined
     }
   })
 }

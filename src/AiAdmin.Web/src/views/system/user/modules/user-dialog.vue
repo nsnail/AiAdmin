@@ -84,7 +84,7 @@
             <ElSegmented v-model="formData.gender" :options="genderOptions" />
           </ElFormItem>
           <ElFormItem :label="t('userManagement.fields.roles')" prop="roles">
-            <ElSelect v-model="formData.roles" multiple class="w-full">
+            <ElSelect v-model="formData.roles" multiple class="w-full" filterable>
               <ElOption
                 v-for="role in roleList"
                 :key="role.roleCode"
@@ -102,6 +102,7 @@
               multiple
               check-strictly
               clearable
+              filterable
               class="w-full"
             />
           </ElFormItem>

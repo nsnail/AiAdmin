@@ -16,6 +16,7 @@
               :props="{ label: 'name', children: 'children' }"
               check-strictly
               clearable
+              filterable
               placeholder="不选择则为根部门"
               class="w-full"
             />

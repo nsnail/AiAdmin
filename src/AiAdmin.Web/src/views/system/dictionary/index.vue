@@ -61,6 +61,7 @@
               <ElSelect
                 v-model="itemEnabledFilter"
                 clearable
+                filterable
                 placeholder="全部"
                 class="enabled-filter"
               >
@@ -116,6 +117,7 @@
               ><ElSelect
                 v-model="categoryForm.parentId"
                 clearable
+                filterable
                 class="w-full"
                 placeholder="根目录"
                 ><ElOption

@@ -16,13 +16,6 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
     private const int MaxResultWindow = 10000;
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    // 通用关键词只查询文本字段，避免 Elasticsearch 将文字转换为数值或日期
-    private static readonly string[] _keywordFields = [
-        "category", "clientIp", "eventName", "exception", "level", "logType", "message", "requestBody"
-        , "requestContentType", "requestHeaders", "requestId", "requestMethod", "requestRelativeUrl", "requestUrl", "responseBody"
-        , "responseContentType", "responseHeaders", "serverIp", "source", "sql", "userAgent", "userName"
-    ];
-
     /// <summary>
     ///     分页查询系统日志
     /// </summary>
@@ -40,26 +33,6 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         }
 
         var must = new List<object>();
-        if (!string.IsNullOrWhiteSpace(request.Level)) {
-            must.Add(new { match = new { level = request.Level.Trim() } });
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.LogType)) {
-            must.Add(new { match = new { logType = request.LogType.Trim() } });
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Category)) {
-            must.Add(new { wildcard = new { category = $"*{EscapeWildcard(request.Category.Trim())}*" } });
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.Keyword)) {
-            var keyword = request.Keyword.Trim();
-            var searchField = ResolveSearchField(request.SearchField);
-            must.Add(searchField is null
-                ? new { multi_match = new { query = keyword, fields = _keywordFields, lenient = true } }
-                : new { match = new Dictionary<string, string> { [searchField] = keyword } });
-        }
-
         var dynamicQuery = BuildDynamicQuery(request.DynamicFilter);
         if (dynamicQuery is not null) {
             must.Add(dynamicQuery);
@@ -198,16 +171,17 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             text = value.GetString() ?? string.Empty;
         }
 
-        return filter.Operator.ToUpperInvariant() switch {
+        var normalizedOperator = filter.Operator.Replace("_", string.Empty, StringComparison.Ordinal).ToUpperInvariant();
+        return normalizedOperator switch {
             "EQUAL" or "EQUALS" => new { match = new Dictionary<string, object> { [field] = text } },
-            "NOT_EQUAL" or "NOT_EQUALS" => new { @bool = new { must_not = new[] { new { match = new Dictionary<string, object> { [field] = text } } } } },
+            "NOTEQUAL" or "NOTEQUALS" => new { @bool = new { must_not = new[] { new { match = new Dictionary<string, object> { [field] = text } } } } },
             "CONTAINS" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}*" } },
-            "STARTS_WITH" => new { wildcard = new Dictionary<string, object> { [field] = $"{EscapeWildcard(text)}*" } },
-            "ENDS_WITH" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}" } },
-            "GREATER_THAN" => new { range = new Dictionary<string, object> { [field] = new { gt = GetScalarValue(value) } } },
-            "GREATER_THAN_OR_EQUAL" => new { range = new Dictionary<string, object> { [field] = new { gte = GetScalarValue(value) } } },
-            "LESS_THAN" => new { range = new Dictionary<string, object> { [field] = new { lt = GetScalarValue(value) } } },
-            "LESS_THAN_OR_EQUAL" => new { range = new Dictionary<string, object> { [field] = new { lte = GetScalarValue(value) } } },
+            "STARTSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"{EscapeWildcard(text)}*" } },
+            "ENDSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}" } },
+            "GREATERTHAN" => new { range = new Dictionary<string, object> { [field] = new { gt = GetScalarValue(value) } } },
+            "GREATERTHANOREQUAL" => new { range = new Dictionary<string, object> { [field] = new { gte = GetScalarValue(value) } } },
+            "LESSTHAN" => new { range = new Dictionary<string, object> { [field] = new { lt = GetScalarValue(value) } } },
+            "LESSTHANOREQUAL" => new { range = new Dictionary<string, object> { [field] = new { lte = GetScalarValue(value) } } },
             _ => new { match = new Dictionary<string, object> { [field] = text } }
         };
     }

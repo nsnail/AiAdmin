@@ -32,9 +32,13 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     [ApiDescription("Delete saved query condition")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var userId = GetCurrentUserId();
-        var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.Id == id && x.UserId == userId).ConfigureAwait(false);
+        var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (entity is null) {
             return NotFound(new ApiResponse<object>(404, "Saved query condition not found", null));
+        }
+
+        if ((entity.IsGlobal && !User.IsInRole("R_SUPER")) || (!entity.IsGlobal && entity.UserId != userId)) {
+            return Forbid();
         }
 
         _ = db.SavedQueries.Remove(entity);
@@ -53,12 +57,13 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
         var userId = GetCurrentUserId();
         var queries = await db
             .SavedQueries.AsNoTracking()
-            .Where(x => x.UserId == userId && x.Route == route)
-            .OrderBy(x => x.Name)
+            .Where(x => x.Route == route && (x.IsGlobal || x.UserId == userId))
+            .OrderBy(x => x.IsGlobal)
+            .ThenByDescending(x => x.CreatedAt)
             .ToListAsync()
             .ConfigureAwait(false);
         var result = queries.ConvertAll(x => new SavedQueryResult(
-                x.Id, x.Name, JsonSerializer.Deserialize<DynamicFilter>(x.FilterJson, _jsonOptions)!
+                x.Id, x.Name, x.IsGlobal, JsonSerializer.Deserialize<DynamicFilter>(x.FilterJson, _jsonOptions)!
             )
         );
         return Ok(ApiResponse<IReadOnlyList<SavedQueryResult>>.Ok(result));
@@ -75,18 +80,29 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
         var userId = GetCurrentUserId();
         var name = request.Name.Trim();
         var route = request.Route.Trim();
+        var isSuperAdmin = User.IsInRole("R_SUPER");
+
+        // 全局查询会对所有用户可见，服务端必须独立校验超管身份，不能依赖前端隐藏开关
+        if (request.IsGlobal && !isSuperAdmin) {
+            return Forbid();
+        }
+
+        var isGlobal = request.IsGlobal;
         var filterJson = JsonSerializer.Serialize(request.DynamicFilter, _jsonOptions);
-        var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.UserId == userId && x.Route == route && x.Name == name).ConfigureAwait(false);
+        var entity = await db.SavedQueries.SingleOrDefaultAsync(
+            x => x.Route == route && x.Name == name && (isGlobal ? x.IsGlobal : x.UserId == userId && !x.IsGlobal)
+        ).ConfigureAwait(false);
         if (entity is null) {
-            entity = new SavedQuery { UserId = userId, Route = route, Name = name, FilterJson = filterJson };
+            entity = new SavedQuery { UserId = userId, Route = route, Name = name, IsGlobal = isGlobal, FilterJson = filterJson };
             _ = await db.SavedQueries.AddAsync(entity).ConfigureAwait(false);
         }
         else {
             entity.FilterJson = filterJson;
+            entity.IsGlobal = isGlobal;
         }
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<SavedQueryResult>.Ok(new SavedQueryResult(entity.Id, entity.Name, request.DynamicFilter!)));
+        return Ok(ApiResponse<SavedQueryResult>.Ok(new SavedQueryResult(entity.Id, entity.Name, entity.IsGlobal, request.DynamicFilter!)));
     }
 
     /// <summary>

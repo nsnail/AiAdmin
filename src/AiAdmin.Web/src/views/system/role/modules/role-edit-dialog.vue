@@ -24,7 +24,7 @@
             />
           </ElFormItem>
           <ElFormItem label="数据权限" prop="dataScope">
-            <ElSelect v-model="form.dataScope" class="w-full">
+            <ElSelect v-model="form.dataScope" class="w-full" filterable>
               <ElOption label="全部数据" value="all" />
               <ElOption label="本部门数据" value="department" />
               <ElOption label="本部门和子部门数据" value="department_and_children" />

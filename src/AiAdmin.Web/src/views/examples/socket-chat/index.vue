@@ -91,7 +91,7 @@
 
           <ElForm :model="messageForm" @submit.prevent="handleSendMessage">
             <ElFormItem label="消息类型">
-              <ElSelect v-model="messageForm.type" class="w-full">
+              <ElSelect v-model="messageForm.type" class="w-full" filterable>
                 <ElOption label="文本消息" value="text" />
                 <ElOption label="JSON数据" value="json" />
                 <ElOption label="心跳包" value="ping" />

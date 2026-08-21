@@ -8,6 +8,11 @@ namespace AiAdmin.Api.Contracts;
 public sealed class SaveQueryRequest
 {
     /// <summary>
+    ///     是否保存为全局查询
+    /// </summary>
+    public bool IsGlobal { get; init; }
+
+    /// <summary>
     ///     动态筛选根节点
     /// </summary>
     [Required]

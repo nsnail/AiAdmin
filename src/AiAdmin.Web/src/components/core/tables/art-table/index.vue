@@ -158,6 +158,7 @@
             v-else-if="queryMenu.valueType === 'boolean'"
             v-model="queryValue"
             class="w-full"
+            filterable
           >
             <ElOption label="是" :value="true" />
             <ElOption label="否" :value="false" />

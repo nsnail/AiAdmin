@@ -8,39 +8,14 @@ namespace AiAdmin.Api.Logging;
 public sealed class SystemLogQueryRequest
 {
     /// <summary>
-    ///     日志分类
-    /// </summary>
-    public string? Category { get; set; }
-
-    /// <summary>
     ///     当前页码
     /// </summary>
     public int Current { get; set; } = 1;
 
     /// <summary>
-    ///     日志关键字
-    /// </summary>
-    public string? Keyword { get; set; }
-
-    /// <summary>
-    ///     指定搜索字段
-    /// </summary>
-    public string? SearchField { get; set; }
-
-    /// <summary>
     ///     动态查询条件
     /// </summary>
     public DynamicFilter? DynamicFilter { get; set; }
-
-    /// <summary>
-    ///     日志类型
-    /// </summary>
-    public string? LogType { get; set; }
-
-    /// <summary>
-    ///     日志级别
-    /// </summary>
-    public string? Level { get; set; }
 
     /// <summary>
     ///     每页记录数

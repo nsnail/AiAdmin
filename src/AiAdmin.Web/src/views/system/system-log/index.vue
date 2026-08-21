@@ -40,7 +40,10 @@
               :key="field"
               :label="t(`systemLog.fields.${field}`)"
             >
-              <pre class="log-detail-value">{{ formatDetailValue(field, selectedLog[field]) }}</pre>
+              <pre
+                class="log-detail-value"
+                @contextmenu.prevent="copyDetailValue(formatDetailValue(field, selectedLog[field]))"
+              >{{ formatDetailValue(field, selectedLog[field]) }}</pre>
             </ElDescriptionsItem>
           </ElDescriptions>
         </ElTabPane>
@@ -53,12 +56,22 @@
 </template>
 
 <script setup lang="ts">
-  import { ElButton, ElTag } from 'element-plus'
+  import { ElButton, ElMessage, ElTag } from 'element-plus'
   import { useI18n } from 'vue-i18n'
   import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
   import { fetchGetSystemLogs, type SystemLogSearchParams } from '@/api/system-manage'
   import { useTable } from '@/hooks/core/useTable'
-  import type { DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import type {
+    DynamicFilter,
+    DynamicQueryField
+  } from '@/components/core/forms/art-dynamic-query-drawer/types'
+
+  type SystemLogSearchForm = SystemLogSearchParams & {
+    timestamp?: string[]
+    level?: string
+    logType?: string
+    keyword?: string
+  }
 
   defineOptions({ name: 'SystemLog' })
   const { t, locale } = useI18n()
@@ -139,17 +152,34 @@
       }
     ]
   }
+  const toLocalIsoString = (date: Date): string => {
+    const pad = (value: number, length = 2) => String(value).padStart(length, '0')
+    const offsetMinutes = -date.getTimezoneOffset()
+    const sign = offsetMinutes >= 0 ? '+' : '-'
+    const absoluteOffset = Math.abs(offsetMinutes)
+    const offset = `${sign}${pad(Math.floor(absoluteOffset / 60))}:${pad(absoluteOffset % 60)}`
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+      + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+      + `.${pad(date.getMilliseconds(), 3)}${offset}`
+  }
+
   const getTodayTimestampRange = (): string[] => {
     const start = new Date()
     start.setHours(0, 0, 0, 0)
     const end = new Date(start)
     end.setDate(end.getDate() + 1)
-    return [start.toISOString(), end.toISOString()]
+    return [toLocalIsoString(start), toLocalIsoString(end)]
   }
-  const searchForm = ref<SystemLogSearchParams>({
+  const initialTimestamp = getTodayTimestampRange()
+  const searchForm = ref<SystemLogSearchForm>({
     current: 1,
     size: 20,
-    timestamp: getTodayTimestampRange()
+    timestamp: initialTimestamp,
+    dynamicFilter: {
+      field: 'timestamp',
+      operator: 'DateRange',
+      value: initialTimestamp
+    }
   })
   const searchItems = computed(() => [
     {
@@ -351,6 +381,25 @@
     if (value === null || value === undefined || value === '') return '-'
     if (field === 'timestamp') return formatTime(String(value))
     return typeof value === 'string' ? value : JSON.stringify(value)
+  }
+  const copyDetailValue = async (value: string) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(value)
+      } else {
+        const textarea = document.createElement('textarea')
+        textarea.value = value
+        textarea.style.position = 'fixed'
+        textarea.style.opacity = '0'
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand('copy')
+        textarea.remove()
+      }
+      ElMessage.success(t('systemLog.detail.copied'))
+    } catch {
+      ElMessage.error(t('systemLog.detail.copyFailed'))
+    }
   }
   const openDetail = (row: Api.SystemManage.SystemLogItem) => {
     selectedLog.value = row
@@ -576,13 +625,47 @@
     await applyCellQuery(condition)
   }
 
-  async function handleSearch(params: SystemLogSearchParams) {
-    replaceSearchParams({ ...params, current: 1 })
+  const buildDynamicFilter = (params: SystemLogSearchForm): DynamicFilter | undefined => {
+    const directFields = new Set<string>()
+    if (params.timestamp?.length === 2) directFields.add('timestamp')
+    if (params.level) directFields.add('level')
+    if (params.logType) directFields.add('logType')
+    if (params.keyword?.trim()) directFields.add('message')
+    const existingFilters = params.dynamicFilter
+      ? params.dynamicFilter.filters?.length
+        ? params.dynamicFilter.filters.filter((filter) => !directFields.has(filter.field || ''))
+        : directFields.has(params.dynamicFilter.field || '')
+          ? []
+          : [params.dynamicFilter]
+      : []
+    const filters: DynamicFilter[] = [...existingFilters]
+    if (params.timestamp?.length === 2) {
+      filters.push({ field: 'timestamp', operator: 'DateRange', value: params.timestamp })
+    }
+    if (params.level) filters.push({ field: 'level', operator: 'Equal', value: params.level })
+    if (params.logType) filters.push({ field: 'logType', operator: 'Equal', value: params.logType })
+    if (params.keyword?.trim()) {
+      filters.push({ field: 'message', operator: 'Contains', value: params.keyword.trim() })
+    }
+    if (!filters.length) return undefined
+    return filters.length === 1 ? filters[0] : { logic: 'And', filters }
+  }
+
+  async function handleSearch(params: SystemLogSearchForm) {
+    const nextParams = { ...params, current: 1, dynamicFilter: buildDynamicFilter(params) }
+    searchForm.value.dynamicFilter = nextParams.dynamicFilter
+    replaceSearchParams(nextParams)
     await getData()
   }
 
   async function handleReset() {
-    searchForm.value = { current: 1, size: pagination.size, timestamp: getTodayTimestampRange() }
+    const timestamp = getTodayTimestampRange()
+    searchForm.value = {
+      current: 1,
+      size: pagination.size,
+      timestamp,
+      dynamicFilter: { field: 'timestamp', operator: 'DateRange', value: timestamp }
+    }
     replaceSearchParams(searchForm.value)
     await getData()
   }

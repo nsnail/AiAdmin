@@ -414,9 +414,11 @@
   }
 
   const getProps = (item: FormItem) => {
-    if (item.props) return item.props
-    const props = { ...item }
+    const isFilterableType = ['select', 'cascader', 'treeselect'].includes(item.type ?? '')
+    if (item.props && !isFilterableType) return item.props
+    const props = item.props ? { ...item.props } : { ...item }
     rootProps.forEach((key) => delete (props as Record<string, any>)[key])
+    if (isFilterableType) props.filterable = true
     return props
   }
 

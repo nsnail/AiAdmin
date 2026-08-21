@@ -18,5 +18,5 @@ export interface QueryGroup {
 }
 
 export type QueryNode =
-  | { id: string; kind: 'condition'; field: string; operator: string; value: string }
+  | { id: string; kind: 'condition'; field: string; operator: string; value: unknown }
   | { id: string; kind: 'group'; group: QueryGroup }

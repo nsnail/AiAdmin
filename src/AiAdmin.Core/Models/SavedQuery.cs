@@ -8,6 +8,11 @@ namespace AiAdmin.Api.Models;
 public sealed class SavedQuery : EntityBase
 {
     /// <summary>
+    ///     是否对所有用户可见
+    /// </summary>
+    public bool IsGlobal { get; set; }
+
+    /// <summary>
     ///     查询条件序列化文本
     /// </summary>
     public required string FilterJson { get; set; }

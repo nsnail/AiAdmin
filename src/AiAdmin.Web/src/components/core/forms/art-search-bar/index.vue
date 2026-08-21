@@ -142,11 +142,52 @@
                   <template #dropdown>
                     <ElDropdownMenu>
                       <ElDropdownItem
-                        v-for="query in savedQueries"
+                        v-for="(query, index) in savedQueries"
                         :key="query.id"
                         :command="query.id"
+                        :divided="
+                          query.isGlobal &&
+                          savedQueries.some((item) => !item.isGlobal) &&
+                          index === savedQueries.findIndex((item) => item.isGlobal)
+                        "
                       >
-                        {{ query.name }}
+                        <span class="saved-query-name">{{ query.name }}</span>
+                          <ElPopover
+                            v-if="!query.isGlobal || isSuperAdmin"
+                          placement="left"
+                          trigger="manual"
+                          width="220"
+                          :visible="String(deletePopoverId) === String(query.id)"
+                          @update:visible="(visible) => !visible && (deletePopoverId = undefined)"
+                        >
+                          <p class="saved-query-confirm-text">
+                            {{ t('table.searchBar.deleteSavedQueryConfirm', { name: query.name }) }}
+                          </p>
+                          <div class="saved-query-confirm-actions">
+                            <ElButton size="small" @click.stop="deletePopoverId = undefined">
+                              {{ t('common.cancel') }}
+                            </ElButton>
+                            <ElButton
+                              size="small"
+                              type="danger"
+                              @click.stop="confirmDeleteSavedQuery(query.id)"
+                            >
+                              {{ t('common.confirm') }}
+                            </ElButton>
+                          </div>
+                          <template #reference>
+                            <ElButton
+                              text
+                              circle
+                              size="small"
+                              class="saved-query-delete"
+                              :aria-label="t('table.searchBar.deleteSavedQuery')"
+                              @click.stop="deletePopoverId = query.id"
+                            >
+                              <ArtSvgIcon icon="ri:delete-bin-line" />
+                            </ElButton>
+                          </template>
+                        </ElPopover>
                       </ElDropdownItem>
                       <ElDropdownItem v-if="!savedQueries.length" disabled>
                         {{ t('table.searchBar.noSavedQueries') }}
@@ -227,7 +268,7 @@
   import { useWindowSize } from '@vueuse/core'
   import { useI18n } from 'vue-i18n'
   import { useRoute } from 'vue-router'
-  import { toRaw, type Component } from 'vue'
+  import { defineComponent, h, toRaw, type Component } from 'vue'
   import {
     ElCascader,
     ElCheckbox,
@@ -254,10 +295,12 @@
   import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
   import {
     fetchGetSavedQueries,
+    fetchDeleteSavedQuery,
     fetchSaveQuery,
     type ListFilterField,
     type SavedQuery
   } from '@/api/system-manage'
+  import { useUserStore } from '@/store/modules/user'
 
   defineOptions({ name: 'ArtSearchBar' })
 
@@ -391,6 +434,18 @@
   const modelValue = defineModel<Record<string, any>>({ default: {} })
   const advancedQueryVisible = ref(false)
   const savedQueries = ref<SavedQuery[]>([])
+  const userStore = useUserStore()
+  const isSuperAdmin = computed(() => userStore.getUserInfo.roles?.includes('R_SUPER') === true)
+  const createGlobalSwitch = (state: { value: boolean }) =>
+    defineComponent({
+      setup: () => () =>
+        h(ElSwitch, {
+          modelValue: state.value,
+          'onUpdate:modelValue': (value: boolean) => (state.value = value),
+          activeText: t('table.searchBar.globalQuery')
+        })
+    })
+  const deletePopoverId = ref<string | number>()
   const activeAdvancedFilter = ref<DynamicFilter>()
   const initialModelValue = ref<Record<string, any>>({})
   const useUpdatedAt = ref(false)
@@ -450,9 +505,11 @@
   }))
 
   const getProps = (item: SearchFormItem) => {
-    if (item.props) return item.props
-    const props = { ...item }
+    const isFilterableType = ['select', 'cascader', 'treeselect'].includes(item.type ?? '')
+    if (item.props && !isFilterableType) return item.props
+    const props = item.props ? { ...item.props } : { ...item }
     rootProps.forEach((key) => delete (props as Record<string, any>)[key])
+    if (isFilterableType) props.filterable = true
     return props
   }
 
@@ -575,16 +632,16 @@
   }
 
   const activeQueryConditionCount = computed(() => {
-    if (activeAdvancedFilter.value) {
-      return countDynamicFilterConditions(activeAdvancedFilter.value)
-    }
+    const currentFilter = activeAdvancedFilter.value || modelValue.value.dynamicFilter
+    if (currentFilter) return countDynamicFilterConditions(currentFilter)
     return Object.keys(getSanitizedOutput()).length
   })
 
   // 将当前查询条件转换为已转义的高亮 JSON，避免提示内容被当作 HTML 执行。
   const formattedQueryPreview = computed(() => {
-    const query = activeAdvancedFilter.value
-      ? { dynamicFilter: activeAdvancedFilter.value }
+    const currentFilter = activeAdvancedFilter.value || modelValue.value.dynamicFilter
+    const query = currentFilter
+      ? { dynamicFilter: currentFilter }
       : getSanitizedOutput()
     const json = JSON.stringify(query, null, 2)
     const escaped = json
@@ -611,8 +668,8 @@
     [() => modelValue.value, activeAdvancedFilter],
     () => {
       queryPreviewText.value = JSON.stringify(
-        activeAdvancedFilter.value
-          ? { dynamicFilter: activeAdvancedFilter.value }
+        (activeAdvancedFilter.value || modelValue.value.dynamicFilter)
+          ? { dynamicFilter: activeAdvancedFilter.value || modelValue.value.dynamicFilter }
           : getSanitizedOutput(),
         null,
         2
@@ -672,11 +729,21 @@
     const parsed = parseQueryPreview()
     const dynamicFilter = parsed && queryPreviewToFilter(parsed)
     if (!dynamicFilter) return
-    const { value } = await ElMessageBox.prompt('请输入查询名称', '保存查询', {
+    const global = ref(false)
+    const { value } = await ElMessageBox({
+      title: t('table.searchBar.saveQueryTitle'),
+      message: isSuperAdmin.value
+        ? h('div', [
+            h(createGlobalSwitch(global))
+          ])
+        : undefined,
+      showInput: true,
+      inputPlaceholder: t('table.searchBar.queryNamePlaceholder'),
       inputPattern: /\S+/,
-      inputErrorMessage: '请输入查询名称'
+      inputErrorMessage: t('table.searchBar.queryNameRequired'),
+      showCancelButton: true
     })
-    await fetchSaveQuery({ name: value.trim(), route: route.path, dynamicFilter })
+    await fetchSaveQuery({ name: value.trim(), route: route.path, dynamicFilter, isGlobal: global.value })
     ElMessage.success('保存成功')
   }
 
@@ -984,6 +1051,16 @@
     }
   }
 
+  const deleteSavedQuery = async (id: string | number) => {
+    await fetchDeleteSavedQuery(String(id))
+    savedQueries.value = savedQueries.value.filter((query) => String(query.id) !== String(id))
+  }
+
+  const confirmDeleteSavedQuery = async (id: string | number) => {
+    await deleteSavedQuery(id)
+    deletePopoverId.value = undefined
+  }
+
   const applyAdvancedFilter = (filter: DynamicFilter | undefined) => {
     activeAdvancedFilter.value = filter
     Object.keys(modelValue.value).forEach((key) => {
@@ -1077,6 +1154,27 @@
         }
       }
     }
+  }
+
+  :deep(.saved-query-name) {
+    flex: 1;
+    min-width: 0;
+  }
+
+  :deep(.saved-query-delete) {
+    margin-left: 12px;
+  }
+
+  .saved-query-confirm-text {
+    margin: 0 0 12px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .saved-query-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
   }
 
   .query-preview {
