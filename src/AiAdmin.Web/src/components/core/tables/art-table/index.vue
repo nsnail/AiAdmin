@@ -509,11 +509,20 @@
 
   const handleCellContextMenu = (
     row: Record<string, unknown>,
-    column: { property?: string; label?: string },
+    column: {
+      property?: string
+      prop?: string
+      label?: string
+      queryField?: string | false
+      queryValueField?: string
+      queryValueType?: QueryValueType
+      queryOperators?: string[]
+      sortable?: boolean
+    },
     _cell: HTMLElement,
     event: MouseEvent
   ) => {
-    const definition = props.columns.find((item) => item.prop === column.property)
+    const definition = props.columns.find((item) => item.prop === column.property) || column
     const queryTarget = (event.target as HTMLElement | null)?.closest<HTMLElement>(
       '[data-query-field]'
     )

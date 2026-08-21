@@ -76,18 +76,19 @@
           :loading="loading"
           :data="filteredItems"
           height="calc(100vh - 220px)"
-          @row-contextmenu="showContextMenu"
+          @cell-query="handleCellQuery"
         >
-          <ElTableColumn prop="label" label="标签" min-width="160" sortable />
-          <ElTableColumn prop="value" label="键值" min-width="160" sortable />
-          <ElTableColumn prop="sort" label="排序" width="90" sortable />
-          <ElTableColumn prop="isEnabled" label="是否启用" width="100" sortable>
+          <ElTableColumn prop="label" query-field="Label" label="标签" min-width="160" sortable />
+          <ElTableColumn prop="value" query-field="Value" label="键值" min-width="160" sortable />
+          <ElTableColumn prop="sort" query-field="Sort" query-value-type="number" label="排序" width="90" sortable />
+          <ElTableColumn prop="isEnabled" query-field="IsEnabled" query-value-type="boolean" label="是否启用" width="100" sortable>
             <template #default="{ row }"
               ><ArtEnabledSwitch :id="row.id" v-model="row.isEnabled" resource="dictionary-item"
             /></template>
           </ElTableColumn>
           <ElTableColumn
             prop="remark"
+            query-field="Remark"
             label="备注"
             min-width="180"
             show-overflow-tooltip
@@ -104,11 +105,6 @@
             </template>
           </ElTableColumn>
         </ArtTable>
-        <ArtMenuRight
-          ref="menuRef"
-          :menu-items="contextMenuItems"
-          @select="handleContextMenuSelect"
-        />
       </ElCard>
     </div>
 
@@ -200,8 +196,6 @@
   import { useI18n } from 'vue-i18n'
   import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-  import ArtMenuRight from '@/components/core/others/art-menu-right/index.vue'
-  import type { MenuItemType } from '@/components/core/others/art-menu-right/index.vue'
   import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
   import {
     fetchCreateDictionaryCategory,
@@ -233,8 +227,6 @@
   const itemDialogTab = ref('form')
   const categoryRawData = ref<Partial<Category> | Record<string, unknown>>({})
   const itemRawData = ref<Partial<Item> | Record<string, unknown>>({})
-  const menuRef = ref<InstanceType<typeof ArtMenuRight>>()
-  const contextItem = ref<Item>()
   const categoryForm = reactive({
     id: '',
     code: '',
@@ -301,15 +293,6 @@
       return matchesFields && matchesFilter(item, appliedSearchForm.dynamicFilter)
     })
   })
-  const contextMenuItems = computed<MenuItemType[]>(() =>
-    contextItem.value
-      ? [
-          { key: 'edit', label: '编辑', icon: 'ri:edit-2-line' },
-          { key: 'delete', label: '删除', icon: 'ri:delete-bin-4-line', showLine: true },
-          { key: 'refresh', label: '刷新', icon: 'ri:refresh-line' }
-        ]
-      : []
-  )
 
   const loadCategories = async (preferredId?: string) => {
     categories.value = await fetchGetDictionaryCategories()
@@ -345,17 +328,11 @@
     Object.keys(searchForm).forEach((key) => delete searchForm[key])
     Object.keys(appliedSearchForm).forEach((key) => delete appliedSearchForm[key])
   }
-  const showContextMenu = (row: Item, _column: unknown, event: MouseEvent) => {
-    contextItem.value = row
-    event.preventDefault()
-    menuRef.value?.show(event)
-  }
-  const handleContextMenuSelect = async (item: MenuItemType) => {
-    const selectedItem = contextItem.value
-    if (!selectedItem) return
-    if (item.key === 'edit') openItemDialog(selectedItem)
-    else if (item.key === 'delete') await deleteItem(selectedItem)
-    else if (item.key === 'refresh') await loadItems()
+  const handleCellQuery = (condition: DynamicFilter) => {
+    const currentFilter = appliedSearchForm.dynamicFilter
+    appliedSearchForm.dynamicFilter = currentFilter
+      ? { logic: 'And', filters: [currentFilter, condition] }
+      : condition
   }
   const selectCategory = async (category: Category) => {
     selectedCategory.value = category
