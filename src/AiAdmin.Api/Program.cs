@@ -8,8 +8,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 
-var builder = WebApplication.CreateBuilder(args);
+const string InitializeDatabaseArgument = "--initialize-database";
+var initializeDatabaseRequested = args.Contains(InitializeDatabaseArgument, StringComparer.OrdinalIgnoreCase);
+var applicationArgs = args.Where(x => !string.Equals(x, InitializeDatabaseArgument, StringComparison.OrdinalIgnoreCase)).ToArray();
+var builder = WebApplication.CreateBuilder(applicationArgs);
 _ = builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
 SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:WorkerId", 0));
 
@@ -31,6 +35,8 @@ builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options => options.Configuration = redisConnection);
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConnection));
+builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
 builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
@@ -41,6 +47,7 @@ builder.Services.AddSingleton<MinioStorageService>();
 builder.Services.AddHttpClient();
 builder.Services.AddTransient<ExternalHttpRequestService>();
 builder.Services.AddHostedService<ScheduledJobHostedService>();
+builder.Services.AddHostedService<ScheduledJobReleaseHostedService>();
 
 var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvariant() ?? "sqlite";
 var connectionString = builder.Configuration.GetConnectionString(provider)
@@ -100,11 +107,17 @@ app.UseMiddleware<ApiPermissionMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 
-await DatabaseInitializer.InitializeAsync(app.Services).ConfigureAwait(false);
-await using (var scope = app.Services.CreateAsyncScope()) {
-    _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
-}
+var shouldInitializeDatabase = initializeDatabaseRequested;
+#if DEBUG
+shouldInitializeDatabase = true;
+#endif
+if (shouldInitializeDatabase) {
+    await DatabaseInitializer.InitializeAsync(app.Services).ConfigureAwait(false);
+    await using (var scope = app.Services.CreateAsyncScope()) {
+        _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
+    }
 
-await DatabaseInitializer.InitializeRoleApisAsync(app.Services).ConfigureAwait(false);
+    await DatabaseInitializer.InitializeRoleApisAsync(app.Services).ConfigureAwait(false);
+}
 
 await app.RunAsync().ConfigureAwait(false);

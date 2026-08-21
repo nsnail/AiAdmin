@@ -12,11 +12,13 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     计划作业管理控制器
 /// </summary>
+/// <param name="db">数据库上下文</param>
+/// <param name="lockService">计划作业分布式锁服务</param>
 [ApiController]
 [Authorize]
 [Route("api/scheduled-job")]
 [ApiDescription("Scheduled job management")]
-public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
+public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockService lockService) : ControllerBase
 {
     /// <summary>
     ///     新增计划作业
@@ -149,6 +151,11 @@ public sealed class ScheduledJobsController(AppDbContext db) : ControllerBase
     [HttpPost("{id:long}/run")]
     [ApiDescription("Run scheduled job")]
     public async Task<ActionResult<ApiResponse<object>>> RunAsync(long id) {
+        await using var jobLock = await lockService.TryAcquireAsync(id, TimeSpan.FromSeconds(2), HttpContext.RequestAborted).ConfigureAwait(false);
+        if (jobLock is null) {
+            return Conflict(new ApiResponse<object>(409, "Scheduled job is being updated", null));
+        }
+
         var job = await db.ScheduledJobs.FindAsync(id).ConfigureAwait(false);
         if (job is null) {
             return NotFound(new ApiResponse<object>(404, "Scheduled job not found", null));

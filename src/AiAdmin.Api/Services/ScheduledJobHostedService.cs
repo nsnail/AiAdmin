@@ -12,10 +12,12 @@ namespace AiAdmin.Api.Services;
 /// </summary>
 /// <param name="scopeFactory">服务作用域工厂</param>
 /// <param name="externalHttpRequestService">外部 HTTP 请求服务</param>
+/// <param name="lockService">计划作业分布式锁服务</param>
 /// <param name="logger">日志记录器</param>
 public sealed class ScheduledJobHostedService(
     IServiceScopeFactory scopeFactory
     , ExternalHttpRequestService externalHttpRequestService
+    , ScheduledJobLockService lockService
     , ILogger<ScheduledJobHostedService> logger) : BackgroundService
 {
     private static readonly Action<ILogger, Exception?> _logSchedulingLoopError = LoggerMessage.Define(
@@ -25,6 +27,8 @@ public sealed class ScheduledJobHostedService(
     private static readonly Regex _placeholder = new(
         @"\{\{([^{}]+)\}\}", RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)
     );
+
+    private static readonly TimeSpan _completionLockWaitTimeout = TimeSpan.FromSeconds(35);
 
     /// <summary>
     ///     后台循环入口
@@ -68,6 +72,7 @@ public sealed class ScheduledJobHostedService(
     /// <param name="jobId">作业编号</param>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>异步执行任务</returns>
+    /// <exception cref="InvalidOperationException">无法获取计划作业锁时引发</exception>
     private async Task ExecuteJobAsync(
         long jobId
         , CancellationToken cancellationToken
@@ -81,6 +86,7 @@ public sealed class ScheduledJobHostedService(
             return;
         }
 
+        var triggeredAt = job.LastTriggeredAt;
         var placeholderCatalog = await db.DictionaryCategories
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders" && x.IsEnabled, cancellationToken)
@@ -134,24 +140,32 @@ public sealed class ScheduledJobHostedService(
             execution.ResponseHeaders = response.ResponseHeaders;
             execution.ResponseBody = response.ResponseBody;
             execution.Status = response.StatusCode is >= 200 and < 300 ? ScheduledJobStatus.Success : ScheduledJobStatus.Failed;
-            job.Status = execution.Status;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             execution.Status = ScheduledJobStatus.Timeout;
             execution.ErrorMessage = "Request timed out";
-            job.Status = ScheduledJobStatus.Timeout;
         }
         catch (Exception exception)
         {
             execution.Status = ScheduledJobStatus.Failed;
             execution.ErrorMessage = exception.Message;
-            job.Status = ScheduledJobStatus.Failed;
-            job.LastError = exception.Message;
         }
 
         execution.FinishedAt = DateTime.Now;
-        job.LastFinishedAt = execution.FinishedAt;
+        await using var jobLock = await lockService
+                                      .TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None)
+                                      .ConfigureAwait(false)
+                                  ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
+
+        await db.Entry(job).ReloadAsync(CancellationToken.None).ConfigureAwait(false);
+        if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt)
+        {
+            job.Status = execution.Status;
+            job.LastFinishedAt = execution.FinishedAt;
+            job.LastError = execution.ErrorMessage;
+        }
+
         _ = await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
@@ -174,9 +188,30 @@ public sealed class ScheduledJobHostedService(
                      && (!x.LastTriggeredAt.HasValue || !CronMatcher.IsSameTriggerWindow(x.CronExpression, x.LastTriggeredAt.Value, now))
                  ))
         {
-            job.Status = ScheduledJobStatus.Running;
-            job.LastTriggeredAt = now;
-            _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await using (var jobLock = await lockService
+                             .TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken)
+                             .ConfigureAwait(false))
+            {
+                if (jobLock is null)
+                {
+                    continue;
+                }
+
+                await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
+                now = DateTime.Now;
+                if (!job.IsEnabled
+                    || job.Status == ScheduledJobStatus.Running
+                    || !CronMatcher.IsDue(job.CronExpression, now)
+                    || (job.LastTriggeredAt.HasValue && CronMatcher.IsSameTriggerWindow(job.CronExpression, job.LastTriggeredAt.Value, now)))
+                {
+                    continue;
+                }
+
+                job.Status = ScheduledJobStatus.Running;
+                job.LastTriggeredAt = now;
+                _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            }
+
             _ = ExecuteJobAsync(job.Id, cancellationToken);
         }
     }
