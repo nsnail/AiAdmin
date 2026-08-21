@@ -16,8 +16,7 @@ internal static class CronMatcher
     public static bool IsDue(
         string expression
         , DateTime now
-    )
-    {
+    ) {
         var fields = expression.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         return fields.Length switch
         {
@@ -26,15 +25,13 @@ internal static class CronMatcher
                  && Match(fields[2], now.Day, 1, 31)
                  && Match(fields[3], now.Month, 1, 12)
                  && Match(fields[4], (int)now.DayOfWeek, 0, 6)
-            ,
-            6 => Match(fields[0], now.Second, 0, 59)
+            , 6 => Match(fields[0], now.Second, 0, 59)
                    && Match(fields[1], now.Minute, 0, 59)
                    && Match(fields[2], now.Hour, 0, 23)
                    && Match(fields[3], now.Day, 1, 31)
                    && Match(fields[4], now.Month, 1, 12)
                    && Match(fields[5], (int)now.DayOfWeek, 0, 6)
-            ,
-            _ => false
+            , _ => false
         };
     }
 
@@ -49,8 +46,7 @@ internal static class CronMatcher
         string expression
         , DateTime previous
         , DateTime current
-    )
-    {
+    ) {
         var format = expression.Split(' ', StringSplitOptions.RemoveEmptyEntries).Length == 6 ? "yyyyMMddHHmmss" : "yyyyMMddHHmm";
         return previous.ToString(format, CultureInfo.InvariantCulture) == current.ToString(format, CultureInfo.InvariantCulture);
     }
@@ -68,8 +64,7 @@ internal static class CronMatcher
         , int value
         , int min
         , int max
-    )
-    {
+    ) {
         return field
             .Split(',')
             .Any(part =>
@@ -77,13 +72,11 @@ internal static class CronMatcher
                     var pieces = part.Split('/');
                     var step = pieces.Length == 2 && int.TryParse(pieces[1], out var parsedStep) ? parsedStep : 1;
                     (int, int) range;
-                    if (step <= 0)
-                    {
+                    if (step <= 0) {
                         return false;
                     }
 
-                    if (pieces[0] == "*" || (pieces.Length == 2 && int.TryParse(pieces[0], out _)))
-                    {
+                    if (pieces[0] == "*" || (pieces.Length == 2 && int.TryParse(pieces[0], out _))) {
                         // 数字步长（如 0/5）从指定起点延伸到字段上限
                         var start = pieces[0] == "*" ? min : int.Parse(pieces[0], CultureInfo.InvariantCulture);
                         range = (start, max);
@@ -91,16 +84,13 @@ internal static class CronMatcher
                     else if (pieces[0].Contains('-')
                              && pieces[0].Split('-') is [var a, var b]
                              && int.TryParse(a, out var start)
-                             && int.TryParse(b, out var end))
-                    {
+                             && int.TryParse(b, out var end)) {
                         range = (start, end);
                     }
-                    else if (int.TryParse(pieces[0], out var exact))
-                    {
+                    else if (int.TryParse(pieces[0], out var exact)) {
                         range = (exact, exact);
                     }
-                    else
-                    {
+                    else {
                         range = (int.MinValue, int.MinValue);
                     }
 

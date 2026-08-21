@@ -72,7 +72,8 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
                 x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null
                 , ServerTime.ToOffset(x.StartedAt), x.FinishedAt.HasValue ? ServerTime.ToOffset(x.FinishedAt.Value) : null, x.RequestUrl
-                , x.RequestMethod, x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
+                , x.RequestMethod
+                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
             )
         );
         return Ok(
@@ -104,7 +105,8 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
                 x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null
                 , ServerTime.ToOffset(x.StartedAt), x.FinishedAt.HasValue ? ServerTime.ToOffset(x.FinishedAt.Value) : null, x.RequestUrl
-                , x.RequestMethod, x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
+                , x.RequestMethod
+                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
             )
         );
         return Ok(

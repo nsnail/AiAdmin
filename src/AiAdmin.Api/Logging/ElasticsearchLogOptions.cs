@@ -40,7 +40,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     Redis 日志队列键名
     /// </summary>
-    public string QueueKey { get; set; } = RedisKeyPrefix.Value + "logs:elasticsearch";
+    public string QueueKey { get; set; } = RedisKeyPrefix.VALUE + "logs:elasticsearch";
 
     /// <summary>
     ///     Elasticsearch 服务地址

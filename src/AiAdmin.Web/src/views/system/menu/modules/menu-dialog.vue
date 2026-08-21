@@ -29,7 +29,9 @@
           </template>
         </ArtForm>
       </ElTabPane>
-      <ElTabPane v-if="props.editData?.id" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+      <ElTabPane v-if="props.editData?.id" label="原始数据" name="raw-data"
+        ><ArtRawData :data="rawData"
+      /></ElTabPane>
     </ElTabs>
 
     <template #footer>

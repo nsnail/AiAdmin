@@ -39,17 +39,27 @@
           <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.responseStatusCode')">
             {{ execution.responseStatusCode ?? '-' }}
           </ElDescriptionsItem>
-          <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.requestUrl')" :span="2">
+          <ElDescriptionsItem
+            :label="t('scheduledJob.executionDetail.fields.requestUrl')"
+            :span="2"
+          >
             <span class="break-all">{{ execution.requestUrl || '-' }}</span>
           </ElDescriptionsItem>
-          <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.errorMessage')" :span="2">
-            <span :class="{ 'error-message': execution.errorMessage }">{{ execution.errorMessage || '-' }}</span>
+          <ElDescriptionsItem
+            :label="t('scheduledJob.executionDetail.fields.errorMessage')"
+            :span="2"
+          >
+            <span :class="{ 'error-message': execution.errorMessage }">{{
+              execution.errorMessage || '-'
+            }}</span>
           </ElDescriptionsItem>
         </ElDescriptions>
       </ElTabPane>
       <ElTabPane :label="t('scheduledJob.executionDetail.tabs.request')" name="request">
         <div class="editor-section">
-          <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.requestHeaders') }}</div>
+          <div class="editor-label">{{
+            t('scheduledJob.executionDetail.fields.requestHeaders')
+          }}</div>
           <VAceEditor
             :value="requestHeaders"
             lang="json"
@@ -73,7 +83,9 @@
       </ElTabPane>
       <ElTabPane :label="t('scheduledJob.executionDetail.tabs.response')" name="response">
         <div class="editor-section">
-          <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.responseHeaders') }}</div>
+          <div class="editor-label">{{
+            t('scheduledJob.executionDetail.fields.responseHeaders')
+          }}</div>
           <VAceEditor
             :value="responseHeaders"
             lang="json"
@@ -84,7 +96,9 @@
           />
         </div>
         <div class="editor-section">
-          <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.responseBody') }}</div>
+          <div class="editor-label">{{
+            t('scheduledJob.executionDetail.fields.responseBody')
+          }}</div>
           <VAceEditor
             :value="responseBody"
             :lang="responseBodyLanguage"
@@ -107,7 +121,9 @@
       </ElTabPane>
     </ElTabs>
     <template #footer>
-      <ElButton @click="dialogVisible = false">{{ t('scheduledJob.executionDetail.close') }}</ElButton>
+      <ElButton @click="dialogVisible = false">{{
+        t('scheduledJob.executionDetail.close')
+      }}</ElButton>
     </template>
   </ElDialog>
 </template>
@@ -144,25 +160,36 @@
     get: () => props.visible,
     set: (value) => emit('update:visible', value)
   })
-  const statusMap = computed<Record<number, { label: string; type: 'info' | 'primary' | 'success' | 'danger' | 'warning' }>>(() => ({
+  const statusMap = computed<
+    Record<number, { label: string; type: 'info' | 'primary' | 'success' | 'danger' | 'warning' }>
+  >(() => ({
     0: { label: t('scheduledJob.status.waiting'), type: 'info' },
     1: { label: t('scheduledJob.status.running'), type: 'primary' },
     2: { label: t('scheduledJob.status.success'), type: 'success' },
     3: { label: t('scheduledJob.status.failed'), type: 'danger' },
     4: { label: t('scheduledJob.status.timeout'), type: 'warning' }
   }))
-  const currentStatus = computed(() => statusMap.value[props.execution?.status ?? -1] || {
-    label: t('scheduledJob.executionDetail.unknown'),
-    type: 'info' as const
-  })
+  const currentStatus = computed(
+    () =>
+      statusMap.value[props.execution?.status ?? -1] || {
+        label: t('scheduledJob.executionDetail.unknown'),
+        type: 'info' as const
+      }
+  )
   const duration = computed(() => {
     if (!props.execution?.finishedAt) return '-'
-    const milliseconds = Math.max(0, new Date(props.execution.finishedAt).getTime() - new Date(props.execution.startedAt).getTime())
+    const milliseconds = Math.max(
+      0,
+      new Date(props.execution.finishedAt).getTime() - new Date(props.execution.startedAt).getTime()
+    )
     return t('scheduledJob.executionDetail.durationValue', { value: milliseconds })
   })
-  const formatTime = (value: string | null): string => value
-    ? new Date(value).toLocaleString(locale.value.startsWith('zh') ? 'zh-CN' : 'en-US', { hour12: false })
-    : '-'
+  const formatTime = (value: string | null): string =>
+    value
+      ? new Date(value).toLocaleString(locale.value.startsWith('zh') ? 'zh-CN' : 'en-US', {
+          hour12: false
+        })
+      : '-'
   const tryFormatJson = (value: string, fallback: string): string => {
     if (!value?.trim()) return fallback
     try {
@@ -182,10 +209,16 @@
   }
   const requestHeaders = computed(() => tryFormatJson(props.execution?.requestHeaders || '', '{}'))
   const requestBody = computed(() => tryFormatJson(props.execution?.requestBody || '', ''))
-  const responseHeaders = computed(() => tryFormatJson(props.execution?.responseHeaders || '', '{}'))
+  const responseHeaders = computed(() =>
+    tryFormatJson(props.execution?.responseHeaders || '', '{}')
+  )
   const responseBody = computed(() => tryFormatJson(props.execution?.responseBody || '', ''))
-  const requestBodyLanguage = computed(() => isJson(props.execution?.requestBody || '') ? 'json' : 'text')
-  const responseBodyLanguage = computed(() => isJson(props.execution?.responseBody || '') ? 'json' : 'text')
+  const requestBodyLanguage = computed(() =>
+    isJson(props.execution?.requestBody || '') ? 'json' : 'text'
+  )
+  const responseBodyLanguage = computed(() =>
+    isJson(props.execution?.responseBody || '') ? 'json' : 'text'
+  )
   const rawData = computed(() => JSON.stringify(props.execution ?? null, null, 2))
 
   watch(dialogVisible, (visible) => {

@@ -89,11 +89,18 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
 
         var isGlobal = request.IsGlobal;
         var filterJson = JsonSerializer.Serialize(request.DynamicFilter, _jsonOptions);
-        var entity = await db.SavedQueries.SingleOrDefaultAsync(
-            x => x.Route == route && x.Name == name && (isGlobal ? x.IsGlobal : x.UserId == userId && !x.IsGlobal)
-        ).ConfigureAwait(false);
+        var entity = await db
+            .SavedQueries.SingleOrDefaultAsync(x => x.Route == route && x.Name == name && (isGlobal ? x.IsGlobal : x.UserId == userId && !x.IsGlobal))
+            .ConfigureAwait(false);
         if (entity is null) {
-            entity = new SavedQuery { UserId = userId, Route = route, Name = name, IsGlobal = isGlobal, FilterJson = filterJson };
+            entity = new SavedQuery
+            {
+                UserId = userId
+                , Route = route
+                , Name = name
+                , IsGlobal = isGlobal
+                , FilterJson = filterJson
+            };
             _ = await db.SavedQueries.AddAsync(entity).ConfigureAwait(false);
         }
         else {

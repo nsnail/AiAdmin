@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using Microsoft.AspNetCore.Authorization;
@@ -15,9 +16,82 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/redis-cache")]
 public sealed class RedisCacheController(IConnectionMultiplexer connectionMultiplexer) : ControllerBase
 {
-    private const int MaxScanCount = 200;
-    private const int MaxValueLength = 1_000_000;
-    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CpuSample> _cpuSamples = new(StringComparer.OrdinalIgnoreCase);
+    private const int _MAX_SCAN_COUNT = 200;
+    private const int _MAX_VALUE_LENGTH = 1_000_000;
+    private static readonly ConcurrentDictionary<string, CpuSample> _cpuSamples = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    ///     删除 Redis 缓存键
+    /// </summary>
+    /// <param name="key">缓存键</param>
+    /// <returns>删除结果</returns>
+    [HttpDelete("value")]
+    [ApiDescription("Delete Redis cache value")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromQuery] string key) {
+        var deleted = await connectionMultiplexer.GetDatabase().KeyDeleteAsync(key).ConfigureAwait(false);
+        return deleted
+            ? Ok(ApiResponse<object>.Ok(new { }, "Redis cache deleted"))
+            : NotFound(new ApiResponse<object>(404, "Redis cache key not found", null));
+    }
+
+    /// <summary>
+    ///     扫描 Redis 缓存键
+    /// </summary>
+    /// <param name="pattern">键匹配模式</param>
+    /// <param name="limit">最多返回数量</param>
+    /// <returns>缓存键列表</returns>
+    [HttpGet("keys")]
+    [ApiDescription("Query Redis cache keys")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RedisCacheKeyResult>>>> KeysAsync(
+        [FromQuery] string? pattern = null
+        , [FromQuery] int limit = 100
+    ) {
+        var server = GetServer();
+        var database = connectionMultiplexer.GetDatabase();
+        var results = new List<RedisCacheKeyResult>();
+        var normalizedLimit = Math.Clamp(limit, 1, _MAX_SCAN_COUNT);
+        foreach (var key in server.Keys(database.Database, string.IsNullOrWhiteSpace(pattern) ? "*" : pattern.Trim(), normalizedLimit)) {
+            var type = await database.KeyTypeAsync(key).ConfigureAwait(false);
+            var ttl = await database.KeyTimeToLiveAsync(key).ConfigureAwait(false);
+            var memoryBytes = await TryGetMemoryBytesAsync(database, key).ConfigureAwait(false);
+            var length = await GetLengthAsync(database, key, type).ConfigureAwait(false);
+            results.Add(
+                new RedisCacheKeyResult(
+                    key.ToString(), type.ToString(), ttl?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1, memoryBytes, length
+                )
+            );
+            if (results.Count >= normalizedLimit) {
+                break;
+            }
+        }
+
+        return Ok(ApiResponse<IReadOnlyList<RedisCacheKeyResult>>.Ok(results));
+    }
+
+    /// <summary>
+    ///     新增或更新 Redis 字符串缓存
+    /// </summary>
+    /// <param name="request">缓存保存请求</param>
+    /// <returns>保存后的缓存内容</returns>
+    [HttpPut("value")]
+    [ApiDescription("Save Redis cache value")]
+    public async Task<ActionResult<ApiResponse<RedisCacheValueResult>>> SaveAsync(SaveRedisCacheRequest request) {
+        var key = request.Key.Trim();
+        if (key.Length == 0) {
+            return BadRequest(new ApiResponse<object>(400, "Redis cache key is required", null));
+        }
+
+        var database = connectionMultiplexer.GetDatabase();
+        TimeSpan? expiry = request.ExpireSeconds > 0 ? TimeSpan.FromSeconds(request.ExpireSeconds) : null;
+        _ = await database.StringSetAsync(key, request.Value, expiry).ConfigureAwait(false);
+        var ttl = expiry?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1;
+        var memoryBytes = await TryGetMemoryBytesAsync(database, key).ConfigureAwait(false);
+        return Ok(
+            ApiResponse<RedisCacheValueResult>.Ok(
+                new RedisCacheValueResult(key, nameof(RedisType.String), request.Value, ttl, memoryBytes, request.Value.Length), "Redis cache saved"
+            )
+        );
+    }
 
     /// <summary>
     ///     查询 Redis 服务器运行信息
@@ -37,48 +111,11 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         var misses = GetDoubleInfo(info, "keyspace_misses");
         var cacheHitRatePercent = hits + misses <= 0 ? 0 : hits / (hits + misses) * 100;
         var result = new RedisServerInfoResult(
-            endpoint
-            , GetInfo(info, "redis_version", "-" )
-            , GetInfo(info, "redis_mode", "-" )
-            , GetLongInfo(info, "connected_clients")
-            , GetInfo(info, "used_memory_human", "-" )
-            , GetInfo(info, "maxmemory_human", "-" )
-            , databaseSize
-            , cpuUsagePercent
-            , (long)GetDoubleInfo(info, "uptime_in_seconds")
-            , cacheHitRatePercent
+            endpoint, GetInfo(info, "redis_version", "-"), GetInfo(info, "redis_mode", "-"), GetLongInfo(info, "connected_clients")
+            , GetInfo(info, "used_memory_human", "-"), GetInfo(info, "maxmemory_human", "-"), databaseSize, cpuUsagePercent
+            , (long)GetDoubleInfo(info, "uptime_in_seconds"), cacheHitRatePercent
         );
         return Ok(ApiResponse<RedisServerInfoResult>.Ok(result));
-    }
-
-    /// <summary>
-    ///     扫描 Redis 缓存键
-    /// </summary>
-    /// <param name="pattern">键匹配模式</param>
-    /// <param name="limit">最多返回数量</param>
-    /// <returns>缓存键列表</returns>
-    [HttpGet("keys")]
-    [ApiDescription("Query Redis cache keys")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<RedisCacheKeyResult>>>> KeysAsync(
-        [FromQuery] string? pattern = null
-        , [FromQuery] int limit = 100
-    ) {
-        var server = GetServer();
-        var database = connectionMultiplexer.GetDatabase();
-        var results = new List<RedisCacheKeyResult>();
-        var normalizedLimit = Math.Clamp(limit, 1, MaxScanCount);
-        foreach (var key in server.Keys(database.Database, string.IsNullOrWhiteSpace(pattern) ? "*" : pattern.Trim(), normalizedLimit)) {
-            var type = await database.KeyTypeAsync(key).ConfigureAwait(false);
-            var ttl = await database.KeyTimeToLiveAsync(key).ConfigureAwait(false);
-            var memoryBytes = await TryGetMemoryBytesAsync(database, key).ConfigureAwait(false);
-            var length = await GetLengthAsync(database, key, type).ConfigureAwait(false);
-            results.Add(new RedisCacheKeyResult(key.ToString(), type.ToString(), ttl?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1, memoryBytes, length));
-            if (results.Count >= normalizedLimit) {
-                break;
-            }
-        }
-
-        return Ok(ApiResponse<IReadOnlyList<RedisCacheKeyResult>>.Ok(results));
     }
 
     /// <summary>
@@ -100,66 +137,26 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
             ? await database.StringGetAsync(redisKey).ConfigureAwait(false)
             : new RedisValue($"Redis type {type} is not editable by this client");
         var text = value.ToString();
-        if (text.Length > MaxValueLength) {
-            text = text[..MaxValueLength];
+        if (text.Length > _MAX_VALUE_LENGTH) {
+            text = text[.._MAX_VALUE_LENGTH];
         }
 
         var ttl = await database.KeyTimeToLiveAsync(redisKey).ConfigureAwait(false);
         var memoryBytes = await TryGetMemoryBytesAsync(database, redisKey).ConfigureAwait(false);
         var length = await GetLengthAsync(database, redisKey, type).ConfigureAwait(false);
-        return Ok(ApiResponse<RedisCacheValueResult>.Ok(new RedisCacheValueResult(
-            key, type.ToString(), text, ttl?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1, memoryBytes, length
-        )));
+        return Ok(
+            ApiResponse<RedisCacheValueResult>.Ok(
+                new RedisCacheValueResult(
+                    key, type.ToString(), text, ttl?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1, memoryBytes, length
+                )
+            )
+        );
     }
 
-    /// <summary>
-    ///     新增或更新 Redis 字符串缓存
-    /// </summary>
-    /// <param name="request">缓存保存请求</param>
-    /// <returns>保存后的缓存内容</returns>
-    [HttpPut("value")]
-    [ApiDescription("Save Redis cache value")]
-    public async Task<ActionResult<ApiResponse<RedisCacheValueResult>>> SaveAsync(SaveRedisCacheRequest request) {
-        var key = request.Key.Trim();
-        if (key.Length == 0) {
-            return BadRequest(new ApiResponse<object>(400, "Redis cache key is required", null));
-        }
-
-        var database = connectionMultiplexer.GetDatabase();
-        TimeSpan? expiry = request.ExpireSeconds > 0 ? TimeSpan.FromSeconds(request.ExpireSeconds) : null;
-        _ = await database.StringSetAsync(key, request.Value, expiry).ConfigureAwait(false);
-        var ttl = expiry?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1;
-        var memoryBytes = await TryGetMemoryBytesAsync(database, key).ConfigureAwait(false);
-        return Ok(ApiResponse<RedisCacheValueResult>.Ok(new RedisCacheValueResult(key, nameof(RedisType.String), request.Value, ttl, memoryBytes, request.Value.Length), "Redis cache saved"));
-    }
-
-    /// <summary>
-    ///     删除 Redis 缓存键
-    /// </summary>
-    /// <param name="key">缓存键</param>
-    /// <returns>删除结果</returns>
-    [HttpDelete("value")]
-    [ApiDescription("Delete Redis cache value")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromQuery] string key) {
-        var deleted = await connectionMultiplexer.GetDatabase().KeyDeleteAsync(key).ConfigureAwait(false);
-        return deleted
-            ? Ok(ApiResponse<object>.Ok(new { }, "Redis cache deleted"))
-            : NotFound(new ApiResponse<object>(404, "Redis cache key not found", null));
-    }
-
-    private static string GetInfo(IReadOnlyDictionary<string, string> info, string key, string fallback = "") {
-        return info.TryGetValue(key, out var value) ? value : fallback;
-    }
-
-    private static long GetLongInfo(IReadOnlyDictionary<string, string> info, string key) {
-        return long.TryParse(GetInfo(info, key), out var value) ? value : 0;
-    }
-
-    private static double GetDoubleInfo(IReadOnlyDictionary<string, string> info, string key) {
-        return double.TryParse(GetInfo(info, key), out var value) ? value : 0;
-    }
-
-    private static double CalculateCpuUsage(string endpoint, double cpuSeconds) {
+    private static double CalculateCpuUsage(
+        string endpoint
+        , double cpuSeconds
+    ) {
         var now = DateTimeOffset.UtcNow;
         var current = new CpuSample(cpuSeconds, now);
         if (!_cpuSamples.TryGetValue(endpoint, out var previous)) {
@@ -172,6 +169,81 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         return elapsedSeconds <= 0 || cpuSeconds < previous.CpuSeconds
             ? 0
             : Math.Clamp((cpuSeconds - previous.CpuSeconds) / elapsedSeconds * 100, 0, 100);
+    }
+
+    private static double GetDoubleInfo(
+        IReadOnlyDictionary<string, string> info
+        , string key
+    ) {
+        return double.TryParse(GetInfo(info, key), out var value) ? value : 0;
+    }
+
+    private static string GetInfo(
+        IReadOnlyDictionary<string, string> info
+        , string key
+        , string fallback = ""
+    ) {
+        return info.TryGetValue(key, out var value) ? value : fallback;
+    }
+
+    private static async Task<long> GetLengthAsync(
+        IDatabase database
+        , RedisKey key
+        , RedisType type
+    ) {
+        return type switch
+        {
+            RedisType.String => await database.StringLengthAsync(key).ConfigureAwait(false)
+            , RedisType.List => await database.ListLengthAsync(key).ConfigureAwait(false)
+            , RedisType.Set => await database.SetLengthAsync(key).ConfigureAwait(false)
+            , RedisType.Hash => await database.HashLengthAsync(key).ConfigureAwait(false)
+            , RedisType.SortedSet => await database.SortedSetLengthAsync(key).ConfigureAwait(false)
+            , _ => 0
+        };
+    }
+
+    private static long GetLongInfo(
+        IReadOnlyDictionary<string, string> info
+        , string key
+    ) {
+        return long.TryParse(GetInfo(info, key), out var value) ? value : 0;
+    }
+
+    /// <summary>
+    ///     尝试读取 Redis 数据库键数量
+    /// </summary>
+    /// <param name="server">Redis 服务器</param>
+    /// <param name="database">数据库编号</param>
+    /// <returns>键数量，无法读取时返回零</returns>
+    private static async Task<long> TryGetDatabaseSizeAsync(
+        IServer server
+        , int database
+    ) {
+        try {
+            return await server.DatabaseSizeAsync(database).ConfigureAwait(false);
+        }
+        catch (RedisCommandException) {
+            return 0;
+        }
+    }
+
+    /// <summary>
+    ///     尝试读取单个 Redis 键的内存占用
+    /// </summary>
+    /// <param name="database">Redis 数据库</param>
+    /// <param name="key">缓存键</param>
+    /// <returns>占用字节数，不支持时返回零</returns>
+    private static async Task<long> TryGetMemoryBytesAsync(
+        IDatabase database
+        , RedisKey key
+    ) {
+        try {
+            var result = await database.ExecuteAsync("MEMORY", "USAGE", key).ConfigureAwait(false);
+            return long.TryParse(result.ToString(), out var bytes) ? bytes : 0;
+        }
+        catch (RedisCommandException) {
+            return 0;
+        }
     }
 
     /// <summary>
@@ -190,50 +262,8 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         }
     }
 
-    /// <summary>
-    ///     尝试读取 Redis 数据库键数量
-    /// </summary>
-    /// <param name="server">Redis 服务器</param>
-    /// <param name="database">数据库编号</param>
-    /// <returns>键数量，无法读取时返回零</returns>
-    private static async Task<long> TryGetDatabaseSizeAsync(IServer server, int database) {
-        try {
-            return await server.DatabaseSizeAsync(database).ConfigureAwait(false);
-        }
-        catch (RedisCommandException) {
-            return 0;
-        }
-    }
-
-    /// <summary>
-    ///     尝试读取单个 Redis 键的内存占用
-    /// </summary>
-    /// <param name="database">Redis 数据库</param>
-    /// <param name="key">缓存键</param>
-    /// <returns>占用字节数，不支持时返回零</returns>
-    private static async Task<long> TryGetMemoryBytesAsync(IDatabase database, RedisKey key) {
-        try {
-            var result = await database.ExecuteAsync("MEMORY", "USAGE", key).ConfigureAwait(false);
-            return long.TryParse(result.ToString(), out var bytes) ? bytes : 0;
-        }
-        catch (RedisCommandException) {
-            return 0;
-        }
-    }
-
-    private static async Task<long> GetLengthAsync(IDatabase database, RedisKey key, RedisType type) {
-        return type switch {
-            RedisType.String => await database.StringLengthAsync(key).ConfigureAwait(false),
-            RedisType.List => await database.ListLengthAsync(key).ConfigureAwait(false),
-            RedisType.Set => await database.SetLengthAsync(key).ConfigureAwait(false),
-            RedisType.Hash => await database.HashLengthAsync(key).ConfigureAwait(false),
-            RedisType.SortedSet => await database.SortedSetLengthAsync(key).ConfigureAwait(false),
-            _ => 0
-        };
-    }
-
     private IServer GetServer() {
-        var server = connectionMultiplexer.GetServers().FirstOrDefault(x => x.IsConnected && !x.IsReplica);
+        var server = connectionMultiplexer.GetServers().FirstOrDefault(x => x is { IsConnected: true, IsReplica: false });
         return server ?? throw new InvalidOperationException("No connected Redis server is available");
     }
 

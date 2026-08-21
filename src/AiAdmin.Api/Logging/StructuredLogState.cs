@@ -18,9 +18,8 @@ internal sealed class StructuredLogState : IReadOnlyList<KeyValuePair<string, ob
     public StructuredLogState(
         string template
         , IReadOnlyDictionary<string, object?> fields
-    )
-    {
-        _fields = fields.Select(x => new KeyValuePair<string, object?>(x.Key, x.Value)).ToArray();
+    ) {
+        _fields = [.. fields.Select(x => new KeyValuePair<string, object?>(x.Key, x.Value))];
         Message = string.Join("; ", new[] { template }.Concat(_fields.Select(x => $"{x.Key}={x.Value}")));
     }
 
@@ -42,11 +41,18 @@ internal sealed class StructuredLogState : IReadOnlyList<KeyValuePair<string, ob
     public KeyValuePair<string, object?> this[int index] => _fields[index];
 
     /// <summary>
+    ///     获取字段枚举器
+    /// </summary>
+    /// <returns>字段枚举器</returns>
+    public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() {
+        return ((IEnumerable<KeyValuePair<string, object?>>)_fields).GetEnumerator();
+    }
+
+    /// <summary>
     ///     返回格式化后的日志消息
     /// </summary>
     /// <returns>格式化后的日志消息</returns>
-    public override string ToString()
-    {
+    public override string ToString() {
         return Message;
     }
 
@@ -54,17 +60,7 @@ internal sealed class StructuredLogState : IReadOnlyList<KeyValuePair<string, ob
     ///     获取字段枚举器
     /// </summary>
     /// <returns>字段枚举器</returns>
-    public IEnumerator<KeyValuePair<string, object?>> GetEnumerator()
-    {
-        return ((IEnumerable<KeyValuePair<string, object?>>)_fields).GetEnumerator();
-    }
-
-    /// <summary>
-    ///     获取字段枚举器
-    /// </summary>
-    /// <returns>字段枚举器</returns>
-    IEnumerator IEnumerable.GetEnumerator()
-    {
+    IEnumerator IEnumerable.GetEnumerator() {
         return _fields.GetEnumerator();
     }
 }

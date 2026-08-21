@@ -13,7 +13,7 @@ namespace AiAdmin.Api.Logging;
 /// <param name="options">Elasticsearch 配置</param>
 public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions<ElasticsearchLogOptions> options)
 {
-    private const int MaxResultWindow = 10000;
+    private const int _MAX_RESULT_WINDOW = 10000;
     private static readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>
@@ -39,8 +39,8 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         }
 
         var from = (long)(Math.Max(request.Current, 1) - 1) * Math.Max(request.Size, 1);
-        var isDeepPage = from >= MaxResultWindow;
-        var size = isDeepPage ? 0 : Math.Min(Math.Max(request.Size, 1), MaxResultWindow - (int)from);
+        var isDeepPage = from >= _MAX_RESULT_WINDOW;
+        var size = isDeepPage ? 0 : Math.Min(Math.Max(request.Size, 1), _MAX_RESULT_WINDOW - (int)from);
         object query = must.Count == 0 ? new { match_all = new { } } : new { @bool = new { must } };
         var payload = JsonSerializer.Serialize(
             new
@@ -49,9 +49,16 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
                 , size
                 , track_total_hits = true
                 , query
-                , sort = new[] { new Dictionary<string, object> {
-                    [ResolveSortField(request.SortField)] = new { order = string.Equals(request.SortOrder, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc" }
-                } }
+                , sort = new[]
+                {
+                    new Dictionary<string, object>
+                    {
+                        [ResolveSortField(request.SortField)] = new
+                        {
+                            order = string.Equals(request.SortOrder, "asc", StringComparison.OrdinalIgnoreCase) ? "asc" : "desc"
+                        }
+                    }
+                }
             }
         );
         using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{options.Value.Uri.TrimEnd('/')}/{options.Value.Index}/_search");
@@ -81,60 +88,6 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         return (records, total);
     }
 
-    private static string EscapeWildcard(string value) {
-        return value.Replace("*", "\\*", StringComparison.Ordinal).Replace("?", "\\?", StringComparison.Ordinal);
-    }
-
-    private static string ResolveSortField(string? sortField) {
-        return sortField?.ToLowerInvariant() switch {
-            "category" => "category",
-            "clientip" => "clientIp",
-            "elapsedmilliseconds" => "elapsedMilliseconds",
-            "eventid" => "eventId",
-            "eventname" => "eventName",
-            "level" => "level",
-            "logtype" => "logType",
-            "source" => "source",
-            "statuscode" => "statusCode",
-            "threadid" => "threadId",
-            "username" => "userName",
-            _ => "timestamp"
-        };
-    }
-
-    private static string? ResolveSearchField(string? searchField) {
-        return searchField?.ToLowerInvariant() switch {
-            "category" => "category",
-            "clientip" => "clientIp",
-            "elapsedmilliseconds" => "elapsedMilliseconds",
-            "eventid" => "eventId",
-            "eventname" => "eventName",
-            "exception" => "exception",
-            "level" => "level",
-            "logtype" => "logType",
-            "message" => "message",
-            "requestbody" => "requestBody",
-            "requestcontenttype" => "requestContentType",
-            "requestheaders" => "requestHeaders",
-            "requestid" => "requestId",
-            "requestmethod" => "requestMethod",
-            "requestrelativeurl" => "requestRelativeUrl",
-            "requesturl" => "requestUrl",
-            "responsebody" => "responseBody",
-            "responsecontenttype" => "responseContentType",
-            "responseheaders" => "responseHeaders",
-            "serverip" => "serverIp",
-            "source" => "source",
-            "sql" => "sql",
-            "statuscode" => "statusCode",
-            "threadid" => "threadId",
-            "timestamp" => "timestamp",
-            "useragent" => "userAgent",
-            "username" => "userName",
-            _ => null
-        };
-    }
-
     private static object? BuildDynamicQuery(DynamicFilter? filter) {
         if (filter is null) {
             return null;
@@ -144,11 +97,7 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             var children = filter.Filters.Select(BuildDynamicQuery).Where(x => x is not null).ToArray();
             var logic = filter.Logic.Equals("Or", StringComparison.OrdinalIgnoreCase) ? "should" : "must";
 
-            return children.Length == 0 ? null : new Dictionary<string, object> {
-                ["bool"] = new Dictionary<string, object> {
-                    [logic] = children
-                }
-            };
+            return children.Length == 0 ? null : new Dictionary<string, object> { ["bool"] = new Dictionary<string, object> { [logic] = children } };
         }
 
         var field = ResolveSearchField(filter.Field);
@@ -161,9 +110,13 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             && value.ValueKind == JsonValueKind.Array
             && value.GetArrayLength() >= 2) {
             var rangeValues = value.EnumerateArray().Take(2).ToArray();
-            return new { range = new Dictionary<string, object> {
-                [field] = new { gte = GetScalarValue(rangeValues[0]), lt = GetScalarValue(rangeValues[1]) }
-            } };
+            return new
+            {
+                range = new Dictionary<string, object>
+                {
+                    [field] = new { gte = GetScalarValue(rangeValues[0]), lt = GetScalarValue(rangeValues[1]) }
+                }
+            };
         }
 
         var text = value.ToString();
@@ -172,22 +125,82 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         }
 
         var normalizedOperator = filter.Operator.Replace("_", string.Empty, StringComparison.Ordinal).ToUpperInvariant();
-        return normalizedOperator switch {
-            "EQUAL" or "EQUALS" => new { match = new Dictionary<string, object> { [field] = text } },
-            "NOTEQUAL" or "NOTEQUALS" => new { @bool = new { must_not = new[] { new { match = new Dictionary<string, object> { [field] = text } } } } },
-            "CONTAINS" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}*" } },
-            "STARTSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"{EscapeWildcard(text)}*" } },
-            "ENDSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}" } },
-            "GREATERTHAN" => new { range = new Dictionary<string, object> { [field] = new { gt = GetScalarValue(value) } } },
-            "GREATERTHANOREQUAL" => new { range = new Dictionary<string, object> { [field] = new { gte = GetScalarValue(value) } } },
-            "LESSTHAN" => new { range = new Dictionary<string, object> { [field] = new { lt = GetScalarValue(value) } } },
-            "LESSTHANOREQUAL" => new { range = new Dictionary<string, object> { [field] = new { lte = GetScalarValue(value) } } },
-            _ => new { match = new Dictionary<string, object> { [field] = text } }
+        return normalizedOperator switch
+        {
+            "EQUAL" or "EQUALS" => new { match = new Dictionary<string, object> { [field] = text } }
+            , "NOTEQUAL" or "NOTEQUALS" => new
+            {
+                @bool = new { must_not = new[] { new { match = new Dictionary<string, object> { [field] = text } } } }
+            }
+            , "CONTAINS" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}*" } }
+            , "STARTSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"{EscapeWildcard(text)}*" } }
+            , "ENDSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}" } }
+            , "GREATERTHAN" => new { range = new Dictionary<string, object> { [field] = new { gt = GetScalarValue(value) } } }
+            , "GREATERTHANOREQUAL" => new { range = new Dictionary<string, object> { [field] = new { gte = GetScalarValue(value) } } }
+            , "LESSTHAN" => new { range = new Dictionary<string, object> { [field] = new { lt = GetScalarValue(value) } } }
+            , "LESSTHANOREQUAL" => new { range = new Dictionary<string, object> { [field] = new { lte = GetScalarValue(value) } } }
+            , _ => new { match = new Dictionary<string, object> { [field] = text } }
         };
+    }
+
+    private static string EscapeWildcard(string value) {
+        return value.Replace("*", "\\*", StringComparison.Ordinal).Replace("?", "\\?", StringComparison.Ordinal);
     }
 
     private static object GetScalarValue(JsonElement value) {
         return value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value;
+    }
+
+    private static string? ResolveSearchField(string? searchField) {
+        return searchField?.ToLowerInvariant() switch
+        {
+            "category" => "category"
+            , "clientip" => "clientIp"
+            , "elapsedmilliseconds" => "elapsedMilliseconds"
+            , "eventid" => "eventId"
+            , "eventname" => "eventName"
+            , "exception" => "exception"
+            , "level" => "level"
+            , "logtype" => "logType"
+            , "message" => "message"
+            , "requestbody" => "requestBody"
+            , "requestcontenttype" => "requestContentType"
+            , "requestheaders" => "requestHeaders"
+            , "requestid" => "requestId"
+            , "requestmethod" => "requestMethod"
+            , "requestrelativeurl" => "requestRelativeUrl"
+            , "requesturl" => "requestUrl"
+            , "responsebody" => "responseBody"
+            , "responsecontenttype" => "responseContentType"
+            , "responseheaders" => "responseHeaders"
+            , "serverip" => "serverIp"
+            , "source" => "source"
+            , "sql" => "sql"
+            , "statuscode" => "statusCode"
+            , "threadid" => "threadId"
+            , "timestamp" => "timestamp"
+            , "useragent" => "userAgent"
+            , "username" => "userName"
+            , _ => null
+        };
+    }
+
+    private static string ResolveSortField(string? sortField) {
+        return sortField?.ToLowerInvariant() switch
+        {
+            "category" => "category"
+            , "clientip" => "clientIp"
+            , "elapsedmilliseconds" => "elapsedMilliseconds"
+            , "eventid" => "eventId"
+            , "eventname" => "eventName"
+            , "level" => "level"
+            , "logtype" => "logType"
+            , "source" => "source"
+            , "statuscode" => "statusCode"
+            , "threadid" => "threadId"
+            , "username" => "userName"
+            , _ => "timestamp"
+        };
     }
 
     private void AddAuthentication(HttpRequestMessage request) {

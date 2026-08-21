@@ -17,8 +17,7 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     /// <param name="state">作用域状态</param>
     /// <returns>用于结束作用域的对象</returns>
     public IDisposable BeginScope<TState>(TState state)
-        where TState : notnull
-    {
+        where TState : notnull {
         return NullLogger.Instance.BeginScope(state);
     }
 
@@ -27,8 +26,7 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     /// </summary>
     /// <param name="logLevel">日志级别</param>
     /// <returns>启用时返回 true</returns>
-    public bool IsEnabled(LogLevel logLevel)
-    {
+    public bool IsEnabled(LogLevel logLevel) {
         return options.Enabled && logLevel != LogLevel.None;
     }
 
@@ -47,10 +45,8 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
         , TState state
         , Exception? exception
         , Func<TState, Exception?, string> formatter
-    )
-    {
-        if (!IsEnabled(logLevel) || categoryName.StartsWith("AiAdmin.Api.Logging", StringComparison.Ordinal))
-        {
+    ) {
+        if (!IsEnabled(logLevel) || categoryName.StartsWith("AiAdmin.Api.Logging", StringComparison.Ordinal)) {
             return;
         }
 
@@ -60,90 +56,36 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
             new ElasticsearchLogEntry
             {
                 Timestamp = DateTimeOffset.UtcNow
-                ,
-                Level = logLevel
-                ,
-                Category = categoryName
-                ,
-                Source = fields.GetValueOrDefault("Source")?.ToString() ?? categoryName
-                ,
-                LogType = fields.GetValueOrDefault("LogType")?.ToString() ?? ResolveLogType(eventId)
-                ,
-                ThreadId = Environment.CurrentManagedThreadId
-                ,
-                Message = message
-                ,
-                Exception = exception?.ToString()
-                ,
-                EventId = eventId.Id
-                ,
-                EventName = eventId.Name
-                ,
-                RequestMethod = GetString(fields, "RequestMethod")
-                ,
-                ClientIp = GetString(fields, "ClientIp")
-                ,
-                ServerIp = GetString(fields, "ServerIp")
-                ,
-                UserAgent = GetString(fields, "UserAgent")
-                ,
-                RequestRelativeUrl = GetString(fields, "RequestRelativeUrl")
-                ,
-                RequestUrl = GetString(fields, "RequestUrl")
-                ,
-                ElapsedMilliseconds = GetLong(fields, "ElapsedMilliseconds")
-                ,
-                StatusCode = GetInt(fields, "StatusCode")
-                ,
-                ApiResponseCode = GetInt(fields, "ApiResponseCode")
-                ,
-                UserId = GetLong(fields, "UserId")
-                ,
-                UserName = GetString(fields, "UserName")
-                ,
-                RequestBody = GetString(fields, "RequestBody")
-                ,
-                RequestHeaders = GetString(fields, "RequestHeaders")
-                ,
-                RequestContentType = GetString(fields, "RequestContentType")
-                ,
-                RequestId = GetString(fields, "RequestId")
-                ,
-                ResponseHeaders = GetString(fields, "ResponseHeaders")
-                ,
-                ResponseBody = GetString(fields, "ResponseBody")
-                ,
-                ResponseContentType = GetString(fields, "ResponseContentType")
-                ,
-                Sql = GetString(fields, "Sql")
+                , Level = logLevel
+                , Category = categoryName
+                , Source = fields.GetValueOrDefault("Source")?.ToString() ?? categoryName
+                , LogType = fields.GetValueOrDefault("LogType")?.ToString() ?? ResolveLogType(eventId)
+                , ThreadId = Environment.CurrentManagedThreadId
+                , Message = message
+                , Exception = exception?.ToString()
+                , EventId = eventId.Id
+                , EventName = eventId.Name
+                , RequestMethod = GetString(fields, "RequestMethod")
+                , ClientIp = GetString(fields, "ClientIp")
+                , ServerIp = GetString(fields, "ServerIp")
+                , UserAgent = GetString(fields, "UserAgent")
+                , RequestRelativeUrl = GetString(fields, "RequestRelativeUrl")
+                , RequestUrl = GetString(fields, "RequestUrl")
+                , ElapsedMilliseconds = GetLong(fields, "ElapsedMilliseconds")
+                , StatusCode = GetInt(fields, "StatusCode")
+                , ApiResponseCode = GetInt(fields, "ApiResponseCode")
+                , UserId = GetLong(fields, "UserId")
+                , UserName = GetString(fields, "UserName")
+                , RequestBody = GetString(fields, "RequestBody")
+                , RequestHeaders = GetString(fields, "RequestHeaders")
+                , RequestContentType = GetString(fields, "RequestContentType")
+                , RequestId = GetString(fields, "RequestId")
+                , ResponseHeaders = GetString(fields, "ResponseHeaders")
+                , ResponseBody = GetString(fields, "ResponseBody")
+                , ResponseContentType = GetString(fields, "ResponseContentType")
+                , Sql = GetString(fields, "Sql")
             }
         );
-    }
-
-    /// <summary>
-    ///     从结构化日志状态读取字段
-    /// </summary>
-    /// <typeparam name="TState">日志状态类型</typeparam>
-    /// <param name="state">日志状态</param>
-    /// <returns>结构化字段集合</returns>
-    private static Dictionary<string, object?> ReadFields<TState>(TState state)
-    {
-        return state is IEnumerable<KeyValuePair<string, object?>> pairs
-            ? pairs
-                .Where(x => !string.Equals(x.Key, "{OriginalFormat}", StringComparison.Ordinal))
-                .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase)
-            : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-    }
-
-    /// <summary>
-    ///     获取结构化字符串字段
-    /// </summary>
-    /// <param name="fields">结构化字段集合</param>
-    /// <param name="name">字段名称</param>
-    /// <returns>字段值</returns>
-    private static string? GetString(IReadOnlyDictionary<string, object?> fields, string name)
-    {
-        return fields.TryGetValue(name, out var value) ? value?.ToString() : null;
     }
 
     /// <summary>
@@ -152,8 +94,10 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     /// <param name="fields">结构化字段集合</param>
     /// <param name="name">字段名称</param>
     /// <returns>字段值</returns>
-    private static int? GetInt(IReadOnlyDictionary<string, object?> fields, string name)
-    {
+    private static int? GetInt(
+        IReadOnlyDictionary<string, object?> fields
+        , string name
+    ) {
         return int.TryParse(GetString(fields, name), out var value) ? value : null;
     }
 
@@ -163,9 +107,38 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     /// <param name="fields">结构化字段集合</param>
     /// <param name="name">字段名称</param>
     /// <returns>字段值</returns>
-    private static long? GetLong(IReadOnlyDictionary<string, object?> fields, string name)
-    {
+    private static long? GetLong(
+        IReadOnlyDictionary<string, object?> fields
+        , string name
+    ) {
         return long.TryParse(GetString(fields, name), out var value) ? value : null;
+    }
+
+    /// <summary>
+    ///     获取结构化字符串字段
+    /// </summary>
+    /// <param name="fields">结构化字段集合</param>
+    /// <param name="name">字段名称</param>
+    /// <returns>字段值</returns>
+    private static string? GetString(
+        IReadOnlyDictionary<string, object?> fields
+        , string name
+    ) {
+        return fields.TryGetValue(name, out var value) ? value?.ToString() : null;
+    }
+
+    /// <summary>
+    ///     从结构化日志状态读取字段
+    /// </summary>
+    /// <typeparam name="TState">日志状态类型</typeparam>
+    /// <param name="state">日志状态</param>
+    /// <returns>结构化字段集合</returns>
+    private static Dictionary<string, object?> ReadFields<TState>(TState state) {
+        return state is IEnumerable<KeyValuePair<string, object?>> pairs
+            ? pairs
+                .Where(x => !string.Equals(x.Key, "{OriginalFormat}", StringComparison.Ordinal))
+                .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase)
+            : new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -173,17 +146,13 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     /// </summary>
     /// <param name="eventId">日志事件编号</param>
     /// <returns>日志类型</returns>
-    private static string ResolveLogType(EventId eventId)
-    {
+    private static string ResolveLogType(EventId eventId) {
         return eventId.Name switch
         {
             not null when eventId.Name.StartsWith("Api", StringComparison.Ordinal) => "Api"
-            ,
-            not null when eventId.Name.StartsWith("Database", StringComparison.Ordinal) => "Sql"
-            ,
-            not null when eventId.Name.StartsWith("ExternalHttp", StringComparison.Ordinal) => "Http"
-            ,
-            _ => "System"
+            , not null when eventId.Name.StartsWith("Database", StringComparison.Ordinal) => "Sql"
+            , not null when eventId.Name.StartsWith("ExternalHttp", StringComparison.Ordinal) => "Http"
+            , _ => "System"
         };
     }
 
@@ -192,14 +161,11 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
     /// </summary>
     /// <param name="entry">日志内容</param>
     /// <returns>异步写入任务</returns>
-    private async Task EnqueueAsync(ElasticsearchLogEntry entry)
-    {
-        try
-        {
+    private async Task EnqueueAsync(ElasticsearchLogEntry entry) {
+        try {
             _ = await queue.EnqueueAsync(entry).ConfigureAwait(false);
         }
-        catch
-        {
+        catch {
             // 日志管道故障不能影响业务请求
         }
     }

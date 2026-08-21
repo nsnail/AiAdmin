@@ -24,25 +24,21 @@ public sealed class ScheduledJobLockService(IConnectionMultiplexer connectionMul
         long jobId
         , TimeSpan waitTimeout
         , CancellationToken cancellationToken
-    )
-    {
+    ) {
         var database = connectionMultiplexer.GetDatabase();
-        RedisKey key = $"{RedisKeyPrefix.Value}scheduled-job:lock:{jobId}";
+        RedisKey key = $"{RedisKeyPrefix.VALUE}scheduled-job:lock:{jobId}";
         RedisValue value = Guid.NewGuid().ToString("N");
         var startedAt = Stopwatch.GetTimestamp();
-        while (true)
-        {
+        while (true) {
             var acquired = await database
                 .StringSetAsync(key, value, _lockExpiration, When.NotExists)
                 .WaitAsync(cancellationToken)
                 .ConfigureAwait(false);
-            if (acquired)
-            {
+            if (acquired) {
                 return new ScheduledJobLockHandle(database, key, value);
             }
 
-            if (Stopwatch.GetElapsedTime(startedAt) >= waitTimeout)
-            {
+            if (Stopwatch.GetElapsedTime(startedAt) >= waitTimeout) {
                 return null;
             }
 

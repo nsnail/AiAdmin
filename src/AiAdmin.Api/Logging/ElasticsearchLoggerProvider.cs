@@ -12,16 +12,14 @@ public sealed class ElasticsearchLoggerProvider(ElasticsearchLogQueue queue, Ela
     /// </summary>
     /// <param name="categoryName">日志分类名称</param>
     /// <returns>日志记录器</returns>
-    public ILogger CreateLogger(string categoryName)
-    {
+    public ILogger CreateLogger(string categoryName) {
         return new ElasticsearchLogger(categoryName, queue, options);
     }
 
     /// <summary>
     ///     释放日志提供程序
     /// </summary>
-    public void Dispose()
-    {
+    public void Dispose() {
         queue.Complete();
     }
 }

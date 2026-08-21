@@ -474,12 +474,46 @@
   },
   "rawData": "Raw Data",
   "redisCache": {
-    "server": { "title": "Redis Server", "endpoint": "Endpoint", "version": "Version", "mode": "Mode", "clients": "Clients", "usedMemory": "Used memory", "maxMemory": "Max memory", "databaseSize": "Key count", "cpuUsage": "CPU usage", "uptime": "Uptime", "hitRate": "Cache hit rate" },
+    "server": {
+      "title": "Redis Server",
+      "endpoint": "Endpoint",
+      "version": "Version",
+      "mode": "Mode",
+      "clients": "Clients",
+      "usedMemory": "Used memory",
+      "maxMemory": "Max memory",
+      "databaseSize": "Key count",
+      "cpuUsage": "CPU usage",
+      "uptime": "Uptime",
+      "hitRate": "Cache hit rate"
+    },
     "filters": { "pattern": "Key pattern, for example user:*" },
-    "fields": { "key": "Key", "type": "Type", "ttl": "Expiration", "memory": "Memory", "length": "Length", "value": "Value", "expireSeconds": "Expiration (seconds)", "persistent": "Persistent", "actions": "Actions" },
-    "actions": { "refresh": "Refresh", "add": "Add cache", "view": "View", "edit": "Edit", "delete": "Delete", "close": "Close", "save": "Save" },
+    "fields": {
+      "key": "Key",
+      "type": "Type",
+      "ttl": "Expiration",
+      "memory": "Memory",
+      "length": "Length",
+      "value": "Value",
+      "expireSeconds": "Expiration (seconds)",
+      "persistent": "Persistent",
+      "actions": "Actions"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "add": "Add cache",
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete",
+      "close": "Close",
+      "save": "Save"
+    },
     "dialog": { "view": "View cache", "edit": "Edit cache", "add": "Add cache" },
-    "messages": { "saved": "Cache saved", "deleted": "Cache deleted", "confirmDelete": "Delete cache key \"{key}\"?" }
+    "messages": {
+      "saved": "Cache saved",
+      "deleted": "Cache deleted",
+      "confirmDelete": "Delete cache key \"{key}\"?"
+    }
   },
   "systemLog": {
     "filters": {
@@ -594,11 +628,55 @@
     }
   },
   "cronEditor": {
-    "title": "Cron Rule Generator", "type": "Type", "any": "Any", "range": "Range", "step": "Step", "list": "Specified", "to": "to", "every": "Every", "custom": "Custom rule", "currentExpression": "Current expression",
-    "fields": { "second": "Second", "minute": "Minute", "hour": "Hour", "day": "Day", "month": "Month", "week": "Week" },
-    "units": { "second": "seconds", "minute": "minutes", "hour": "hours", "day": "days", "month": "months", "week": "weeks" },
-    "shortcuts": { "everySecond": "Every second", "everyMinute": "Every minute", "everyHour": "Every hour", "daily": "Every day at midnight", "weekly": "Every Sunday at midnight" },
-    "description": { "everySecond": "Every second", "everyMinute": "Every minute", "hourly": "Every hour at the start", "everySeconds": "Every {value} seconds", "everyMinutes": "Every {value} minutes", "daily": "Every day at {time}", "weekly0": "Every Sunday at {time}", "weekly1": "Every Monday at {time}", "weekly2": "Every Tuesday at {time}", "weekly3": "Every Wednesday at {time}", "weekly4": "Every Thursday at {time}", "weekly5": "Every Friday at {time}", "weekly6": "Every Saturday at {time}", "custom": "Run according to Cron rule ({value})" }
+    "title": "Cron Rule Generator",
+    "type": "Type",
+    "any": "Any",
+    "range": "Range",
+    "step": "Step",
+    "list": "Specified",
+    "to": "to",
+    "every": "Every",
+    "custom": "Custom rule",
+    "currentExpression": "Current expression",
+    "fields": {
+      "second": "Second",
+      "minute": "Minute",
+      "hour": "Hour",
+      "day": "Day",
+      "month": "Month",
+      "week": "Week"
+    },
+    "units": {
+      "second": "seconds",
+      "minute": "minutes",
+      "hour": "hours",
+      "day": "days",
+      "month": "months",
+      "week": "weeks"
+    },
+    "shortcuts": {
+      "everySecond": "Every second",
+      "everyMinute": "Every minute",
+      "everyHour": "Every hour",
+      "daily": "Every day at midnight",
+      "weekly": "Every Sunday at midnight"
+    },
+    "description": {
+      "everySecond": "Every second",
+      "everyMinute": "Every minute",
+      "hourly": "Every hour at the start",
+      "everySeconds": "Every {value} seconds",
+      "everyMinutes": "Every {value} minutes",
+      "daily": "Every day at {time}",
+      "weekly0": "Every Sunday at {time}",
+      "weekly1": "Every Monday at {time}",
+      "weekly2": "Every Tuesday at {time}",
+      "weekly3": "Every Wednesday at {time}",
+      "weekly4": "Every Thursday at {time}",
+      "weekly5": "Every Friday at {time}",
+      "weekly6": "Every Saturday at {time}",
+      "custom": "Run according to Cron rule ({value})"
+    }
   },
   "listFilter": {
     "common": { "status": "Enabled" },
@@ -611,7 +689,13 @@
     },
     "menu": { "name": "Menu name", "parentName": "Parent menu", "path": "Route path" },
     "department": { "name": "Department name", "code": "Department code" },
-    "dictionary": { "label": "Label", "value": "Value", "remark": "Remark", "sort": "Sort", "isEnabled": "Enabled" },
+    "dictionary": {
+      "label": "Label",
+      "value": "Value",
+      "remark": "Remark",
+      "sort": "Sort",
+      "isEnabled": "Enabled"
+    },
     "api": {
       "name": "API name",
       "method": "HTTP method",

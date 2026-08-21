@@ -27,8 +27,7 @@ export interface ListFilterField {
   valueType: 'string' | 'number' | 'boolean' | 'date'
 }
 
-export type EnabledStateResource =
-  'user' | 'role' | 'menu' | 'department' | 'dictionary-item'
+export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item'
 
 export interface RedisServerInfo {
   endpoint: string
@@ -522,7 +521,8 @@ export function fetchGetScheduledJobs(params: ScheduledJobSearchParams) {
     )
     .map(([field, value]) => ({
       field,
-      operator: typeof value === 'string' && !['RequestMethod'].includes(field) ? 'Contains' : 'Equal',
+      operator:
+        typeof value === 'string' && !['RequestMethod'].includes(field) ? 'Contains' : 'Equal',
       value
     }))
   if (params.dynamicFilter) filters.push(params.dynamicFilter)
@@ -556,7 +556,10 @@ export function fetchRunScheduledJob(id: string) {
 
 export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExecutionSearchParams) {
   const filters: DynamicFilter[] = Object.entries(params)
-    .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
+    .filter(
+      ([field, value]) =>
+        /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== ''
+    )
     .map(([field, value]) => ({
       field,
       operator: typeof value === 'number' ? 'Equal' : 'Contains',
@@ -564,6 +567,12 @@ export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExec
     }))
   return request.post<Api.Common.PaginatedResponse<ScheduledJobExecution>>({
     url: `/api/scheduled-job/${id}/executions/list`,
-    data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder)
+    data: createDynamicQuery(
+      params.current,
+      params.size,
+      filters,
+      params.sortField,
+      params.sortOrder
+    )
   })
 }

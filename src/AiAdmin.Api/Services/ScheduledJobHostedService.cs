@@ -20,6 +20,8 @@ public sealed class ScheduledJobHostedService(
     , ScheduledJobLockService lockService
     , ILogger<ScheduledJobHostedService> logger) : BackgroundService
 {
+    private static readonly TimeSpan _completionLockWaitTimeout = TimeSpan.FromSeconds(35);
+
     private static readonly Action<ILogger, Exception?> _logSchedulingLoopError = LoggerMessage.Define(
         LogLevel.Error, new EventId(3001, "ScheduledJobLoopError"), "Scheduled job loop failed"
     );
@@ -28,23 +30,17 @@ public sealed class ScheduledJobHostedService(
         @"\{\{([^{}]+)\}\}", RegexOptions.Compiled | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)
     );
 
-    private static readonly TimeSpan _completionLockWaitTimeout = TimeSpan.FromSeconds(35);
-
     /// <summary>
     ///     后台循环入口
     /// </summary>
     /// <param name="stoppingToken">停止令牌</param>
     /// <returns>异步执行任务</returns>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
+        while (!stoppingToken.IsCancellationRequested) {
+            try {
                 await TickAsync(stoppingToken).ConfigureAwait(false);
             }
-            catch (Exception exception)
-            {
+            catch (Exception exception) {
                 _logSchedulingLoopError(logger, exception);
             }
 
@@ -61,8 +57,7 @@ public sealed class ScheduledJobHostedService(
     private static string Resolve(
         string value
         , Dictionary<string, string> values
-    )
-    {
+    ) {
         return _placeholder.Replace(value, match => values.TryGetValue(match.Groups[1].Value.Trim(), out var result) ? result : match.Value);
     }
 
@@ -76,20 +71,18 @@ public sealed class ScheduledJobHostedService(
     private async Task ExecuteJobAsync(
         long jobId
         , CancellationToken cancellationToken
-    )
-    {
+    ) {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var job = await db.ScheduledJobs.FindAsync([jobId], cancellationToken).ConfigureAwait(false);
-        if (job is null)
-        {
+        if (job is null) {
             return;
         }
 
         var triggeredAt = job.LastTriggeredAt;
         var dictionarySnapshotService = scope.ServiceProvider.GetRequiredService<DictionarySnapshotService>();
         var placeholderItems = await dictionarySnapshotService
-            .GetItemsAsync(DictionarySnapshotService.ScheduledJobPlaceholdersCode, cancellationToken)
+            .GetItemsAsync(DictionarySnapshotService.SCHEDULED_JOB_PLACEHOLDERS_CODE, cancellationToken)
             .ConfigureAwait(false);
         var values = placeholderItems.Where(x => x.IsEnabled).ToDictionary(x => x.Label, x => x.Value, StringComparer.OrdinalIgnoreCase);
         var url = Resolve(job.RequestUrl, values);
@@ -98,29 +91,21 @@ public sealed class ScheduledJobHostedService(
         var execution = new ScheduledJobExecution
         {
             ScheduledJobId = job.Id
-            ,
-            StartedAt = DateTime.Now
-            ,
-            RequestUrl = url
-            ,
-            RequestMethod = job.RequestMethod
-            ,
-            RequestHeaders = headers
-            ,
-            RequestBody = body
+            , StartedAt = DateTime.Now
+            , RequestUrl = url
+            , RequestMethod = job.RequestMethod
+            , RequestHeaders = headers
+            , RequestBody = body
         };
         _ = await db.ScheduledJobExecutions.AddAsync(execution, cancellationToken).ConfigureAwait(false);
-        try
-        {
+        try {
             using var request = new HttpRequestMessage(new HttpMethod(job.RequestMethod), url);
-            if (!string.IsNullOrWhiteSpace(body) && job.RequestMethod is not "GET" and not "HEAD")
-            {
+            if (!string.IsNullOrWhiteSpace(body) && job.RequestMethod is not "GET" and not "HEAD") {
                 request.Content = new StringContent(body, Encoding.UTF8, "application/json");
             }
 
             using var headerDoc = JsonDocument.Parse(string.IsNullOrWhiteSpace(headers) ? "{}" : headers);
-            foreach (var item in headerDoc.RootElement.EnumerateObject())
-            {
+            foreach (var item in headerDoc.RootElement.EnumerateObject()) {
                 _ = request.Headers.TryAddWithoutValidation(item.Name, item.Value.GetString() ?? item.Value.ToString());
             }
 
@@ -136,26 +121,21 @@ public sealed class ScheduledJobHostedService(
             execution.ResponseBody = response.ResponseBody;
             execution.Status = response.StatusCode is >= 200 and < 300 ? ScheduledJobStatus.Success : ScheduledJobStatus.Failed;
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
             execution.Status = ScheduledJobStatus.Timeout;
             execution.ErrorMessage = "Request timed out";
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             execution.Status = ScheduledJobStatus.Failed;
             execution.ErrorMessage = exception.Message;
         }
 
         execution.FinishedAt = DateTime.Now;
-        await using var jobLock = await lockService
-                                      .TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None)
-                                      .ConfigureAwait(false)
+        await using var jobLock = await lockService.TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None).ConfigureAwait(false)
                                   ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
 
         await db.Entry(job).ReloadAsync(CancellationToken.None).ConfigureAwait(false);
-        if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt)
-        {
+        if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt) {
             job.Status = execution.Status;
             job.LastFinishedAt = execution.FinishedAt;
             job.LastError = execution.ErrorMessage;
@@ -169,8 +149,7 @@ public sealed class ScheduledJobHostedService(
     /// </summary>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>异步处理任务</returns>
-    private async Task TickAsync(CancellationToken cancellationToken)
-    {
+    private async Task TickAsync(CancellationToken cancellationToken) {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var now = DateTime.Now;
@@ -181,14 +160,9 @@ public sealed class ScheduledJobHostedService(
         foreach (var job in jobs.Where(x =>
                      CronMatcher.IsDue(x.CronExpression, now)
                      && (!x.LastTriggeredAt.HasValue || !CronMatcher.IsSameTriggerWindow(x.CronExpression, x.LastTriggeredAt.Value, now))
-                 ))
-        {
-            await using (var jobLock = await lockService
-                             .TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken)
-                             .ConfigureAwait(false))
-            {
-                if (jobLock is null)
-                {
+                 )) {
+            await using (var jobLock = await lockService.TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken).ConfigureAwait(false)) {
+                if (jobLock is null) {
                     continue;
                 }
 
@@ -197,8 +171,7 @@ public sealed class ScheduledJobHostedService(
                 if (!job.IsEnabled
                     || job.Status == ScheduledJobStatus.Running
                     || !CronMatcher.IsDue(job.CronExpression, now)
-                    || (job.LastTriggeredAt.HasValue && CronMatcher.IsSameTriggerWindow(job.CronExpression, job.LastTriggeredAt.Value, now)))
-                {
+                    || (job.LastTriggeredAt.HasValue && CronMatcher.IsSameTriggerWindow(job.CronExpression, job.LastTriggeredAt.Value, now))) {
                     continue;
                 }
 

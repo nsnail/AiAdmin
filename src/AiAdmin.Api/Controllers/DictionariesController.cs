@@ -19,24 +19,12 @@ namespace AiAdmin.Api.Controllers;
 public sealed class DictionariesController(AppDbContext db, DictionarySnapshotService dictionarySnapshotService) : ControllerBase
 {
     /// <summary>
-    ///     查询字典内容筛选字段元数据
-    /// </summary>
-    /// <returns>字典内容筛选字段定义</returns>
-    [HttpGet("filter-fields")]
-    [ApiDescription("Query dictionary item filter fields")]
-    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields()
-    {
-        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<DictionaryItem>()));
-    }
-
-    /// <summary>
     ///     查询字典目录树
     /// </summary>
     /// <returns>字典目录树</returns>
     [HttpGet("categories")]
     [ApiDescription("Query dictionary categories")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<DictionaryCategoryResult>>>> CategoriesAsync()
-    {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<DictionaryCategoryResult>>>> CategoriesAsync() {
         var rows = await db.DictionaryCategories.AsNoTracking().OrderBy(x => x.Sort).ThenBy(x => x.Id).ToListAsync().ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<DictionaryCategoryResult>>.Ok(BuildTree(rows)));
     }
@@ -48,29 +36,17 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <returns>新增目录</returns>
     [HttpPost("categories")]
     [ApiDescription("Create dictionary category")]
-    public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> CreateCategoryAsync(SaveDictionaryCategoryRequest request)
-    {
+    public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> CreateCategoryAsync(SaveDictionaryCategoryRequest request) {
         var code = request.Code.Trim();
-        if (await db.DictionaryCategories.AnyAsync(x => x.Code == code).ConfigureAwait(false))
-        {
+        if (await db.DictionaryCategories.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Dictionary code already exists", null));
         }
 
-        if (request.ParentId.HasValue && !await db.DictionaryCategories.AnyAsync(x => x.Id == request.ParentId).ConfigureAwait(false))
-        {
+        if (request.ParentId.HasValue && !await db.DictionaryCategories.AnyAsync(x => x.Id == request.ParentId).ConfigureAwait(false)) {
             return BadRequest(new ApiResponse<object>(400, "Parent category not found", null));
         }
 
-        var category = new DictionaryCategory
-        {
-            Code = code
-            ,
-            Name = request.Name.Trim()
-            ,
-            ParentId = request.ParentId
-            ,
-            Sort = request.Sort
-        };
+        var category = new DictionaryCategory { Code = code, Name = request.Name.Trim(), ParentId = request.ParentId, Sort = request.Sort };
         _ = await db.DictionaryCategories.AddAsync(category).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         await dictionarySnapshotService.RefreshAsync(category.Code).ConfigureAwait(false);
@@ -88,33 +64,25 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> CreateItemAsync(
         long categoryId
         , SaveDictionaryItemRequest request
-    )
-    {
-        if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false))
-        {
+    ) {
+        if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false)) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
         }
 
         var value = request.Value.Trim();
         var label = request.Label.Trim();
-        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == categoryId && x.Label == label).ConfigureAwait(false))
-        {
+        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == categoryId && x.Label == label).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Dictionary label already exists", null));
         }
 
         var item = new DictionaryItem
         {
             CategoryId = categoryId
-            ,
-            Value = value
-            ,
-            Label = label
-            ,
-            Sort = request.Sort
-            ,
-            IsEnabled = request.IsEnabled
-            ,
-            Remark = request.Remark.Trim()
+            , Value = value
+            , Label = label
+            , Sort = request.Sort
+            , IsEnabled = request.IsEnabled
+            , Remark = request.Remark.Trim()
         };
         _ = await db.DictionaryItems.AddAsync(item).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
@@ -129,18 +97,15 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <returns>删除结果</returns>
     [HttpDelete("categories/{id:long}")]
     [ApiDescription("Delete dictionary category")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteCategoryAsync(long id)
-    {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCategoryAsync(long id) {
         var category = await db.DictionaryCategories.FindAsync(id).ConfigureAwait(false);
-        if (category is null)
-        {
+        if (category is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
         }
 
         var hasChildren = await db.DictionaryCategories.AnyAsync(x => x.ParentId == id).ConfigureAwait(false);
         var hasItems = await db.DictionaryItems.AnyAsync(x => x.CategoryId == id).ConfigureAwait(false);
-        if (hasChildren || hasItems)
-        {
+        if (hasChildren || hasItems) {
             return BadRequest(new ApiResponse<object>(400, "Delete child categories and items first", null));
         }
 
@@ -157,11 +122,9 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <returns>删除结果</returns>
     [HttpDelete("items/{id:long}")]
     [ApiDescription("Delete dictionary item")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteItemAsync(long id)
-    {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteItemAsync(long id) {
         var item = await db.DictionaryItems.FindAsync(id).ConfigureAwait(false);
-        if (item is null)
-        {
+        if (item is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary item not found", null));
         }
 
@@ -173,14 +136,23 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     }
 
     /// <summary>
+    ///     查询字典内容筛选字段元数据
+    /// </summary>
+    /// <returns>字典内容筛选字段定义</returns>
+    [HttpGet("filter-fields")]
+    [ApiDescription("Query dictionary item filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<DictionaryItem>()));
+    }
+
+    /// <summary>
     ///     查询指定目录的字典内容
     /// </summary>
     /// <param name="categoryId">目录主键</param>
     /// <returns>字典内容列表</returns>
     [HttpGet("categories/{categoryId:long}/items")]
     [ApiDescription("Query dictionary items")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<DictionaryItemResult>>>> ItemsAsync(long categoryId)
-    {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<DictionaryItemResult>>>> ItemsAsync(long categoryId) {
         var rows = await db
             .DictionaryItems.AsNoTracking()
             .Where(x => x.CategoryId == categoryId)
@@ -202,22 +174,18 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> UpdateCategoryAsync(
         long id
         , SaveDictionaryCategoryRequest request
-    )
-    {
+    ) {
         var category = await db.DictionaryCategories.FindAsync(id).ConfigureAwait(false);
-        if (category is null)
-        {
+        if (category is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
         }
 
-        if (request.ParentId == id || (request.ParentId.HasValue && await IsDescendantAsync(id, request.ParentId.Value).ConfigureAwait(false)))
-        {
+        if (request.ParentId == id || (request.ParentId.HasValue && await IsDescendantAsync(id, request.ParentId.Value).ConfigureAwait(false))) {
             return BadRequest(new ApiResponse<object>(400, "Invalid parent category", null));
         }
 
         var code = request.Code.Trim();
-        if (await db.DictionaryCategories.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false))
-        {
+        if (await db.DictionaryCategories.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Dictionary code already exists", null));
         }
 
@@ -227,8 +195,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
         category.ParentId = request.ParentId;
         category.Sort = request.Sort;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        if (previousCode != code)
-        {
+        if (previousCode != code) {
             await dictionarySnapshotService.RemoveAsync(previousCode).ConfigureAwait(false);
         }
 
@@ -247,18 +214,15 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> UpdateItemAsync(
         long id
         , SaveDictionaryItemRequest request
-    )
-    {
+    ) {
         var item = await db.DictionaryItems.FindAsync(id).ConfigureAwait(false);
-        if (item is null)
-        {
+        if (item is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary item not found", null));
         }
 
         var value = request.Value.Trim();
         var label = request.Label.Trim();
-        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == item.CategoryId && x.Label == label && x.Id != id).ConfigureAwait(false))
-        {
+        if (await db.DictionaryItems.AnyAsync(x => x.CategoryId == item.CategoryId && x.Label == label && x.Id != id).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Dictionary label already exists", null));
         }
 
@@ -277,12 +241,10 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="rows">字典目录列表</param>
     /// <returns>字典目录树</returns>
-    private static IReadOnlyList<DictionaryCategoryResult> BuildTree(IReadOnlyList<DictionaryCategory> rows)
-    {
+    private static IReadOnlyList<DictionaryCategoryResult> BuildTree(IReadOnlyList<DictionaryCategory> rows) {
         return Build(null);
 
-        IReadOnlyList<DictionaryCategoryResult> Build(long? parentId)
-        {
+        IReadOnlyList<DictionaryCategoryResult> Build(long? parentId) {
             return
             [
                 .. rows
@@ -299,8 +261,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="item">字典内容实体</param>
     /// <returns>字典内容响应模型</returns>
-    private static DictionaryItemResult ToItem(DictionaryItem item)
-    {
+    private static DictionaryItemResult ToItem(DictionaryItem item) {
         return new DictionaryItemResult(
             item.Id, ServerTime.ToOffset(item.CreatedAt), item.CategoryId, item.Value, item.Label, item.Sort, item.IsEnabled, item.Remark
         );
@@ -311,8 +272,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="category">字典目录实体</param>
     /// <returns>字典目录响应模型</returns>
-    private static DictionaryCategoryResult ToResult(DictionaryCategory category)
-    {
+    private static DictionaryCategoryResult ToResult(DictionaryCategory category) {
         return new DictionaryCategoryResult(
             category.Id, ServerTime.ToOffset(category.CreatedAt), category.Code, category.Name, category.ParentId, category.Sort, []
         );
@@ -327,13 +287,10 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     private async Task<bool> IsDescendantAsync(
         long id
         , long candidate
-    )
-    {
+    ) {
         var parent = await db.DictionaryCategories.FindAsync(candidate).ConfigureAwait(false);
-        while (parent?.ParentId is { } parentId)
-        {
-            if (parentId == id)
-            {
+        while (parent?.ParentId is { } parentId) {
+            if (parentId == id) {
                 return true;
             }
 
@@ -348,13 +305,8 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="categoryId">字典目录主键</param>
     /// <returns>异步执行任务</returns>
-    private async Task RefreshCategorySnapshotAsync(long categoryId)
-    {
-        var categoryCode = await db.DictionaryCategories
-            .Where(x => x.Id == categoryId)
-            .Select(x => x.Code)
-            .SingleAsync()
-            .ConfigureAwait(false);
+    private async Task RefreshCategorySnapshotAsync(long categoryId) {
+        var categoryCode = await db.DictionaryCategories.Where(x => x.Id == categoryId).Select(x => x.Code).SingleAsync().ConfigureAwait(false);
         await dictionarySnapshotService.RefreshAsync(categoryCode).ConfigureAwait(false);
     }
 }

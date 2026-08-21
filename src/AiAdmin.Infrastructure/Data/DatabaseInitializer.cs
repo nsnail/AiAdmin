@@ -156,32 +156,6 @@ public static class DatabaseInitializer
     }
 
     /// <summary>
-    ///     初始化计划作业占位符目录和公共 IP 示例作业
-    /// </summary>
-    /// <param name="db">应用数据库上下文</param>
-    /// <returns>异步初始化任务</returns>
-    public static async Task EnsureScheduledJobSeedAsync(AppDbContext db) {
-        var catalog = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders").ConfigureAwait(false);
-        if (catalog is null) {
-            catalog = new DictionaryCategory { Code = "scheduled_job_placeholders", Name = "Scheduled Job Placeholders", Sort = 10 };
-            _ = await db.DictionaryCategories.AddAsync(catalog).ConfigureAwait(false);
-        }
-
-        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == "Get Public IP").ConfigureAwait(false)) {
-            _ = await db.ScheduledJobs.AddAsync(new ScheduledJob {
-                Name = "Get Public IP"
-                , CronExpression = "*/10 * * * * *"
-                , RequestUrl = "https://httpbin.org/ip"
-                , RequestMethod = "GET"
-                , IsEnabled = true
-                , TimeoutSeconds = 30
-            }).ConfigureAwait(false);
-        }
-
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
     ///     为非超级管理员角色补充进入后台所需的基础接口权限
     /// </summary>
     /// <param name="services">应用服务提供器</param>
@@ -250,6 +224,38 @@ public static class DatabaseInitializer
     }
 
     /// <summary>
+    ///     确保已有数据库包含 Redis 缓存管理菜单
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureRedisCacheMenuAsync(AppDbContext db) {
+        if (await db.Menus.AnyAsync(x => x.Name == "RedisCacheManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        if (!await db.Menus.AnyAsync(x => x.Name == "SystemManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        _ = await db
+            .Menus.AddAsync(
+                new Menu
+                {
+                    Name = "RedisCacheManagement"
+                    , Path = "cache"
+                    , Component = "/system/cache"
+                    , ParentName = "SystemManagement"
+                    , Sort = 40
+                    , IsEnabled = true
+                    , MetaJson = /*lang=json,strict*/
+                        "{\"title\":\"menus.system.cache\",\"icon\":\"ri:database-2-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\"]}"
+                }
+            )
+            .ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
     ///     确保计划作业菜单存在，兼容已有数据库和旧菜单种子
     /// </summary>
     /// <param name="db">数据库上下文</param>
@@ -282,28 +288,33 @@ public static class DatabaseInitializer
     }
 
     /// <summary>
-    ///     确保已有数据库包含 Redis 缓存管理菜单
+    ///     初始化计划作业占位符目录和公共 IP 示例作业
     /// </summary>
     /// <param name="db">应用数据库上下文</param>
     /// <returns>异步初始化任务</returns>
-    private static async Task EnsureRedisCacheMenuAsync(AppDbContext db) {
-        if (await db.Menus.AnyAsync(x => x.Name == "RedisCacheManagement").ConfigureAwait(false)) {
-            return;
+    private static async Task EnsureScheduledJobSeedAsync(AppDbContext db) {
+        var catalog = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders").ConfigureAwait(false);
+        if (catalog is null) {
+            catalog = new DictionaryCategory { Code = "scheduled_job_placeholders", Name = "Scheduled Job Placeholders", Sort = 10 };
+            _ = await db.DictionaryCategories.AddAsync(catalog).ConfigureAwait(false);
         }
 
-        if (!await db.Menus.AnyAsync(x => x.Name == "SystemManagement").ConfigureAwait(false)) {
-            return;
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == "Get Public IP").ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = "Get Public IP"
+                        , CronExpression = "*/10 * * * * *"
+                        , RequestUrl = "https://httpbin.org/ip"
+                        , RequestMethod = "GET"
+                        , IsEnabled = true
+                        , TimeoutSeconds = 30
+                    }
+                )
+                .ConfigureAwait(false);
         }
 
-        _ = await db.Menus.AddAsync(new Menu {
-            Name = "RedisCacheManagement"
-            , Path = "cache"
-            , Component = "/system/cache"
-            , ParentName = "SystemManagement"
-            , Sort = 40
-            , IsEnabled = true
-            , MetaJson = /*lang=json,strict*/ "{\"title\":\"menus.system.cache\",\"icon\":\"ri:database-2-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\"]}"
-        }).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

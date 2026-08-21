@@ -19,10 +19,8 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
     /// </summary>
     /// <param name="context">HTTP 上下文</param>
     /// <returns>异步请求处理任务</returns>
-    public async Task InvokeAsync(HttpContext context)
-    {
-        if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase))
-        {
+    public async Task InvokeAsync(HttpContext context) {
+        if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)) {
             await next(context).ConfigureAwait(false);
             return;
         }
@@ -39,12 +37,10 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
         await using var responseBuffer = new MemoryStream();
         context.Response.Body = responseBuffer;
         var stopwatch = Stopwatch.StartNew();
-        try
-        {
+        try {
             await next(context).ConfigureAwait(false);
         }
-        finally
-        {
+        finally {
             stopwatch.Stop();
             responseBuffer.Position = 0;
             var responseBody = IsTextContentType(context.Response.ContentType)
@@ -63,58 +59,42 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
                 ? parsedUserId
                 : (long?)null;
             var relativeUrl = $"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
-            if (logger.IsEnabled(LogLevel.Information))
-            {
+            if (logger.IsEnabled(LogLevel.Information)) {
                 var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["LogType"] = "Api"
-                    ,
-                    ["Source"] = "API"
-                    ,
-                    ["RequestMethod"] = context.Request.Method
-                    ,
-                    ["ClientIp"] = context.Connection.RemoteIpAddress?.ToString()
-                    ,
-                    ["ServerIp"] = context.Connection.LocalIpAddress?.ToString()
-                    ,
-                    ["UserAgent"] = context.Request.Headers.UserAgent.ToString()
-                    ,
-                    ["RequestRelativeUrl"] = relativeUrl
-                    ,
-                    ["ElapsedMilliseconds"] = stopwatch.ElapsedMilliseconds
-                    ,
-                    ["StatusCode"] = context.Response.StatusCode
-                    ,
-                    ["ApiResponseCode"] = TryGetBusinessCode(responseBody)
-                    ,
-                    ["UserId"] = userId
-                    ,
-                    ["UserName"] = context.User.FindFirstValue(ClaimTypes.Name)
-                    ,
-                    ["RequestBody"] = requestBody
-                    ,
-                    ["RequestHeaders"] = requestHeaders
-                    ,
-                    ["RequestContentType"] = context.Request.ContentType
-                    ,
-                    ["RequestId"] = context.Request.Headers["X-Request-ID"].FirstOrDefault() ?? context.TraceIdentifier
-                    ,
-                    ["ResponseHeaders"] = responseHeaders
-                    ,
-                    ["ResponseBody"] = responseBody
-                    ,
-                    ["ResponseContentType"] = context.Response.ContentType
+                    , ["Source"] = "API"
+                    , ["RequestMethod"] = context.Request.Method
+                    , ["ClientIp"] = context.Connection.RemoteIpAddress?.ToString()
+                    , ["ServerIp"] = context.Connection.LocalIpAddress?.ToString()
+                    , ["UserAgent"] = context.Request.Headers.UserAgent.ToString()
+                    , ["RequestRelativeUrl"] = relativeUrl
+                    , ["ElapsedMilliseconds"] = stopwatch.ElapsedMilliseconds
+                    , ["StatusCode"] = context.Response.StatusCode
+                    , ["ApiResponseCode"] = TryGetBusinessCode(responseBody)
+                    , ["UserId"] = userId
+                    , ["UserName"] = context.User.FindFirstValue(ClaimTypes.Name)
+                    , ["RequestBody"] = requestBody
+                    , ["RequestHeaders"] = requestHeaders
+                    , ["RequestContentType"] = context.Request.ContentType
+                    , ["RequestId"] = context.Request.Headers["X-Request-ID"].FirstOrDefault() ?? context.TraceIdentifier
+                    , ["ResponseHeaders"] = responseHeaders
+                    , ["ResponseBody"] = responseBody
+                    , ["ResponseContentType"] = context.Response.ContentType
                 };
                 var state = new StructuredLogState("API request completed", fields);
-                logger.Log(LogLevel.Information, new EventId(3301, "ApiHttpRequestCompleted"), state, null, static (value, _) => value.Message);
+                logger.Log(
+                    LogLevel.Information, new EventId(3301, "ApiHttpRequestCompleted"), state, null, static (
+                        value
+                        , _
+                    ) => value.Message
+                );
             }
         }
     }
 
-    private static bool IsTextContentType(string? contentType)
-    {
-        if (string.IsNullOrWhiteSpace(contentType))
-        {
+    private static bool IsTextContentType(string? contentType) {
+        if (string.IsNullOrWhiteSpace(contentType)) {
             return false;
         }
 
@@ -129,8 +109,7 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
     private static async Task<string> ReadBodyAsync(
         Stream stream
         , CancellationToken cancellationToken
-    )
-    {
+    ) {
         using var reader = new StreamReader(stream, Encoding.UTF8, leaveOpen: true);
         return await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
     }
@@ -140,23 +119,18 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
     /// </summary>
     /// <param name="responseBody">响应体</param>
     /// <returns>业务码</returns>
-    private static int? TryGetBusinessCode(string responseBody)
-    {
-        if (string.IsNullOrWhiteSpace(responseBody))
-        {
+    private static int? TryGetBusinessCode(string responseBody) {
+        if (string.IsNullOrWhiteSpace(responseBody)) {
             return null;
         }
 
-        try
-        {
+        try {
             using var document = JsonDocument.Parse(responseBody);
-            if (!document.RootElement.TryGetProperty("code", out var code))
-            {
+            if (!document.RootElement.TryGetProperty("code", out var code)) {
                 return null;
             }
 
-            switch (code.ValueKind)
-            {
+            switch (code.ValueKind) {
                 case JsonValueKind.Number when code.TryGetInt32(out var number):
                     return number;
                 default:
@@ -164,8 +138,7 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
                     return parseOk ? text : null;
             }
         }
-        catch (JsonException)
-        {
+        catch (JsonException) {
             return null;
         }
     }

@@ -115,7 +115,9 @@
           </ElFormItem>
         </ElForm>
       </ElTabPane>
-      <ElTabPane v-if="props.type === 'edit'" :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+      <ElTabPane v-if="props.type === 'edit'" :label="t('rawData')" name="raw-data"
+        ><ArtRawData :data="rawData"
+      /></ElTabPane>
     </ElTabs>
     <template #footer>
       <ElButton :disabled="props.saving" @click="dialogVisible = false">{{

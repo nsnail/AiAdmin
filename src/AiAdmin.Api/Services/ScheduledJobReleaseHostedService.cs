@@ -15,28 +15,25 @@ public sealed class ScheduledJobReleaseHostedService(
     , ScheduledJobLockService lockService
     , ILogger<ScheduledJobReleaseHostedService> logger) : BackgroundService
 {
+    private static readonly TimeSpan _lockWaitTimeout = TimeSpan.FromSeconds(2);
+
     private static readonly Action<ILogger, Exception?> _logReleaseLoopError = LoggerMessage.Define(
         LogLevel.Error, new EventId(3002, "ScheduledJobReleaseLoopError"), "Scheduled job release loop failed"
     );
 
     private static readonly TimeSpan _scanInterval = TimeSpan.FromSeconds(5);
-    private static readonly TimeSpan _lockWaitTimeout = TimeSpan.FromSeconds(2);
 
     /// <summary>
     ///     启动计划作业超时释放循环
     /// </summary>
     /// <param name="stoppingToken">停止令牌</param>
     /// <returns>异步执行任务</returns>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
+        while (!stoppingToken.IsCancellationRequested) {
+            try {
                 await ReleaseTimedOutJobsAsync(stoppingToken).ConfigureAwait(false);
             }
-            catch (Exception exception)
-            {
+            catch (Exception exception) {
                 _logReleaseLoopError(logger, exception);
             }
 
@@ -49,8 +46,7 @@ public sealed class ScheduledJobReleaseHostedService(
     /// </summary>
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>异步处理任务</returns>
-    private async Task ReleaseTimedOutJobsAsync(CancellationToken cancellationToken)
-    {
+    private async Task ReleaseTimedOutJobsAsync(CancellationToken cancellationToken) {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var now = DateTime.Now;
@@ -58,13 +54,9 @@ public sealed class ScheduledJobReleaseHostedService(
             .ScheduledJobs.Where(x => x.Status == ScheduledJobStatus.Running && x.LastTriggeredAt.HasValue)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        foreach (var job in jobs.Where(x => x.LastTriggeredAt!.Value.AddSeconds(x.TimeoutSeconds) <= now))
-        {
-            await using var jobLock = await lockService
-                .TryAcquireAsync(job.Id, _lockWaitTimeout, cancellationToken)
-                .ConfigureAwait(false);
-            if (jobLock is null)
-            {
+        foreach (var job in jobs.Where(x => x.LastTriggeredAt!.Value.AddSeconds(x.TimeoutSeconds) <= now)) {
+            await using var jobLock = await lockService.TryAcquireAsync(job.Id, _lockWaitTimeout, cancellationToken).ConfigureAwait(false);
+            if (jobLock is null) {
                 continue;
             }
 
@@ -72,8 +64,7 @@ public sealed class ScheduledJobReleaseHostedService(
             now = DateTime.Now;
             if (job.Status != ScheduledJobStatus.Running
                 || !job.LastTriggeredAt.HasValue
-                || job.LastTriggeredAt.Value.AddSeconds(job.TimeoutSeconds) > now)
-            {
+                || job.LastTriggeredAt.Value.AddSeconds(job.TimeoutSeconds) > now) {
                 continue;
             }
 

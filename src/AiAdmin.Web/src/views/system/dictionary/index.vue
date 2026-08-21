@@ -80,8 +80,24 @@
         >
           <ElTableColumn prop="label" query-field="Label" label="标签" min-width="160" sortable />
           <ElTableColumn prop="value" query-field="Value" label="键值" min-width="160" sortable />
-          <ElTableColumn prop="sort" query-field="Sort" query-value-type="number" label="排序" width="90" sortable />
-          <ElTableColumn prop="isEnabled" query-field="IsEnabled" query-value-type="boolean" label="是否启用" width="100" sortable>
+          <ElTableColumn
+            prop="sort"
+            query-field="Sort"
+            query-value-type="number"
+            label="排序"
+            width="90"
+            align="right"
+            sortable
+          />
+          <ElTableColumn
+            prop="isEnabled"
+            query-field="IsEnabled"
+            query-value-type="boolean"
+            label="是否启用"
+            width="120"
+            align="center"
+            sortable
+          >
             <template #default="{ row }"
               ><ArtEnabledSwitch :id="row.id" v-model="row.isEnabled" resource="dictionary-item"
             /></template>
@@ -94,7 +110,7 @@
             show-overflow-tooltip
             sortable
           />
-          <ElTableColumn label="操作" width="110" fixed="right">
+          <ElTableColumn label="操作" width="110" fixed="right" align="center">
             <template #default="{ row }">
               <ElButton text circle title="编辑" @click="openItemDialog(row)"
                 ><ArtSvgIcon icon="ri:edit-2-line"
@@ -181,7 +197,9 @@
             /></ElFormItem>
           </ElForm>
         </ElTabPane>
-        <ElTabPane v-if="itemForm.id" label="原始数据" name="raw-data"><ArtRawData :data="itemRawData" /></ElTabPane>
+        <ElTabPane v-if="itemForm.id" label="原始数据" name="raw-data"
+          ><ArtRawData :data="itemRawData"
+        /></ElTabPane>
       </ElTabs>
       <template #footer
         ><ElButton @click="itemDialogVisible = false">取消</ElButton
@@ -196,7 +214,10 @@
   import { useI18n } from 'vue-i18n'
   import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
   import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-  import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+  import type {
+    DynamicFilter,
+    DynamicQueryField
+  } from '@/components/core/forms/art-dynamic-query-drawer/types'
   import {
     fetchCreateDictionaryCategory,
     fetchCreateDictionaryItem,
@@ -220,7 +241,9 @@
   const saving = ref(false)
   const filterFields = ref<import('@/api/system-manage').ListFilterField[]>([])
   const searchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
-  const appliedSearchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
+  const appliedSearchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>(
+    {}
+  )
   const categoryDialogVisible = ref(false)
   const itemDialogVisible = ref(false)
   const categoryDialogTab = ref('form')
@@ -241,7 +264,7 @@
       ? t('menus.dictionaryCategories.systemSettings')
       : category.code === 'scheduled_job_placeholders'
         ? t('menus.dictionaryCategories.scheduledJobPlaceholders')
-      : category.name
+        : category.name
 
   const flattenCategories = (nodes: Category[], depth = 0): Array<Category & { label: string }> =>
     nodes.flatMap((node) => [
@@ -253,11 +276,13 @@
     const value = t(key)
     return value === key ? key : value
   }
-  const advancedQueryFields = computed<DynamicQueryField[]>(() => filterFields.value.map((field) => ({
-    field: field.field,
-    label: translate(field.label),
-    type: field.valueType
-  })))
+  const advancedQueryFields = computed<DynamicQueryField[]>(() =>
+    filterFields.value.map((field) => ({
+      field: field.field,
+      label: translate(field.label),
+      type: field.valueType
+    }))
+  )
   const getItemFieldValue = (item: Item, field: string) => {
     const property = field.charAt(0).toLowerCase() + field.slice(1)
     return item[property as keyof Item]
@@ -273,9 +298,18 @@
     const expected = filter.value
     if (filter.operator === 'Equal') return actual === expected
     if (filter.operator === 'NotEqual') return actual !== expected
-    if (filter.operator === 'Contains') return String(actual ?? '').toLowerCase().includes(String(expected ?? '').toLowerCase())
-    if (filter.operator === 'StartsWith') return String(actual ?? '').toLowerCase().startsWith(String(expected ?? '').toLowerCase())
-    if (filter.operator === 'EndsWith') return String(actual ?? '').toLowerCase().endsWith(String(expected ?? '').toLowerCase())
+    if (filter.operator === 'Contains')
+      return String(actual ?? '')
+        .toLowerCase()
+        .includes(String(expected ?? '').toLowerCase())
+    if (filter.operator === 'StartsWith')
+      return String(actual ?? '')
+        .toLowerCase()
+        .startsWith(String(expected ?? '').toLowerCase())
+    if (filter.operator === 'EndsWith')
+      return String(actual ?? '')
+        .toLowerCase()
+        .endsWith(String(expected ?? '').toLowerCase())
     if (filter.operator === 'GreaterThan') return Number(actual) > Number(expected)
     if (filter.operator === 'GreaterThanOrEqual') return Number(actual) >= Number(expected)
     if (filter.operator === 'LessThan') return Number(actual) < Number(expected)
@@ -288,7 +322,11 @@
         const expected = appliedSearchForm[field.field]
         if (expected === undefined || expected === null || expected === '') return true
         const actual = getItemFieldValue(item, field.field)
-        return field.control === 'select' ? String(actual) === String(expected) : String(actual ?? '').toLowerCase().includes(String(expected).toLowerCase())
+        return field.control === 'select'
+          ? String(actual) === String(expected)
+          : String(actual ?? '')
+              .toLowerCase()
+              .includes(String(expected).toLowerCase())
       })
       return matchesFields && matchesFilter(item, appliedSearchForm.dynamicFilter)
     })
@@ -343,9 +381,7 @@
   const openCategoryDialog = (category?: Category, parentId: string | null = null) => {
     Object.assign(
       categoryForm,
-      category
-        ? { ...category }
-        : { id: '', code: '', name: '', parentId, sort: 0 }
+      category ? { ...category } : { id: '', code: '', name: '', parentId, sort: 0 }
     )
     categoryRawData.value = category ? { ...category } : { ...categoryForm }
     categoryDialogTab.value = 'form'

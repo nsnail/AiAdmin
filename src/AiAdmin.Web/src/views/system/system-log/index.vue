@@ -43,7 +43,7 @@
               <pre
                 class="log-detail-value"
                 @contextmenu.prevent="copyDetailValue(formatDetailValue(field, selectedLog[field]))"
-              >{{ formatDetailValue(field, selectedLog[field]) }}</pre>
+                >{{ formatDetailValue(field, selectedLog[field]) }}</pre>
             </ElDescriptionsItem>
           </ElDescriptions>
         </ElTabPane>
@@ -158,9 +158,11 @@
     const sign = offsetMinutes >= 0 ? '+' : '-'
     const absoluteOffset = Math.abs(offsetMinutes)
     const offset = `${sign}${pad(Math.floor(absoluteOffset / 60))}:${pad(absoluteOffset % 60)}`
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-      + `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
-      + `.${pad(date.getMilliseconds(), 3)}${offset}`
+    return (
+      `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
+      `T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` +
+      `.${pad(date.getMilliseconds(), 3)}${offset}`
+    )
   }
 
   const getTodayTimestampRange = (): string[] => {

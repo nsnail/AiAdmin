@@ -68,7 +68,9 @@
             </ElFormItem>
           </ElForm>
         </ElTabPane>
-        <ElTabPane v-if="isEditing" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+        <ElTabPane v-if="isEditing" label="原始数据" name="raw-data"
+          ><ArtRawData :data="rawData"
+        /></ElTabPane>
       </ElTabs>
       <template #footer>
         <span class="dialog-footer">

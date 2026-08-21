@@ -152,8 +152,8 @@
                         "
                       >
                         <span class="saved-query-name">{{ query.name }}</span>
-                          <ElPopover
-                            v-if="!query.isGlobal || isSuperAdmin"
+                        <ElPopover
+                          v-if="!query.isGlobal || isSuperAdmin"
                           placement="left"
                           trigger="manual"
                           width="220"
@@ -640,9 +640,7 @@
   // 将当前查询条件转换为已转义的高亮 JSON，避免提示内容被当作 HTML 执行。
   const formattedQueryPreview = computed(() => {
     const currentFilter = activeAdvancedFilter.value || modelValue.value.dynamicFilter
-    const query = currentFilter
-      ? { dynamicFilter: currentFilter }
-      : getSanitizedOutput()
+    const query = currentFilter ? { dynamicFilter: currentFilter } : getSanitizedOutput()
     const json = JSON.stringify(query, null, 2)
     const escaped = json
       .replace(/&/g, '&amp;')
@@ -668,7 +666,7 @@
     [() => modelValue.value, activeAdvancedFilter],
     () => {
       queryPreviewText.value = JSON.stringify(
-        (activeAdvancedFilter.value || modelValue.value.dynamicFilter)
+        activeAdvancedFilter.value || modelValue.value.dynamicFilter
           ? { dynamicFilter: activeAdvancedFilter.value || modelValue.value.dynamicFilter }
           : getSanitizedOutput(),
         null,
@@ -732,18 +730,19 @@
     const global = ref(false)
     const { value } = await ElMessageBox({
       title: t('table.searchBar.saveQueryTitle'),
-      message: isSuperAdmin.value
-        ? h('div', [
-            h(createGlobalSwitch(global))
-          ])
-        : undefined,
+      message: isSuperAdmin.value ? h('div', [h(createGlobalSwitch(global))]) : undefined,
       showInput: true,
       inputPlaceholder: t('table.searchBar.queryNamePlaceholder'),
       inputPattern: /\S+/,
       inputErrorMessage: t('table.searchBar.queryNameRequired'),
       showCancelButton: true
     })
-    await fetchSaveQuery({ name: value.trim(), route: route.path, dynamicFilter, isGlobal: global.value })
+    await fetchSaveQuery({
+      name: value.trim(),
+      route: route.path,
+      dynamicFilter,
+      isGlobal: global.value
+    })
     ElMessage.success('保存成功')
   }
 

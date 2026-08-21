@@ -6,17 +6,13 @@ namespace AiAdmin.Api.Logging;
 /// <summary>
 ///     将结构化日志状态解析为字段列表并输出到控制台
 /// </summary>
-internal sealed class AiAdminConsoleFormatter : ConsoleFormatter
+internal sealed class AiAdminConsoleFormatter() : ConsoleFormatter("aiadmin")
 {
     private const string _GRAY_COLOR = "\e[90m";
     private const string _GREEN_COLOR = "\e[32m";
     private const string _RED_COLOR = "\e[31m";
     private const string _RESET_COLOR = "\e[0m";
     private const string _YELLOW_COLOR = "\e[33m";
-
-    public AiAdminConsoleFormatter()
-        : base("aiadmin") {
-    }
 
     /// <summary>
     ///     将日志条目格式化为字段列表并写入控制台
@@ -85,9 +81,7 @@ internal sealed class AiAdminConsoleFormatter : ConsoleFormatter
         , IReadOnlyDictionary<string, object?> fields
         , params string[] names
     ) {
-        foreach (var name in names) {
-            lines.Add(FormatField(name, fields.GetValueOrDefault(name)));
-        }
+        lines.AddRange(names.Select(name => FormatField(name, fields.GetValueOrDefault(name))));
     }
 
     private static string FormatField(

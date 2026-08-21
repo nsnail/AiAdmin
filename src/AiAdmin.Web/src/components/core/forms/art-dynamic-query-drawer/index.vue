@@ -27,7 +27,10 @@
           ><ElButton circle @click="saveQuery"><ArtSvgIcon icon="ri:save-line" /></ElButton
         ></ElTooltip>
         <ElTooltip content="删除已保存查询"
-          ><ElButton circle :disabled="!selectedSaved || (selectedQueryIsGlobal && !isSuperAdmin)" @click="deleteSaved"
+          ><ElButton
+            circle
+            :disabled="!selectedSaved || (selectedQueryIsGlobal && !isSuperAdmin)"
+            @click="deleteSaved"
             ><ArtSvgIcon icon="ri:delete-bin-line" /></ElButton
         ></ElTooltip>
       </div>
@@ -98,7 +101,8 @@
   const selectedSaved = ref('')
   const savedQueries = ref<SavedQuery[]>([])
   const selectedQueryIsGlobal = computed(
-    () => savedQueries.value.find((item) => String(item.id) === selectedSaved.value)?.isGlobal === true
+    () =>
+      savedQueries.value.find((item) => String(item.id) === selectedSaved.value)?.isGlobal === true
   )
   const jsonText = ref('{}')
   const jsonError = ref('')
@@ -306,11 +310,7 @@
     const global = ref(currentQuery?.isGlobal === true)
     const { value } = await ElMessageBox({
       title: t('table.searchBar.saveQueryTitle'),
-      message: isSuperAdmin.value
-        ? h('div', [
-            h(createGlobalSwitch(global))
-          ])
-        : undefined,
+      message: isSuperAdmin.value ? h('div', [h(createGlobalSwitch(global))]) : undefined,
       showInput: true,
       inputValue: currentQuery?.name || '',
       inputPlaceholder: t('table.searchBar.queryNamePlaceholder'),

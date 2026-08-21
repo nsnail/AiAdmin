@@ -24,26 +24,20 @@ public sealed class ElasticsearchLogBackgroundService(
     /// </summary>
     /// <param name="stoppingToken">应用停止令牌</param>
     /// <returns>后台任务</returns>
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
         var batch = new List<ElasticsearchLogEntry>(Math.Max(1, options.Value.BatchSize));
-        while (!stoppingToken.IsCancellationRequested)
-        {
+        while (!stoppingToken.IsCancellationRequested) {
             batch.Clear();
-            try
-            {
+            try {
                 var first = await queue.DequeueAsync(stoppingToken).ConfigureAwait(false);
-                if (first is null)
-                {
+                if (first is null) {
                     continue;
                 }
 
                 batch.Add(first);
-                while (batch.Count < Math.Max(1, options.Value.BatchSize))
-                {
+                while (batch.Count < Math.Max(1, options.Value.BatchSize)) {
                     var entry = await queue.TryDequeueAsync().ConfigureAwait(false);
-                    if (entry is null)
-                    {
+                    if (entry is null) {
                         break;
                     }
 
@@ -52,21 +46,17 @@ public sealed class ElasticsearchLogBackgroundService(
 
                 await writer.WriteAsync(batch, stoppingToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 break;
             }
-            catch (Exception exception)
-            {
+            catch (Exception exception) {
                 _logWriteFailure(logger, exception);
             }
 
-            try
-            {
+            try {
                 await Task.Delay(options.Value.FlushInterval, stoppingToken).ConfigureAwait(false);
             }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-            {
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 break;
             }
         }

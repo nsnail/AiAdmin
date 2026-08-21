@@ -11,9 +11,9 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 
-const string InitializeDatabaseArgument = "--initialize-database";
-var initializeDatabaseRequested = args.Contains(InitializeDatabaseArgument, StringComparer.OrdinalIgnoreCase);
-var applicationArgs = args.Where(x => !string.Equals(x, InitializeDatabaseArgument, StringComparison.OrdinalIgnoreCase)).ToArray();
+const string initializeDatabaseArgument = "--initialize-database";
+var initializeDatabaseRequested = args.Contains(initializeDatabaseArgument, StringComparer.OrdinalIgnoreCase);
+var applicationArgs = args.Where(x => !string.Equals(x, initializeDatabaseArgument, StringComparison.OrdinalIgnoreCase)).ToArray();
 var builder = WebApplication.CreateBuilder(applicationArgs);
 _ = builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
 SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:WorkerId", 0));
@@ -35,18 +35,20 @@ builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = redisConnection;
-    options.InstanceName = RedisKeyPrefix.Value;
-});
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = RedisKeyPrefix.VALUE;
+    }
+);
 
 // 复用同一条 Redis 连接，并允许缓存管理读取服务器级 INFO/DBSIZE 等指标
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
-{
-    var redisOptions = ConfigurationOptions.Parse(redisConnection);
-    redisOptions.AllowAdmin = true;
-    return ConnectionMultiplexer.Connect(redisOptions);
-});
+    {
+        var redisOptions = ConfigurationOptions.Parse(redisConnection);
+        redisOptions.AllowAdmin = true;
+        return ConnectionMultiplexer.Connect(redisOptions);
+    }
+);
 builder.Services.AddSingleton<ElasticsearchLogQueue>();
 builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddHttpContextAccessor();
@@ -75,14 +77,10 @@ builder.Services.AddDbContext<AppDbContext>((
         _ = provider switch
         {
             "sqlite" => options.UseSqlite(connectionString)
-            ,
-            "sqlserver" => options.UseSqlServer(connectionString)
-            ,
-            "postgresql" or "postgres" => options.UseNpgsql(connectionString)
-            ,
-            "mysql" => options.UseMySQL(connectionString)
-            ,
-            _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
+            , "sqlserver" => options.UseSqlServer(connectionString)
+            , "postgresql" or "postgres" => options.UseNpgsql(connectionString)
+            , "mysql" => options.UseMySQL(connectionString)
+            , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
         };
     }
 );
@@ -95,20 +93,13 @@ builder
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true
-                ,
-                ValidateAudience = true
-                ,
-                ValidateLifetime = true
-                ,
-                ValidateIssuerSigningKey = true
-                ,
-                ValidIssuer = builder.Configuration["Jwt:Issuer"]
-                ,
-                ValidAudience = builder.Configuration["Jwt:Audience"]
-                ,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-                ,
-                ClockSkew = TimeSpan.FromSeconds(30)
+                , ValidateAudience = true
+                , ValidateLifetime = true
+                , ValidateIssuerSigningKey = true
+                , ValidIssuer = builder.Configuration["Jwt:Issuer"]
+                , ValidAudience = builder.Configuration["Jwt:Audience"]
+                , IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                , ClockSkew = TimeSpan.FromSeconds(30)
             };
         }
     );
@@ -135,15 +126,13 @@ var shouldInitializeDatabase = initializeDatabaseRequested;
 #if DEBUG
 shouldInitializeDatabase = true;
 #endif
-if (shouldInitializeDatabase)
-{
+if (shouldInitializeDatabase) {
     await DatabaseInitializer.InitializeAsync(app.Services).ConfigureAwait(false);
-    await using (var scope = app.Services.CreateAsyncScope())
-    {
+    await using (var scope = app.Services.CreateAsyncScope()) {
         _ = await scope.ServiceProvider.GetRequiredService<ApiEndpointSyncService>().SyncAsync().ConfigureAwait(false);
         var dictionarySnapshotService = scope.ServiceProvider.GetRequiredService<DictionarySnapshotService>();
-        await dictionarySnapshotService.RefreshAsync(DictionarySnapshotService.SystemSettingsCode).ConfigureAwait(false);
-        await dictionarySnapshotService.RefreshAsync(DictionarySnapshotService.ScheduledJobPlaceholdersCode).ConfigureAwait(false);
+        await dictionarySnapshotService.RefreshAsync(DictionarySnapshotService.SYSTEM_SETTINGS_CODE).ConfigureAwait(false);
+        await dictionarySnapshotService.RefreshAsync(DictionarySnapshotService.SCHEDULED_JOB_PLACEHOLDERS_CODE).ConfigureAwait(false);
     }
 
     await DatabaseInitializer.InitializeRoleApisAsync(app.Services).ConfigureAwait(false);

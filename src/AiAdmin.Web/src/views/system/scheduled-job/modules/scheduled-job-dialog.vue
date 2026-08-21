@@ -11,11 +11,7 @@
         <ElInput v-model.trim="formData.name" maxlength="100" show-word-limit />
       </ElFormItem>
       <ElFormItem label="Cron 表达式" prop="cronExpression">
-        <ScCron
-          v-model="formData.cronExpression"
-          maxlength="100"
-          placeholder="0 */5 * * * *"
-        />
+        <ScCron v-model="formData.cronExpression" maxlength="100" placeholder="0 */5 * * * *" />
       </ElFormItem>
       <ElFormItem label="请求地址" prop="requestUrl">
         <ElInput v-model.trim="formData.requestUrl" maxlength="2000" />
@@ -102,7 +98,8 @@
   const validateCron = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
     const fields = value.trim().split(/\s+/)
     callback(
-      (fields.length === 5 || fields.length === 6) && fields.every((field) => /^[\d*/,-]+$/.test(field))
+      (fields.length === 5 || fields.length === 6) &&
+        fields.every((field) => /^[\d*/,-]+$/.test(field))
         ? undefined
         : new Error('请输入有效的 5 段或 6 段 Cron 表达式')
     )
@@ -110,7 +107,11 @@
   const validateUrl = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
     try {
       const url = new URL(value)
-      callback(['http:', 'https:'].includes(url.protocol) ? undefined : new Error('仅支持 HTTP 或 HTTPS 地址'))
+      callback(
+        ['http:', 'https:'].includes(url.protocol)
+          ? undefined
+          : new Error('仅支持 HTTP 或 HTTPS 地址')
+      )
     } catch {
       callback(new Error('请输入有效的请求地址'))
     }
@@ -118,7 +119,11 @@
   const validateHeaders = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
     try {
       const parsed = JSON.parse(value || '{}')
-      callback(parsed && !Array.isArray(parsed) && typeof parsed === 'object' ? undefined : new Error('请求头必须是 JSON 对象'))
+      callback(
+        parsed && !Array.isArray(parsed) && typeof parsed === 'object'
+          ? undefined
+          : new Error('请求头必须是 JSON 对象')
+      )
     } catch {
       callback(new Error('请输入有效的 JSON'))
     }
@@ -140,7 +145,13 @@
     requestHeadersJson: [{ validator: validateHeaders, trigger: 'blur' }],
     timeoutSeconds: [
       { required: true, message: '请输入超时时间', trigger: 'change' },
-      { type: 'number', min: 1, max: 86400, message: '超时时间应为 1 至 86400 秒', trigger: 'change' }
+      {
+        type: 'number',
+        min: 1,
+        max: 86400,
+        message: '超时时间应为 1 至 86400 秒',
+        trigger: 'change'
+      }
     ]
   }
 

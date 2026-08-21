@@ -35,12 +35,12 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     请求方法
     /// </summary>
-    public string RequestMethod { get; set; } = string.Empty;
+    public string RequestMethod { get; init; } = string.Empty;
 
     /// <summary>
     ///     请求地址
     /// </summary>
-    public string RequestUrl { get; set; } = string.Empty;
+    public string RequestUrl { get; init; } = string.Empty;
 
     /// <summary>
     ///     响应体
@@ -70,7 +70,7 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     开始执行时间
     /// </summary>
-    public DateTime StartedAt { get; set; }
+    public DateTime StartedAt { get; init; }
 
     /// <summary>
     ///     执行结果状态

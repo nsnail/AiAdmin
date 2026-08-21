@@ -280,7 +280,8 @@
         ? booleanOperators
         : queryMenu.valueType === 'date'
           ? dateOperators
-          : comparableOperators).filter((operator) => !queryMenu.operators || queryMenu.operators.includes(operator.value))
+          : comparableOperators
+    ).filter((operator) => !queryMenu.operators || queryMenu.operators.includes(operator.value))
   )
   const selectedOperatorLabel = computed(() => {
     const operator = availableOperators.value.find((item) => item.value === queryOperator.value)
@@ -469,7 +470,9 @@
   }))
 
   // 是否显示分页器
-  const showPagination = computed(() => !!props.pagination && (!isEmpty.value || props.showPaginationWhenEmpty))
+  const showPagination = computed(
+    () => !!props.pagination && (!isEmpty.value || props.showPaginationWhenEmpty)
+  )
 
   // Element Plus 在部分场景会先用 $index = -1 进行预渲染。
   // 这对普通展示无影响，但会让 ElForm 错误注册出 lineList.-1.xxx 这类字段。

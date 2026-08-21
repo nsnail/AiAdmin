@@ -8,11 +8,6 @@ namespace AiAdmin.Api.Models;
 public sealed class SavedQuery : EntityBase
 {
     /// <summary>
-    ///     是否对所有用户可见
-    /// </summary>
-    public bool IsGlobal { get; set; }
-
-    /// <summary>
     ///     查询条件序列化文本
     /// </summary>
     public required string FilterJson { get; set; }
@@ -21,6 +16,11 @@ public sealed class SavedQuery : EntityBase
     ///     查询条件主键
     /// </summary>
     public long Id { get; init; } = SnowflakeIdGenerator.Next();
+
+    /// <summary>
+    ///     是否对所有用户可见
+    /// </summary>
+    public bool IsGlobal { get; set; }
 
     /// <summary>
     ///     查询条件名称
