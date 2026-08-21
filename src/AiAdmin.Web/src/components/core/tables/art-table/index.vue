@@ -329,6 +329,8 @@
     emptyText?: string
     /** 是否开启 ArtTableHeader，解决表格高度自适应问题 */
     showTableHeader?: boolean
+    /** 空数据时是否仍显示分页器 */
+    showPaginationWhenEmpty?: boolean
   }
 
   const props = withDefaults(defineProps<ArtTableProps>(), {
@@ -428,7 +430,7 @@
     // 全屏模式下占满全屏
     if (isFullScreen.value) return '100%'
     // 空数据且非加载状态时固定高度
-    if (isEmpty.value && !props.loading) return props.emptyHeight
+    if (isEmpty.value && !props.loading && !props.showPaginationWhenEmpty) return props.emptyHeight
     // 使用传入的高度
     if (props.height) return props.height
     // 默认占满容器高度
@@ -465,7 +467,7 @@
   }))
 
   // 是否显示分页器
-  const showPagination = computed(() => props.pagination && !isEmpty.value)
+  const showPagination = computed(() => !!props.pagination && (!isEmpty.value || props.showPaginationWhenEmpty))
 
   // Element Plus 在部分场景会先用 $index = -1 进行预渲染。
   // 这对普通展示无影响，但会让 ElForm 错误注册出 lineList.-1.xxx 这类字段。

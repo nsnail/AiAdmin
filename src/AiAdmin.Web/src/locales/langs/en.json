@@ -475,16 +475,37 @@
     "filters": {
       "level": "Log level",
       "category": "Log category",
+      "searchField": "Search field",
       "keyword": "Search log message"
     },
     "fields": {
       "timestamp": "Time",
       "level": "Level",
       "category": "Category",
+      "clientIp": "Client IP",
+      "elapsedMilliseconds": "Elapsed (ms)",
       "message": "Message",
       "eventId": "Event ID",
       "eventName": "Event name",
-      "exception": "Exception"
+      "exception": "Exception",
+      "logType": "Log type",
+      "requestBody": "Request body",
+      "requestContentType": "Request Content-Type",
+      "requestHeaders": "Request headers",
+      "requestId": "Request ID",
+      "requestMethod": "Request method",
+      "requestRelativeUrl": "Request relative URL",
+      "requestUrl": "Request URL",
+      "responseBody": "Response body",
+      "responseContentType": "Response Content-Type",
+      "responseHeaders": "Response headers",
+      "serverIp": "Server IP",
+      "source": "Source",
+      "sql": "SQL",
+      "statusCode": "Status code",
+      "threadId": "Thread ID",
+      "userAgent": "User-Agent",
+      "userName": "User name"
     }
   },
   "scheduledJob": {

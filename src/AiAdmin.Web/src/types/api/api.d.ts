@@ -145,10 +145,30 @@ declare namespace Api {
       timestamp: string
       level: string
       category: string
-      message: string
-      exception: string | null
+      clientIp: string | null
+      elapsedMilliseconds: number | null
       eventId: number
       eventName: string | null
+      exception: string | null
+      logType: string
+      message: string
+      requestBody: string | null
+      requestContentType: string | null
+      requestHeaders: string | null
+      requestId: string | null
+      requestMethod: string | null
+      requestRelativeUrl: string | null
+      requestUrl: string | null
+      responseBody: string | null
+      responseContentType: string | null
+      responseHeaders: string | null
+      serverIp: string | null
+      source: string
+      sql: string | null
+      statusCode: number | null
+      threadId: number
+      userAgent: string | null
+      userName: string | null
     }
 
     /** 用户列表 */

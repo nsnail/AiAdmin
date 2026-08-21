@@ -63,6 +63,10 @@ export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
   level?: string
   category?: string
   keyword?: string
+  searchField?: string
+  dynamicFilter?: DynamicFilter
+  sortField?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
 export function fetchGetSystemLogs(params: SystemLogSearchParams) {
@@ -74,6 +78,10 @@ export function fetchGetSystemLogs(params: SystemLogSearchParams) {
       level: params.level || undefined,
       category: params.category?.trim() || undefined,
       keyword: params.keyword?.trim() || undefined
+      , searchField: params.searchField || undefined
+      , dynamicFilter: params.dynamicFilter || undefined
+      , sortField: params.sortField || undefined
+      , sortOrder: params.sortOrder || undefined
     }
   })
 }

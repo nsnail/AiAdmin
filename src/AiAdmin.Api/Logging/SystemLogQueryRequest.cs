@@ -1,3 +1,5 @@
+using AiAdmin.Api.Contracts;
+
 namespace AiAdmin.Api.Logging;
 
 /// <summary>
@@ -21,6 +23,16 @@ public sealed class SystemLogQueryRequest
     public string? Keyword { get; set; }
 
     /// <summary>
+    ///     指定搜索字段
+    /// </summary>
+    public string? SearchField { get; set; }
+
+    /// <summary>
+    ///     动态查询条件
+    /// </summary>
+    public DynamicFilter? DynamicFilter { get; set; }
+
+    /// <summary>
     ///     日志级别
     /// </summary>
     public string? Level { get; set; }
@@ -29,4 +41,14 @@ public sealed class SystemLogQueryRequest
     ///     每页记录数
     /// </summary>
     public int Size { get; set; } = 20;
+
+    /// <summary>
+    ///     排序字段
+    /// </summary>
+    public string? SortField { get; set; }
+
+    /// <summary>
+    ///     排序方向
+    /// </summary>
+    public string? SortOrder { get; set; }
 }

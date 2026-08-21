@@ -471,16 +471,37 @@
     "filters": {
       "level": "日志级别",
       "category": "日志分类",
+      "searchField": "搜索字段",
       "keyword": "搜索日志内容"
     },
     "fields": {
       "timestamp": "时间",
       "level": "级别",
       "category": "分类",
+      "clientIp": "客户端 IP",
+      "elapsedMilliseconds": "耗时（毫秒）",
       "message": "消息",
       "eventId": "事件编号",
       "eventName": "事件名称",
-      "exception": "异常"
+      "exception": "异常",
+      "logType": "日志类型",
+      "requestBody": "请求体",
+      "requestContentType": "请求 Content-Type",
+      "requestHeaders": "请求头",
+      "requestId": "请求 ID",
+      "requestMethod": "请求方法",
+      "requestRelativeUrl": "请求相对 URL",
+      "requestUrl": "请求 URL",
+      "responseBody": "响应体",
+      "responseContentType": "响应 Content-Type",
+      "responseHeaders": "响应头",
+      "serverIp": "服务器 IP",
+      "source": "来源",
+      "sql": "SQL 语句",
+      "statusCode": "状态码",
+      "threadId": "线程号",
+      "userAgent": "User-Agent",
+      "userName": "用户名"
     }
   },
   "scheduledJob": {
