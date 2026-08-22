@@ -8,9 +8,5 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="TargetType">发送对象类型</param>
 /// <param name="DepartmentIds">目标部门主键</param>
 /// <param name="UserIds">目标用户主键</param>
-public sealed record SendSystemMessageRequest(
-    string Title
-    , string Content
-    , string TargetType
-    , long[] DepartmentIds
-    , long[] UserIds);
+/// <param name="IsPopup">是否自动弹出提醒</param>
+public sealed record SendSystemMessageRequest(string Title, string Content, string TargetType, long[] DepartmentIds, long[] UserIds, bool IsPopup);

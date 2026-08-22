@@ -277,7 +277,7 @@ const bodyCloseNotice = (e: any): void => {
 
     // 检查是否点击了通知按钮或通知面板内部
     const isNoticeButton = target.closest('.notice-button')
-    const isNoticePanel = target.closest('.art-notification-panel')
+    const isNoticePanel = target.closest('.art-notification-panel, .notification-drawer')
 
     if (!isNoticeButton && !isNoticePanel) {
         showNotice.value = false

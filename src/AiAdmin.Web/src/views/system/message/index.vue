@@ -23,6 +23,9 @@
         <ElDialog v-model="editorVisible" :title="editingId ? t('messageManagement.edit') : t('messageManagement.send')" destroy-on-close fullscreen>
             <ElForm :model="form" class="editor-form" label-position="top">
                 <ElFormItem :label="t('messageManagement.title')"><ElInput v-model="form.title" maxlength="200" show-word-limit /></ElFormItem>
+                <ElFormItem
+                    ><ElCheckbox v-model="form.isPopup">{{ t('messageManagement.popup') }}</ElCheckbox></ElFormItem
+                >
                 <ElFormItem :label="t('messageManagement.target')"
                     ><ElSelect v-model="form.targetType" class="w-full"
                         ><ElOption v-for="item in targetOptions" :key="item.value" :label="item.label" :value="item.value" /></ElSelect
@@ -96,7 +99,14 @@ const selected = ref<Api.SystemManage.SystemMessageListItem>()
 const previewHtml = ref('')
 const selectedRows = ref<Api.SystemManage.SystemMessageListItem[]>([])
 const editingId = ref<number>()
-const form = reactive<Api.SystemManage.SendSystemMessageParams>({ title: '', content: '', targetType: 'all', departmentIds: [], userIds: [] })
+const form = reactive<Api.SystemManage.SendSystemMessageParams>({
+    title: '',
+    content: '',
+    targetType: 'all',
+    departmentIds: [],
+    userIds: [],
+    isPopup: false,
+})
 const getQuery = () => {
     const query: { keyword?: string; startTime?: string; endTime?: string } = { keyword: searchForm.value.title }
     const filters = searchForm.value.dynamicFilter?.filters ?? ([searchForm.value.dynamicFilter].filter(Boolean) as DynamicFilter[])

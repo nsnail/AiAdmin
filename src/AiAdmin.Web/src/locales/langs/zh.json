@@ -136,14 +136,16 @@
     },
     "notice": {
         "title": "通知",
-        "btnRead": "标为已读",
+        "btnRead": "全部已读",
         "bar": ["通知", "消息", "代办"],
         "text": ["暂无"],
         "viewAll": "查看全部",
         "empty": "暂无通知",
         "loading": "加载中",
         "noMore": "没有更多通知",
-        "clearAll": "清空全部"
+        "clearAll": "清空全部",
+        "clearConfirm": "确定清空全部通知吗？",
+        "deleteConfirm": "确定删除这条通知吗？"
     },
     "worktab": {
         "btn": {
@@ -413,6 +415,7 @@
         "edit": "编辑消息",
         "delete": "删除",
         "batchDelete": "批量删除",
+        "popup": "弹出提醒",
         "title": "标题",
         "target": "发送对象",
         "content": "内容",

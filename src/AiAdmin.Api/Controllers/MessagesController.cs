@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
@@ -19,6 +20,38 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/message")]
 public sealed class MessagesController(AppDbContext db) : ControllerBase
 {
+    /// <summary>批量删除系统消息</summary>
+    /// <param name="ids">消息主键集合</param>
+    /// <returns>操作结果</returns>
+    [HttpDelete]
+    [ApiDescription("Batch delete system messages")]
+    public async Task<ActionResult<ApiResponse<object>>> BatchDeleteAsync([FromBody] long[] ids) {
+        if (ids.Length == 0) {
+            return Ok(ApiResponse<object>.Ok(new { }));
+        }
+
+        var messages = await db.SystemMessages.Where(x => ids.Contains(x.Id)).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        db.SystemMessages.RemoveRange(messages);
+        _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, "System messages deleted"));
+    }
+
+    /// <summary>删除一条系统消息</summary>
+    /// <param name="id">消息主键</param>
+    /// <returns>操作结果</returns>
+    [HttpDelete("{id:long}")]
+    [ApiDescription("Delete system message")]
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+        var message = await db.SystemMessages.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (message is null) {
+            return NotFound(new ApiResponse<object>(404, "Message not found", null));
+        }
+
+        _ = db.SystemMessages.Remove(message);
+        _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, "System message deleted"));
+    }
+
     /// <summary>查询消息列表筛选字段元数据</summary>
     /// <returns>筛选字段定义</returns>
     [HttpGet("filter-fields")]
@@ -38,7 +71,13 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     /// <returns>消息列表</returns>
     [HttpGet("list")]
     [ApiDescription("Query sent messages")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<SystemMessageListItem>>>> ListAsync(int current = 1, int size = 20, string? keyword = null, DateTime? startTime = null, DateTime? endTime = null) {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SystemMessageListItem>>>> ListAsync(
+        int current = 1
+        , int size = 20
+        , string? keyword = null
+        , DateTime? startTime = null
+        , DateTime? endTime = null
+    ) {
         current = Math.Max(current, 1);
         size = Math.Clamp(size, 1, 100);
         var query = db.SystemMessages.AsNoTracking();
@@ -54,8 +93,13 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
             query = query.Where(x => x.CreatedAt < endTime.Value);
         }
 
-        var items = await query.OrderByDescending(x => x.CreatedAt).Skip((current - 1) * size).Take(size)
-            .Select(x => new SystemMessageListItem(x.Id, x.Title, x.Content, ServerTime.ToOffset(x.CreatedAt), x.Recipients.Count)).ToListAsync().ConfigureAwait(false);
+        var items = await query
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((current - 1) * size)
+            .Take(size)
+            .Select(x => new SystemMessageListItem(x.Id, x.Title, x.Content, ServerTime.ToOffset(x.CreatedAt), x.Recipients.Count))
+            .ToListAsync()
+            .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<SystemMessageListItem>>.Ok(items));
     }
 
@@ -81,8 +125,8 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
             return BadRequest(new ApiResponse<object>(400, "No enabled users match the selected recipients", null));
         }
 
-        var senderId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, System.Globalization.CultureInfo.InvariantCulture);
-        var message = new SystemMessage { SenderId = senderId, Title = request.Title.Trim(), Content = request.Content };
+        var senderId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        var message = new SystemMessage { SenderId = senderId, Title = request.Title.Trim(), Content = request.Content, IsPopup = request.IsPopup };
         foreach (var userId in userIds) {
             message.Recipients.Add(new UserMessage { UserId = userId, Message = message });
         }
@@ -98,7 +142,10 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     /// <returns>操作结果</returns>
     [HttpPut("{id:long}")]
     [ApiDescription("Update system message")]
-    public async Task<ActionResult<ApiResponse<object>>> UpdateAsync(long id, UpdateSystemMessageRequest request) {
+    public async Task<ActionResult<ApiResponse<object>>> UpdateAsync(
+        long id
+        , UpdateSystemMessageRequest request
+    ) {
         var message = await db.SystemMessages.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
         if (message is null) {
             return NotFound(new ApiResponse<object>(404, "Message not found", null));
@@ -114,50 +161,36 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }, "System message updated"));
     }
 
-    /// <summary>删除一条系统消息</summary>
-    /// <param name="id">消息主键</param>
-    /// <returns>操作结果</returns>
-    [HttpDelete("{id:long}")]
-    [ApiDescription("Delete system message")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
-        var message = await db.SystemMessages.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
-        if (message is null) {
-            return NotFound(new ApiResponse<object>(404, "Message not found", null));
-        }
-
-        _ = db.SystemMessages.Remove(message);
-        _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, "System message deleted"));
-    }
-
-    /// <summary>批量删除系统消息</summary>
-    /// <param name="ids">消息主键集合</param>
-    /// <returns>操作结果</returns>
-    [HttpDelete]
-    [ApiDescription("Batch delete system messages")]
-    public async Task<ActionResult<ApiResponse<object>>> BatchDeleteAsync([FromBody] long[] ids) {
-        if (ids.Length == 0) {
-            return Ok(ApiResponse<object>.Ok(new { }));
-        }
-
-        var messages = await db.SystemMessages.Where(x => ids.Contains(x.Id)).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false);
-        db.SystemMessages.RemoveRange(messages);
-        _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
-        return Ok(ApiResponse<object>.Ok(new { }, "System messages deleted"));
-    }
-
-    private async Task<HashSet<long>> ResolveUserIdsAsync(string targetType, long[] departmentIds, long[] userIds) {
+    private async Task<HashSet<long>> ResolveUserIdsAsync(
+        string targetType
+        , long[] departmentIds
+        , long[] userIds
+    ) {
         if (targetType == "all") {
-            return await db.Users.AsNoTracking().Where(x => x.IsEnabled).Select(x => x.Id).ToHashSetAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+            return await db
+                .Users.AsNoTracking()
+                .Where(x => x.IsEnabled)
+                .Select(x => x.Id)
+                .ToHashSetAsync(HttpContext.RequestAborted)
+                .ConfigureAwait(false);
         }
 
         if (targetType == "user") {
-            return await db.Users.AsNoTracking().Where(x => x.IsEnabled && userIds.Contains(x.Id)).Select(x => x.Id).ToHashSetAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+            return await db
+                .Users.AsNoTracking()
+                .Where(x => x.IsEnabled && userIds.Contains(x.Id))
+                .Select(x => x.Id)
+                .ToHashSetAsync(HttpContext.RequestAborted)
+                .ConfigureAwait(false);
         }
 
         var selected = departmentIds.Distinct().ToHashSet();
         if (targetType == "department_children") {
-            var departments = await db.Departments.AsNoTracking().Select(x => new { x.Id, x.ParentId }).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+            var departments = await db
+                .Departments.AsNoTracking()
+                .Select(x => new { x.Id, x.ParentId })
+                .ToListAsync(HttpContext.RequestAborted)
+                .ConfigureAwait(false);
             var changed = true;
             while (changed) {
                 changed = false;
@@ -167,6 +200,11 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
             }
         }
 
-        return await db.UserDepartments.AsNoTracking().Where(x => selected.Contains(x.DepartmentId) && x.User.IsEnabled).Select(x => x.UserId).ToHashSetAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        return await db
+            .UserDepartments.AsNoTracking()
+            .Where(x => selected.Contains(x.DepartmentId) && x.User.IsEnabled)
+            .Select(x => x.UserId)
+            .ToHashSetAsync(HttpContext.RequestAborted)
+            .ConfigureAwait(false);
     }
 }

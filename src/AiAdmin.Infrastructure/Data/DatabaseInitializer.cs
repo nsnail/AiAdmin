@@ -105,6 +105,7 @@ public static class DatabaseInitializer
         await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
         await EnsureLoginLogMenuAsync(db).ConfigureAwait(false);
         await EnsureMessageMenuAsync(db).ConfigureAwait(false);
+        await EnsureWelcomeMessageAsync(db).ConfigureAwait(false);
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
@@ -393,6 +394,35 @@ public static class DatabaseInitializer
                 .ConfigureAwait(false);
         }
 
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保系统为全体用户生成欢迎通知
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureWelcomeMessageAsync(AppDbContext db) {
+        const string title = "Welcome to AiAdmin";
+        if (await db.SystemMessages.AnyAsync(x => x.Title == title).ConfigureAwait(false)) {
+            return;
+        }
+
+        var sender = await db.Users.OrderBy(x => x.Id).FirstOrDefaultAsync().ConfigureAwait(false);
+        if (sender is null) {
+            return;
+        }
+
+        var message = new SystemMessage
+        {
+            SenderId = sender.Id, Title = title, Content = "<p>Welcome to AiAdmin. We hope you enjoy using the system.</p>"
+        };
+        var users = await db.Users.Where(x => x.IsEnabled).Select(x => x.Id).ToListAsync().ConfigureAwait(false);
+        foreach (var userId in users) {
+            message.Recipients.Add(new UserMessage { UserId = userId, Message = message });
+        }
+
+        _ = await db.SystemMessages.AddAsync(message).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

@@ -2,6 +2,7 @@
     <ArtSearchBar
         v-model="formData"
         :advanced-query-fields="advancedQueryFields"
+        :button-left-limit="0"
         :filter-fields="filterFields"
         :items="items"
         @reset="emit('reset')"

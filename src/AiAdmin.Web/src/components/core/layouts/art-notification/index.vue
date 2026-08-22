@@ -1,29 +1,52 @@
 <template>
-    <div
-        v-show="visible"
-        :style="{ transform: show ? 'scaleY(1)' : 'scaleY(0.9)', opacity: show ? 1 : 0 }"
-        @click.stop
-        class="art-notification-panel art-card-sm !shadow-xl">
-        <div class="flex-cb px-3.5 mt-3.5">
+    <ElDrawer v-model="visible" :with-header="false" @closed="emit('update:value', false)" class="notification-drawer" direction="rtl" size="480px">
+        <div class="notification-header">
             <span class="text-base font-medium">{{ t('notice.title') }}</span>
-            <div v-if="items.length">
-                <ElButton @click="readAll" link size="small">{{ t('notice.btnRead') }}</ElButton
-                ><ElButton @click="clearAll" link size="small">{{ t('notice.clearAll') }}</ElButton>
-            </div>
+            <ArtIconButton @click="visible = false" icon="ri:close-line" />
+        </div>
+        <div v-if="items.length" class="notification-actions-bar">
+            <ElButton @click="readAll" class="read-all-button" link size="small">
+                <ArtSvgIcon icon="ri:mail-check-line" />
+                {{ t('notice.btnRead') }}
+            </ElButton>
+            <ElPopconfirm
+                :cancel-button-text="t('common.cancel')"
+                :confirm-button-text="t('common.confirm')"
+                :title="t('notice.clearConfirm')"
+                @confirm="clearAll">
+                <template #reference>
+                    <ElButton class="clear-all-button" link size="small">
+                        <ArtSvgIcon icon="ri:delete-bin-7-line" />
+                        {{ t('notice.clearAll') }}
+                    </ElButton>
+                </template>
+            </ElPopconfirm>
         </div>
         <div class="notification-body">
             <div @scroll="onScroll" class="notification-list scrollbar-thin" ref="listElement">
                 <div v-for="item in items" :class="{ unread: !item.isRead }" :key="item.id" class="notification-item">
                     <div @click="toggle(item)" class="notification-row">
+                        <ElAvatar :size="30" :src="item.senderAvatar || undefined" class="notification-avatar">{{
+                            item.senderName.slice(0, 1)
+                        }}</ElAvatar>
+                        <div class="notification-sender-block">
+                            <div class="notification-sender">{{ item.senderName }}</div>
+                            <div class="notification-time">{{ formatDate(item.createdAt) }}</div>
+                        </div>
                         <div class="notification-title">{{ item.title }}</div>
-                        <div class="notification-time">{{ formatDate(item.createdAt) }}</div>
                         <ArtSvgIcon :icon="expandedId === item.id ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" class="notification-expand" />
                     </div>
                     <div v-html="item.content" v-if="expandedId === item.id" class="notification-content" />
-                    <div class="notification-actions">
-                        <ElButton @click.stop="remove(item.id)" link size="small"
-                            ><ArtSvgIcon icon="ri:delete-bin-line" />{{ t('messageManagement.delete') }}</ElButton
-                        >
+                    <div v-if="expandedId === item.id" class="notification-actions">
+                        <ElPopconfirm
+                            :cancel-button-text="t('common.cancel')"
+                            :confirm-button-text="t('common.confirm')"
+                            :title="t('notice.deleteConfirm')"
+                            @confirm="remove(item.id)">
+                            <template #reference>
+                                <ArtIconButton @click.stop class="notification-delete-button" icon="ri:delete-bin-line" />
+                            </template>
+                        </ElPopconfirm>
                     </div>
                 </div>
                 <div v-if="loading" class="notification-state">{{ t('notice.loading') }}</div>
@@ -31,7 +54,7 @@
                 <div v-else-if="!hasMore" class="notification-state">{{ t('notice.noMore') }}</div>
             </div>
         </div>
-    </div>
+    </ElDrawer>
 </template>
 <script lang="ts" setup>
 import {
@@ -48,7 +71,6 @@ const props = defineProps<{ value: boolean }>()
 const emit = defineEmits<{ 'update:value': [value: boolean]; 'unread-change': [value: number] }>()
 const { t } = useI18n()
 const visible = ref(false)
-const show = ref(false)
 const items = ref<Api.SystemManage.UserMessageListItem[]>([])
 const page = ref(1)
 const hasMore = ref(true)
@@ -68,6 +90,7 @@ const load = async (reset = false) => {
     try {
         const result = await fetchGetNotifications(page.value, 20)
         if (reset) unreadCount.value = result.unreadCount
+        if (reset && result.items.some((item) => item.isPopup && !item.isRead)) emit('update:value', true)
         items.value.push(...result.items)
         hasMore.value = result.hasMore
         page.value++
@@ -112,17 +135,13 @@ const onScroll = () => {
     if (el && el.scrollTop + el.clientHeight >= el.scrollHeight - 40) load()
 }
 const formatDate = (value: string) => new Date(value).toLocaleString()
-const animate = (value: boolean) => {
-    if (value) {
-        visible.value = true
-        nextTick(() => (show.value = true))
-        load(true)
-    } else {
-        show.value = false
-        setTimeout(() => (visible.value = false), 300)
-    }
-}
-watch(() => props.value, animate)
+watch(
+    () => props.value,
+    (value) => {
+        visible.value = value
+        if (value) load(true)
+    },
+)
 let refreshTimer: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
     load(true)
@@ -136,11 +155,33 @@ onBeforeUnmount(() => {
 </script>
 <style scoped>
 @reference '@styles/core/tailwind.css';
-.art-notification-panel {
-    @apply absolute top-14.5 right-5 w-90 h-125 overflow-hidden transition-all duration-300 origin-top will-change-[top,left] max-[640px]:top-[65px] max-[640px]:right-0 max-[640px]:w-full max-[640px]:h-[80vh];
-}
 .notification-body {
-    height: calc(100% - 95px);
+}
+.notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px 4px;
+}
+.notification-actions-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 0 8px 8px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.notification-actions-bar :deep(.art-svg-icon) {
+    margin-right: 6px;
+}
+.read-all-button {
+    --el-button-text-color: var(--el-text-color-secondary);
+    --el-button-hover-text-color: var(--el-text-color-regular);
+    color: var(--el-text-color-secondary) !important;
+}
+.clear-all-button {
+    --el-button-text-color: var(--el-color-danger);
+    --el-button-hover-text-color: var(--el-color-danger-light-3);
+    color: var(--el-color-danger) !important;
 }
 .notification-list {
     height: calc(100% - 60px);
@@ -157,6 +198,20 @@ onBeforeUnmount(() => {
     gap: 8px;
     cursor: pointer;
 }
+.notification-avatar {
+    flex: 0 0 auto;
+}
+.notification-sender-block {
+    flex: 0 0 128px;
+    min-width: 0;
+}
+.notification-sender {
+    overflow: hidden;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .notification-item.unread .notification-title {
     font-weight: 700;
 }
@@ -167,13 +222,17 @@ onBeforeUnmount(() => {
     flex: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     font-size: 13px;
     font-weight: 700;
+    line-height: 1.4;
 }
 .notification-time {
     color: var(--el-text-color-secondary);
     font-size: 12px;
+    white-space: nowrap;
 }
 .notification-expand {
     color: var(--el-text-color-secondary);
@@ -188,6 +247,13 @@ onBeforeUnmount(() => {
 .notification-actions {
     display: flex;
     justify-content: flex-end;
+}
+.notification-delete-button {
+    color: var(--el-color-danger);
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+    font-weight: 400;
 }
 .notification-state {
     padding: 16px;
@@ -221,5 +287,8 @@ onBeforeUnmount(() => {
 }
 .notification-content :deep(a) {
     color: var(--el-color-primary);
+}
+.notification-drawer :deep(.el-drawer__body) {
+    padding: 0;
 }
 </style>

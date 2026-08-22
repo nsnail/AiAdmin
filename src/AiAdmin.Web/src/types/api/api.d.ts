@@ -349,6 +349,7 @@ declare namespace Api {
             targetType: 'all' | 'department' | 'department_children' | 'user'
             departmentIds: number[]
             userIds: number[]
+            isPopup: boolean
         }
         type SystemMessageSearchParams = Partial<{ title: string; createdAt: string[] }> & {
             dynamicFilter?: import('@/api/system-manage').DynamicFilter
@@ -366,6 +367,9 @@ declare namespace Api {
             content: string
             createdAt: string
             isRead: boolean
+            senderName: string
+            senderAvatar: string | null
+            isPopup: boolean
         }
         interface UserMessagePageResult {
             items: UserMessageListItem[]

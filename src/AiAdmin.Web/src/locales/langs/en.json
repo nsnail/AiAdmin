@@ -136,14 +136,16 @@
     },
     "notice": {
         "title": "Notice",
-        "btnRead": "Mark as read",
+        "btnRead": "Mark all as read",
         "bar": ["Notice", "Message", "Todo"],
         "text": ["No"],
         "viewAll": "View all",
         "empty": "No notifications",
         "loading": "Loading",
         "noMore": "No more notifications",
-        "clearAll": "Clear all"
+        "clearAll": "Clear all",
+        "clearConfirm": "Clear all notifications?",
+        "deleteConfirm": "Delete this notification?"
     },
     "worktab": {
         "btn": {
@@ -413,6 +415,7 @@
         "edit": "Edit message",
         "delete": "Delete",
         "batchDelete": "Batch delete",
+        "popup": "Popup reminder",
         "title": "Title",
         "target": "Recipients",
         "content": "Content",
