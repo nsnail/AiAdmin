@@ -1,5 +1,4 @@
 using AiAdmin.Api.Attributes;
-using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;
 
@@ -9,20 +8,19 @@ namespace AiAdmin.Api.Models;
 public sealed class Wallet : EntityBase, IOwner, IVersion
 {
     /// <summary>
+    ///     可用余额
+    /// </summary>
+    public decimal AvailableBalance { get; set; }
+
+    /// <summary>
     ///     冻结金额
     /// </summary>
     public decimal FrozenBalance { get; set; }
 
     /// <summary>
-    ///     钱包用户主键，同时作为钱包主键
+    ///     最后交易时间
     /// </summary>
-    [ListFilter("wallet.user", "user-select", Span = 6)]
-    public long UserId { get; set; }
-
-    /// <summary>
-    ///     关联用户
-    /// </summary>
-    public User User { get; set; } = null!;
+    public DateTime? LastTransactionAt { get; set; }
 
     /// <summary>
     ///     所有者部门主键
@@ -32,20 +30,16 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     所有者用户主键
     /// </summary>
-    public long OwnerId {
+    public long OwnerId
+    {
         get => UserId;
         set => UserId = value;
     }
 
     /// <summary>
-    ///     最后交易时间
+    ///     总支出
     /// </summary>
-    public DateTime? LastTransactionAt { get; set; }
-
-    /// <summary>
-    ///     可用余额
-    /// </summary>
-    public decimal AvailableBalance { get; set; }
+    public decimal TotalExpense { get; set; }
 
     /// <summary>
     ///     总收入
@@ -53,9 +47,15 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     public decimal TotalIncome { get; set; }
 
     /// <summary>
-    ///     总支出
+    ///     关联用户
     /// </summary>
-    public decimal TotalExpense { get; set; }
+    public User User { get; set; } = null!;
+
+    /// <summary>
+    ///     钱包用户主键，同时作为钱包主键
+    /// </summary>
+    [ListFilter("wallet.user", "user-select", Span = 6)]
+    public long UserId { get; set; }
 
     /// <summary>
     ///     并发版本号
