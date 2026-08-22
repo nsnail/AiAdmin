@@ -68,6 +68,7 @@ builder.Services.AddSingleton<ApiPermissionCache>();
 builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
 builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
+builder.Services.AddScoped<ApiDocumentationService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DictionarySnapshotService>();
 builder.Services.AddSingleton<MinioStorageService>();

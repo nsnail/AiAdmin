@@ -21,8 +21,21 @@ namespace AiAdmin.Api.Controllers;
     "Design", "S6960:Controllers should not have too many responsibilities"
     , Justification = "Endpoint querying and synchronization share the endpoint management boundary."
 )]
-public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncService syncService) : ControllerBase
+public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncService syncService, ApiDocumentationService documentationService)
+    : ControllerBase
 {
+    /// <summary>
+    ///     查询当前用户可访问的接口文档
+    /// </summary>
+    /// <returns>接口文档分组</returns>
+    [HttpGet("documentation")]
+    [ApiDescription("Query API documentation")]
+    [ApiDocumented]
+    public async Task<ActionResult<ApiResponse<ApiDocumentationResult>>> DocumentationAsync() {
+        var result = await documentationService.GetAsync(User).ConfigureAwait(false);
+        return Ok(ApiResponse<ApiDocumentationResult>.Ok(result));
+    }
+
     /// <summary>
     ///     查询接口列表筛选字段元数据
     /// </summary>

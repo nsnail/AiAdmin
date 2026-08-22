@@ -32,6 +32,12 @@ export const developmentRoutes: AppRouteRecord = {
     },
     children: [
         {
+            path: 'api-docs',
+            name: 'ApiDocumentation',
+            component: '/development/api-docs',
+            meta: { title: 'menus.development.apiDocs', icon: 'ri:file-text-line', keepAlive: true },
+        },
+        {
             path: 'examples',
             name: 'ExampleCenter',
             component: '',

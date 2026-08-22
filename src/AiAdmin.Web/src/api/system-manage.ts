@@ -367,6 +367,10 @@ export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter, sortField
     })
 }
 
+export function fetchGetApiDocumentation() {
+    return request.get<Api.SystemManage.ApiDocumentationResult>({ url: '/api/api-endpoint/documentation' })
+}
+
 export function fetchSyncApiEndpoints() {
     return request.post<Api.SystemManage.ApiSyncResult>({ url: '/api/api-endpoint/sync' })
 }

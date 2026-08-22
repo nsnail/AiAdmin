@@ -297,6 +297,46 @@ declare namespace Api {
             action: string
         }
 
+        interface ApiDocumentationResult {
+            groups: ApiDocumentationGroup[]
+        }
+        interface ApiDocumentationGroup {
+            name: string
+            description: string
+            items: ApiDocumentationItem[]
+        }
+        interface ApiDocumentationItem {
+            method: string
+            path: string
+            name: string
+            description: string
+            controller: string
+            action: string
+            parameters: ApiDocumentationParameter[]
+            requestBody: ApiDocumentationType | null
+            responseType: ApiDocumentationType | null
+        }
+        interface ApiDocumentationParameter {
+            name: string
+            in: string
+            type: string
+            required: boolean
+            description: string
+            defaultValue: string | null
+        }
+        interface ApiDocumentationType {
+            name: string
+            type: string
+            description: string
+            properties: ApiDocumentationProperty[]
+        }
+        interface ApiDocumentationProperty {
+            name: string
+            type: string
+            required: boolean
+            description: string
+        }
+
         interface DictionaryCategory {
             id: string
             createdAt: string

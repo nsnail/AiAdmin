@@ -43,6 +43,26 @@
         "search": "Search",
         "reset": "Reset"
     },
+    "apiDocs": {
+        "search": "Search path, name or description",
+        "refresh": "Refresh",
+        "empty": "No accessible APIs",
+        "parameters": "Parameters",
+        "name": "Name",
+        "location": "Location",
+        "type": "Type",
+        "required": "Required",
+        "yes": "Yes",
+        "description": "Description",
+        "noParameters": "No parameters",
+        "requestBody": "Request body",
+        "response": "Response",
+        "tryIt": "Try it",
+        "url": "URL",
+        "paramsJson": "Query parameters JSON",
+        "bodyJson": "Request body JSON",
+        "send": "Send request"
+    },
     "search": {
         "placeholder": "Search page",
         "historyTitle": "Search history",
@@ -318,7 +338,8 @@
         },
         "development": {
             "title": "Development",
-            "exampleCenter": "Example Center"
+            "exampleCenter": "Example Center",
+            "apiDocs": "API Documentation"
         },
         "system": {
             "title": "System Settings",

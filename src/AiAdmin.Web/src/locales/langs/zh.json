@@ -43,6 +43,26 @@
         "search": "查询",
         "reset": "重置"
     },
+    "apiDocs": {
+        "search": "搜索接口路径、名称或说明",
+        "refresh": "刷新文档",
+        "empty": "暂无可访问的接口",
+        "parameters": "参数",
+        "name": "名称",
+        "location": "位置",
+        "type": "类型",
+        "required": "必填",
+        "yes": "是",
+        "description": "说明",
+        "noParameters": "无参数",
+        "requestBody": "请求体",
+        "response": "响应",
+        "tryIt": "在线调试",
+        "url": "地址",
+        "paramsJson": "查询参数 JSON",
+        "bodyJson": "请求体 JSON",
+        "send": "发送请求"
+    },
     "search": {
         "placeholder": "搜索页面",
         "historyTitle": "搜索历史",
@@ -318,7 +338,8 @@
         },
         "development": {
             "title": "开发管理",
-            "exampleCenter": "示例中心"
+            "exampleCenter": "示例中心",
+            "apiDocs": "接口文档"
         },
         "system": {
             "title": "系统管理",
