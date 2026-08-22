@@ -37,6 +37,20 @@ type InferApiParams<T> = T extends (params: infer P) => any ? P : never
 type InferApiResponse<T> = T extends (params: any) => Promise<infer R> ? R : never
 type InferRecordType<T> = T extends Api.Common.PaginatedResponse<infer U> ? U : never
 
+/**
+ * 递归清理查询参数中的字符串首尾空格
+ * @param value 待清理的参数值
+ * @returns 清理后的参数值
+ */
+const trimQueryStrings = (value: unknown): unknown => {
+    if (typeof value === 'string') return value.trim()
+    if (Array.isArray(value)) return value.map((item) => trimQueryStrings(item))
+    if (value && typeof value === 'object' && !(value instanceof Date)) {
+        return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, trimQueryStrings(item)]))
+    }
+    return value
+}
+
 // 优化的配置接口 - 支持自动类型推导
 export interface UseTableConfig<
     TApiFn extends (params: any) => Promise<any> = (params: any) => Promise<any>,
@@ -299,6 +313,9 @@ function useTableImpl<TApiFn extends (params: any) => Promise<any>>(config: UseT
                 })
                 requestParams = filteredParams as TParams
             }
+
+            // 所有表格查询统一去除输入值首尾空格，保证接口和缓存使用一致参数。
+            requestParams = trimQueryStrings(requestParams) as TParams
 
             // 检查缓存
             if (useCache && cache) {

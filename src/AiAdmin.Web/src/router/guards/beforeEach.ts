@@ -69,6 +69,9 @@ let routeInitFailed = false
 // 路由初始化进行中标记，防止并发请求
 let routeInitInProgress = false
 
+// 页面刷新时只清理一次，避免后续站内导航重复清理标签页
+let worktabsCleanedAfterReload = false
+
 /**
  * 获取 pendingLoading 状态
  */
@@ -181,6 +184,7 @@ async function handleRouteGuard(
 
     // 5. 处理已匹配的路由
     if (to.matched.length > 0) {
+        clearWorktabsAfterReload(to)
         setWorktab(to)
         setPageTitle(to)
         next()
@@ -189,6 +193,22 @@ async function handleRouteGuard(
 
     // 6. 未匹配到路由，跳转到 404
     next({ name: 'Exception404' })
+}
+
+/**
+ * 页面通过浏览器刷新进入时，仅保留当前路径对应的工作标签页
+ * @param to 当前目标路由
+ */
+function clearWorktabsAfterReload(to: RouteLocationNormalized): void {
+    if (worktabsCleanedAfterReload || to.path === RoutesAlias.Login) {
+        return
+    }
+
+    const navigationEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+    if (navigationEntry?.type === 'reload') {
+        useWorktabStore().removeOtherTabs(to.path)
+        worktabsCleanedAfterReload = true
+    }
 }
 
 /**

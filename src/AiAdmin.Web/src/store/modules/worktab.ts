@@ -359,6 +359,19 @@ export const useWorktabStore = defineStore(
         }
 
         /**
+         * 清理指定路径以外的标签页
+         * @param path 需要保留的标签页路径
+         */
+        const removeOtherTabs = (path: string): void => {
+            if (!path) return
+
+            const retainedTab = opened.value.find((tab) => tab.path === path)
+            opened.value = retainedTab ? [retainedTab] : []
+            keepAliveExclude.value = []
+            current.value = retainedTab || {}
+        }
+
+        /**
          * 将指定选项卡添加到 keepAlive 排除列表中
          */
         const addKeepAliveExclude = (tab: WorkTab): void => {
@@ -536,6 +549,7 @@ export const useWorktabStore = defineStore(
             removeRight,
             removeOthers,
             removeAll,
+            removeOtherTabs,
             toggleFixedTab,
             validateWorktabs,
             clearAll,

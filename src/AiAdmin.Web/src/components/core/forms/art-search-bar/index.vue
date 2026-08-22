@@ -516,13 +516,15 @@ const sanitizeOutputValue = (value: unknown): unknown => {
     }
 
     if (typeof value === 'string') {
-        if (options.removeEmptyString && value.trim() === '') {
+        // 查询提交前统一去除字符串首尾空格，避免无意的空格影响匹配结果。
+        const trimmedValue = value.trim()
+        if (options.removeEmptyString && trimmedValue === '') {
             return undefined
         }
-        if (options.removeEmptyRichText && isRichTextEmpty(value)) {
+        if (options.removeEmptyRichText && isRichTextEmpty(trimmedValue)) {
             return undefined
         }
-        return value
+        return trimmedValue
     }
 
     if (value === 0) {
@@ -538,6 +540,30 @@ const sanitizeOutputValue = (value: unknown): unknown => {
 
 const getSanitizedOutput = () => {
     return (sanitizeOutputValue(cloneModelValue(modelValue.value)) || {}) as Record<string, any>
+}
+
+/**
+ * 将查询模型中的字符串首尾空格同步回输入框
+ * @param value 查询模型值
+ */
+const trimModelStrings = (value: unknown): void => {
+    if (Array.isArray(value)) {
+        value.forEach((item, index) => {
+            if (typeof item === 'string') value[index] = item.trim()
+            else trimModelStrings(item)
+        })
+        return
+    }
+
+    if (value && typeof value === 'object' && !(value instanceof Date)) {
+        Object.entries(value).forEach(([key, item]) => {
+            if (typeof item === 'string') {
+                ;(value as Record<string, unknown>)[key] = item.trim()
+            } else {
+                trimModelStrings(item)
+            }
+        })
+    }
 }
 
 const countDynamicFilterConditions = (filter: DynamicFilter | undefined): number => {
@@ -629,6 +655,7 @@ const applyQueryPreview = () => {
     else {
         Object.keys(modelValue.value).forEach((key) => delete modelValue.value[key])
         Object.assign(modelValue.value, parsed)
+        trimModelStrings(modelValue.value)
         emit('search', getSanitizedOutput())
     }
 }
@@ -921,6 +948,7 @@ const handleReset = () => {
 const handleSearch = () => {
     activeAdvancedFilter.value = undefined
     delete modelValue.value.dynamicFilter
+    trimModelStrings(modelValue.value)
     // 对外只抛出清洗后的查询参数，避免接口收到空数组/空字符串。
     emit('search', getSanitizedOutput())
 }
@@ -958,6 +986,7 @@ const applyAdvancedFilter = (filter: DynamicFilter | undefined) => {
     if (filter) {
         modelValue.value.dynamicFilter = filter
     }
+    trimModelStrings(modelValue.value)
     emit('search', getSanitizedOutput())
 }
 
