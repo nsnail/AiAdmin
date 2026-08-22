@@ -182,6 +182,9 @@
             "message": "Welcome back",
             "firstLogin": "This is your first login",
             "previousLogin": "Previous login: {ip} ({region}), time: {time}",
+            "previousLoginIp": "IP: {ip}",
+            "previousLoginRegion": "Region: {region}",
+            "previousLoginTime": "Time: {time}",
             "unknownRegion": "Unknown region"
         }
     },
@@ -586,6 +589,9 @@
             "message": "Welcome back",
             "firstLogin": "This is your first login",
             "previousLogin": "Previous login: {ip} ({region}), time: {time}",
+            "previousLoginIp": "IP: {ip}",
+            "previousLoginRegion": "Region: {region}",
+            "previousLoginTime": "Time: {time}",
             "unknownRegion": "Unknown region"
         }
     },

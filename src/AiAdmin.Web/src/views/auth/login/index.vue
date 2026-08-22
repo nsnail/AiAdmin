@@ -75,6 +75,7 @@ import { HttpError } from '@/utils/http/error'
 import { fetchLogin, fetchLoginChallenge, fetchLoginConfig } from '@/api/auth'
 import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
 import { useSettingStore } from '@/store/modules/setting'
+import { h } from 'vue'
 
 defineOptions({ name: 'Login' })
 
@@ -285,18 +286,18 @@ const collectClientInfo = (): Api.Auth.LoginClientInfo => {
 const showLoginSuccessNotice = (username: string, previousLogin?: Api.Auth.LoginResponse['previousLogin']) => {
     setTimeout(() => {
         const detail = previousLogin
-            ? t('login.success.previousLogin', {
-                  ip: previousLogin.clientIp,
-                  region: previousLogin.region || t('login.success.unknownRegion'),
-                  time: new Date(previousLogin.loginAt).toLocaleString(),
-              })
-            : t('login.success.firstLogin')
+            ? [
+                  t('login.success.previousLoginIp', { ip: previousLogin.clientIp }),
+                  t('login.success.previousLoginRegion', { region: previousLogin.region || t('login.success.unknownRegion') }),
+                  t('login.success.previousLoginTime', { time: new Date(previousLogin.loginAt).toLocaleString() }),
+              ]
+            : [t('login.success.firstLogin')]
         ElNotification({
             title: t('login.success.title'),
             type: 'success',
             duration: 2500,
             zIndex: 10000,
-            message: `${t('login.success.message')}, ${username}! ${detail}`,
+            message: h('div', [h('div', `${t('login.success.message')}, ${username}!`), ...detail.map((item) => h('div', item))]),
         })
     }, 1000)
 }

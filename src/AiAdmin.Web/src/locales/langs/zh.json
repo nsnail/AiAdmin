@@ -182,6 +182,9 @@
             "message": "欢迎回来",
             "firstLogin": "这是您首次登录",
             "previousLogin": "上次登录：{ip}（{region}），时间：{time}",
+            "previousLoginIp": "IP：{ip}",
+            "previousLoginRegion": "地区：{region}",
+            "previousLoginTime": "时间：{time}",
             "unknownRegion": "未知地区"
         }
     },
@@ -577,6 +580,9 @@
             "message": "欢迎回来",
             "firstLogin": "这是您首次登录",
             "previousLogin": "上次登录：{ip}（{region}），时间：{time}",
+            "previousLoginIp": "IP：{ip}",
+            "previousLoginRegion": "地区：{region}",
+            "previousLoginTime": "时间：{time}",
             "unknownRegion": "未知地区"
         }
     },
