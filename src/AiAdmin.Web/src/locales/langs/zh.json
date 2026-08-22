@@ -415,6 +415,8 @@
         "edit": "编辑消息",
         "delete": "删除",
         "batchDelete": "批量删除",
+        "deleteConfirm": "确定删除这条消息吗？",
+        "batchDeleteConfirm": "确定删除选中的消息吗？",
         "popup": "弹出提醒",
         "title": "标题",
         "target": "发送对象",

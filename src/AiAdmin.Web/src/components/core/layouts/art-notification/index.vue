@@ -13,7 +13,8 @@
                 :cancel-button-text="t('common.cancel')"
                 :confirm-button-text="t('common.confirm')"
                 :title="t('notice.clearConfirm')"
-                @confirm="clearAll">
+                @confirm="clearAll"
+                width="280">
                 <template #reference>
                     <ElButton class="clear-all-button" link size="small">
                         <ArtSvgIcon icon="ri:delete-bin-7-line" />
@@ -42,7 +43,8 @@
                             :cancel-button-text="t('common.cancel')"
                             :confirm-button-text="t('common.confirm')"
                             :title="t('notice.deleteConfirm')"
-                            @confirm="remove(item.id)">
+                            @confirm="remove(item.id)"
+                            width="280">
                             <template #reference>
                                 <ArtIconButton @click.stop class="notification-delete-button" icon="ri:delete-bin-line" />
                             </template>
@@ -90,7 +92,13 @@ const load = async (reset = false) => {
     try {
         const result = await fetchGetNotifications(page.value, 20)
         if (reset) unreadCount.value = result.unreadCount
-        if (reset && result.items.some((item) => item.isPopup && !item.isRead)) emit('update:value', true)
+        if (reset) {
+            const popupNotification = result.items.find((item) => item.isPopup && !item.isRead)
+            if (popupNotification) {
+                expandedId.value = popupNotification.id
+                emit('update:value', true)
+            }
+        }
         items.value.push(...result.items)
         hasMore.value = result.hasMore
         page.value++

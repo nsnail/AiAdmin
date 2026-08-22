@@ -6,7 +6,19 @@
                 <template #left
                     ><ElSpace
                         ><ElButton @click="openCreate" type="primary">{{ t('messageManagement.send') }}</ElButton
-                        ><ElButton :disabled="!selectedRows.length" @click="batchDelete">{{ t('messageManagement.batchDelete') }}</ElButton></ElSpace
+                        ><ElPopconfirm
+                            :cancel-button-text="t('common.cancel')"
+                            :confirm-button-text="t('common.confirm')"
+                            :disabled="!selectedRows.length"
+                            :title="t('messageManagement.batchDeleteConfirm')"
+                            @confirm="batchDelete"
+                            width="280">
+                            <template #reference>
+                                <ElButton :disabled="!selectedRows.length" plain type="danger">
+                                    {{ t('messageManagement.batchDelete') }}
+                                </ElButton>
+                            </template>
+                        </ElPopconfirm></ElSpace
                     ></template
                 >
             </ArtTableHeader>
@@ -20,7 +32,12 @@
                 @pagination:size-change="handleSizeChange"
                 @selection-change="selectedRows = $event" />
         </ElCard>
-        <ElDialog v-model="editorVisible" :title="editingId ? t('messageManagement.edit') : t('messageManagement.send')" destroy-on-close fullscreen>
+        <ElDialog
+            v-model="editorVisible"
+            :title="editingId ? t('messageManagement.edit') : t('messageManagement.send')"
+            class="message-editor-dialog"
+            destroy-on-close
+            fullscreen>
             <ElForm :model="form" class="editor-form" label-position="top">
                 <ElFormItem :label="t('messageManagement.title')"><ElInput v-model="form.title" maxlength="200" show-word-limit /></ElFormItem>
                 <ElFormItem
@@ -61,7 +78,6 @@
             >
         </ElDialog>
         <ElDialog v-model="previewVisible" :title="form.title" width="900px"><div v-html="previewHtml" class="message-content" /></ElDialog>
-        <ElDialog v-model="viewVisible" :title="selected?.title" width="900px"><div v-html="selected?.content" class="message-content" /></ElDialog>
     </div>
 </template>
 <script lang="ts" setup>
@@ -90,12 +106,10 @@ const sending = ref(false)
 const userLoading = ref(false)
 const editorVisible = ref(false)
 const previewVisible = ref(false)
-const viewVisible = ref(false)
 const users = ref<Api.SystemManage.UserListItem[]>([])
 const departmentOptions = ref<{ id: string; name: string }[]>([])
 const editorElement = ref<HTMLElement>()
 let editor: AiEditor | undefined
-const selected = ref<Api.SystemManage.SystemMessageListItem>()
 const previewHtml = ref('')
 const selectedRows = ref<Api.SystemManage.SystemMessageListItem[]>([])
 const editingId = ref<number>()
@@ -152,13 +166,22 @@ const {
             {
                 prop: 'actions',
                 label: t('messageManagement.actions'),
-                width: 150,
+                width: 110,
                 fixed: 'right',
                 formatter: (row) =>
                     h('div', { class: 'flex gap-1' }, [
-                        h(ArtButtonTable, { type: 'view', onClick: () => view(row) }),
                         h(ArtButtonTable, { type: 'edit', onClick: () => openEdit(row) }),
-                        h(ArtButtonTable, { type: 'delete', onClick: () => deleteOne(row.id) }),
+                        h(
+                            ElPopconfirm,
+                            {
+                                cancelButtonText: t('common.cancel'),
+                                confirmButtonText: t('common.confirm'),
+                                title: t('messageManagement.deleteConfirm'),
+                                width: 280,
+                                onConfirm: () => deleteOne(row.id),
+                            },
+                            { reference: () => h(ArtButtonTable, { type: 'delete' }) },
+                        ),
                     ]),
             },
         ],
@@ -202,7 +225,52 @@ const openEditor = async () => {
     editor = new AiEditor({
         element: editorElement.value!,
         placeholder: t('messageManagement.contentPlaceholder'),
-        toolbarKeys: ['undo', 'redo', 'heading', 'bold', 'italic', 'underline', 'bulletList', 'orderedList', 'link', 'blockquote'],
+        toolbarKeys: [
+            'undo',
+            'redo',
+            'brush',
+            'eraser',
+            'divider',
+            'heading',
+            'font-family',
+            'font-size',
+            'divider',
+            'bold',
+            'italic',
+            'underline',
+            'strike',
+            'link',
+            'code',
+            'subscript',
+            'superscript',
+            'hr',
+            'todo',
+            'emoji',
+            'divider',
+            'highlight',
+            'font-color',
+            'divider',
+            'align',
+            'line-height',
+            'divider',
+            'bullet-list',
+            'ordered-list',
+            'indent-decrease',
+            'indent-increase',
+            'break',
+            'divider',
+            'image',
+            'video',
+            'attachment',
+            'quote',
+            'container',
+            'code-block',
+            'table',
+            'divider',
+            'source-code',
+            'printer',
+            'fullscreen',
+        ],
         content: form.content,
     })
 }
@@ -228,20 +296,14 @@ const send = async () => {
     }
 }
 const deleteOne = async (id: number) => {
-    await ElMessageBox.confirm(t('messageManagement.delete'), t('common.tips'))
     await fetchDeleteSystemMessage(id)
     await refreshData()
 }
 const batchDelete = async () => {
     if (!selectedRows.value.length) return
-    await ElMessageBox.confirm(`${t('messageManagement.batchDelete')} (${selectedRows.value.length})`, t('common.tips'))
     await fetchBatchDeleteSystemMessages(selectedRows.value.map((x) => x.id))
     selectedRows.value = []
     await refreshData()
-}
-const view = (item: Api.SystemManage.SystemMessageListItem) => {
-    selected.value = item
-    viewVisible.value = true
 }
 const search = (params: Api.SystemManage.SystemMessageSearchParams) => {
     searchForm.value = params
@@ -268,11 +330,29 @@ onBeforeUnmount(() => editor?.destroy())
 .editor-form {
     width: 100%;
 }
+.message-editor-dialog :deep(.el-dialog__body) {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+.message-editor-dialog :deep(.el-dialog) {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    margin: 0;
+}
+.message-editor-dialog :deep(.el-dialog__footer) {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
 .editor-host {
     width: 100%;
-    height: calc(100vh - 260px);
-    min-height: 500px;
+    height: min(520px, max(220px, calc(100vh - 420px)));
+    min-height: 220px;
     border: 1px solid var(--el-border-color);
+    overflow: hidden;
 }
 .editor-host :deep(.aie-container) {
     height: 100%;

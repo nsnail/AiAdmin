@@ -415,6 +415,8 @@
         "edit": "Edit message",
         "delete": "Delete",
         "batchDelete": "Batch delete",
+        "deleteConfirm": "Delete this message?",
+        "batchDeleteConfirm": "Delete the selected messages?",
         "popup": "Popup reminder",
         "title": "Title",
         "target": "Recipients",
