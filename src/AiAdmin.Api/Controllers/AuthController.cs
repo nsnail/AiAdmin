@@ -41,6 +41,9 @@ public sealed class AuthController(
         LogLevel.Information, new EventId(1001, "SmtpAccepted"), "SMTP accepted registration email {MessageId} for {Recipient}: {Response}"
     );
 
+    private static readonly TimeSpan _passwordResetCodeLifetime = TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan _passwordResetCooldown = TimeSpan.FromSeconds(60);
+
     /// <summary>
     ///     创建登录算力挑战
     /// </summary>
@@ -71,6 +74,50 @@ public sealed class AuthController(
         var registrationEnabled = IsSettingEnabled(settings, "Enable user registration");
         var emailVerificationEnabled = IsSettingEnabled(settings, "Enable email verification");
         return Ok(ApiResponse<LoginConfigResult>.Ok(new LoginConfigResult(sliderEnabled, registrationEnabled, emailVerificationEnabled)));
+    }
+
+    /// <summary>
+    ///     发送忘记密码邮箱验证码
+    /// </summary>
+    /// <param name="request">邮箱请求</param>
+    /// <returns>发送结果</returns>
+    [HttpPost("forgot-password/code")]
+    [AllowAnonymous]
+    [ApiDescription("Send password reset code")]
+    public async Task<ActionResult<ApiResponse<object>>> ForgotPasswordCodeAsync(ForgotPasswordCodeRequest request) {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var cooldownKey = $"password-reset-code-cooldown:{email}";
+        if (!string.IsNullOrWhiteSpace(await cache.GetStringAsync(cooldownKey, HttpContext.RequestAborted).ConfigureAwait(false))) {
+            return Ok(ApiResponse<object>.Ok(new { }, "If the account exists, a verification code has been sent"));
+        }
+
+        var userExists = await db.Users.AnyAsync(x => x.Email == email && x.IsEnabled, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (userExists) {
+            var smtp = await GetSmtpSettingsAsync().ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(smtp.Host) || string.IsNullOrWhiteSpace(smtp.From)) {
+                return BadRequest(new ApiResponse<object>(400, "SMTP is not configured", null));
+            }
+
+            var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString(CultureInfo.InvariantCulture);
+            await SendEmailAsync(
+                    smtp, email, "Password reset verification code", $"Your password reset verification code is {code}. It expires in 10 minutes."
+                )
+                .ConfigureAwait(false);
+            await cache
+                .SetStringAsync(
+                    $"password-reset-code:{email}", code
+                    , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _passwordResetCodeLifetime }, HttpContext.RequestAborted
+                )
+                .ConfigureAwait(false);
+        }
+
+        await cache
+            .SetStringAsync(
+                cooldownKey, "1", new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _passwordResetCooldown }
+                , HttpContext.RequestAborted
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, "If the account exists, a verification code has been sent"));
     }
 
     /// <summary>
@@ -317,6 +364,35 @@ public sealed class AuthController(
     }
 
     /// <summary>
+    ///     使用邮箱验证码重置密码
+    /// </summary>
+    /// <param name="request">重置密码请求</param>
+    /// <returns>重置结果</returns>
+    [HttpPost("forgot-password/reset")]
+    [AllowAnonymous]
+    [ApiDescription("Reset password with email code")]
+    public async Task<ActionResult<ApiResponse<object>>> ResetPasswordAsync(ResetPasswordRequest request) {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var codeKey = $"password-reset-code:{email}";
+        var expected = await cache.GetStringAsync(codeKey, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(expected)
+            || !CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(request.VerificationCode.Trim()))) {
+            return BadRequest(new ApiResponse<object>(400, "Invalid or expired verification code", null));
+        }
+
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Email == email && x.IsEnabled, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (user is null) {
+            return BadRequest(new ApiResponse<object>(400, "Invalid or expired verification code", null));
+        }
+
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+        _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        await cache.RemoveAsync(codeKey, HttpContext.RequestAborted).ConfigureAwait(false);
+        await cache.RemoveAsync($"password-reset-code-cooldown:{email}", HttpContext.RequestAborted).ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, "Password reset successful"));
+    }
+
+    /// <summary>
     ///     校验发送邮箱验证码前的拼图位置
     /// </summary>
     /// <param name="request">拼图校验请求</param>
@@ -443,5 +519,35 @@ public sealed class AuthController(
     private async Task<bool> IsSettingEnabledAsync(string label) {
         var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SYSTEM_SETTINGS_CODE).ConfigureAwait(false);
         return IsSettingEnabled(settings, label);
+    }
+
+    /// <summary>
+    ///     通过系统 SMTP 配置发送纯文本邮件
+    /// </summary>
+    /// <param name="smtp">SMTP 配置</param>
+    /// <param name="recipient">收件人地址</param>
+    /// <param name="subject">邮件主题</param>
+    /// <param name="body">邮件正文</param>
+    /// <returns>异步发送任务</returns>
+    private async Task SendEmailAsync(
+        (string Host, int Port, bool EnableSsl, string User, string Password, string From) smtp
+        , string recipient
+        , string subject
+        , string body
+    ) {
+        var sender = string.IsNullOrWhiteSpace(smtp.User) ? smtp.From : smtp.User;
+        var mail = new MimeMessage { Date = DateTimeOffset.Now, MessageId = MimeUtils.GenerateMessageId(), Subject = subject };
+        mail.From.Add(MailboxAddress.Parse(sender));
+        mail.To.Add(MailboxAddress.Parse(recipient));
+        mail.Body = new TextPart("plain") { Text = body };
+        using var client = new SmtpClient();
+        var socket = smtp.Port == 465 || smtp.EnableSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
+        await client.ConnectAsync(smtp.Host, smtp.Port, socket, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(smtp.User)) {
+            await client.AuthenticateAsync(smtp.User, smtp.Password, HttpContext.RequestAborted).ConfigureAwait(false);
+        }
+
+        _ = await client.SendAsync(mail, HttpContext.RequestAborted).ConfigureAwait(false);
+        await client.DisconnectAsync(true, HttpContext.RequestAborted).ConfigureAwait(false);
     }
 }

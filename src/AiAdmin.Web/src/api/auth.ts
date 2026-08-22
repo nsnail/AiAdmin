@@ -33,6 +33,14 @@ export function fetchRegisterCode(email: string, puzzleTicket: string) {
     })
 }
 
+export function fetchForgotPasswordCode(email: string) {
+    return request.post<Record<string, never>>({ url: '/api/auth/forgot-password/code', data: { email } })
+}
+
+export function fetchResetPassword(data: Api.Auth.ResetPasswordParams) {
+    return request.post<Record<string, never>>({ url: '/api/auth/forgot-password/reset', data })
+}
+
 export function fetchRegisterPuzzle() {
     return request.get<Api.Auth.RegisterPuzzle>({ url: '/api/auth/register-puzzle' })
 }

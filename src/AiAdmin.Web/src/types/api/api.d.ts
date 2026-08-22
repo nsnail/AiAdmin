@@ -97,6 +97,12 @@ declare namespace Api {
             invitationCode?: string
         }
 
+        interface ResetPasswordParams {
+            email: string
+            verificationCode: string
+            password: string
+        }
+
         /** 登录响应 */
         interface LoginResponse {
             token: string
