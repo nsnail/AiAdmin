@@ -1,430 +1,225 @@
-<!-- 通知组件 -->
 <template>
     <div
         v-show="visible"
-        :style="{
-            transform: show ? 'scaleY(1)' : 'scaleY(0.9)',
-            opacity: show ? 1 : 0,
-        }"
+        :style="{ transform: show ? 'scaleY(1)' : 'scaleY(0.9)', opacity: show ? 1 : 0 }"
         @click.stop
         class="art-notification-panel art-card-sm !shadow-xl">
         <div class="flex-cb px-3.5 mt-3.5">
-            <span class="text-base font-medium text-g-800">{{ $t('notice.title') }}</span>
-            <span class="text-xs text-g-800 px-1.5 py-1 c-p select-none rounded hover:bg-g-200">
-                {{ $t('notice.btnRead') }}
-            </span>
+            <span class="text-base font-medium">{{ t('notice.title') }}</span>
+            <div v-if="items.length">
+                <ElButton @click="readAll" link size="small">{{ t('notice.btnRead') }}</ElButton
+                ><ElButton @click="clearAll" link size="small">{{ t('notice.clearAll') }}</ElButton>
+            </div>
         </div>
-
-        <ul class="box-border flex items-end w-full h-12.5 px-3.5 border-b-d">
-            <li
-                v-for="(item, index) in barList"
-                :class="{ 'bar-active': barActiveIndex === index }"
-                :key="index"
-                @click="changeBar(index)"
-                class="h-12 leading-12 mr-5 overflow-hidden text-[13px] text-g-700 c-p select-none">
-                {{ item.name }} ({{ item.num }})
-            </li>
-        </ul>
-
-        <div class="w-full h-[calc(100%-95px)]">
-            <div class="h-[calc(100%-60px)] overflow-y-scroll scrollbar-thin">
-                <!-- 通知 -->
-                <ul v-show="barActiveIndex === 0">
-                    <li
-                        v-for="(item, index) in noticeList"
-                        :key="index"
-                        class="box-border flex-c px-3.5 py-3.5 c-p last:border-b-0 hover:bg-g-200/60">
-                        <div :class="[getNoticeStyle(item.type).iconClass]" class="size-9 leading-9 text-center rounded-lg flex-cc">
-                            <ArtSvgIcon :icon="getNoticeStyle(item.type).icon" class="text-lg !bg-transparent" />
-                        </div>
-                        <div class="w-[calc(100%-45px)] ml-3.5">
-                            <h4 class="text-sm font-normal leading-5.5 text-g-900">{{ item.title }}</h4>
-                            <p class="mt-1.5 text-xs text-g-500">{{ item.time }}</p>
-                        </div>
-                    </li>
-                </ul>
-
-                <!-- 消息 -->
-                <ul v-show="barActiveIndex === 1">
-                    <li v-for="(item, index) in msgList" :key="index" class="box-border flex-c px-3.5 py-3.5 c-p last:border-b-0 hover:bg-g-200/60">
-                        <div class="w-9 h-9">
-                            <img :src="item.avatar" class="w-full h-full rounded-lg" />
-                        </div>
-                        <div class="w-[calc(100%-45px)] ml-3.5">
-                            <h4 class="text-xs font-normal leading-5.5">{{ item.title }}</h4>
-                            <p class="mt-1.5 text-xs text-g-500">{{ item.time }}</p>
-                        </div>
-                    </li>
-                </ul>
-
-                <!-- 待办 -->
-                <ul v-show="barActiveIndex === 2">
-                    <li v-for="(item, index) in pendingList" :key="index" class="box-border px-5 py-3.5 last:border-b-0">
-                        <h4>{{ item.title }}</h4>
-                        <p class="text-xs text-g-500">{{ item.time }}</p>
-                    </li>
-                </ul>
-
-                <!-- 空状态 -->
-                <div v-show="currentTabIsEmpty" class="relative top-25 h-full text-g-500 text-center !bg-transparent">
-                    <ArtSvgIcon class="text-5xl" icon="system-uicons:inbox" />
-                    <p class="mt-3.5 text-xs !bg-transparent">{{ $t('notice.text[0]') }}{{ barList[barActiveIndex].name }}</p>
+        <div class="notification-body">
+            <div @scroll="onScroll" class="notification-list scrollbar-thin" ref="listElement">
+                <div v-for="item in items" :class="{ unread: !item.isRead }" :key="item.id" class="notification-item">
+                    <div @click="toggle(item)" class="notification-row">
+                        <div class="notification-title">{{ item.title }}</div>
+                        <div class="notification-time">{{ formatDate(item.createdAt) }}</div>
+                        <ArtSvgIcon :icon="expandedId === item.id ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" class="notification-expand" />
+                    </div>
+                    <div v-html="item.content" v-if="expandedId === item.id" class="notification-content" />
+                    <div class="notification-actions">
+                        <ElButton @click.stop="remove(item.id)" link size="small"
+                            ><ArtSvgIcon icon="ri:delete-bin-line" />{{ t('messageManagement.delete') }}</ElButton
+                        >
+                    </div>
                 </div>
-            </div>
-
-            <div class="relative box-border w-full px-3.5">
-                <ElButton v-ripple @click="handleViewAll" class="w-full mt-3">
-                    {{ $t('notice.viewAll') }}
-                </ElButton>
+                <div v-if="loading" class="notification-state">{{ t('notice.loading') }}</div>
+                <div v-else-if="!items.length" class="notification-state">{{ t('notice.empty') }}</div>
+                <div v-else-if="!hasMore" class="notification-state">{{ t('notice.noMore') }}</div>
             </div>
         </div>
-
-        <div class="h-25"></div>
     </div>
 </template>
-
 <script lang="ts" setup>
-import { computed, ref, watch, type Ref, type ComputedRef } from 'vue'
+import {
+    fetchClearNotifications,
+    fetchDeleteNotification,
+    fetchGetNotifications,
+    fetchMarkAllNotificationsRead,
+    fetchMarkNotificationRead,
+} from '@/api/system-manage'
 import { useI18n } from 'vue-i18n'
-
-// 导入头像图片
-
+import mittBus from '@/utils/sys/mittBus'
 defineOptions({ name: 'ArtNotification' })
-
-interface NoticeItem {
-    /** 标题 */
-    title: string
-    /** 时间 */
-    time: string
-    /** 类型 */
-    type: NoticeType
-}
-
-interface MessageItem {
-    /** 标题 */
-    title: string
-    /** 时间 */
-    time: string
-    /** 头像 */
-    avatar: string
-}
-
-interface PendingItem {
-    /** 标题 */
-    title: string
-    /** 时间 */
-    time: string
-}
-
-interface BarItem {
-    /** 名称 */
-    name: ComputedRef<string>
-    /** 数量 */
-    num: number
-}
-
-interface NoticeStyle {
-    /** 图标 */
-    icon: string
-    /** icon 样式 */
-    iconClass: string
-}
-
-type NoticeType = 'email' | 'message' | 'collection' | 'user' | 'notice'
-
+const props = defineProps<{ value: boolean }>()
+const emit = defineEmits<{ 'update:value': [value: boolean]; 'unread-change': [value: number] }>()
 const { t } = useI18n()
-
-const props = defineProps<{
-    value: boolean
-}>()
-
-const emit = defineEmits<{
-    'update:value': [value: boolean]
-}>()
-
-const show = ref(false)
 const visible = ref(false)
-const barActiveIndex = ref(0)
-
-const useNotificationData = () => {
-    // 通知数据
-    const noticeList = ref<NoticeItem[]>([
-        {
-            title: '新增国际化',
-            time: '2024-6-13 0:10',
-            type: 'notice',
-        },
-        {
-            title: '冷月呆呆给你发了一条消息',
-            time: '2024-4-21 8:05',
-            type: 'message',
-        },
-        {
-            title: '小肥猪关注了你',
-            time: '2020-3-17 21:12',
-            type: 'collection',
-        },
-        {
-            title: '新增使用文档',
-            time: '2024-02-14 0:20',
-            type: 'notice',
-        },
-        {
-            title: '小肥猪给你发了一封邮件',
-            time: '2024-1-20 0:15',
-            type: 'email',
-        },
-        {
-            title: '菜单mock本地真实数据',
-            time: '2024-1-17 22:06',
-            type: 'notice',
-        },
-    ])
-
-    // 消息数据
-    const msgList = ref<MessageItem[]>([
-        {
-            title: '池不胖 关注了你',
-            time: '2021-2-26 23:50',
-            avatar: '',
-        },
-        {
-            title: '唐不苦 关注了你',
-            time: '2021-2-21 8:05',
-            avatar: '',
-        },
-        {
-            title: '中小鱼 关注了你',
-            time: '2020-1-17 21:12',
-            avatar: '',
-        },
-        {
-            title: '何小荷 关注了你',
-            time: '2021-01-14 0:20',
-            avatar: '',
-        },
-        {
-            title: '誶誶淰 关注了你',
-            time: '2020-12-20 0:15',
-            avatar: '',
-        },
-        {
-            title: '冷月呆呆 关注了你',
-            time: '2020-12-17 22:06',
-            avatar: '',
-        },
-    ])
-
-    // 待办数据
-    const pendingList = ref<PendingItem[]>([])
-
-    // 标签栏数据
-    const barList = computed<BarItem[]>(() => [
-        {
-            name: computed(() => t('notice.bar[0]')),
-            num: noticeList.value.length,
-        },
-        {
-            name: computed(() => t('notice.bar[1]')),
-            num: msgList.value.length,
-        },
-        {
-            name: computed(() => t('notice.bar[2]')),
-            num: pendingList.value.length,
-        },
-    ])
-
-    return {
-        noticeList,
-        msgList,
-        pendingList,
-        barList,
+const show = ref(false)
+const items = ref<Api.SystemManage.UserMessageListItem[]>([])
+const page = ref(1)
+const hasMore = ref(true)
+const loading = ref(false)
+const listElement = ref<HTMLElement>()
+const unreadCount = ref(0)
+const expandedId = ref<number>()
+const publishUnread = () => emit('unread-change', unreadCount.value)
+const load = async (reset = false) => {
+    if (loading.value || (!hasMore.value && !reset)) return
+    if (reset) {
+        page.value = 1
+        hasMore.value = true
+        items.value = []
+    }
+    loading.value = true
+    try {
+        const result = await fetchGetNotifications(page.value, 20)
+        if (reset) unreadCount.value = result.unreadCount
+        items.value.push(...result.items)
+        hasMore.value = result.hasMore
+        page.value++
+        publishUnread()
+    } finally {
+        loading.value = false
     }
 }
-
-// 样式管理
-const useNotificationStyles = () => {
-    const noticeStyleMap: Record<NoticeType, NoticeStyle> = {
-        email: {
-            icon: 'ri:mail-line',
-            iconClass: 'bg-warning/12 text-warning',
-        },
-        message: {
-            icon: 'ri:volume-down-line',
-            iconClass: 'bg-success/12 text-success',
-        },
-        collection: {
-            icon: 'ri:heart-3-line',
-            iconClass: 'bg-danger/12 text-danger',
-        },
-        user: {
-            icon: 'ri:volume-down-line',
-            iconClass: 'bg-info/12 text-info',
-        },
-        notice: {
-            icon: 'ri:notification-3-line',
-            iconClass: 'bg-theme/12 text-theme',
-        },
-    }
-
-    const getNoticeStyle = (type: NoticeType): NoticeStyle => {
-        const defaultStyle: NoticeStyle = {
-            icon: 'ri:arrow-right-circle-line',
-            iconClass: 'bg-theme/12 text-theme',
-        }
-
-        return noticeStyleMap[type] || defaultStyle
-    }
-
-    return {
-        getNoticeStyle,
+const toggle = async (item: Api.SystemManage.UserMessageListItem) => {
+    expandedId.value = expandedId.value === item.id ? undefined : item.id
+    if (!item.isRead) {
+        await fetchMarkNotificationRead(item.id)
+        item.isRead = true
+        unreadCount.value = Math.max(0, unreadCount.value - 1)
+        publishUnread()
     }
 }
-
-// 动画管理
-const useNotificationAnimation = () => {
-    const showNotice = (open: boolean) => {
-        if (open) {
-            visible.value = true
-            setTimeout(() => {
-                show.value = true
-            }, 5)
-        } else {
-            show.value = false
-            setTimeout(() => {
-                visible.value = false
-            }, 350)
-        }
-    }
-
-    return {
-        showNotice,
+const remove = async (id: number) => {
+    const item = items.value.find((x) => x.id === id)
+    await fetchDeleteNotification(id)
+    items.value = items.value.filter((x) => x.id !== id)
+    if (item && !item.isRead) {
+        unreadCount.value = Math.max(0, unreadCount.value - 1)
+        publishUnread()
     }
 }
-
-// 标签页管理
-const useTabManagement = (
-    noticeList: Ref<NoticeItem[]>,
-    msgList: Ref<MessageItem[]>,
-    pendingList: Ref<PendingItem[]>,
-    businessHandlers: {
-        handleNoticeAll: () => void
-        handleMsgAll: () => void
-        handlePendingAll: () => void
-    },
-) => {
-    const changeBar = (index: number) => {
-        barActiveIndex.value = index
-    }
-
-    // 检查当前标签页是否为空
-    const currentTabIsEmpty = computed(() => {
-        const tabDataMap = [noticeList.value, msgList.value, pendingList.value]
-
-        const currentData = tabDataMap[barActiveIndex.value]
-        return currentData && currentData.length === 0
-    })
-
-    const handleViewAll = () => {
-        // 查看全部处理器映射
-        const viewAllHandlers: Record<number, () => void> = {
-            0: businessHandlers.handleNoticeAll,
-            1: businessHandlers.handleMsgAll,
-            2: businessHandlers.handlePendingAll,
-        }
-
-        const handler = viewAllHandlers[barActiveIndex.value]
-        handler?.()
-
-        // 关闭通知面板
-        emit('update:value', false)
-    }
-
-    return {
-        changeBar,
-        currentTabIsEmpty,
-        handleViewAll,
+const readAll = async () => {
+    await fetchMarkAllNotificationsRead()
+    items.value.forEach((x) => (x.isRead = true))
+    unreadCount.value = 0
+    publishUnread()
+}
+const clearAll = async () => {
+    await fetchClearNotifications()
+    items.value = []
+    hasMore.value = false
+    unreadCount.value = 0
+    publishUnread()
+}
+const onScroll = () => {
+    const el = listElement.value
+    if (el && el.scrollTop + el.clientHeight >= el.scrollHeight - 40) load()
+}
+const formatDate = (value: string) => new Date(value).toLocaleString()
+const animate = (value: boolean) => {
+    if (value) {
+        visible.value = true
+        nextTick(() => (show.value = true))
+        load(true)
+    } else {
+        show.value = false
+        setTimeout(() => (visible.value = false), 300)
     }
 }
-
-// 业务逻辑处理
-const useBusinessLogic = () => {
-    const handleNoticeAll = () => {
-        // 处理查看全部通知
-        console.log('查看全部通知')
-    }
-
-    const handleMsgAll = () => {
-        // 处理查看全部消息
-        console.log('查看全部消息')
-    }
-
-    const handlePendingAll = () => {
-        // 处理查看全部待办
-        console.log('查看全部待办')
-    }
-
-    return {
-        handleNoticeAll,
-        handleMsgAll,
-        handlePendingAll,
-    }
-}
-
-// 组合所有逻辑
-const { noticeList, msgList, pendingList, barList } = useNotificationData()
-const { getNoticeStyle } = useNotificationStyles()
-const { showNotice } = useNotificationAnimation()
-const { handleNoticeAll, handleMsgAll, handlePendingAll } = useBusinessLogic()
-const { changeBar, currentTabIsEmpty, handleViewAll } = useTabManagement(noticeList, msgList, pendingList, {
-    handleNoticeAll,
-    handleMsgAll,
-    handlePendingAll,
+watch(() => props.value, animate)
+let refreshTimer: ReturnType<typeof setInterval> | undefined
+onMounted(() => {
+    load(true)
+    refreshTimer = setInterval(() => load(true), 30000)
+    mittBus.on('refreshNotifications', () => load(true))
 })
-
-// 监听属性变化
-watch(
-    () => props.value,
-    (newValue) => {
-        showNotice(newValue)
-    },
-)
+onBeforeUnmount(() => {
+    if (refreshTimer) clearInterval(refreshTimer)
+    mittBus.off('refreshNotifications')
+})
 </script>
-
 <style scoped>
 @reference '@styles/core/tailwind.css';
-
 .art-notification-panel {
-    @apply absolute 
-    top-14.5 
-    right-5 
-    w-90 
-    h-125 
-    overflow-hidden 
-    transition-all 
-    duration-300
-    origin-top 
-    will-change-[top,left] 
-    max-[640px]:top-[65px]
-    max-[640px]:right-0
-    max-[640px]:w-full 
-    max-[640px]:h-[80vh];
+    @apply absolute top-14.5 right-5 w-90 h-125 overflow-hidden transition-all duration-300 origin-top will-change-[top,left] max-[640px]:top-[65px] max-[640px]:right-0 max-[640px]:w-full max-[640px]:h-[80vh];
 }
-
+.notification-body {
+    height: calc(100% - 95px);
+}
+.notification-list {
+    height: calc(100% - 60px);
+    overflow-y: auto;
+    margin-top: 0;
+}
+.notification-item {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
+.notification-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.notification-item.unread .notification-title {
+    font-weight: 700;
+}
+.notification-item:not(.unread) .notification-title {
+    color: var(--el-text-color-placeholder);
+}
+.notification-title {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 700;
+}
+.notification-time {
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+}
+.notification-expand {
+    color: var(--el-text-color-secondary);
+}
+.notification-content {
+    padding: 10px 24px 5px 0;
+    overflow-wrap: anywhere;
+    color: var(--el-text-color-regular);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.notification-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+.notification-state {
+    padding: 16px;
+    color: var(--el-text-color-secondary);
+    text-align: center;
+    font-size: 12px;
+}
 .bar-active {
     color: var(--theme-color) !important;
     border-bottom: 2px solid var(--theme-color);
 }
-
 .scrollbar-thin::-webkit-scrollbar {
     width: 5px !important;
 }
-
 .dark .scrollbar-thin::-webkit-scrollbar-track {
     background-color: var(--default-box-color);
 }
-
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
     background-color: #222 !important;
+}
+.notification-content :deep(p) {
+    margin: 6px 0;
+}
+.notification-content :deep(img) {
+    max-width: 100%;
+    height: auto;
+}
+.notification-content :deep(ul),
+.notification-content :deep(ol) {
+    padding-left: 20px;
+}
+.notification-content :deep(a) {
+    color: var(--el-color-primary);
 }
 </style>

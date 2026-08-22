@@ -192,10 +192,25 @@
       "title": "menus.system.title",
       "icon": "ri:settings-3-line",
       "roles": [
-        "R_SUPER"
+        "R_SUPER",
+        "R_ADMIN"
       ]
     },
     "children": [
+      {
+        "path": "message",
+        "name": "MessageManagement",
+        "component": "/system/message",
+        "meta": {
+          "title": "menus.system.message",
+          "icon": "ri:mail-send-line",
+          "keepAlive": true,
+          "roles": [
+            "R_SUPER",
+            "R_ADMIN"
+          ]
+        }
+      },
       {
         "path": "settings",
         "name": "SystemSettings",

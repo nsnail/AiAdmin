@@ -83,7 +83,7 @@
 
                 <!-- 通知按钮 -->
                 <ArtIconButton v-if="shouldShowNotification" @click="visibleNotice" class="notice-button relative" icon="ri:notification-2-line">
-                    <div class="absolute top-2 right-2 size-1.5 !bg-danger rounded-full"></div>
+                    <ElBadge v-if="notificationUnread" :value="notificationUnread > 99 ? '99+' : notificationUnread" class="notification-badge" />
                 </ArtIconButton>
 
                 <!-- 聊天按钮 -->
@@ -120,7 +120,7 @@
         <ArtWorkTab />
 
         <!-- 通知 -->
-        <ArtNotification v-model:value="showNotice" ref="notice" />
+        <ArtNotification v-model:value="showNotice" @unread-change="notificationUnread = $event" ref="notice" />
     </div>
 </template>
 
@@ -175,6 +175,7 @@ const { language } = storeToRefs(userStore)
 const { menuList } = storeToRefs(menuStore)
 
 const showNotice = ref(false)
+const notificationUnread = ref(0)
 const notice = ref(null)
 
 // 菜单类型判断
@@ -414,6 +415,12 @@ const openChat = (): void => {
 
 .notice-button:hover :deep(.art-svg-icon) {
     animation: shake 0.5s ease-in-out;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 1px;
+    right: 1px;
 }
 
 .chat-button:hover :deep(.art-svg-icon) {

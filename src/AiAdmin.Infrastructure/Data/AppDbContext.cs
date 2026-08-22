@@ -84,9 +84,19 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
 
     /// <summary>
+    ///     系统消息集合
+    /// </summary>
+    public DbSet<SystemMessage> SystemMessages => Set<SystemMessage>();
+
+    /// <summary>
     ///     用户部门关联集合
     /// </summary>
     public DbSet<UserDepartment> UserDepartments => Set<UserDepartment>();
+
+    /// <summary>
+    ///     用户消息关联集合
+    /// </summary>
+    public DbSet<UserMessage> UserMessages => Set<UserMessage>();
 
     /// <summary>
     ///     用户邀请关系实体集合
@@ -248,6 +258,28 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                     || (dataScope.HasSelfData && x.OwnerId == dataScope.UserId)
                     || dataScope.DepartmentIds.Contains(x.OwnerDepartmentId)
                 );
+            }
+        );
+
+        _ = modelBuilder.Entity<SystemMessage>(entity =>
+            {
+                _ = entity.ToTable("sys_message");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+                _ = entity.Property(x => x.Content).HasColumnType("TEXT").IsRequired();
+                _ = entity.HasIndex(x => x.CreatedAt);
+                _ = entity.HasOne<User>().WithMany().HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.Restrict);
+            }
+        );
+
+        _ = modelBuilder.Entity<UserMessage>(entity =>
+            {
+                _ = entity.ToTable("sys_user_message");
+                _ = entity.HasKey(x => new { x.UserId, x.MessageId });
+                _ = entity.HasIndex(x => new { x.UserId, x.IsDeleted, x.IsRead });
+                _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+                _ = entity.HasOne(x => x.Message).WithMany(x => x.Recipients).HasForeignKey(x => x.MessageId).OnDelete(DeleteBehavior.Cascade);
             }
         );
 

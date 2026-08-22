@@ -343,6 +343,36 @@ declare namespace Api {
             description: string
         }
 
+        interface SendSystemMessageParams {
+            title: string
+            content: string
+            targetType: 'all' | 'department' | 'department_children' | 'user'
+            departmentIds: number[]
+            userIds: number[]
+        }
+        type SystemMessageSearchParams = Partial<{ title: string; createdAt: string[] }> & {
+            dynamicFilter?: import('@/api/system-manage').DynamicFilter
+        }
+        interface SystemMessageListItem {
+            id: number
+            title: string
+            content: string
+            createdAt: string
+            recipientCount: number
+        }
+        interface UserMessageListItem {
+            id: number
+            title: string
+            content: string
+            createdAt: string
+            isRead: boolean
+        }
+        interface UserMessagePageResult {
+            items: UserMessageListItem[]
+            hasMore: boolean
+            unreadCount: number
+        }
+
         interface DictionaryCategory {
             id: string
             createdAt: string

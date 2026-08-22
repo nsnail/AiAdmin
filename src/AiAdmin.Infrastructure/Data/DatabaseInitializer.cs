@@ -16,7 +16,12 @@ public static class DatabaseInitializer
     [
         ApiEndpointKey.Create("GET", "api/user/info"), ApiEndpointKey.Create("GET", "api/menu/current")
         , ApiEndpointKey.Create("PUT", "api/user/profile"), ApiEndpointKey.Create("PUT", "api/user/password")
-        , ApiEndpointKey.Create("GET", "api/user/referrals")
+        , ApiEndpointKey.Create("GET", "api/user/referrals"), ApiEndpointKey.Create("GET", "api/message/list")
+        , ApiEndpointKey.Create("POST", "api/message"), ApiEndpointKey.Create("GET", "api/message/filter-fields")
+        , ApiEndpointKey.Create("PUT", "api/message/{id:long}"), ApiEndpointKey.Create("DELETE", "api/message/{id:long}")
+        , ApiEndpointKey.Create("DELETE", "api/message"), ApiEndpointKey.Create("GET", "api/notifications")
+        , ApiEndpointKey.Create("PUT", "api/notifications/read-all"), ApiEndpointKey.Create("PUT", "api/notifications/{id:long}/read")
+        , ApiEndpointKey.Create("DELETE", "api/notifications"), ApiEndpointKey.Create("DELETE", "api/notifications/{id:long}")
     ];
 
     private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
@@ -99,6 +104,7 @@ public static class DatabaseInitializer
         await EnsureScheduledJobMenuAsync(db).ConfigureAwait(false);
         await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
         await EnsureLoginLogMenuAsync(db).ConfigureAwait(false);
+        await EnsureMessageMenuAsync(db).ConfigureAwait(false);
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
@@ -253,6 +259,41 @@ public static class DatabaseInitializer
         };
         _ = await db.Menus.AddAsync(menu).ConfigureAwait(false);
         var roles = await db.Roles.Where(x => x.Code == "R_SUPER").ToListAsync().ConfigureAwait(false);
+        foreach (var role in roles) {
+            role.RoleMenus.Add(new RoleMenu { Role = role, Menu = menu });
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保已有数据库包含消息管理菜单
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureMessageMenuAsync(AppDbContext db) {
+        var parent = await db.Menus.SingleOrDefaultAsync(x => x.Name == "SystemManagement").ConfigureAwait(false);
+        if (parent is null || await db.Menus.AnyAsync(x => x.Name == "MessageManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        if (!parent.MetaJson.Contains("R_ADMIN", StringComparison.Ordinal)) {
+            parent.MetaJson = parent.MetaJson.Replace("\"R_SUPER\"", "\"R_SUPER\",\"R_ADMIN\"", StringComparison.Ordinal);
+        }
+
+        var menu = new Menu
+        {
+            Name = "MessageManagement"
+            , Path = "message"
+            , Component = "/system/message"
+            , ParentName = parent.Name
+            , Sort = 5
+            , IsEnabled = true
+            , MetaJson = /*lang=json,strict*/
+                "{\"title\":\"menus.system.message\",\"icon\":\"ri:mail-send-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\",\"R_ADMIN\"]}"
+        };
+        _ = await db.Menus.AddAsync(menu).ConfigureAwait(false);
+        var roles = await db.Roles.Where(x => x.Code == "R_SUPER" || x.Code == "R_ADMIN").ToListAsync().ConfigureAwait(false);
         foreach (var role in roles) {
             role.RoleMenus.Add(new RoleMenu { Role = role, Menu = menu });
         }

@@ -154,7 +154,7 @@ export function fetchUpdateEnabledState(resource: EnabledStateResource, id: stri
 }
 
 export function fetchGetListFilterFields(
-    resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint' | 'scheduled-job' | 'login-log' | 'wallet',
+    resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint' | 'scheduled-job' | 'login-log' | 'wallet' | 'message',
 ) {
     return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
 }
@@ -329,6 +329,46 @@ export function fetchGetReferralTree() {
 
 export function fetchGetDepartmentTree() {
     return request.get<Api.SystemManage.DepartmentTreeItem[]>({ url: '/api/department/tree' })
+}
+
+export function fetchGetSystemMessages(params: { current: number; size: number; keyword?: string; startTime?: string; endTime?: string }) {
+    return request.get<Api.SystemManage.SystemMessageListItem[]>({ url: '/api/message/list', params })
+}
+
+export function fetchSendSystemMessage(data: Api.SystemManage.SendSystemMessageParams) {
+    return request.post<void>({ url: '/api/message', data, showSuccessMessage: true })
+}
+
+export function fetchUpdateSystemMessage(id: number, data: { title: string; content: string }) {
+    return request.put<void>({ url: `/api/message/${id}`, data, showSuccessMessage: true })
+}
+
+export function fetchDeleteSystemMessage(id: number) {
+    return request.del<void>({ url: `/api/message/${id}`, showSuccessMessage: true })
+}
+
+export function fetchBatchDeleteSystemMessages(ids: number[]) {
+    return request.del<void>({ url: '/api/message', data: ids, showSuccessMessage: true })
+}
+
+export function fetchGetNotifications(current = 1, size = 20) {
+    return request.get<Api.SystemManage.UserMessagePageResult>({ url: '/api/notifications', params: { current, size } })
+}
+
+export function fetchMarkNotificationRead(id: number) {
+    return request.put<void>({ url: `/api/notifications/${id}/read`, data: {} })
+}
+
+export function fetchMarkAllNotificationsRead() {
+    return request.put<void>({ url: '/api/notifications/read-all', data: {} })
+}
+
+export function fetchDeleteNotification(id: number) {
+    return request.del<void>({ url: `/api/notifications/${id}` })
+}
+
+export function fetchClearNotifications() {
+    return request.del<void>({ url: '/api/notifications' })
 }
 
 export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParams) {

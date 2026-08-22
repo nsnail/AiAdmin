@@ -82,7 +82,7 @@ export const systemManagementRoute: AppRouteRecord = {
     path: '/system-management',
     name: 'SystemManagement',
     component: '/index/index',
-    meta: { title: 'menus.system.title', icon: 'ri:settings-3-line', roles: ['R_SUPER'] },
+    meta: { title: 'menus.system.title', icon: 'ri:settings-3-line', roles: ['R_SUPER', 'R_ADMIN'] },
     children: [
         {
             path: 'dictionary',
@@ -132,6 +132,12 @@ export const systemManagementRoute: AppRouteRecord = {
                 keepAlive: true,
                 roles: ['R_SUPER'],
             },
+        },
+        {
+            path: 'message',
+            name: 'MessageManagement',
+            component: '/system/message',
+            meta: { title: 'menus.system.message', icon: 'ri:mail-send-line', keepAlive: true, roles: ['R_SUPER', 'R_ADMIN'] },
         },
     ],
 }

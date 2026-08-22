@@ -55,6 +55,7 @@ type Events = {
     openChat: void
     // 打开锁屏事件 - 无参数
     openLockScreen: void
+    refreshNotifications: void
 }
 
 // 创建类型安全的事件总线实例

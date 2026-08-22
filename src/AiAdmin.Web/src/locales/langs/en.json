@@ -139,7 +139,11 @@
         "btnRead": "Mark as read",
         "bar": ["Notice", "Message", "Todo"],
         "text": ["No"],
-        "viewAll": "View all"
+        "viewAll": "View all",
+        "empty": "No notifications",
+        "loading": "Loading",
+        "noMore": "No more notifications",
+        "clearAll": "Clear all"
     },
     "worktab": {
         "btn": {
@@ -369,7 +373,8 @@
             "files": "File Management",
             "scheduledJob": "Scheduled Jobs",
             "cache": "Cache Management",
-            "referrals": "My Referrals"
+            "referrals": "My Referrals",
+            "message": "Message Management"
         },
         "log": {
             "title": "Log Management",
@@ -402,6 +407,30 @@
             "liteVersion": "Lite Version",
             "oldVersion": "v2.6.1 Version"
         }
+    },
+    "messageManagement": {
+        "send": "Send message",
+        "edit": "Edit message",
+        "delete": "Delete",
+        "batchDelete": "Batch delete",
+        "title": "Title",
+        "target": "Recipients",
+        "content": "Content",
+        "department": "Department",
+        "user": "User",
+        "selectDepartment": "Select departments",
+        "selectUser": "Select users",
+        "allUsers": "All users",
+        "departmentOnly": "Selected departments",
+        "departmentChildren": "Departments and children",
+        "specificUsers": "Selected users",
+        "recipientCount": "Recipients",
+        "createdAt": "Sent at",
+        "actions": "Actions",
+        "view": "View",
+        "preview": "Preview",
+        "contentPlaceholder": "Enter message content",
+        "searchTitle": "Search title"
     },
     "userCenter": {
         "roles": "Roles",

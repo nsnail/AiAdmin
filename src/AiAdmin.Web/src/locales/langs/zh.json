@@ -139,7 +139,11 @@
         "btnRead": "标为已读",
         "bar": ["通知", "消息", "代办"],
         "text": ["暂无"],
-        "viewAll": "查看全部"
+        "viewAll": "查看全部",
+        "empty": "暂无通知",
+        "loading": "加载中",
+        "noMore": "没有更多通知",
+        "clearAll": "清空全部"
     },
     "worktab": {
         "btn": {
@@ -369,7 +373,8 @@
             "files": "文件管理",
             "scheduledJob": "计划作业",
             "cache": "缓存管理",
-            "referrals": "我的邀请"
+            "referrals": "我的邀请",
+            "message": "消息管理"
         },
         "log": {
             "title": "日志管理",
@@ -402,6 +407,30 @@
             "liteVersion": "精简版本",
             "oldVersion": "v2.6.1 版本"
         }
+    },
+    "messageManagement": {
+        "send": "发送消息",
+        "edit": "编辑消息",
+        "delete": "删除",
+        "batchDelete": "批量删除",
+        "title": "标题",
+        "target": "发送对象",
+        "content": "内容",
+        "department": "部门",
+        "user": "用户",
+        "selectDepartment": "请选择部门",
+        "selectUser": "请选择用户",
+        "allUsers": "全体用户",
+        "departmentOnly": "指定部门",
+        "departmentChildren": "指定部门及子部门",
+        "specificUsers": "指定用户",
+        "recipientCount": "接收人数",
+        "createdAt": "发送时间",
+        "actions": "操作",
+        "view": "查看",
+        "preview": "预览",
+        "contentPlaceholder": "请输入消息内容",
+        "searchTitle": "搜索标题"
     },
     "userCenter": {
         "roles": "角色",
