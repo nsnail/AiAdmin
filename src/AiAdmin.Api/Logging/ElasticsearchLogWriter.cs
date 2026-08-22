@@ -62,7 +62,8 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
                             , requestBody = entry.RequestBody
                             , requestHeaders = entry.RequestHeaders
                             , requestContentType = entry.RequestContentType
-                            , requestId = entry.RequestId
+                            , traceId = entry.TraceId
+                            , workerId = entry.WorkerId
                             , responseHeaders = entry.ResponseHeaders
                             , responseBody = entry.ResponseBody
                             , responseContentType = entry.ResponseContentType

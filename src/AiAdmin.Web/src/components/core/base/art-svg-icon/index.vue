@@ -1,24 +1,24 @@
 <!-- 图标组件 -->
 <template>
-  <Icon v-if="icon" :icon="icon" v-bind="bindAttrs" class="art-svg-icon inline" />
+    <Icon v-bind="bindAttrs" v-if="icon" :icon="icon" class="art-svg-icon inline" />
 </template>
 
-<script setup lang="ts">
-  import { Icon } from '@iconify/vue'
+<script lang="ts" setup>
+import { Icon } from '@iconify/vue'
 
-  defineOptions({ name: 'ArtSvgIcon', inheritAttrs: false })
+defineOptions({ name: 'ArtSvgIcon', inheritAttrs: false })
 
-  interface Props {
+interface Props {
     /** Iconify icon name */
     icon?: string
-  }
+}
 
-  defineProps<Props>()
+defineProps<Props>()
 
-  const attrs = useAttrs()
+const attrs = useAttrs()
 
-  const bindAttrs = computed<{ class: string; style: string }>(() => ({
+const bindAttrs = computed<{ class: string; style: string }>(() => ({
     class: (attrs.class as string) || '',
-    style: (attrs.style as string) || ''
-  }))
+    style: (attrs.style as string) || '',
+}))
 </script>

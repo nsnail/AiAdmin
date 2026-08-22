@@ -2,274 +2,205 @@
 <!-- 支持常用表单组件、自定义组件、插槽、校验、隐藏表单项 -->
 <!-- 写法同 ElementPlus 官方文档组件，把属性写在 props 里面就可以了 -->
 <template>
-  <section class="art-search-bar art-card-xs" :class="{ 'is-expanded': isExpanded }">
-    <ElForm
-      ref="formRef"
-      :model="modelValue"
-      :label-position="labelPosition"
-      v-bind="{ ...$attrs }"
-      @submit.prevent="handleSearch"
-    >
-      <ElRow :gutter="gutter">
-        <ElCol
-          v-for="item in visibleFormItems"
-          :key="item.key"
-          :xs="getColSpan(item.span, 'xs')"
-          :sm="getColSpan(item.span, 'sm')"
-          :md="getColSpan(item.span, 'md')"
-          :lg="getColSpan(item.span, 'lg')"
-          :xl="getColSpan(item.span, 'xl')"
-        >
-          <ElFormItem
-            :prop="item.key"
-            :label-width="item.label ? item.labelWidth || labelWidth : undefined"
-          >
-            <template #label v-if="item.label">
-              <component v-if="typeof item.label !== 'string'" :is="item.label" />
-              <span v-else>{{ item.label }}</span>
-            </template>
-            <div v-if="item.key === 'CreatedAt'" class="date-filter-control">
-              <ElSwitch
-                v-model="useUpdatedAt"
-                class="date-filter-mode-switch"
-                inline-prompt
-                :active-text="t('table.searchBar.updatedAt')"
-                :inactive-text="t('table.searchBar.createdAt')"
-              />
-              <slot :name="item.key" :item="item" :modelValue="modelValue">
-                <component
-                  :is="getComponent(item)"
-                  :model-value="getFieldValue(item.key)"
-                  @update:model-value="setFieldValue(item.key, $event)"
-                  @keydown.enter="handleInputEnter(item, $event)"
-                  v-bind="getProps(item)"
-                >
-                  <template v-if="item.type === 'select' && getProps(item)?.options">
-                    <ElOption
-                      v-for="option in getProps(item).options"
-                      v-bind="option"
-                      :key="option.value"
-                    />
-                  </template>
-                  <template v-if="item.type === 'checkboxgroup' && getProps(item)?.options">
-                    <ElCheckbox
-                      v-for="option in getProps(item).options"
-                      v-bind="option"
-                      :key="option.value"
-                    />
-                  </template>
-                  <template v-if="item.type === 'radiogroup' && getProps(item)?.options">
-                    <ElRadio
-                      v-for="option in getProps(item).options"
-                      v-bind="option"
-                      :key="option.value"
-                    />
-                  </template>
-                  <template
-                    v-for="(slotFn, slotName) in getSlots(item)"
-                    :key="slotName"
-                    #[slotName]
-                  >
-                    <component :is="slotFn" />
-                  </template>
-                </component>
-              </slot>
-            </div>
-            <slot v-else :name="item.key" :item="item" :modelValue="modelValue">
-              <component
-                :is="getComponent(item)"
-                :model-value="getFieldValue(item.key)"
-                @update:model-value="setFieldValue(item.key, $event)"
-                @keydown.enter="handleInputEnter(item, $event)"
-                v-bind="getProps(item)"
-              >
-                <template v-if="item.type === 'select' && getProps(item)?.options">
-                  <ElOption
-                    v-for="option in getProps(item).options"
-                    v-bind="option"
-                    :key="option.value"
-                  />
-                </template>
-                <template v-if="item.type === 'checkboxgroup' && getProps(item)?.options">
-                  <ElCheckbox
-                    v-for="option in getProps(item).options"
-                    v-bind="option"
-                    :key="option.value"
-                  />
-                </template>
-                <template v-if="item.type === 'radiogroup' && getProps(item)?.options">
-                  <ElRadio
-                    v-for="option in getProps(item).options"
-                    v-bind="option"
-                    :key="option.value"
-                  />
-                </template>
-                <template v-for="(slotFn, slotName) in getSlots(item)" :key="slotName" #[slotName]>
-                  <component :is="slotFn" />
-                </template>
-              </component>
-            </slot>
-          </ElFormItem>
-        </ElCol>
-        <ElCol :xs="24" :sm="24" :md="span" :lg="span" :xl="span" class="action-column">
-          <div class="action-buttons-wrapper" :style="actionButtonsStyle">
-            <div class="form-buttons">
-              <div v-if="shouldShowExpandToggle" class="filter-toggle" @click="toggleExpand">
-                <span>{{ expandToggleText }}</span>
-                <div class="icon-wrapper">
-                  <ElIcon>
-                    <ArrowUpBold v-if="isExpanded" />
-                    <ArrowDownBold v-else />
-                  </ElIcon>
-                </div>
-              </div>
-              <div v-if="showSearch && advancedQueryFields?.length" class="query-button-group">
-                <ElDropdown
-                  trigger="hover"
-                  :disabled="disabledSearch"
-                  @command="applySavedQuery"
-                  @visible-change="handleSavedQueryMenuVisible"
-                >
-                  <ElButton
-                    type="primary"
-                    class="search-button"
-                    :disabled="disabledSearch"
-                    @click="handleSearch"
-                    v-ripple
-                  >
-                    {{ t('table.searchBar.search') }}
-                  </ElButton>
-                  <template #dropdown>
-                    <ElDropdownMenu>
-                      <ElDropdownItem
-                        v-for="(query, index) in savedQueries"
-                        :key="query.id"
-                        :command="query.id"
-                        :divided="
-                          query.isGlobal &&
-                          savedQueries.some((item) => !item.isGlobal) &&
-                          index === savedQueries.findIndex((item) => item.isGlobal)
-                        "
-                      >
-                        <span class="saved-query-name">{{ query.name }}</span>
-                        <ElPopover
-                          v-if="!query.isGlobal || isSuperAdmin"
-                          placement="left"
-                          trigger="manual"
-                          width="220"
-                          :visible="String(deletePopoverId) === String(query.id)"
-                          @update:visible="(visible) => !visible && (deletePopoverId = undefined)"
-                        >
-                          <p class="saved-query-confirm-text">
-                            {{ t('table.searchBar.deleteSavedQueryConfirm', { name: query.name }) }}
-                          </p>
-                          <div class="saved-query-confirm-actions">
-                            <ElButton size="small" @click.stop="deletePopoverId = undefined">
-                              {{ t('common.cancel') }}
-                            </ElButton>
+    <section :class="{ 'is-expanded': isExpanded }" class="art-search-bar art-card-xs">
+        <ElForm v-bind="{ ...$attrs }" :label-position="labelPosition" :model="modelValue" @submit.prevent="handleSearch" ref="formRef">
+            <ElRow :gutter="gutter">
+                <ElCol
+                    v-for="item in visibleFormItems"
+                    :key="item.key"
+                    :lg="getColSpan(item.span, 'lg')"
+                    :md="getColSpan(item.span, 'md')"
+                    :sm="getColSpan(item.span, 'sm')"
+                    :xl="getColSpan(item.span, 'xl')"
+                    :xs="getColSpan(item.span, 'xs')">
+                    <ElFormItem :label-width="item.label ? item.labelWidth || labelWidth : undefined" :prop="item.key">
+                        <template v-if="item.label" #label>
+                            <component v-if="typeof item.label !== 'string'" :is="item.label" />
+                            <span v-else>{{ item.label }}</span>
+                        </template>
+                        <div v-if="item.key === 'CreatedAt'" class="date-filter-control">
+                            <ElSwitch
+                                v-model="useUpdatedAt"
+                                :active-text="t('table.searchBar.updatedAt')"
+                                :inactive-text="t('table.searchBar.createdAt')"
+                                class="date-filter-mode-switch"
+                                inline-prompt />
+                            <slot :item="item" :modelValue="modelValue" :name="item.key">
+                                <component
+                                    v-bind="getProps(item)"
+                                    :is="getComponent(item)"
+                                    :model-value="getFieldValue(item.key)"
+                                    @keydown.enter="handleInputEnter(item, $event)"
+                                    @update:model-value="setFieldValue(item.key, $event)">
+                                    <template v-if="item.type === 'select' && getProps(item)?.options">
+                                        <ElOption v-bind="option" v-for="option in getProps(item).options" :key="option.value" />
+                                    </template>
+                                    <template v-if="item.type === 'checkboxgroup' && getProps(item)?.options">
+                                        <ElCheckbox v-bind="option" v-for="option in getProps(item).options" :key="option.value" />
+                                    </template>
+                                    <template v-if="item.type === 'radiogroup' && getProps(item)?.options">
+                                        <ElRadio v-bind="option" v-for="option in getProps(item).options" :key="option.value" />
+                                    </template>
+                                    <template v-for="(slotFn, slotName) in getSlots(item)" :key="slotName" #[slotName]>
+                                        <component :is="slotFn" />
+                                    </template>
+                                </component>
+                            </slot>
+                        </div>
+                        <slot v-else :item="item" :modelValue="modelValue" :name="item.key">
+                            <component
+                                v-bind="getProps(item)"
+                                :is="getComponent(item)"
+                                :model-value="getFieldValue(item.key)"
+                                @keydown.enter="handleInputEnter(item, $event)"
+                                @update:model-value="setFieldValue(item.key, $event)">
+                                <template v-if="item.type === 'select' && getProps(item)?.options">
+                                    <ElOption v-bind="option" v-for="option in getProps(item).options" :key="option.value" />
+                                </template>
+                                <template v-if="item.type === 'checkboxgroup' && getProps(item)?.options">
+                                    <ElCheckbox v-bind="option" v-for="option in getProps(item).options" :key="option.value" />
+                                </template>
+                                <template v-if="item.type === 'radiogroup' && getProps(item)?.options">
+                                    <ElRadio v-bind="option" v-for="option in getProps(item).options" :key="option.value" />
+                                </template>
+                                <template v-for="(slotFn, slotName) in getSlots(item)" :key="slotName" #[slotName]>
+                                    <component :is="slotFn" />
+                                </template>
+                            </component>
+                        </slot>
+                    </ElFormItem>
+                </ElCol>
+                <ElCol :lg="span" :md="span" :sm="24" :xl="span" :xs="24" class="action-column">
+                    <div :style="actionButtonsStyle" class="action-buttons-wrapper">
+                        <div class="form-buttons">
+                            <div v-if="shouldShowExpandToggle" @click="toggleExpand" class="filter-toggle">
+                                <span>{{ expandToggleText }}</span>
+                                <div class="icon-wrapper">
+                                    <ElIcon>
+                                        <ArrowUpBold v-if="isExpanded" />
+                                        <ArrowDownBold v-else />
+                                    </ElIcon>
+                                </div>
+                            </div>
+                            <div v-if="showSearch && advancedQueryFields?.length" class="query-button-group">
+                                <ElDropdown
+                                    :disabled="disabledSearch"
+                                    @command="applySavedQuery"
+                                    @visible-change="handleSavedQueryMenuVisible"
+                                    trigger="hover">
+                                    <ElButton v-ripple :disabled="disabledSearch" @click="handleSearch" class="search-button" type="primary">
+                                        {{ t('table.searchBar.search') }}
+                                    </ElButton>
+                                    <template #dropdown>
+                                        <ElDropdownMenu>
+                                            <ElDropdownItem
+                                                v-for="(query, index) in savedQueries"
+                                                :command="query.id"
+                                                :divided="
+                                                    query.isGlobal &&
+                                                    savedQueries.some((item) => !item.isGlobal) &&
+                                                    index === savedQueries.findIndex((item) => item.isGlobal)
+                                                "
+                                                :key="query.id">
+                                                <span class="saved-query-name">{{ query.name }}</span>
+                                                <ElPopover
+                                                    v-if="!query.isGlobal || isSuperAdmin"
+                                                    :visible="String(deletePopoverId) === String(query.id)"
+                                                    @update:visible="(visible) => !visible && (deletePopoverId = undefined)"
+                                                    placement="left"
+                                                    trigger="manual"
+                                                    width="220">
+                                                    <p class="saved-query-confirm-text">
+                                                        {{ t('table.searchBar.deleteSavedQueryConfirm', { name: query.name }) }}
+                                                    </p>
+                                                    <div class="saved-query-confirm-actions">
+                                                        <ElButton @click.stop="deletePopoverId = undefined" size="small">
+                                                            {{ t('common.cancel') }}
+                                                        </ElButton>
+                                                        <ElButton @click.stop="confirmDeleteSavedQuery(query.id)" size="small" type="danger">
+                                                            {{ t('common.confirm') }}
+                                                        </ElButton>
+                                                    </div>
+                                                    <template #reference>
+                                                        <ElButton
+                                                            :aria-label="t('table.searchBar.deleteSavedQuery')"
+                                                            @click.stop="deletePopoverId = query.id"
+                                                            circle
+                                                            class="saved-query-delete"
+                                                            size="small"
+                                                            text>
+                                                            <ArtSvgIcon icon="ri:delete-bin-line" />
+                                                        </ElButton>
+                                                    </template>
+                                                </ElPopover>
+                                            </ElDropdownItem>
+                                            <ElDropdownItem v-if="!savedQueries.length" disabled>
+                                                {{ t('table.searchBar.noSavedQueries') }}
+                                            </ElDropdownItem>
+                                        </ElDropdownMenu>
+                                    </template>
+                                </ElDropdown>
+                                <ElButton
+                                    :aria-label="t('table.searchBar.advancedQuery')"
+                                    :disabled="disabledSearch"
+                                    @click="advancedQueryVisible = true"
+                                    class="advanced-query-button"
+                                    type="primary">
+                                    ...
+                                </ElButton>
+                            </div>
                             <ElButton
-                              size="small"
-                              type="danger"
-                              @click.stop="confirmDeleteSavedQuery(query.id)"
-                            >
-                              {{ t('common.confirm') }}
+                                v-else-if="showSearch"
+                                v-ripple
+                                :disabled="disabledSearch"
+                                @click="handleSearch"
+                                class="search-button"
+                                type="primary">
+                                {{ t('table.searchBar.search') }}
                             </ElButton>
-                          </div>
-                          <template #reference>
-                            <ElButton
-                              text
-                              circle
-                              size="small"
-                              class="saved-query-delete"
-                              :aria-label="t('table.searchBar.deleteSavedQuery')"
-                              @click.stop="deletePopoverId = query.id"
-                            >
-                              <ArtSvgIcon icon="ri:delete-bin-line" />
-                            </ElButton>
-                          </template>
-                        </ElPopover>
-                      </ElDropdownItem>
-                      <ElDropdownItem v-if="!savedQueries.length" disabled>
-                        {{ t('table.searchBar.noSavedQueries') }}
-                      </ElDropdownItem>
-                    </ElDropdownMenu>
-                  </template>
-                </ElDropdown>
-                <ElButton
-                  type="primary"
-                  class="advanced-query-button"
-                  :disabled="disabledSearch"
-                  :aria-label="t('table.searchBar.advancedQuery')"
-                  @click="advancedQueryVisible = true"
-                >
-                  ...
-                </ElButton>
-              </div>
-              <ElButton
-                v-else-if="showSearch"
-                type="primary"
-                class="search-button"
-                @click="handleSearch"
-                v-ripple
-                :disabled="disabledSearch"
-              >
-                {{ t('table.searchBar.search') }}
-              </ElButton>
-              <ElBadge
-                v-if="showReset"
-                :value="activeQueryConditionCount"
-                :hidden="activeQueryConditionCount === 0"
-                class="query-count-badge"
-              >
-                <ElTooltip
-                  placement="bottom"
-                  trigger="hover"
-                  :enterable="true"
-                  effect="light"
-                  popper-class="query-preview-popper"
-                >
-                  <template #content>
-                    <div class="query-preview-editor">
-                      <ArtJsonEditor v-model="queryPreviewText" class="query-preview-ace" />
-                      <div class="query-preview-actions">
-                        <span v-if="queryPreviewError" class="query-preview-error">{{
-                          queryPreviewError
-                        }}</span>
-                        <ElButton size="small" @click="formatQueryPreview">格式化</ElButton>
-                        <ElButton size="small" type="primary" @click="applyQueryPreview"
-                          >应用</ElButton
-                        >
-                        <ElButton size="small" @click="saveQueryPreview">保存</ElButton>
-                      </div>
+                            <ElBadge
+                                v-if="showReset"
+                                :hidden="activeQueryConditionCount === 0"
+                                :value="activeQueryConditionCount"
+                                class="query-count-badge">
+                                <ElTooltip :enterable="true" effect="light" placement="bottom" popper-class="query-preview-popper" trigger="hover">
+                                    <template #content>
+                                        <div class="query-preview-editor">
+                                            <ArtJsonEditor v-model="queryPreviewText" class="query-preview-ace" />
+                                            <div class="query-preview-actions">
+                                                <span v-if="queryPreviewError" class="query-preview-error">{{ queryPreviewError }}</span>
+                                                <ElButton @click="formatQueryPreview" size="small">格式化</ElButton>
+                                                <ElButton @click="applyQueryPreview" size="small" type="primary">应用</ElButton>
+                                                <ElButton @click="saveQueryPreview" size="small">保存</ElButton>
+                                            </div>
+                                        </div>
+                                    </template>
+                                    <ElButton v-ripple @click="handleReset" class="reset-button">
+                                        {{ t('table.searchBar.reset') }}
+                                    </ElButton>
+                                </ElTooltip>
+                            </ElBadge>
+                        </div>
                     </div>
-                  </template>
-                  <ElButton class="reset-button" @click="handleReset" v-ripple>
-                    {{ t('table.searchBar.reset') }}
-                  </ElButton>
-                </ElTooltip>
-              </ElBadge>
-            </div>
-          </div>
-        </ElCol>
-      </ElRow>
-    </ElForm>
-    <ArtDynamicQueryDrawer
-      v-if="advancedQueryFields?.length"
-      v-model:visible="advancedQueryVisible"
-      :model-value="activeAdvancedFilter"
-      :fields="advancedQueryFields"
-      @apply="handleAdvancedQueryApply"
-    />
-  </section>
+                </ElCol>
+            </ElRow>
+        </ElForm>
+        <ArtDynamicQueryDrawer
+            v-if="advancedQueryFields?.length"
+            v-model:visible="advancedQueryVisible"
+            :fields="advancedQueryFields"
+            :model-value="activeAdvancedFilter"
+            @apply="handleAdvancedQueryApply" />
+    </section>
 </template>
 
-<script setup lang="ts">
-  import { ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue'
-  import { useWindowSize } from '@vueuse/core'
-  import { useI18n } from 'vue-i18n'
-  import { useRoute } from 'vue-router'
-  import { defineComponent, h, toRaw, type Component } from 'vue'
-  import {
+<script lang="ts" setup>
+import { ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue'
+import { useWindowSize } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
+import { defineComponent, h, toRaw, type Component } from 'vue'
+import {
     ElCascader,
     ElCheckbox,
     ElCheckboxGroup,
@@ -287,24 +218,18 @@
     ElTimePicker,
     ElTimeSelect,
     ElTreeSelect,
-    type FormInstance
-  } from 'element-plus'
-  import { calculateResponsiveSpan, type ResponsiveBreakpoint } from '@/utils/form/responsive'
-  import ArtDynamicQueryDrawer from '../art-dynamic-query-drawer/index.vue'
-  import ArtJsonEditor from '../art-json-editor/index.vue'
-  import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
-  import {
-    fetchGetSavedQueries,
-    fetchDeleteSavedQuery,
-    fetchSaveQuery,
-    type ListFilterField,
-    type SavedQuery
-  } from '@/api/system-manage'
-  import { useUserStore } from '@/store/modules/user'
+    type FormInstance,
+} from 'element-plus'
+import { calculateResponsiveSpan, type ResponsiveBreakpoint } from '@/utils/form/responsive'
+import ArtDynamicQueryDrawer from '../art-dynamic-query-drawer/index.vue'
+import ArtJsonEditor from '../art-json-editor/index.vue'
+import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
+import { fetchGetSavedQueries, fetchDeleteSavedQuery, fetchSaveQuery, type ListFilterField, type SavedQuery } from '@/api/system-manage'
+import { useUserStore } from '@/store/modules/user'
 
-  defineOptions({ name: 'ArtSearchBar' })
+defineOptions({ name: 'ArtSearchBar' })
 
-  const componentMap = {
+const componentMap = {
     input: ElInput, // 输入框
     inputTag: ElInputTag, // 标签输入框
     number: ElInputNumber, // 数字输入框
@@ -322,18 +247,18 @@
     cascader: ElCascader, // 级联选择器
     timepicker: ElTimePicker, // 时间选择器
     timeselect: ElTimeSelect, // 时间选择
-    treeselect: ElTreeSelect // 树选择器
-  }
+    treeselect: ElTreeSelect, // 树选择器
+}
 
-  const { width } = useWindowSize()
-  const { t } = useI18n()
-  const route = useRoute()
-  const isMobile = computed(() => width.value < 500)
+const { width } = useWindowSize()
+const { t } = useI18n()
+const route = useRoute()
+const isMobile = computed(() => width.value < 500)
 
-  const formInstance = useTemplateRef<FormInstance>('formRef')
+const formInstance = useTemplateRef<FormInstance>('formRef')
 
-  // 表单项配置
-  export interface SearchFormItem {
+// 表单项配置
+export interface SearchFormItem {
     /** 表单项的唯一标识 */
     key: string
     /** 表单项的标签文本或自定义渲染函数 */
@@ -357,10 +282,10 @@
     /** 表单项的占位符文本 */
     placeholder?: string
     /** 更多属性配置请参考 ElementPlus 官方文档 */
-  }
+}
 
-  // 表单配置
-  interface SearchBarProps {
+// 表单配置
+interface SearchBarProps {
     /** 表单数据 */
     items: SearchFormItem[]
     /** 每列的宽度（基于 24 格布局） */
@@ -391,9 +316,9 @@
     advancedQueryFields?: DynamicQueryField[]
     /** 由后端模型筛选特性反射得到的基础筛选字段 */
     filterFields?: ListFilterField[]
-  }
+}
 
-  interface SanitizeOutputOptions {
+interface SanitizeOutputOptions {
     /** 移除空字符串 */
     removeEmptyString: boolean
     /** 移除空数组 */
@@ -406,9 +331,9 @@
     keepZero: boolean
     /** 保留 false 这类有效筛选值 */
     keepFalse: boolean
-  }
+}
 
-  const props = withDefaults(defineProps<SearchBarProps>(), {
+const props = withDefaults(defineProps<SearchBarProps>(), {
     items: () => [],
     span: 6,
     gutter: 12,
@@ -421,391 +346,372 @@
     showReset: true,
     showSearch: true,
     disabledSearch: false,
-    sanitizeOutput: () => ({})
-  })
+    sanitizeOutput: () => ({}),
+})
 
-  interface SearchBarEmits {
+interface SearchBarEmits {
     reset: []
     search: [Record<string, any>]
-  }
+}
 
-  const emit = defineEmits<SearchBarEmits>()
+const emit = defineEmits<SearchBarEmits>()
 
-  const modelValue = defineModel<Record<string, any>>({ default: {} })
-  const advancedQueryVisible = ref(false)
-  const savedQueries = ref<SavedQuery[]>([])
-  const userStore = useUserStore()
-  const isSuperAdmin = computed(() => userStore.getUserInfo.roles?.includes('R_SUPER') === true)
-  const createGlobalSwitch = (state: { value: boolean }) =>
+const modelValue = defineModel<Record<string, any>>({ default: {} })
+const advancedQueryVisible = ref(false)
+const savedQueries = ref<SavedQuery[]>([])
+const userStore = useUserStore()
+const isSuperAdmin = computed(() => userStore.getUserInfo.roles?.includes('R_SUPER') === true)
+const createGlobalSwitch = (state: { value: boolean }) =>
     defineComponent({
-      setup: () => () =>
-        h(ElSwitch, {
-          modelValue: state.value,
-          'onUpdate:modelValue': (value: boolean) => (state.value = value),
-          activeText: t('table.searchBar.globalQuery')
-        })
+        setup: () => () =>
+            h(ElSwitch, {
+                modelValue: state.value,
+                'onUpdate:modelValue': (value: boolean) => (state.value = value),
+                activeText: t('table.searchBar.globalQuery'),
+            }),
     })
-  const deletePopoverId = ref<string | number>()
-  const activeAdvancedFilter = ref<DynamicFilter>()
-  const initialModelValue = ref<Record<string, any>>({})
-  const useUpdatedAt = ref(false)
+const deletePopoverId = ref<string | number>()
+const activeAdvancedFilter = ref<DynamicFilter>()
+const initialModelValue = ref<Record<string, any>>({})
+const useUpdatedAt = ref(false)
 
-  // 在创建时间和更新时间之间切换时，保留用户已经输入的日期范围
-  watch(useUpdatedAt, (enabled) => {
+// 在创建时间和更新时间之间切换时，保留用户已经输入的日期范围
+watch(useUpdatedAt, (enabled) => {
     const dateRange = modelValue.value.CreatedAt ?? modelValue.value.UpdatedAt
     if (enabled) {
-      delete modelValue.value.CreatedAt
-      if (dateRange !== undefined) modelValue.value.UpdatedAt = dateRange
+        delete modelValue.value.CreatedAt
+        if (dateRange !== undefined) modelValue.value.UpdatedAt = dateRange
     } else {
-      delete modelValue.value.UpdatedAt
-      if (dateRange !== undefined) modelValue.value.CreatedAt = dateRange
+        delete modelValue.value.UpdatedAt
+        if (dateRange !== undefined) modelValue.value.CreatedAt = dateRange
     }
-  })
+})
 
-  // 保存组件初始化时的表单快照，用于 reset 时恢复默认筛选条件。
-  const cloneModelValue = (value: Record<string, any> | undefined) => {
+// 保存组件初始化时的表单快照，用于 reset 时恢复默认筛选条件。
+const cloneModelValue = (value: Record<string, any> | undefined) => {
     if (!value) return {}
 
     const deepClone = (source: unknown): unknown => {
-      if (Array.isArray(source)) {
-        return source.map((item) => deepClone(item))
-      }
+        if (Array.isArray(source)) {
+            return source.map((item) => deepClone(item))
+        }
 
-      if (source && typeof source === 'object') {
-        const sourceRecord = source as Record<string, unknown>
-        return Object.keys(sourceRecord).reduce<Record<string, unknown>>((accumulator, key) => {
-          accumulator[key] = deepClone(sourceRecord[key])
-          return accumulator
-        }, {})
-      }
+        if (source && typeof source === 'object') {
+            const sourceRecord = source as Record<string, unknown>
+            return Object.keys(sourceRecord).reduce<Record<string, unknown>>((accumulator, key) => {
+                accumulator[key] = deepClone(sourceRecord[key])
+                return accumulator
+            }, {})
+        }
 
-      return source
+        return source
     }
 
     return deepClone(value) as Record<string, any>
-  }
+}
 
-  initialModelValue.value = cloneModelValue(modelValue.value)
+initialModelValue.value = cloneModelValue(modelValue.value)
 
-  /**
-   * 是否展开状态
-   */
-  const isExpanded = ref(props.defaultExpanded)
+/**
+ * 是否展开状态
+ */
+const isExpanded = ref(props.defaultExpanded)
 
-  const rootProps = ['label', 'labelWidth', 'key', 'type', 'hidden', 'span', 'slots']
-  // 搜索参数默认更激进地去掉空值，减少无效 query 参数。
-  const sanitizeOutputOptions = computed<SanitizeOutputOptions>(() => ({
+const rootProps = ['label', 'labelWidth', 'key', 'type', 'hidden', 'span', 'slots']
+// 搜索参数默认更激进地去掉空值，减少无效 query 参数。
+const sanitizeOutputOptions = computed<SanitizeOutputOptions>(() => ({
     removeEmptyString: true,
     removeEmptyArray: true,
     removeEmptyObject: true,
     removeEmptyRichText: true,
     keepZero: true,
     keepFalse: true,
-    ...props.sanitizeOutput
-  }))
+    ...props.sanitizeOutput,
+}))
 
-  const getProps = (item: SearchFormItem) => {
+const getProps = (item: SearchFormItem) => {
     const isFilterableType = ['select', 'cascader', 'treeselect'].includes(item.type ?? '')
     if (item.props && !isFilterableType) return item.props
     const props = item.props ? { ...item.props } : { ...item }
     rootProps.forEach((key) => delete (props as Record<string, any>)[key])
     if (isFilterableType) props.filterable = true
     return props
-  }
+}
 
-  // 获取插槽
-  const getSlots = (item: SearchFormItem) => {
+// 获取插槽
+const getSlots = (item: SearchFormItem) => {
     if (!item.slots) return {}
     const validSlots: Record<string, () => any> = {}
     Object.entries(item.slots).forEach(([key, slotFn]) => {
-      if (slotFn) {
-        validSlots[key] = slotFn
-      }
+        if (slotFn) {
+            validSlots[key] = slotFn
+        }
     })
     return validSlots
-  }
+}
 
-  /**
-   * 获取列宽 span 值
-   * 根据屏幕尺寸智能降级，避免小屏幕上表单项被压缩过小
-   */
-  const getColSpan = (itemSpan: number | undefined, breakpoint: ResponsiveBreakpoint): number => {
+/**
+ * 获取列宽 span 值
+ * 根据屏幕尺寸智能降级，避免小屏幕上表单项被压缩过小
+ */
+const getColSpan = (itemSpan: number | undefined, breakpoint: ResponsiveBreakpoint): number => {
     return calculateResponsiveSpan(itemSpan, span.value, breakpoint)
-  }
+}
 
-  // 搜索表单清空输入时不保留空字符串，避免后续请求携带空字段。
-  const normalizeFieldValue = (value: unknown) => {
+// 搜索表单清空输入时不保留空字符串，避免后续请求携带空字段。
+const normalizeFieldValue = (value: unknown) => {
     return value === '' ? undefined : value
-  }
+}
 
-  const resolveFieldKey = (key: string) =>
-    key === 'CreatedAt' && useUpdatedAt.value ? 'UpdatedAt' : key
+const resolveFieldKey = (key: string) => (key === 'CreatedAt' && useUpdatedAt.value ? 'UpdatedAt' : key)
 
-  const getFieldValue = (key: string) => modelValue.value[resolveFieldKey(key)]
+const getFieldValue = (key: string) => modelValue.value[resolveFieldKey(key)]
 
-  const setFieldValue = (key: string, value: unknown) => {
+const setFieldValue = (key: string, value: unknown) => {
     const resolvedKey = resolveFieldKey(key)
     const normalizedValue = normalizeFieldValue(value)
 
     if (normalizedValue === undefined) {
-      delete modelValue.value[resolvedKey]
-      return
+        delete modelValue.value[resolvedKey]
+        return
     }
 
     modelValue.value[resolvedKey] = normalizedValue
-  }
+}
 
-  const isRichTextEmpty = (value: string) => {
+const isRichTextEmpty = (value: string) => {
     if (/<(img|video|audio|iframe|embed|object)\b/i.test(value)) {
-      return false
+        return false
     }
 
     // 去掉编辑器常见占位标签后再判断是否还有实际内容。
     return (
-      value
-        .replace(/&nbsp;/gi, '')
-        .replace(/<br\s*\/?>/gi, '')
-        .replace(/<[^>]*>/g, '')
-        .trim() === ''
+        value
+            .replace(/&nbsp;/gi, '')
+            .replace(/<br\s*\/?>/gi, '')
+            .replace(/<[^>]*>/g, '')
+            .trim() === ''
     )
-  }
+}
 
-  // 搜索时按配置清洗空值，但保留 0 和 false 这类有效筛选条件。
-  const sanitizeOutputValue = (value: unknown): unknown => {
+// 搜索时按配置清洗空值，但保留 0 和 false 这类有效筛选条件。
+const sanitizeOutputValue = (value: unknown): unknown => {
     const options = sanitizeOutputOptions.value
 
     if (Array.isArray(value)) {
-      const sanitizedArray = value
-        .map((item) => sanitizeOutputValue(item))
-        .filter((item) => item !== undefined)
-      return sanitizedArray.length === 0 && options.removeEmptyArray ? undefined : sanitizedArray
+        const sanitizedArray = value.map((item) => sanitizeOutputValue(item)).filter((item) => item !== undefined)
+        return sanitizedArray.length === 0 && options.removeEmptyArray ? undefined : sanitizedArray
     }
 
     if (value && typeof value === 'object') {
-      const rawValue = toRaw(value)
-      const sanitizedObject = Object.entries(rawValue).reduce<Record<string, unknown>>(
-        (accumulator, [key, item]) => {
-          const sanitizedItem = sanitizeOutputValue(item)
-          if (sanitizedItem !== undefined) {
-            accumulator[key] = sanitizedItem
-          }
-          return accumulator
-        },
-        {}
-      )
-      return Object.keys(sanitizedObject).length === 0 && options.removeEmptyObject
-        ? undefined
-        : sanitizedObject
+        const rawValue = toRaw(value)
+        const sanitizedObject = Object.entries(rawValue).reduce<Record<string, unknown>>((accumulator, [key, item]) => {
+            const sanitizedItem = sanitizeOutputValue(item)
+            if (sanitizedItem !== undefined) {
+                accumulator[key] = sanitizedItem
+            }
+            return accumulator
+        }, {})
+        return Object.keys(sanitizedObject).length === 0 && options.removeEmptyObject ? undefined : sanitizedObject
     }
 
     if (typeof value === 'string') {
-      if (options.removeEmptyString && value.trim() === '') {
-        return undefined
-      }
-      if (options.removeEmptyRichText && isRichTextEmpty(value)) {
-        return undefined
-      }
-      return value
+        if (options.removeEmptyString && value.trim() === '') {
+            return undefined
+        }
+        if (options.removeEmptyRichText && isRichTextEmpty(value)) {
+            return undefined
+        }
+        return value
     }
 
     if (value === 0) {
-      return options.keepZero ? value : undefined
+        return options.keepZero ? value : undefined
     }
 
     if (value === false) {
-      return options.keepFalse ? value : undefined
+        return options.keepFalse ? value : undefined
     }
 
     return value ?? undefined
-  }
+}
 
-  const getSanitizedOutput = () => {
+const getSanitizedOutput = () => {
     return (sanitizeOutputValue(cloneModelValue(modelValue.value)) || {}) as Record<string, any>
-  }
+}
 
-  const countDynamicFilterConditions = (filter: DynamicFilter | undefined): number => {
+const countDynamicFilterConditions = (filter: DynamicFilter | undefined): number => {
     if (!filter) return 0
     if (filter.filters?.length) {
-      return filter.filters.reduce((count, child) => count + countDynamicFilterConditions(child), 0)
+        return filter.filters.reduce((count, child) => count + countDynamicFilterConditions(child), 0)
     }
     return filter.field && filter.operator ? 1 : 0
-  }
+}
 
-  const activeQueryConditionCount = computed(() => {
+const activeQueryConditionCount = computed(() => {
     const currentFilter = activeAdvancedFilter.value || modelValue.value.dynamicFilter
     if (currentFilter) return countDynamicFilterConditions(currentFilter)
     return Object.keys(getSanitizedOutput()).length
-  })
+})
 
-  // 将当前查询条件转换为已转义的高亮 JSON，避免提示内容被当作 HTML 执行。
-  const formattedQueryPreview = computed(() => {
+// 将当前查询条件转换为已转义的高亮 JSON，避免提示内容被当作 HTML 执行。
+const formattedQueryPreview = computed(() => {
     const currentFilter = activeAdvancedFilter.value || modelValue.value.dynamicFilter
     const query = currentFilter ? { dynamicFilter: currentFilter } : getSanitizedOutput()
     const json = JSON.stringify(query, null, 2)
-    const escaped = json
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
+    const escaped = json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
     return escaped.replace(
-      /(&quot;(?:\\.|[^&])*?&quot;)(?=\s*:)|(&quot;(?:\\.|[^&])*?&quot;)|\b(true|false|null)\b|-?\b\d+(?:\.\d+)?\b/g,
-      (match, key, stringValue, literal) => {
-        if (key) return `<span class="json-key">${key}</span>`
-        if (stringValue) return `<span class="json-string">${stringValue}</span>`
-        if (literal === 'true' || literal === 'false')
-          return `<span class="json-boolean">${literal}</span>`
-        if (literal === 'null') return `<span class="json-null">${literal}</span>`
-        return `<span class="json-number">${match}</span>`
-      }
+        /(&quot;(?:\\.|[^&])*?&quot;)(?=\s*:)|(&quot;(?:\\.|[^&])*?&quot;)|\b(true|false|null)\b|-?\b\d+(?:\.\d+)?\b/g,
+        (match, key, stringValue, literal) => {
+            if (key) return `<span class="json-key">${key}</span>`
+            if (stringValue) return `<span class="json-string">${stringValue}</span>`
+            if (literal === 'true' || literal === 'false') return `<span class="json-boolean">${literal}</span>`
+            if (literal === 'null') return `<span class="json-null">${literal}</span>`
+            return `<span class="json-number">${match}</span>`
+        },
     )
-  })
-  const queryPreviewText = ref('{}')
-  const queryPreviewError = ref('')
-  watch(
+})
+const queryPreviewText = ref('{}')
+const queryPreviewError = ref('')
+watch(
     [() => modelValue.value, activeAdvancedFilter],
     () => {
-      queryPreviewText.value = JSON.stringify(
-        activeAdvancedFilter.value || modelValue.value.dynamicFilter
-          ? { dynamicFilter: activeAdvancedFilter.value || modelValue.value.dynamicFilter }
-          : getSanitizedOutput(),
-        null,
-        2
-      )
-      queryPreviewError.value = ''
+        queryPreviewText.value = JSON.stringify(
+            activeAdvancedFilter.value || modelValue.value.dynamicFilter
+                ? { dynamicFilter: activeAdvancedFilter.value || modelValue.value.dynamicFilter }
+                : getSanitizedOutput(),
+            null,
+            2,
+        )
+        queryPreviewError.value = ''
     },
-    { deep: true, immediate: true }
-  )
+    { deep: true, immediate: true },
+)
 
-  const parseQueryPreview = (): Record<string, any> | undefined => {
+const parseQueryPreview = (): Record<string, any> | undefined => {
     try {
-      const parsed = JSON.parse(queryPreviewText.value)
-      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error()
-      queryPreviewError.value = ''
-      return parsed
+        const parsed = JSON.parse(queryPreviewText.value)
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error()
+        queryPreviewError.value = ''
+        return parsed
     } catch {
-      queryPreviewError.value = 'JSON 格式不正确'
-      return undefined
+        queryPreviewError.value = 'JSON 格式不正确'
+        return undefined
     }
-  }
-  const formatQueryPreview = () => {
+}
+const formatQueryPreview = () => {
     const parsed = parseQueryPreview()
     if (parsed) queryPreviewText.value = JSON.stringify(parsed, null, 2)
-  }
-  const queryPreviewToFilter = (query: Record<string, any>): DynamicFilter | undefined => {
+}
+const queryPreviewToFilter = (query: Record<string, any>): DynamicFilter | undefined => {
     if (query.dynamicFilter && typeof query.dynamicFilter === 'object') return query.dynamicFilter
     const filters = Object.entries(query)
-      .filter(
-        ([key, value]) =>
-          key !== 'dynamicFilter' && value !== undefined && value !== null && value !== ''
-      )
-      .map(([field, value]) => ({
-        field,
-        operator: Array.isArray(value)
-          ? ['CreatedAt', 'UpdatedAt'].includes(field)
-            ? 'DateRange'
-            : 'Any'
-          : typeof value === 'string'
-            ? 'Contains'
-            : 'Equal',
-        value
-      }))
+        .filter(([key, value]) => key !== 'dynamicFilter' && value !== undefined && value !== null && value !== '')
+        .map(([field, value]) => ({
+            field,
+            operator: Array.isArray(value)
+                ? ['CreatedAt', 'UpdatedAt'].includes(field)
+                    ? 'DateRange'
+                    : 'Any'
+                : typeof value === 'string'
+                  ? 'Contains'
+                  : 'Equal',
+            value,
+        }))
     return filters.length ? { logic: 'And', filters } : undefined
-  }
-  const applyQueryPreview = () => {
+}
+const applyQueryPreview = () => {
     const parsed = parseQueryPreview()
     if (!parsed) return
     const filter = queryPreviewToFilter(parsed)
     if (parsed.dynamicFilter) applyAdvancedFilter(filter)
     else {
-      Object.keys(modelValue.value).forEach((key) => delete modelValue.value[key])
-      Object.assign(modelValue.value, parsed)
-      emit('search', getSanitizedOutput())
+        Object.keys(modelValue.value).forEach((key) => delete modelValue.value[key])
+        Object.assign(modelValue.value, parsed)
+        emit('search', getSanitizedOutput())
     }
-  }
-  const saveQueryPreview = async () => {
+}
+const saveQueryPreview = async () => {
     const parsed = parseQueryPreview()
     const dynamicFilter = parsed && queryPreviewToFilter(parsed)
     if (!dynamicFilter) return
     const global = ref(false)
     const { value } = await ElMessageBox({
-      title: t('table.searchBar.saveQueryTitle'),
-      message: isSuperAdmin.value ? h('div', [h(createGlobalSwitch(global))]) : undefined,
-      showInput: true,
-      inputPlaceholder: t('table.searchBar.queryNamePlaceholder'),
-      inputPattern: /\S+/,
-      inputErrorMessage: t('table.searchBar.queryNameRequired'),
-      showCancelButton: true
+        title: t('table.searchBar.saveQueryTitle'),
+        message: isSuperAdmin.value ? h('div', [h(createGlobalSwitch(global))]) : undefined,
+        showInput: true,
+        inputPlaceholder: t('table.searchBar.queryNamePlaceholder'),
+        inputPattern: /\S+/,
+        inputErrorMessage: t('table.searchBar.queryNameRequired'),
+        showCancelButton: true,
     })
     await fetchSaveQuery({
-      name: value.trim(),
-      route: route.path,
-      dynamicFilter,
-      isGlobal: global.value
+        name: value.trim(),
+        route: route.path,
+        dynamicFilter,
+        isGlobal: global.value,
     })
     ElMessage.success('保存成功')
-  }
+}
 
-  // 组件
-  const getComponent = (item: SearchFormItem) => {
+// 组件
+const getComponent = (item: SearchFormItem) => {
     // 优先使用 render 函数或组件渲染自定义组件
     if (item.render) {
-      return item.render
+        return item.render
     }
     // 使用 type 获取预定义组件
     const { type } = item
     return componentMap[type as keyof typeof componentMap] || componentMap['input']
-  }
+}
 
-  const handleInputEnter = (item: SearchFormItem, event: KeyboardEvent) => {
+const handleInputEnter = (item: SearchFormItem, event: KeyboardEvent) => {
     const target = event.target as HTMLElement | null
     if (target?.tagName === 'TEXTAREA') return
     const inputTypes = ['input', 'number', 'inputTag']
     if (item.type && !inputTypes.includes(item.type)) return
     event.preventDefault()
     handleSearch()
-  }
+}
 
-  /**
-   * 可见的表单项
-   */
-  const convertFilterOptionValue = (
-    value: string,
-    valueType: ListFilterField['valueType']
-  ): string | number | boolean => {
+/**
+ * 可见的表单项
+ */
+const convertFilterOptionValue = (value: string, valueType: ListFilterField['valueType']): string | number | boolean => {
     if (valueType === 'boolean') return value === 'true'
     if (valueType === 'number') return Number(value)
     return value
-  }
+}
 
-  /** 创建日期范围选择器的常用快捷时间段 */
-  const createDateShortcuts = (fieldKey: string) => {
+/** 创建日期范围选择器的常用快捷时间段 */
+const createDateShortcuts = (fieldKey: string) => {
     const now = new Date()
     const startOfDay = (date: Date) => {
-      const result = new Date(date)
-      result.setHours(0, 0, 0, 0)
-      return result
+        const result = new Date(date)
+        result.setHours(0, 0, 0, 0)
+        return result
     }
     const startOfWeek = (date: Date) => {
-      const result = startOfDay(date)
-      const day = result.getDay() || 7
-      result.setDate(result.getDate() - day + 1)
-      return result
+        const result = startOfDay(date)
+        const day = result.getDay() || 7
+        result.setDate(result.getDate() - day + 1)
+        return result
     }
     const startOfMonth = (date: Date) => {
-      const result = startOfDay(date)
-      result.setDate(1)
-      return result
+        const result = startOfDay(date)
+        result.setDate(1)
+        return result
     }
     const addDays = (date: Date, days: number) => {
-      const result = new Date(date)
-      result.setDate(result.getDate() + days)
-      return result
+        const result = new Date(date)
+        result.setDate(result.getDate() + days)
+        return result
     }
     const addMonths = (date: Date, months: number) => {
-      const result = new Date(date)
-      result.setMonth(result.getMonth() + months)
-      return result
+        const result = new Date(date)
+        result.setMonth(result.getMonth() + months)
+        return result
     }
 
     const today = startOfDay(now)
@@ -824,198 +730,182 @@
     nextHour.setHours(nextHour.getHours() + 1)
 
     const getCurrentRange = (fallback: [Date, Date]): [Date, Date] => {
-      const value =
-        modelValue.value[fieldKey === 'CreatedAt' && useUpdatedAt.value ? 'UpdatedAt' : fieldKey]
-      if (!Array.isArray(value) || value.length !== 2) return fallback
-      const start = new Date(value[0])
-      const end = new Date(value[1])
-      return Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) ? fallback : [start, end]
+        const value = modelValue.value[fieldKey === 'CreatedAt' && useUpdatedAt.value ? 'UpdatedAt' : fieldKey]
+        if (!Array.isArray(value) || value.length !== 2) return fallback
+        const start = new Date(value[0])
+        const end = new Date(value[1])
+        return Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) ? fallback : [start, end]
     }
     const shiftRange = (fallback: [Date, Date], shift: (date: Date) => Date): [Date, Date] => {
-      const [start, end] = getCurrentRange(fallback)
-      return [shift(start), shift(end)]
+        const [start, end] = getCurrentRange(fallback)
+        return [shift(start), shift(end)]
     }
 
     return [
-      {
-        text: t('table.searchBar.lastHour'),
-        value: () => [new Date(now.getTime() - 3600000), new Date()]
-      },
-      {
-        text: t('table.searchBar.currentHour'),
-        value: () => [new Date(currentHour), new Date(nextHour)]
-      },
-      {
-        text: t('table.searchBar.previousHour'),
-        value: () =>
-          shiftRange([new Date(now.getTime() - 3600000), new Date(now)], (date) => {
-            const result = new Date(date)
-            result.setHours(result.getHours() - 1)
-            return result
-          })
-      },
-      {
-        text: t('table.searchBar.yesterdayAtThisTime'),
-        value: () => [new Date(yesterday), new Date()]
-      },
-      { text: t('table.searchBar.today'), value: () => [new Date(today), new Date(tomorrow)] },
-      { text: t('table.searchBar.yesterday'), value: () => [new Date(yesterday), new Date(today)] },
-      {
-        text: t('table.searchBar.previousDay'),
-        value: () => shiftRange([new Date(yesterday), new Date(today)], (date) => addDays(date, -1))
-      },
-      {
-        text: t('table.searchBar.thisWeek'),
-        value: () => [new Date(thisWeek), new Date(nextWeek)]
-      },
-      {
-        text: t('table.searchBar.previousWeek'),
-        value: () =>
-          shiftRange([new Date(thisWeek), new Date(nextWeek)], (date) => addDays(date, -7))
-      },
-      {
-        text: t('table.searchBar.thisMonth'),
-        value: () => [new Date(thisMonth), new Date(nextMonth)]
-      },
-      {
-        text: t('table.searchBar.previousMonth'),
-        value: () =>
-          shiftRange([new Date(thisMonth), new Date(nextMonth)], (date) => addMonths(date, -1))
-      }
+        {
+            text: t('table.searchBar.lastHour'),
+            value: () => [new Date(now.getTime() - 3600000), new Date()],
+        },
+        {
+            text: t('table.searchBar.currentHour'),
+            value: () => [new Date(currentHour), new Date(nextHour)],
+        },
+        {
+            text: t('table.searchBar.previousHour'),
+            value: () =>
+                shiftRange([new Date(now.getTime() - 3600000), new Date(now)], (date) => {
+                    const result = new Date(date)
+                    result.setHours(result.getHours() - 1)
+                    return result
+                }),
+        },
+        {
+            text: t('table.searchBar.yesterdayAtThisTime'),
+            value: () => [new Date(yesterday), new Date()],
+        },
+        { text: t('table.searchBar.today'), value: () => [new Date(today), new Date(tomorrow)] },
+        { text: t('table.searchBar.yesterday'), value: () => [new Date(yesterday), new Date(today)] },
+        {
+            text: t('table.searchBar.previousDay'),
+            value: () => shiftRange([new Date(yesterday), new Date(today)], (date) => addDays(date, -1)),
+        },
+        {
+            text: t('table.searchBar.thisWeek'),
+            value: () => [new Date(thisWeek), new Date(nextWeek)],
+        },
+        {
+            text: t('table.searchBar.previousWeek'),
+            value: () => shiftRange([new Date(thisWeek), new Date(nextWeek)], (date) => addDays(date, -7)),
+        },
+        {
+            text: t('table.searchBar.thisMonth'),
+            value: () => [new Date(thisMonth), new Date(nextMonth)],
+        },
+        {
+            text: t('table.searchBar.previousMonth'),
+            value: () => shiftRange([new Date(thisMonth), new Date(nextMonth)], (date) => addMonths(date, -1)),
+        },
     ]
-  }
+}
 
-  const backendFormItems = computed<SearchFormItem[]>(() =>
+const backendFormItems = computed<SearchFormItem[]>(() =>
     (props.filterFields || []).map((field) => {
-      const fieldPlaceholder = t(field.label)
-      const controlProps =
-        field.control === 'date'
-          ? {
-              type: 'datetimerange',
-              valueFormat: 'YYYY-MM-DDTHH:mm:ss',
-              rangeSeparator: t('table.searchBar.to'),
-              startPlaceholder: t('table.searchBar.startDate'),
-              endPlaceholder: t('table.searchBar.endDate'),
-              shortcuts: createDateShortcuts(field.field),
-              clearable: true
-            }
-          : field.control === 'select'
-            ? {
-                placeholder: fieldPlaceholder,
-                options: field.options.map((option) => ({
-                  ...option,
-                  label: t(option.label),
-                  value: convertFilterOptionValue(option.value, field.valueType)
-                })),
-                clearable: true
-              }
-            : { placeholder: fieldPlaceholder, clearable: true }
+        const fieldPlaceholder = t(field.label)
+        const controlProps =
+            field.control === 'date'
+                ? {
+                      type: 'datetimerange',
+                      valueFormat: 'YYYY-MM-DDTHH:mm:ss',
+                      rangeSeparator: t('table.searchBar.to'),
+                      startPlaceholder: t('table.searchBar.startDate'),
+                      endPlaceholder: t('table.searchBar.endDate'),
+                      shortcuts: createDateShortcuts(field.field),
+                      clearable: true,
+                  }
+                : field.control === 'select'
+                  ? {
+                        placeholder: fieldPlaceholder,
+                        options: field.options.map((option) => ({
+                            ...option,
+                            label: t(option.label),
+                            value: convertFilterOptionValue(option.value, field.valueType),
+                        })),
+                        clearable: true,
+                    }
+                  : { placeholder: fieldPlaceholder, clearable: true }
 
-      return {
-        key: field.field,
-        label: undefined,
-        type:
-          field.control === 'select'
-            ? 'select'
-            : field.control === 'date'
-              ? 'date'
-              : field.control === 'number'
-                ? 'number'
-                : 'input',
-        span: field.span,
-        placeholder: fieldPlaceholder,
-        props: controlProps
-      }
-    })
-  )
-  const activeItems = computed(() =>
-    props.filterFields?.length ? backendFormItems.value : props.items
-  )
-  const currentBreakpoint = computed<ResponsiveBreakpoint>(() => {
+        return {
+            key: field.field,
+            label: undefined,
+            type: field.control === 'select' ? 'select' : field.control === 'date' ? 'date' : field.control === 'number' ? 'number' : 'input',
+            span: field.span,
+            placeholder: fieldPlaceholder,
+            props: controlProps,
+        }
+    }),
+)
+const activeItems = computed(() => (props.filterFields?.length ? backendFormItems.value : props.items))
+const currentBreakpoint = computed<ResponsiveBreakpoint>(() => {
     if (width.value < 768) return 'xs'
     if (width.value < 992) return 'sm'
     if (width.value < 1200) return 'md'
     if (width.value < 1920) return 'lg'
     return 'xl'
-  })
-  const actionReservedSpan = computed(() => {
+})
+const actionReservedSpan = computed(() => {
     const searchSpan = props.showSearch ? 2 : 0
     const advancedQuerySpan = props.showSearch && props.advancedQueryFields?.length ? 1 : 0
     const resetSpan = props.showReset ? 1 : 0
     const expandSpan = !props.isExpand && props.showExpand ? 1 : 0
-    return Math.max(
-      1,
-      Math.min(props.span, searchSpan + advancedQuerySpan + resetSpan + expandSpan)
-    )
-  })
-  const collapsedItems = computed(() => {
-    const actionUsesSeparateRow =
-      currentBreakpoint.value === 'xs' || currentBreakpoint.value === 'sm'
+    return Math.max(1, Math.min(props.span, searchSpan + advancedQuerySpan + resetSpan + expandSpan))
+})
+const collapsedItems = computed(() => {
+    const actionUsesSeparateRow = currentBreakpoint.value === 'xs' || currentBreakpoint.value === 'sm'
     const availableSpan = actionUsesSeparateRow ? 24 : 24 - actionReservedSpan.value
     let occupiedSpan = 0
 
     return activeItems.value
-      .filter((item) => !item.hidden)
-      .filter((item) => {
-        const itemSpan = getColSpan(item.span, currentBreakpoint.value)
-        if (occupiedSpan + itemSpan > availableSpan) return false
+        .filter((item) => !item.hidden)
+        .filter((item) => {
+            const itemSpan = getColSpan(item.span, currentBreakpoint.value)
+            if (occupiedSpan + itemSpan > availableSpan) return false
 
-        occupiedSpan += itemSpan
-        return true
-      })
-  })
-  const visibleFormItems = computed(() => {
+            occupiedSpan += itemSpan
+            return true
+        })
+})
+const visibleFormItems = computed(() => {
     const filteredItems = activeItems.value.filter((item) => !item.hidden)
     const shouldShowLess = !props.isExpand && !isExpanded.value
     if (shouldShowLess) {
-      return collapsedItems.value
+        return collapsedItems.value
     }
     return filteredItems
-  })
+})
 
-  /**
-   * 是否应该显示展开/收起按钮
-   */
-  const shouldShowExpandToggle = computed(() => {
+/**
+ * 是否应该显示展开/收起按钮
+ */
+const shouldShowExpandToggle = computed(() => {
     const filteredItems = activeItems.value.filter((item) => !item.hidden)
     return !props.isExpand && props.showExpand && filteredItems.length > collapsedItems.value.length
-  })
+})
 
-  /**
-   * 展开/收起按钮文本
-   */
-  const expandToggleText = computed(() => {
+/**
+ * 展开/收起按钮文本
+ */
+const expandToggleText = computed(() => {
     return isExpanded.value ? t('table.searchBar.collapse') : t('table.searchBar.expand')
-  })
+})
 
-  /**
-   * 操作按钮样式
-   */
-  const actionButtonsStyle = computed(() => ({
+/**
+ * 操作按钮样式
+ */
+const actionButtonsStyle = computed(() => ({
     'justify-content': isMobile.value
-      ? 'flex-end'
-      : activeItems.value.filter((item) => !item.hidden).length <= props.buttonLeftLimit
-        ? 'flex-start'
-        : 'flex-end'
-  }))
+        ? 'flex-end'
+        : activeItems.value.filter((item) => !item.hidden).length <= props.buttonLeftLimit
+          ? 'flex-start'
+          : 'flex-end',
+}))
 
-  /**
-   * 切换展开/收起状态
-   */
-  const toggleExpand = () => {
+/**
+ * 切换展开/收起状态
+ */
+const toggleExpand = () => {
     isExpanded.value = !isExpanded.value
-  }
+}
 
-  /**
-   * 处理重置事件
-   */
-  const handleReset = () => {
+/**
+ * 处理重置事件
+ */
+const handleReset = () => {
     // 重置表单字段（UI 层）
     formInstance.value?.resetFields()
 
     // 恢复初始表单值，保留默认搜索条件而不是简单清空。
     Object.keys(modelValue.value).forEach((key) => {
-      delete modelValue.value[key]
+        delete modelValue.value[key]
     })
     Object.assign(modelValue.value, cloneModelValue(initialModelValue.value))
     useUpdatedAt.value = false
@@ -1023,208 +913,207 @@
 
     // 触发 reset 事件
     emit('reset')
-  }
+}
 
-  /**
-   * 处理搜索事件
-   */
-  const handleSearch = () => {
+/**
+ * 处理搜索事件
+ */
+const handleSearch = () => {
     activeAdvancedFilter.value = undefined
     delete modelValue.value.dynamicFilter
     // 对外只抛出清洗后的查询参数，避免接口收到空数组/空字符串。
     emit('search', getSanitizedOutput())
-  }
+}
 
-  // 每次展开菜单时刷新数据，使高级查询层中新保存的条件立即可用。
-  const handleSavedQueryMenuVisible = async (visible: boolean) => {
+// 每次展开菜单时刷新数据，使高级查询层中新保存的条件立即可用。
+const handleSavedQueryMenuVisible = async (visible: boolean) => {
     if (visible) {
-      savedQueries.value = await fetchGetSavedQueries(route.path)
+        savedQueries.value = await fetchGetSavedQueries(route.path)
     }
-  }
+}
 
-  // 选择已保存条件后直接交给页面现有的高级查询处理流程。
-  const applySavedQuery = (id: string | number) => {
+// 选择已保存条件后直接交给页面现有的高级查询处理流程。
+const applySavedQuery = (id: string | number) => {
     const query = savedQueries.value.find((item) => String(item.id) === String(id))
     if (query) {
-      applyAdvancedFilter(query.dynamicFilter)
+        applyAdvancedFilter(query.dynamicFilter)
     }
-  }
+}
 
-  const deleteSavedQuery = async (id: string | number) => {
+const deleteSavedQuery = async (id: string | number) => {
     await fetchDeleteSavedQuery(String(id))
     savedQueries.value = savedQueries.value.filter((query) => String(query.id) !== String(id))
-  }
+}
 
-  const confirmDeleteSavedQuery = async (id: string | number) => {
+const confirmDeleteSavedQuery = async (id: string | number) => {
     await deleteSavedQuery(id)
     deletePopoverId.value = undefined
-  }
+}
 
-  const applyAdvancedFilter = (filter: DynamicFilter | undefined) => {
+const applyAdvancedFilter = (filter: DynamicFilter | undefined) => {
     activeAdvancedFilter.value = filter
     Object.keys(modelValue.value).forEach((key) => {
-      delete modelValue.value[key]
+        delete modelValue.value[key]
     })
     if (filter) {
-      modelValue.value.dynamicFilter = filter
+        modelValue.value.dynamicFilter = filter
     }
     emit('search', getSanitizedOutput())
-  }
+}
 
-  const handleAdvancedQueryApply = (filter: DynamicFilter | undefined) =>
-    applyAdvancedFilter(filter)
+const handleAdvancedQueryApply = (filter: DynamicFilter | undefined) => applyAdvancedFilter(filter)
 
-  defineExpose({
+defineExpose({
     ref: formInstance,
     validate: (...args: any[]) => formInstance.value?.validate(...args),
     reset: handleReset,
     // 允许外部在手动组装请求前直接读取清洗后的参数。
-    getOutput: getSanitizedOutput
-  })
+    getOutput: getSanitizedOutput,
+})
 
-  // 解构 props 以便在模板中直接使用
-  const { span, gutter, labelPosition, labelWidth } = toRefs(props)
+// 解构 props 以便在模板中直接使用
+const { span, gutter, labelPosition, labelWidth } = toRefs(props)
 </script>
 
 <style lang="scss" scoped>
-  .art-search-bar {
+.art-search-bar {
     padding: 15px 20px 0;
 
     .action-column {
-      flex: 1;
-      max-width: 100%;
+        flex: 1;
+        max-width: 100%;
 
-      .action-buttons-wrapper {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: flex-end;
-        margin-bottom: 12px;
-      }
-
-      .form-buttons {
-        display: flex;
-        gap: 8px;
-
-        .query-button-group {
-          display: flex;
-
-          .search-button {
-            border-top-right-radius: 0;
-            border-bottom-right-radius: 0;
-          }
-
-          .advanced-query-button {
-            width: 34px;
-            min-width: 34px;
-            padding: 0;
-            margin-left: 1px;
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-            letter-spacing: 0;
-          }
-        }
-      }
-
-      .filter-toggle {
-        display: flex;
-        align-items: center;
-        margin-left: 10px;
-        line-height: 32px;
-        color: var(--theme-color);
-        cursor: pointer;
-        transition: color 0.2s ease;
-
-        &:hover {
-          color: var(--ElColor-primary);
+        .action-buttons-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 12px;
         }
 
-        span {
-          font-size: 14px;
-          user-select: none;
+        .form-buttons {
+            display: flex;
+            gap: 8px;
+
+            .query-button-group {
+                display: flex;
+
+                .search-button {
+                    border-top-right-radius: 0;
+                    border-bottom-right-radius: 0;
+                }
+
+                .advanced-query-button {
+                    width: 34px;
+                    min-width: 34px;
+                    padding: 0;
+                    margin-left: 1px;
+                    border-top-left-radius: 0;
+                    border-bottom-left-radius: 0;
+                    letter-spacing: 0;
+                }
+            }
         }
 
-        .icon-wrapper {
-          display: flex;
-          align-items: center;
-          margin-left: 4px;
-          font-size: 14px;
-          transition: transform 0.2s ease;
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            margin-left: 10px;
+            line-height: 32px;
+            color: var(--theme-color);
+            cursor: pointer;
+            transition: color 0.2s ease;
+
+            &:hover {
+                color: var(--ElColor-primary);
+            }
+
+            span {
+                font-size: 14px;
+                user-select: none;
+            }
+
+            .icon-wrapper {
+                display: flex;
+                align-items: center;
+                margin-left: 4px;
+                font-size: 14px;
+                transition: transform 0.2s ease;
+            }
         }
-      }
     }
-  }
+}
 
-  :deep(.saved-query-name) {
+:deep(.saved-query-name) {
     flex: 1;
     min-width: 0;
-  }
+}
 
-  :deep(.saved-query-delete) {
+:deep(.saved-query-delete) {
     margin-left: 12px;
-  }
+}
 
-  .saved-query-confirm-text {
+.saved-query-confirm-text {
     margin: 0 0 12px;
     line-height: 1.5;
     word-break: break-word;
-  }
+}
 
-  .saved-query-confirm-actions {
+.saved-query-confirm-actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-  }
+}
 
-  .query-preview {
+.query-preview {
     max-width: min(560px, 70vw);
     max-height: 360px;
     margin: 0;
     overflow: auto;
     color: var(--el-text-color-primary);
     font:
-      12px/1.5 Consolas,
-      Monaco,
-      monospace;
+        12px/1.5 Consolas,
+        Monaco,
+        monospace;
     white-space: pre;
 
     :deep(.json-key) {
-      color: var(--el-color-primary);
+        color: var(--el-color-primary);
     }
 
     :deep(.json-string) {
-      color: var(--el-color-success);
+        color: var(--el-color-success);
     }
 
     :deep(.json-number) {
-      color: var(--el-color-warning);
+        color: var(--el-color-warning);
     }
 
     :deep(.json-boolean),
     :deep(.json-null) {
-      color: var(--el-color-danger);
+        color: var(--el-color-danger);
     }
-  }
+}
 
-  .query-preview-editor {
+.query-preview-editor {
     width: min(520px, calc(100vw - 40px));
-  }
+}
 
-  .query-preview-actions {
+.query-preview-actions {
     display: flex;
     gap: 6px;
     align-items: center;
     justify-content: flex-end;
     margin-top: 8px;
-  }
+}
 
-  .query-preview-error {
+.query-preview-error {
     flex: 1;
     color: var(--el-color-danger);
     font-size: 12px;
-  }
+}
 
-  .date-filter-control {
+.date-filter-control {
     display: flex;
     gap: 8px;
     align-items: center;
@@ -1232,74 +1121,74 @@
     min-width: 0;
 
     :deep(.el-date-editor) {
-      flex: 1;
-      width: 0;
-      min-width: 0;
+        flex: 1;
+        width: 0;
+        min-width: 0;
     }
 
     :deep(.el-range-input) {
-      min-width: 0;
+        min-width: 0;
     }
-  }
+}
 
-  .date-filter-mode-switch {
+.date-filter-mode-switch {
     flex: none;
 
     &:not(.is-checked) :deep(.el-switch__core) {
-      color: var(--el-color-white);
-      background: var(--el-color-primary);
-      border-color: var(--el-color-primary);
+        color: var(--el-color-white);
+        background: var(--el-color-primary);
+        border-color: var(--el-color-primary);
     }
-  }
+}
 
-  @media (max-width: 767px) {
+@media (max-width: 767px) {
     .date-filter-control {
-      gap: 4px;
+        gap: 4px;
 
-      .date-filter-mode-switch {
-        width: 76px;
-        font-size: 11px;
-      }
+        .date-filter-mode-switch {
+            width: 76px;
+            font-size: 11px;
+        }
 
-      :deep(.el-date-editor .el-range-separator) {
-        padding: 0 2px;
-      }
+        :deep(.el-date-editor .el-range-separator) {
+            padding: 0 2px;
+        }
     }
-  }
+}
 
-  :global(.query-preview-popper.el-popper) {
+:global(.query-preview-popper.el-popper) {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color-light);
     color: var(--el-text-color-primary);
     box-shadow: var(--el-box-shadow-light);
-  }
+}
 
-  :global(.query-preview-popper.el-popper .el-popper__arrow::before) {
+:global(.query-preview-popper.el-popper .el-popper__arrow::before) {
     background: var(--el-bg-color-overlay);
     border-color: var(--el-border-color-light);
-  }
+}
 
-  // 响应式优化
-  @media (width <= 768px) {
+// 响应式优化
+@media (width <= 768px) {
     .art-search-bar {
-      padding: 16px 16px 0;
+        padding: 16px 16px 0;
 
-      .action-column {
-        .action-buttons-wrapper {
-          flex-direction: column;
-          gap: 8px;
-          align-items: stretch;
+        .action-column {
+            .action-buttons-wrapper {
+                flex-direction: column;
+                gap: 8px;
+                align-items: stretch;
 
-          .form-buttons {
-            justify-content: center;
-          }
+                .form-buttons {
+                    justify-content: center;
+                }
 
-          .filter-toggle {
-            justify-content: center;
-            margin-left: 0;
-          }
+                .filter-toggle {
+                    justify-content: center;
+                    margin-left: 0;
+                }
+            }
         }
-      }
     }
-  }
+}
 </style>

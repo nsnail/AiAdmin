@@ -67,8 +67,7 @@
           "icon": "ri:user-line",
           "keepAlive": true,
           "roles": [
-            "R_SUPER",
-            "R_ADMIN"
+            "R_SUPER"
           ]
         }
       },
@@ -287,6 +286,20 @@
           "keepAlive": true,
           "roles": [
             "R_SUPER"
+          ]
+        }
+      },
+      {
+        "path": "login-log",
+        "name": "LoginLog",
+        "component": "/system/login-log",
+        "meta": {
+          "title": "menus.log.loginLog",
+          "icon": "ri:login-box-line",
+          "keepAlive": true,
+          "roles": [
+            "R_SUPER",
+            "R_ADMIN"
           ]
         }
       }

@@ -33,317 +33,325 @@
  */
 
 declare namespace Api {
-  /** 通用类型 */
-  namespace Common {
-    /** 分页参数 */
-    interface PaginationParams {
-      /** 当前页码 */
-      current: number
-      /** 每页条数 */
-      size: number
-      /** 总条数 */
-      total: number
-    }
-
-    /** 通用搜索参数 */
-    type CommonSearchParams = Pick<PaginationParams, 'current' | 'size'> & {
-      sortField?: string
-      sortOrder?: 'asc' | 'desc'
-    }
-
-    /** 分页响应基础结构 */
-    interface PaginatedResponse<T = any> {
-      records: T[]
-      current: number
-      size: number
-      total: number
-    }
-
-    /** 启用状态 */
-    type EnableStatus = '1' | '2'
-  }
-
-  /** 认证类型 */
-  namespace Auth {
-    /** 登录参数 */
-    interface LoginParams {
-      userName: string
-      password: string
-      challenge: string
-      proof: string
-    }
-
-    interface RegisterParams {
-      userName: string
-      password: string
-      email: string
-      verificationCode: string
-      invitationCode?: string
-    }
-
-    /** 登录响应 */
-    interface LoginResponse {
-      token: string
-      refreshToken: string
-    }
-
-    interface LoginConfig {
-      loginSliderVerification: boolean
-      registrationEnabled: boolean
-      emailVerificationEnabled: boolean
-    }
-
-    interface LoginChallenge {
-      challenge: string
-      difficulty: number
-    }
-
-    interface RegisterPuzzle {
-      challengeId: string
-      backgroundImage: string
-      pieceImage: string
-      width: number
-      height: number
-      pieceSize: number
-      pieceY: number
-    }
-
-    interface VerifyRegisterPuzzleResult {
-      puzzleTicket: string
-    }
-
-    /** 用户信息 */
-    interface UserInfo {
-      buttons: string[]
-      roles: string[]
-      userId: string
-      userName: string
-      email: string
-      phone: string
-      gender: 1 | 2
-      avatar?: string
-    }
-
-    /** 当前用户资料更新参数 */
-    interface UpdateProfileParams {
-      email: string
-      phone: string
-      gender: 1 | 2
-    }
-
-    /** 当前用户密码修改参数 */
-    interface ChangePasswordParams {
-      currentPassword: string
-      newPassword: string
-    }
-  }
-
-  /** 系统管理类型 */
-  namespace SystemManage {
-    /** 系统日志列表项 */
-    interface SystemLogItem {
-      timestamp: string
-      level: string
-      category: string
-      clientIp: string | null
-      elapsedMilliseconds: number | null
-      eventId: number
-      eventName: string | null
-      exception: string | null
-      logType: string
-      message: string
-      requestBody: string | null
-      requestContentType: string | null
-      requestHeaders: string | null
-      requestId: string | null
-      requestMethod: string | null
-      requestRelativeUrl: string | null
-      requestUrl: string | null
-      responseBody: string | null
-      responseContentType: string | null
-      responseHeaders: string | null
-      serverIp: string | null
-      source: string
-      sql: string | null
-      statusCode: number | null
-      threadId: number
-      userAgent: string | null
-      userName: string | null
-    }
-
-    /** 用户列表 */
-    type UserList = Api.Common.PaginatedResponse<UserListItem>
-
-    /** 用户列表项 */
-    interface UserListItem {
-      id: string
-      avatar: string
-      status: string
-      userName: string
-      userGender: 1 | 2
-      userPhone: string
-      userEmail: string
-      isEnabled: boolean
-      userRoles: string[]
-      departmentIds: string[]
-      departmentNames: string[]
-      createBy: string
-      createTime: string
-      updateBy: string
-      updateTime: string | null
-    }
-
-    /** 用户搜索参数 */
-    type UserSearchParams = Partial<
-      Pick<UserListItem, 'id' | 'userName' | 'userGender' | 'userPhone' | 'userEmail' | 'status'> &
-        Api.Common.CommonSearchParams
-    > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
-
-    interface SaveUserParams {
-      userName: string
-      email: string
-      phone: string
-      gender: 1 | 2
-      roles: string[]
-      departmentIds: string[]
-      password?: string
-      isEnabled: boolean
-      avatarFile?: File
-      avatar?: string
-      removeAvatar?: boolean
-    }
-
-    type UpdateUserParams = Omit<SaveUserParams, 'userName'>
-
-    /** 当前用户邀请关系查询结果 */
-    interface ReferralTreeResult {
-      invitationCode: string
-      children: ReferralTreeItem[]
-    }
-
-    /** 邀请关系树节点 */
-    interface ReferralTreeItem {
-      id: string
-      userName: string
-      email: string
-      invitationCode: string
-      createdAt: string
-      children: ReferralTreeItem[]
-    }
-
-    /** 部门树节点 */
-    interface DepartmentTreeItem {
-      id: string
-      name: string
-      code: string
-      parentId: string | null
-      sort: number
-      leader: string
-      phone: string
-      email: string
-      isEnabled: boolean
-      createdAt: string
-      children: DepartmentTreeItem[]
-    }
-
-    /** 部门保存参数 */
-    type SaveDepartmentParams = Pick<
-      DepartmentTreeItem,
-      'name' | 'code' | 'parentId' | 'sort' | 'leader' | 'phone' | 'email' | 'isEnabled'
-    >
-
-    /** 角色列表 */
-    type RoleList = Api.Common.PaginatedResponse<RoleListItem>
-
-    /** 角色列表项 */
-    interface RoleListItem {
-      roleId: string
-      roleName: string
-      roleCode: string
-      description: string
-      dataScope: 'all' | 'department' | 'department_and_children' | 'self'
-      enabled: boolean
-      createTime: string
-    }
-
-    type SaveRoleParams = Pick<
-      RoleListItem,
-      'roleName' | 'roleCode' | 'description' | 'dataScope' | 'enabled'
-    >
-
-    interface ApiEndpointItem {
-      id: string
-      createdAt: string
-      name: string
-      allowAnonymous: boolean
-      method: string
-      path: string
-      controller: string
-      controllerName: string
-      action: string
-    }
-
-    interface DictionaryCategory {
-      id: string
-      createdAt: string
-      code: string
-      name: string
-      parentId: string | null
-      sort: number
-      children: DictionaryCategory[]
-    }
-
-    interface RedisServerInfo {
-      endpoint: string
-      version: string
-      mode: string
-      connectedClients: number
-      usedMemory: string
-      maxMemory: string
-      databaseSize: number
-    }
-
-    interface RedisCacheKey {
-      key: string
-      type: string
-      timeToLiveMilliseconds: number
-    }
-
-    interface DictionaryItem {
-      id: string
-      createdAt: string
-      categoryId: string
-      value: string
-      label: string
-      sort: number
-      isEnabled: boolean
-      remark: string
-    }
-
-    type SaveDictionaryCategoryParams = Pick<
-      DictionaryCategory,
-      'code' | 'name' | 'parentId' | 'sort'
-    >
-
-    type SaveDictionaryItemParams = Pick<
-      DictionaryItem,
-      'value' | 'label' | 'sort' | 'isEnabled' | 'remark'
-    >
-
-    interface ApiSyncResult {
-      added: number
-      updated: number
-      deleted: number
-      total: number
-    }
-
-    /** 角色搜索参数 */
-    type RoleSearchParams = Partial<
-      Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &
-        Api.Common.CommonSearchParams & {
-          startTime: string | null
-          endTime: string | null
+    /** 通用类型 */
+    namespace Common {
+        /** 分页参数 */
+        interface PaginationParams {
+            /** 当前页码 */
+            current: number
+            /** 每页条数 */
+            size: number
+            /** 总条数 */
+            total: number
         }
-    > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
-  }
+
+        /** 通用搜索参数 */
+        type CommonSearchParams = Pick<PaginationParams, 'current' | 'size'> & {
+            sortField?: string
+            sortOrder?: 'asc' | 'desc'
+        }
+
+        /** 分页响应基础结构 */
+        interface PaginatedResponse<T = any> {
+            records: T[]
+            current: number
+            size: number
+            total: number
+        }
+
+        /** 启用状态 */
+        type EnableStatus = '1' | '2'
+    }
+
+    /** 认证类型 */
+    namespace Auth {
+        /** 登录参数 */
+        interface LoginParams {
+            userName: string
+            password: string
+            challenge: string
+            proof: string
+            clientInfo?: LoginClientInfo
+        }
+
+        interface LoginClientInfo {
+            browser?: string
+            clientHints?: string
+            colorDepth?: number
+            deviceType?: string
+            language?: string
+            operatingSystem?: string
+            platform?: string
+            pixelRatio?: number
+            screenResolution?: string
+            timeZone?: string
+            touchPoints?: number
+            viewportSize?: string
+        }
+
+        interface RegisterParams {
+            userName: string
+            password: string
+            email: string
+            verificationCode: string
+            invitationCode?: string
+        }
+
+        /** 登录响应 */
+        interface LoginResponse {
+            token: string
+            refreshToken: string
+            previousLogin?: {
+                clientIp: string
+                region: string
+                loginAt: string
+            }
+        }
+
+        interface LoginConfig {
+            loginSliderVerification: boolean
+            registrationEnabled: boolean
+            emailVerificationEnabled: boolean
+        }
+
+        interface LoginChallenge {
+            challenge: string
+            difficulty: number
+        }
+
+        interface RegisterPuzzle {
+            challengeId: string
+            backgroundImage: string
+            pieceImage: string
+            width: number
+            height: number
+            pieceSize: number
+            pieceY: number
+        }
+
+        interface VerifyRegisterPuzzleResult {
+            puzzleTicket: string
+        }
+
+        /** 用户信息 */
+        interface UserInfo {
+            buttons: string[]
+            roles: string[]
+            userId: string
+            userName: string
+            email: string
+            phone: string
+            gender: 1 | 2
+            avatar?: string
+        }
+
+        /** 当前用户资料更新参数 */
+        interface UpdateProfileParams {
+            email: string
+            phone: string
+            gender: 1 | 2
+        }
+
+        /** 当前用户密码修改参数 */
+        interface ChangePasswordParams {
+            currentPassword: string
+            newPassword: string
+        }
+    }
+
+    /** 系统管理类型 */
+    namespace SystemManage {
+        /** 系统日志列表项 */
+        interface SystemLogItem {
+            timestamp: string
+            level: string
+            category: string
+            clientIp: string | null
+            elapsedMilliseconds: number | null
+            eventId: number
+            eventName: string | null
+            exception: string | null
+            logType: string
+            message: string
+            requestBody: string | null
+            requestContentType: string | null
+            requestHeaders: string | null
+            traceId: string | null
+            requestMethod: string | null
+            requestRelativeUrl: string | null
+            requestUrl: string | null
+            responseBody: string | null
+            responseContentType: string | null
+            responseHeaders: string | null
+            serverIp: string | null
+            source: string
+            sql: string | null
+            statusCode: number | null
+            threadId: number
+            userAgent: string | null
+            userName: string | null
+        }
+
+        /** 用户列表 */
+        type UserList = Api.Common.PaginatedResponse<UserListItem>
+
+        /** 用户列表项 */
+        interface UserListItem {
+            id: string
+            avatar: string
+            status: string
+            userName: string
+            userGender: 1 | 2
+            userPhone: string
+            userEmail: string
+            isEnabled: boolean
+            userRoles: string[]
+            departmentIds: string[]
+            departmentNames: string[]
+            createBy: string
+            createTime: string
+            updateBy: string
+            updateTime: string | null
+        }
+
+        /** 用户搜索参数 */
+        type UserSearchParams = Partial<
+            Pick<UserListItem, 'id' | 'userName' | 'userGender' | 'userPhone' | 'userEmail' | 'status'> & Api.Common.CommonSearchParams
+        > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
+
+        interface SaveUserParams {
+            userName: string
+            email: string
+            phone: string
+            gender: 1 | 2
+            roles: string[]
+            departmentIds: string[]
+            password?: string
+            isEnabled: boolean
+            avatarFile?: File
+            avatar?: string
+            removeAvatar?: boolean
+        }
+
+        type UpdateUserParams = Omit<SaveUserParams, 'userName'>
+
+        /** 当前用户邀请关系查询结果 */
+        interface ReferralTreeResult {
+            invitationCode: string
+            children: ReferralTreeItem[]
+        }
+
+        /** 邀请关系树节点 */
+        interface ReferralTreeItem {
+            id: string
+            userName: string
+            email: string
+            invitationCode: string
+            createdAt: string
+            children: ReferralTreeItem[]
+        }
+
+        /** 部门树节点 */
+        interface DepartmentTreeItem {
+            id: string
+            name: string
+            code: string
+            parentId: string | null
+            sort: number
+            leader: string
+            phone: string
+            email: string
+            isEnabled: boolean
+            createdAt: string
+            children: DepartmentTreeItem[]
+        }
+
+        /** 部门保存参数 */
+        type SaveDepartmentParams = Pick<DepartmentTreeItem, 'name' | 'code' | 'parentId' | 'sort' | 'leader' | 'phone' | 'email' | 'isEnabled'>
+
+        /** 角色列表 */
+        type RoleList = Api.Common.PaginatedResponse<RoleListItem>
+
+        /** 角色列表项 */
+        interface RoleListItem {
+            roleId: string
+            roleName: string
+            roleCode: string
+            description: string
+            dataScope: 'all' | 'department' | 'department_and_children' | 'self'
+            enabled: boolean
+            createTime: string
+        }
+
+        type SaveRoleParams = Pick<RoleListItem, 'roleName' | 'roleCode' | 'description' | 'dataScope' | 'enabled'>
+
+        interface ApiEndpointItem {
+            id: string
+            createdAt: string
+            name: string
+            allowAnonymous: boolean
+            method: string
+            path: string
+            controller: string
+            controllerName: string
+            action: string
+        }
+
+        interface DictionaryCategory {
+            id: string
+            createdAt: string
+            code: string
+            name: string
+            parentId: string | null
+            sort: number
+            children: DictionaryCategory[]
+        }
+
+        interface RedisServerInfo {
+            endpoint: string
+            version: string
+            mode: string
+            connectedClients: number
+            usedMemory: string
+            maxMemory: string
+            databaseSize: number
+        }
+
+        interface RedisCacheKey {
+            key: string
+            type: string
+            timeToLiveMilliseconds: number
+        }
+
+        interface DictionaryItem {
+            id: string
+            createdAt: string
+            categoryId: string
+            value: string
+            label: string
+            sort: number
+            isEnabled: boolean
+            remark: string
+        }
+
+        type SaveDictionaryCategoryParams = Pick<DictionaryCategory, 'code' | 'name' | 'parentId' | 'sort'>
+
+        type SaveDictionaryItemParams = Pick<DictionaryItem, 'value' | 'label' | 'sort' | 'isEnabled' | 'remark'>
+
+        interface ApiSyncResult {
+            added: number
+            updated: number
+            deleted: number
+            total: number
+        }
+
+        /** 角色搜索参数 */
+        type RoleSearchParams = Partial<
+            Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &
+                Api.Common.CommonSearchParams & {
+                    startTime: string | null
+                    endTime: string | null
+                }
+        > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
+    }
 }

@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
+using AiAdmin.Api.Data;
 using AiAdmin.Api.Logging;
 
 namespace AiAdmin.Api.Middleware;
@@ -20,11 +21,14 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
     /// <param name="context">HTTP 上下文</param>
     /// <returns>异步请求处理任务</returns>
     public async Task InvokeAsync(HttpContext context) {
+        context.Response.Headers["X-Worker-Id"] = SnowflakeIdGenerator.WorkerId.ToString(CultureInfo.InvariantCulture);
         if (!context.Request.Path.StartsWithSegments("/api", StringComparison.OrdinalIgnoreCase)) {
             await next(context).ConfigureAwait(false);
             return;
         }
 
+        var traceId = SnowflakeIdGenerator.Next();
+        HttpTraceContext.Initialize(context, traceId);
         context.Request.EnableBuffering();
         var requestBody = IsTextContentType(context.Request.ContentType)
             ? await ReadBodyAsync(context.Request.Body, context.RequestAborted).ConfigureAwait(false)
@@ -77,7 +81,8 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
                     , ["RequestBody"] = requestBody
                     , ["RequestHeaders"] = requestHeaders
                     , ["RequestContentType"] = context.Request.ContentType
-                    , ["RequestId"] = context.Request.Headers["X-Request-ID"].FirstOrDefault() ?? context.TraceIdentifier
+                    , ["TraceId"] = traceId
+                    , ["WorkerId"] = SnowflakeIdGenerator.WorkerId
                     , ["ResponseHeaders"] = responseHeaders
                     , ["ResponseBody"] = responseBody
                     , ["ResponseContentType"] = context.Response.ContentType
@@ -93,6 +98,11 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
         }
     }
 
+    /// <summary>
+    ///     判断内容类型是否适合按文本读取
+    /// </summary>
+    /// <param name="contentType">HTTP 内容类型</param>
+    /// <returns>适合按文本读取时返回 true</returns>
     private static bool IsTextContentType(string? contentType) {
         if (string.IsNullOrWhiteSpace(contentType)) {
             return false;
@@ -106,6 +116,12 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
                || mediaType.Contains("x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    ///     从当前位置读取流中的全部文本
+    /// </summary>
+    /// <param name="stream">输入流</param>
+    /// <param name="cancellationToken">取消操作令牌</param>
+    /// <returns>读取到的文本</returns>
     private static async Task<string> ReadBodyAsync(
         Stream stream
         , CancellationToken cancellationToken

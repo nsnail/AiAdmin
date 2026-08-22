@@ -6,10 +6,4 @@ import { developmentRoutes } from './development'
 /**
  * 导出所有模块化路由
  */
-export const routeModules: AppRouteRecord[] = [
-  dashboardRoutes,
-  permissionRoutes,
-  systemManagementRoute,
-  systemRoutes,
-  developmentRoutes
-]
+export const routeModules: AppRouteRecord[] = [dashboardRoutes, permissionRoutes, systemManagementRoute, systemRoutes, developmentRoutes]

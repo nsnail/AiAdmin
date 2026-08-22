@@ -9,37 +9,37 @@ import { templateRoutes } from './template'
 import { widgetsRoutes } from './widgets'
 
 const exampleRoutes = [
-  templateRoutes,
-  widgetsRoutes,
-  examplesRoutes,
-  articleRoutes,
-  resultRoutes,
-  exceptionRoutes,
-  safeguardRoutes,
-  ...helpRoutes
+    templateRoutes,
+    widgetsRoutes,
+    examplesRoutes,
+    articleRoutes,
+    resultRoutes,
+    exceptionRoutes,
+    safeguardRoutes,
+    ...helpRoutes,
 ].map((route) => ({
-  ...route,
-  path: route.path.replace(/^\//, '')
+    ...route,
+    path: route.path.replace(/^\//, ''),
 }))
 
 export const developmentRoutes: AppRouteRecord = {
-  path: '/development',
-  name: 'Development',
-  component: '/index/index',
-  meta: {
-    title: 'menus.development.title',
-    icon: 'ri:code-box-line'
-  },
-  children: [
-    {
-      path: 'examples',
-      name: 'ExampleCenter',
-      component: '',
-      meta: {
-        title: 'menus.development.exampleCenter',
-        icon: 'ri:apps-2-line'
-      },
-      children: exampleRoutes
-    }
-  ]
+    path: '/development',
+    name: 'Development',
+    component: '/index/index',
+    meta: {
+        title: 'menus.development.title',
+        icon: 'ri:code-box-line',
+    },
+    children: [
+        {
+            path: 'examples',
+            name: 'ExampleCenter',
+            component: '',
+            meta: {
+                title: 'menus.development.exampleCenter',
+                icon: 'ri:apps-2-line',
+            },
+            children: exampleRoutes,
+        },
+    ],
 }

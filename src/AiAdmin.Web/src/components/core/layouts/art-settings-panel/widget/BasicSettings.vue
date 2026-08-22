@@ -1,30 +1,29 @@
 <template>
-  <div>
-    <SectionTitle :title="$t('setting.basics.title')" class="mt-10" />
-    <SettingItem
-      v-for="config in basicSettingsConfig"
-      :key="config.key"
-      :config="config"
-      :model-value="getSettingValue(config.key)"
-      @change="handleSettingChange(config.handler, $event)"
-    />
-  </div>
+    <div>
+        <SectionTitle :title="$t('setting.basics.title')" class="mt-10" />
+        <SettingItem
+            v-for="config in basicSettingsConfig"
+            :config="config"
+            :key="config.key"
+            :model-value="getSettingValue(config.key)"
+            @change="handleSettingChange(config.handler, $event)" />
+    </div>
 </template>
 
-<script setup lang="ts">
-  import SectionTitle from './SectionTitle.vue'
-  import SettingItem from './SettingItem.vue'
-  import { useSettingStore } from '@/store/modules/setting'
-  import { useSettingsConfig } from '../composables/useSettingsConfig'
-  import { useSettingsHandlers } from '../composables/useSettingsHandlers'
-  import { storeToRefs } from 'pinia'
+<script lang="ts" setup>
+import SectionTitle from './SectionTitle.vue'
+import SettingItem from './SettingItem.vue'
+import { useSettingStore } from '@/store/modules/setting'
+import { useSettingsConfig } from '../composables/useSettingsConfig'
+import { useSettingsHandlers } from '../composables/useSettingsHandlers'
+import { storeToRefs } from 'pinia'
 
-  const settingStore = useSettingStore()
-  const { basicSettingsConfig } = useSettingsConfig()
-  const { basicHandlers } = useSettingsHandlers()
+const settingStore = useSettingStore()
+const { basicSettingsConfig } = useSettingsConfig()
+const { basicHandlers } = useSettingsHandlers()
 
-  // 获取store的响应式状态
-  const {
+// 获取store的响应式状态
+const {
     uniqueOpened,
     showMenuButton,
     showFastEnter,
@@ -38,11 +37,11 @@
     menuOpenWidth,
     tabStyle,
     pageTransition,
-    customRadius
-  } = storeToRefs(settingStore)
+    customRadius,
+} = storeToRefs(settingStore)
 
-  // 创建设置值映射
-  const settingValueMap = {
+// 创建设置值映射
+const settingValueMap = {
     uniqueOpened,
     showMenuButton,
     showFastEnter,
@@ -56,22 +55,22 @@
     menuOpenWidth,
     tabStyle,
     pageTransition,
-    customRadius
-  }
+    customRadius,
+}
 
-  // 获取设置值的方法
-  const getSettingValue = (key: string) => {
+// 获取设置值的方法
+const getSettingValue = (key: string) => {
     const settingRef = settingValueMap[key as keyof typeof settingValueMap]
     return settingRef?.value ?? null
-  }
+}
 
-  // 统一的设置变更处理
-  const handleSettingChange = (handlerName: string, value: any) => {
+// 统一的设置变更处理
+const handleSettingChange = (handlerName: string, value: any) => {
     const handler = (basicHandlers as any)[handlerName]
     if (typeof handler === 'function') {
-      handler(value)
+        handler(value)
     } else {
-      console.warn(`Handler "${handlerName}" not found in basicHandlers`)
+        console.warn(`Handler "${handlerName}" not found in basicHandlers`)
     }
-  }
+}
 </script>

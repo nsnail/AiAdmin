@@ -166,7 +166,6 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             , "requestbody" => "requestBody"
             , "requestcontenttype" => "requestContentType"
             , "requestheaders" => "requestHeaders"
-            , "requestid" => "requestId"
             , "requestmethod" => "requestMethod"
             , "requestrelativeurl" => "requestRelativeUrl"
             , "requesturl" => "requestUrl"
@@ -179,6 +178,7 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             , "statuscode" => "statusCode"
             , "threadid" => "threadId"
             , "timestamp" => "timestamp"
+            , "traceid" => "traceId"
             , "useragent" => "userAgent"
             , "username" => "userName"
             , _ => null

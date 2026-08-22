@@ -260,6 +260,25 @@ public static class DynamicFilterExtensions
         return type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
     }
 
+    /// <summary>
+    ///     判断目标类型是否为可转换的基础数字类型
+    /// </summary>
+    /// <param name="type">待判断的类型</param>
+    /// <returns>是数字类型时返回 true，否则返回 false</returns>
+    private static bool IsNumericType(Type type) {
+        return Type.GetTypeCode(type) is TypeCode.Byte
+            or TypeCode.SByte
+            or TypeCode.Int16
+            or TypeCode.UInt16
+            or TypeCode.Int32
+            or TypeCode.UInt32
+            or TypeCode.Int64
+            or TypeCode.UInt64
+            or TypeCode.Single
+            or TypeCode.Double
+            or TypeCode.Decimal;
+    }
+
     private static bool IsSameDateAtMidnight(
         JsonElement start
         , JsonElement end
@@ -291,6 +310,13 @@ public static class DynamicFilterExtensions
             : Enum.Parse(targetType, value, true);
     }
 
+    /// <summary>
+    ///     将 JSON 筛选值转换为实体字段类型
+    /// </summary>
+    /// <param name="value">JSON 筛选值</param>
+    /// <param name="targetType">实体字段类型</param>
+    /// <returns>转换后的字段值</returns>
+    /// <exception cref="DynamicFilterValidationException">筛选值无法转换为实体字段类型时抛出</exception>
     private static object? ReadValue(
         JsonElement value
         , Type targetType
@@ -300,18 +326,23 @@ public static class DynamicFilterExtensions
             {
                 _ when targetType == typeof(string) => value.GetString() ?? string.Empty
                 , _ when targetType == typeof(DateTimeOffset) => DateTimeOffset.Parse(
-                    value.GetString() ?? throw new FormatException(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
+                    value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
                 )
                 , _ when targetType == typeof(DateTime) => DateTime.Parse(
-                    value.GetString() ?? throw new FormatException(), CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
+                    value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
                 )
-                , _ when targetType.IsEnum && value.ValueKind == JsonValueKind.String => ParseEnumValue(
-                    targetType, value.GetString() ?? throw new FormatException()
+                , _ when targetType.IsEnum && value.ValueKind == JsonValueKind.String => ParseEnumValue(targetType, value.GetString() ?? string.Empty)
+                , _ when IsNumericType(targetType) && value.ValueKind == JsonValueKind.String => Convert.ChangeType(
+                    value.GetString() ?? string.Empty, targetType, CultureInfo.InvariantCulture
                 )
                 , _ => JsonSerializer.Deserialize(value.GetRawText(), targetType)
             };
         }
-        catch (Exception exception) when (exception is JsonException or FormatException or OverflowException or ArgumentException) {
+        catch (Exception exception) when (exception is JsonException
+                                              or FormatException
+                                              or OverflowException
+                                              or ArgumentException
+                                              or InvalidCastException) {
             throw new DynamicFilterValidationException($"Dynamic filter value cannot be converted to {targetType.Name}.");
         }
     }

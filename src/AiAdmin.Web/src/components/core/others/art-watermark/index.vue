@@ -1,32 +1,27 @@
 <!-- 水印组件 -->
 <template>
-  <div
-    v-if="watermarkVisible"
-    class="fixed left-0 top-0 h-screen w-screen pointer-events-none"
-    :style="{ zIndex: zIndex }"
-  >
-    <ElWatermark
-      :content="content"
-      :font="{ fontSize: fontSize, color: fontColor }"
-      :rotate="rotate"
-      :gap="[gapX, gapY]"
-      :offset="[offsetX, offsetY]"
-    >
-      <div style="height: 100vh"></div>
-    </ElWatermark>
-  </div>
+    <div v-if="watermarkVisible" :style="{ zIndex: zIndex }" class="fixed left-0 top-0 h-screen w-screen pointer-events-none">
+        <ElWatermark
+            :content="content"
+            :font="{ fontSize: fontSize, color: fontColor }"
+            :gap="[gapX, gapY]"
+            :offset="[offsetX, offsetY]"
+            :rotate="rotate">
+            <div style="height: 100vh"></div>
+        </ElWatermark>
+    </div>
 </template>
 
-<script setup lang="ts">
-  import AppConfig from '@/config'
-  import { useSettingStore } from '@/store/modules/setting'
+<script lang="ts" setup>
+import AppConfig from '@/config'
+import { useSettingStore } from '@/store/modules/setting'
 
-  defineOptions({ name: 'ArtWatermark' })
+defineOptions({ name: 'ArtWatermark' })
 
-  const settingStore = useSettingStore()
-  const { watermarkVisible } = storeToRefs(settingStore)
+const settingStore = useSettingStore()
+const { watermarkVisible } = storeToRefs(settingStore)
 
-  interface WatermarkProps {
+interface WatermarkProps {
     /** 水印内容 */
     content?: string
     /** 水印是否可见 */
@@ -47,9 +42,9 @@
     offsetY?: number
     /** 水印层级 */
     zIndex?: number
-  }
+}
 
-  withDefaults(defineProps<WatermarkProps>(), {
+withDefaults(defineProps<WatermarkProps>(), {
     content: AppConfig.systemInfo.name,
     visible: false,
     fontSize: 16,
@@ -59,6 +54,6 @@
     gapY: 100,
     offsetX: 50,
     offsetY: 50,
-    zIndex: 3100
-  })
+    zIndex: 3100,
+})
 </script>

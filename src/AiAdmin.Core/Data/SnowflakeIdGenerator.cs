@@ -18,6 +18,19 @@ public static class SnowflakeIdGenerator
     private static long _workerId;
 
     /// <summary>
+    ///     获取当前实例的 Snowflake WorkerId
+    /// </summary>
+    public static long WorkerId
+    {
+        get
+        {
+            lock (_sync) {
+                return _workerId;
+            }
+        }
+    }
+
+    /// <summary>
     ///     设置当前实例的 Snowflake WorkerId
     /// </summary>
     /// <param name="workerId">实例编号，范围为 0 到 31</param>

@@ -33,35 +33,35 @@ import { useCommon } from '@/hooks/core/useCommon'
  * @param to 当前路由对象
  */
 export const setWorktab = (to: RouteLocationNormalized): void => {
-  const worktabStore = useWorktabStore()
-  const { meta, path, name, params, query } = to
-  if (!meta.isHideTab) {
-    // 如果是 iframe 页面，则特殊处理工作标签页
-    if (isIframe(path)) {
-      const iframeRoute = IframeRouteManager.getInstance().findByPath(to.path)
+    const worktabStore = useWorktabStore()
+    const { meta, path, name, params, query } = to
+    if (!meta.isHideTab) {
+        // 如果是 iframe 页面，则特殊处理工作标签页
+        if (isIframe(path)) {
+            const iframeRoute = IframeRouteManager.getInstance().findByPath(to.path)
 
-      if (iframeRoute?.meta) {
-        worktabStore.openTab({
-          title: iframeRoute.meta.title,
-          icon: meta.icon as string,
-          path,
-          name: name as string,
-          keepAlive: meta.keepAlive as boolean,
-          params,
-          query
-        })
-      }
-    } else if (useSettingStore().showWorkTab || path === useCommon().homePath.value) {
-      worktabStore.openTab({
-        title: meta.title as string,
-        icon: meta.icon as string,
-        path,
-        name: name as string,
-        keepAlive: meta.keepAlive as boolean,
-        params,
-        query,
-        fixedTab: meta.fixedTab as boolean
-      })
+            if (iframeRoute?.meta) {
+                worktabStore.openTab({
+                    title: iframeRoute.meta.title,
+                    icon: meta.icon as string,
+                    path,
+                    name: name as string,
+                    keepAlive: meta.keepAlive as boolean,
+                    params,
+                    query,
+                })
+            }
+        } else if (useSettingStore().showWorkTab || path === useCommon().homePath.value) {
+            worktabStore.openTab({
+                title: meta.title as string,
+                icon: meta.icon as string,
+                path,
+                name: name as string,
+                keepAlive: meta.keepAlive as boolean,
+                params,
+                query,
+                fixedTab: meta.fixedTab as boolean,
+            })
+        }
     }
-  }
 }

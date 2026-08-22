@@ -5,6 +5,7 @@ using AiAdmin.Api.Logging;
 using AiAdmin.Api.Middleware;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
@@ -25,12 +26,23 @@ builder.Logging.AddFilter("AiAdmin.Api.Services.ExternalHttpRequestService", Log
 
 builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new LongJsonConverter()));
 builder.Services.AddProblemDetails();
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+);
 builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
 builder.Services.Configure<ElasticsearchLogOptions>(builder.Configuration.GetSection("Elasticsearch"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ElasticsearchLogOptions>>().Value);
 builder.Services.AddSingleton<ILoggerProvider, ElasticsearchLoggerProvider>();
 builder.Services.AddHttpClient<ElasticsearchLogWriter>();
 builder.Services.AddHttpClient<ElasticsearchLogQueryService>();
+builder.Services.AddHttpClient<IpLocationService>(client =>
+    {
+        client.BaseAddress = new Uri(
+            builder.Configuration["IpLocation:BaseUrl"] ?? throw new InvalidOperationException("IpLocation:BaseUrl is required.")
+        );
+        client.Timeout = TimeSpan.FromSeconds(3);
+    }
+);
 builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
@@ -113,6 +125,7 @@ var app = builder.Build();
 
 app.UseExceptionHandler();
 app.UseCors("Web");
+app.UseForwardedHeaders();
 app.UseRouting();
 app.UseAuthentication();
 app.UseMiddleware<ApiHttpLoggingMiddleware>();

@@ -40,8 +40,8 @@ const storageKeyManager = new StorageKeyManager()
  * 语言消息对象
  */
 const messages = {
-  [LanguageEnum.EN]: enMessages,
-  [LanguageEnum.ZH]: zhMessages
+    [LanguageEnum.EN]: enMessages,
+    [LanguageEnum.ZH]: zhMessages,
 }
 
 /**
@@ -49,8 +49,8 @@ const messages = {
  * 用于语言切换下拉框
  */
 export const languageOptions = [
-  { value: LanguageEnum.ZH, label: '简体中文' },
-  { value: LanguageEnum.EN, label: 'English' }
+    { value: LanguageEnum.ZH, label: '简体中文' },
+    { value: LanguageEnum.EN, label: 'English' },
 ]
 
 /**
@@ -58,48 +58,48 @@ export const languageOptions = [
  * @returns 语言设置，如果获取失败则返回默认语言
  */
 const getDefaultLanguage = (): LanguageEnum => {
-  // 尝试从版本化的存储中获取语言设置
-  try {
-    const storageKey = storageKeyManager.getStorageKey('user')
-    const userStore = localStorage.getItem(storageKey)
+    // 尝试从版本化的存储中获取语言设置
+    try {
+        const storageKey = storageKeyManager.getStorageKey('user')
+        const userStore = localStorage.getItem(storageKey)
 
-    if (userStore) {
-      const { language } = JSON.parse(userStore)
-      if (language && Object.values(LanguageEnum).includes(language)) {
-        return language
-      }
+        if (userStore) {
+            const { language } = JSON.parse(userStore)
+            if (language && Object.values(LanguageEnum).includes(language)) {
+                return language
+            }
+        }
+    } catch (error) {
+        console.warn('[i18n] 从版本化存储获取语言设置失败:', error)
     }
-  } catch (error) {
-    console.warn('[i18n] 从版本化存储获取语言设置失败:', error)
-  }
 
-  // 尝试从系统存储中获取语言设置
-  try {
-    const sys = getSystemStorage()
-    if (sys) {
-      const { user } = JSON.parse(sys)
-      if (user?.language && Object.values(LanguageEnum).includes(user.language)) {
-        return user.language
-      }
+    // 尝试从系统存储中获取语言设置
+    try {
+        const sys = getSystemStorage()
+        if (sys) {
+            const { user } = JSON.parse(sys)
+            if (user?.language && Object.values(LanguageEnum).includes(user.language)) {
+                return user.language
+            }
+        }
+    } catch (error) {
+        console.warn('[i18n] 从系统存储获取语言设置失败:', error)
     }
-  } catch (error) {
-    console.warn('[i18n] 从系统存储获取语言设置失败:', error)
-  }
 
-  // 返回默认语言
-  console.debug('[i18n] 使用默认语言:', LanguageEnum.ZH)
-  return LanguageEnum.ZH
+    // 返回默认语言
+    console.debug('[i18n] 使用默认语言:', LanguageEnum.ZH)
+    return LanguageEnum.ZH
 }
 
 /**
  * i18n 配置选项
  */
 const i18nOptions: I18nOptions = {
-  locale: getDefaultLanguage(),
-  legacy: false,
-  globalInjection: true,
-  fallbackLocale: LanguageEnum.ZH,
-  messages
+    locale: getDefaultLanguage(),
+    legacy: false,
+    globalInjection: true,
+    fallbackLocale: LanguageEnum.ZH,
+    messages,
 }
 
 /**
@@ -111,7 +111,7 @@ const i18n: I18n = createI18n(i18nOptions)
  * 翻译函数类型
  */
 interface Translation {
-  (key: string): string
+    (key: string): string
 }
 
 /**

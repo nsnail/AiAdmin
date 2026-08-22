@@ -1,103 +1,89 @@
 <template>
-  <div class="page-content mb-5">
-    <!-- 完整工具栏编辑器 -->
-    <ElCard class="editor-card">
-      <template #header>
-        <div class="card-header">
-          <span>🛠️ 完整工具栏编辑器</span>
-          <div class="header-buttons">
-            <ElButton size="small" @click="clearFullEditor">清空</ElButton>
-            <ElButton size="small" @click="getFullEditorContent">获取内容</ElButton>
-            <ElButton size="small" @click="setFullEditorDemo">设置示例</ElButton>
-          </div>
-        </div>
-      </template>
+    <div class="page-content mb-5">
+        <!-- 完整工具栏编辑器 -->
+        <ElCard class="editor-card">
+            <template #header>
+                <div class="card-header">
+                    <span>🛠️ 完整工具栏编辑器</span>
+                    <div class="header-buttons">
+                        <ElButton @click="clearFullEditor" size="small">清空</ElButton>
+                        <ElButton @click="getFullEditorContent" size="small">获取内容</ElButton>
+                        <ElButton @click="setFullEditorDemo" size="small">设置示例</ElButton>
+                    </div>
+                </div>
+            </template>
 
-      <ArtWangEditor
-        ref="fullEditorRef"
-        v-model="fullEditorHtml"
-        height="400px"
-        placeholder="请输入内容，体验完整的编辑功能..."
-        :exclude-keys="[]"
-      />
-    </ElCard>
-
-    <!-- 简化工具栏编辑器 -->
-    <ElCard class="editor-card">
-      <template #header>
-        <div class="card-header">
-          <span>✨ 简化工具栏编辑器</span>
-          <div class="header-buttons">
-            <ElButton size="small" @click="clearSimpleEditor">清空</ElButton>
-            <ElButton size="small" @click="getSimpleEditorContent">获取内容</ElButton>
-            <ElButton size="small" @click="setSimpleEditorDemo">设置示例</ElButton>
-          </div>
-        </div>
-      </template>
-
-      <ArtWangEditor
-        ref="simpleEditorRef"
-        v-model="simpleEditorHtml"
-        height="400px"
-        placeholder="请输入内容，体验简化的编辑功能..."
-        :toolbar-keys="simpleToolbarKeys"
-      />
-    </ElCard>
-
-    <!-- 内容对比预览 -->
-    <ElCard class="preview-card">
-      <template #header>
-        <span>📖 内容预览对比</span>
-      </template>
-
-      <ElRow :gutter="20">
-        <ElCol :span="12">
-          <h3>完整编辑器内容</h3>
-          <ElTabs v-model="fullActiveTab">
-            <ElTabPane label="渲染效果" name="preview">
-              <div class="content-preview" v-html="fullEditorHtml"></div>
-            </ElTabPane>
-            <ElTabPane label="HTML源码" name="html">
-              <ElInput
+            <ArtWangEditor
                 v-model="fullEditorHtml"
-                type="textarea"
-                :rows="8"
-                placeholder="HTML源码"
-                readonly
-              />
-            </ElTabPane>
-          </ElTabs>
-        </ElCol>
+                :exclude-keys="[]"
+                height="400px"
+                placeholder="请输入内容，体验完整的编辑功能..."
+                ref="fullEditorRef" />
+        </ElCard>
 
-        <ElCol :span="12">
-          <h3>简化编辑器内容</h3>
-          <ElTabs v-model="simpleActiveTab">
-            <ElTabPane label="渲染效果" name="preview">
-              <div class="content-preview" v-html="simpleEditorHtml"></div>
-            </ElTabPane>
-            <ElTabPane label="HTML源码" name="html">
-              <ElInput
+        <!-- 简化工具栏编辑器 -->
+        <ElCard class="editor-card">
+            <template #header>
+                <div class="card-header">
+                    <span>✨ 简化工具栏编辑器</span>
+                    <div class="header-buttons">
+                        <ElButton @click="clearSimpleEditor" size="small">清空</ElButton>
+                        <ElButton @click="getSimpleEditorContent" size="small">获取内容</ElButton>
+                        <ElButton @click="setSimpleEditorDemo" size="small">设置示例</ElButton>
+                    </div>
+                </div>
+            </template>
+
+            <ArtWangEditor
                 v-model="simpleEditorHtml"
-                type="textarea"
-                :rows="8"
-                placeholder="HTML源码"
-                readonly
-              />
-            </ElTabPane>
-          </ElTabs>
-        </ElCol>
-      </ElRow>
-    </ElCard>
+                :toolbar-keys="simpleToolbarKeys"
+                height="400px"
+                placeholder="请输入内容，体验简化的编辑功能..."
+                ref="simpleEditorRef" />
+        </ElCard>
 
-    <!-- 使用说明 -->
-    <ElCard class="usage-card">
-      <template #header>
-        <span>📚 使用说明</span>
-      </template>
+        <!-- 内容对比预览 -->
+        <ElCard class="preview-card">
+            <template #header>
+                <span>📖 内容预览对比</span>
+            </template>
 
-      <ElCollapse v-model="activeCollapse">
-        <ElCollapseItem title="基础用法" name="basic">
-          <pre><code class="language-vue">&lt;template&gt;
+            <ElRow :gutter="20">
+                <ElCol :span="12">
+                    <h3>完整编辑器内容</h3>
+                    <ElTabs v-model="fullActiveTab">
+                        <ElTabPane label="渲染效果" name="preview">
+                            <div v-html="fullEditorHtml" class="content-preview"></div>
+                        </ElTabPane>
+                        <ElTabPane label="HTML源码" name="html">
+                            <ElInput v-model="fullEditorHtml" :rows="8" placeholder="HTML源码" readonly type="textarea" />
+                        </ElTabPane>
+                    </ElTabs>
+                </ElCol>
+
+                <ElCol :span="12">
+                    <h3>简化编辑器内容</h3>
+                    <ElTabs v-model="simpleActiveTab">
+                        <ElTabPane label="渲染效果" name="preview">
+                            <div v-html="simpleEditorHtml" class="content-preview"></div>
+                        </ElTabPane>
+                        <ElTabPane label="HTML源码" name="html">
+                            <ElInput v-model="simpleEditorHtml" :rows="8" placeholder="HTML源码" readonly type="textarea" />
+                        </ElTabPane>
+                    </ElTabs>
+                </ElCol>
+            </ElRow>
+        </ElCard>
+
+        <!-- 使用说明 -->
+        <ElCard class="usage-card">
+            <template #header>
+                <span>📚 使用说明</span>
+            </template>
+
+            <ElCollapse v-model="activeCollapse">
+                <ElCollapseItem name="basic" title="基础用法">
+                    <pre><code class="language-vue">&lt;template&gt;
           &lt;ArtWangEditor v-model="content" /&gt;
           &lt;/template&gt;
 
@@ -106,20 +92,20 @@
 
           const content = ref('&lt;p&gt;初始内容&lt;/p&gt;')
           &lt;/script&gt;</code></pre>
-        </ElCollapseItem>
+                </ElCollapseItem>
 
-        <ElCollapseItem title="完整工具栏配置" name="full">
-          <pre><code class="language-vue">&lt;template&gt;
+                <ElCollapseItem name="full" title="完整工具栏配置">
+                    <pre><code class="language-vue">&lt;template&gt;
           &lt;!-- 显示所有工具，不排除任何功能 --&gt;
           &lt;ArtWangEditor
           v-model="content"
           :exclude-keys="[]"
           /&gt;
           &lt;/template&gt;</code></pre>
-        </ElCollapseItem>
+                </ElCollapseItem>
 
-        <ElCollapseItem title="简化工具栏配置" name="simple">
-          <pre><code class="language-vue">&lt;template&gt;
+                <ElCollapseItem name="simple" title="简化工具栏配置">
+                    <pre><code class="language-vue">&lt;template&gt;
           &lt;!-- 只显示基础编辑工具 --&gt;
           &lt;ArtWangEditor
           v-model="content"
@@ -131,10 +117,10 @@
           ]"
           /&gt;
           &lt;/template&gt;</code></pre>
-        </ElCollapseItem>
+                </ElCollapseItem>
 
-        <ElCollapseItem title="自定义配置" name="config">
-          <pre><code class="language-vue">&lt;template&gt;
+                <ElCollapseItem name="config" title="自定义配置">
+                    <pre><code class="language-vue">&lt;template&gt;
           &lt;ArtWangEditor
           v-model="content"
           height="600px"
@@ -146,10 +132,10 @@
           }"
           /&gt;
           &lt;/template&gt;</code></pre>
-        </ElCollapseItem>
+                </ElCollapseItem>
 
-        <ElCollapseItem title="组件方法调用" name="methods">
-          <pre><code class="language-vue">&lt;template&gt;
+                <ElCollapseItem name="methods" title="组件方法调用">
+                    <pre><code class="language-vue">&lt;template&gt;
           &lt;ArtWangEditor ref="editorRef" v-model="content" /&gt;
           &lt;el-button @click="handleClear"&gt;清空&lt;/el-button&gt;
           &lt;el-button @click="handleFocus"&gt;聚焦&lt;/el-button&gt;
@@ -175,71 +161,58 @@
           console.log('编辑器内容:', html)
           }
           &lt;/script&gt;</code></pre>
-        </ElCollapseItem>
+                </ElCollapseItem>
 
-        <ElCollapseItem title="工具栏配置说明" name="toolbar-config">
-          <div class="toolbar-explanation">
-            <h4>完整工具栏 vs 简化工具栏</h4>
-            <ElRow :gutter="16">
-              <ElCol :span="12">
-                <h5>✅ 完整工具栏包含：</h5>
-                <ul>
-                  <li>文本格式：加粗、斜体、下划线、字体颜色、背景色</li>
-                  <li>段落格式：标题、引用、对齐方式、缩进</li>
-                  <li>列表：有序列表、无序列表、待办事项</li>
-                  <li>插入：链接、图片、表格、分割线、表情</li>
-                  <li>代码：代码块、行内代码</li>
-                  <li>操作：撤销、重做、全屏、清除格式</li>
-                </ul>
-              </ElCol>
-              <ElCol :span="12">
-                <h5>⚡ 简化工具栏包含：</h5>
-                <ul>
-                  <li>基础格式：加粗、斜体、下划线</li>
-                  <li>列表：有序列表、无序列表</li>
-                  <li>插入：链接、图片</li>
-                  <li>操作：撤销、重做</li>
-                </ul>
-                <p class="note">适用于简单的文本编辑场景，界面更清爽。</p>
-              </ElCol>
-            </ElRow>
-          </div>
-        </ElCollapseItem>
-      </ElCollapse>
-    </ElCard>
-  </div>
+                <ElCollapseItem name="toolbar-config" title="工具栏配置说明">
+                    <div class="toolbar-explanation">
+                        <h4>完整工具栏 vs 简化工具栏</h4>
+                        <ElRow :gutter="16">
+                            <ElCol :span="12">
+                                <h5>✅ 完整工具栏包含：</h5>
+                                <ul>
+                                    <li>文本格式：加粗、斜体、下划线、字体颜色、背景色</li>
+                                    <li>段落格式：标题、引用、对齐方式、缩进</li>
+                                    <li>列表：有序列表、无序列表、待办事项</li>
+                                    <li>插入：链接、图片、表格、分割线、表情</li>
+                                    <li>代码：代码块、行内代码</li>
+                                    <li>操作：撤销、重做、全屏、清除格式</li>
+                                </ul>
+                            </ElCol>
+                            <ElCol :span="12">
+                                <h5>⚡ 简化工具栏包含：</h5>
+                                <ul>
+                                    <li>基础格式：加粗、斜体、下划线</li>
+                                    <li>列表：有序列表、无序列表</li>
+                                    <li>插入：链接、图片</li>
+                                    <li>操作：撤销、重做</li>
+                                </ul>
+                                <p class="note">适用于简单的文本编辑场景，界面更清爽。</p>
+                            </ElCol>
+                        </ElRow>
+                    </div>
+                </ElCollapseItem>
+            </ElCollapse>
+        </ElCard>
+    </div>
 </template>
 
-<script setup lang="ts">
-  defineOptions({ name: 'WidgetsWangEditor' })
+<script lang="ts" setup>
+defineOptions({ name: 'WidgetsWangEditor' })
 
-  const fullEditorRef = ref()
-  const simpleEditorRef = ref()
-  const fullActiveTab = ref('preview')
-  const simpleActiveTab = ref('preview')
-  const activeCollapse = ref(['basic'])
+const fullEditorRef = ref()
+const simpleEditorRef = ref()
+const fullActiveTab = ref('preview')
+const simpleActiveTab = ref('preview')
+const activeCollapse = ref(['basic'])
 
-  /**
-   * 简化工具栏配置
-   * 只包含基础的编辑功能
-   */
-  const simpleToolbarKeys = [
-    'bold',
-    'italic',
-    'underline',
-    '|',
-    'bulletedList',
-    'numberedList',
-    '|',
-    'insertLink',
-    'insertImage',
-    '|',
-    'undo',
-    'redo'
-  ]
+/**
+ * 简化工具栏配置
+ * 只包含基础的编辑功能
+ */
+const simpleToolbarKeys = ['bold', 'italic', 'underline', '|', 'bulletedList', 'numberedList', '|', 'insertLink', 'insertImage', '|', 'undo', 'redo']
 
-  // 完整编辑器内容
-  const fullEditorHtml = ref(`<h1>🎨 完整工具栏编辑器示例</h1>
+// 完整编辑器内容
+const fullEditorHtml = ref(`<h1>🎨 完整工具栏编辑器示例</h1>
 <p>这个编辑器包含所有功能，您可以体验丰富的格式编辑功能。</p>
 
 <h2>✨ 文本样式</h2>
@@ -290,8 +263,8 @@ function createEditor() {
 
 <p>🔗 <a href="https://www.wangeditor.com/" target="_blank">访问官网了解更多</a></p>`)
 
-  // 简化编辑器内容
-  const simpleEditorHtml = ref(`<h1>✨ 简化工具栏编辑器示例</h1>
+// 简化编辑器内容
+const simpleEditorHtml = ref(`<h1>✨ 简化工具栏编辑器示例</h1>
 <p>这个编辑器只包含基础的编辑功能，界面更加简洁。</p>
 
 <h2>基础文本格式</h2>
@@ -315,27 +288,27 @@ function createEditor() {
 
 <p>简化版编辑器专注于基础功能，适合简单的内容编辑需求。</p>`)
 
-  /**
-   * 清空完整编辑器内容
-   */
-  const clearFullEditor = () => {
+/**
+ * 清空完整编辑器内容
+ */
+const clearFullEditor = () => {
     fullEditorRef.value?.clear()
     ElMessage.success('完整编辑器已清空')
-  }
+}
 
-  /**
-   * 获取完整编辑器内容
-   */
-  const getFullEditorContent = () => {
+/**
+ * 获取完整编辑器内容
+ */
+const getFullEditorContent = () => {
     const content = fullEditorRef.value?.getHtml()
     console.log('完整编辑器内容:', content)
     ElMessage.success('完整编辑器内容已输出到控制台')
-  }
+}
 
-  /**
-   * 设置完整编辑器演示内容
-   */
-  const setFullEditorDemo = () => {
+/**
+ * 设置完整编辑器演示内容
+ */
+const setFullEditorDemo = () => {
     const demoContent = `<h2>🎉 完整编辑器演示内容</h2>
 <p>这是通过方法设置的演示内容，展示完整编辑器的强大功能。</p>
 <ul>
@@ -351,29 +324,29 @@ function createEditor() {
 
     fullEditorRef.value?.setHtml(demoContent)
     ElMessage.success('已设置完整编辑器演示内容')
-  }
+}
 
-  /**
-   * 清空简化编辑器内容
-   */
-  const clearSimpleEditor = () => {
+/**
+ * 清空简化编辑器内容
+ */
+const clearSimpleEditor = () => {
     simpleEditorRef.value?.clear()
     ElMessage.success('简化编辑器已清空')
-  }
+}
 
-  /**
-   * 获取简化编辑器内容
-   */
-  const getSimpleEditorContent = () => {
+/**
+ * 获取简化编辑器内容
+ */
+const getSimpleEditorContent = () => {
     const content = simpleEditorRef.value?.getHtml()
     console.log('简化编辑器内容:', content)
     ElMessage.success('简化编辑器内容已输出到控制台')
-  }
+}
 
-  /**
-   * 设置简化编辑器演示内容
-   */
-  const setSimpleEditorDemo = () => {
+/**
+ * 设置简化编辑器演示内容
+ */
+const setSimpleEditorDemo = () => {
     const demoContent = `<h2>⚡ 简化编辑器演示内容</h2>
 <p>这是通过方法设置的演示内容，展示简化编辑器的核心功能。</p>
 <ul>
@@ -390,40 +363,40 @@ function createEditor() {
 
     simpleEditorRef.value?.setHtml(demoContent)
     ElMessage.success('已设置简化编辑器演示内容')
-  }
+}
 </script>
 
 <style lang="scss" scoped>
-  .page-content {
+.page-content {
     padding: 20px;
-  }
+}
 
-  .editor-card {
+.editor-card {
     margin-bottom: 24px;
-  }
+}
 
-  .card-header {
+.card-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-  }
+}
 
-  .header-buttons {
+.header-buttons {
     display: flex;
     gap: 8px;
-  }
+}
 
-  .preview-card {
+.preview-card {
     margin-bottom: 24px;
-  }
+}
 
-  .preview-card h3 {
+.preview-card h3 {
     margin: 0 0 16px;
     font-size: 16px;
     color: var(--el-text-color-primary);
-  }
+}
 
-  .content-preview {
+.content-preview {
     min-height: 200px;
     max-height: 300px;
     padding: 16px;
@@ -431,107 +404,107 @@ function createEditor() {
     background-color: var(--el-bg-color);
     border: 1px solid var(--el-border-color);
     border-radius: 6px;
-  }
+}
 
-  .content-preview :deep(h1),
-  .content-preview :deep(h2),
-  .content-preview :deep(h3) {
+.content-preview :deep(h1),
+.content-preview :deep(h2),
+.content-preview :deep(h3) {
     margin: 16px 0 8px;
-  }
+}
 
-  .content-preview :deep(p) {
+.content-preview :deep(p) {
     margin: 8px 0;
     line-height: 1.6;
-  }
+}
 
-  .content-preview :deep(table) {
+.content-preview :deep(table) {
     margin: 16px 0;
-  }
+}
 
-  .content-preview :deep(table th),
-  .content-preview :deep(table td) {
+.content-preview :deep(table th),
+.content-preview :deep(table td) {
     padding: 8px 12px;
-  }
+}
 
-  .content-preview :deep(pre) {
+.content-preview :deep(pre) {
     padding: 12px;
     margin: 16px 0;
     overflow-x: auto;
     background-color: var(--el-fill-color-light);
     border-radius: 4px;
-  }
+}
 
-  .content-preview :deep(blockquote) {
+.content-preview :deep(blockquote) {
     padding-left: 16px;
     margin: 16px 0;
     color: var(--el-text-color-regular);
     border-left: 4px solid var(--el-color-primary);
-  }
+}
 
-  .usage-card :deep(.el-collapse-item__content) {
+.usage-card :deep(.el-collapse-item__content) {
     padding-bottom: 16px;
-  }
+}
 
-  .usage-card pre {
+.usage-card pre {
     padding: 16px;
     margin: 0;
     overflow-x: auto;
     background-color: var(--el-fill-color-light);
     border-radius: 6px;
-  }
+}
 
-  .usage-card pre code {
+.usage-card pre code {
     font-family: Consolas, Monaco, 'Courier New', monospace;
     font-size: 14px;
     line-height: 1.5;
-  }
+}
 
-  .toolbar-explanation h4 {
+.toolbar-explanation h4 {
     margin: 0 0 16px;
     color: var(--el-text-color-primary);
-  }
+}
 
-  .toolbar-explanation h5 {
+.toolbar-explanation h5 {
     margin: 0 0 8px;
     font-size: 14px;
     color: var(--el-text-color-regular);
-  }
+}
 
-  .toolbar-explanation ul {
+.toolbar-explanation ul {
     padding-left: 20px;
     margin: 8px 0 16px;
-  }
+}
 
-  .toolbar-explanation ul li {
+.toolbar-explanation ul li {
     margin: 4px 0;
     font-size: 13px;
     color: var(--el-text-color-regular);
-  }
+}
 
-  .toolbar-explanation .note {
+.toolbar-explanation .note {
     margin: 8px 0 0;
     font-size: 12px;
     font-style: italic;
     color: var(--el-text-color-placeholder);
-  }
+}
 
-  @media (width <= 768px) {
+@media (width <= 768px) {
     .page-content {
-      padding: 12px;
+        padding: 12px;
     }
 
     .card-header {
-      flex-direction: column;
-      gap: 12px;
-      align-items: stretch !important;
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch !important;
     }
 
     .header-buttons {
-      justify-content: center;
+        justify-content: center;
     }
 
     .preview-card :deep(.el-col) {
-      margin-bottom: 16px;
+        margin-bottom: 16px;
     }
-  }
+}
 </style>

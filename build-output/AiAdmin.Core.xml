@@ -1,0 +1,2190 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AiAdmin.Core</name>
+    </assembly>
+    <members>
+        <member name="T:AiAdmin.Api.Attributes.ApiDescriptionAttribute">
+            <summary>
+                标记控制器或操作的接口描述键
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Attributes.ApiDescriptionAttribute.#ctor(System.String)">
+            <summary>
+                标记控制器或操作的接口描述键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ApiDescriptionAttribute.Description">
+            <summary>
+                获取英文接口描述
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Attributes.ListFilterAttribute">
+            <summary>
+                定义实体属性可用于列表筛选的前端控件元数据
+            </summary>
+            <param name="label">字段显示名称的客户端多语言键</param>
+            <param name="control">前端控件类型</param>
+        </member>
+        <member name="M:AiAdmin.Api.Attributes.ListFilterAttribute.#ctor(System.String,System.String)">
+            <summary>
+                定义实体属性可用于列表筛选的前端控件元数据
+            </summary>
+            <param name="label">字段显示名称的客户端多语言键</param>
+            <param name="control">前端控件类型</param>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ListFilterAttribute.Control">
+            <summary>
+                前端控件类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ListFilterAttribute.Label">
+            <summary>
+                字段显示名称的客户端多语言键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ListFilterAttribute.Options">
+            <summary>
+                下拉或单选选项，格式为值:客户端多语言键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ListFilterAttribute.Placeholder">
+            <summary>
+                输入提示文字的客户端多语言键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ListFilterAttribute.Sort">
+            <summary>
+                控件在筛选栏中的显示顺序，数值越小越靠前
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Attributes.ListFilterAttribute.Span">
+            <summary>
+                控件占用的二十四栅格列数
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ApiEndpointResult">
+            <summary>
+                接口列表项
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ApiEndpointResult.#ctor(System.Int64,System.DateTimeOffset,System.String,System.Boolean,System.String,System.String,System.String,System.String,System.String,System.Int32)">
+            <summary>
+                接口列表项
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ApiResponse`1">
+            <summary>
+                统一接口响应包装
+            </summary>
+            <typeparam name="T">响应数据类型</typeparam>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ApiResponse`1.#ctor(System.Int32,System.String,`0)">
+            <summary>
+                统一接口响应包装
+            </summary>
+            <typeparam name="T">响应数据类型</typeparam>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ApiResponse`1.Ok(`0,System.String)">
+            <summary>
+                创建成功响应
+            </summary>
+            <param name="data">响应数据</param>
+            <param name="message">响应消息</param>
+            <returns>成功响应对象</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ApiSyncResult">
+            <summary>
+                接口同步统计结果
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ApiSyncResult.#ctor(System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+                接口同步统计结果
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ChangePasswordRequest">
+            <summary>
+                当前用户修改密码请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ChangePasswordRequest.CurrentPassword">
+            <summary>
+                当前密码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ChangePasswordRequest.NewPassword">
+            <summary>
+                新密码
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.CreateFileDirectoryRequest">
+            <summary>
+                创建文件目录请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.CreateFileDirectoryRequest.Name">
+            <summary>
+                目录名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.CreateFileDirectoryRequest.Path">
+            <summary>
+                当前目录相对路径
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.CurrentUserResult">
+            <summary>
+                当前用户信息响应
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.CurrentUserResult.#ctor(System.Int64,System.String,System.String,System.String,AiAdmin.Api.Models.UserGender,System.String,System.String[],System.String[])">
+            <summary>
+                当前用户信息响应
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.DeleteFileRequest">
+            <summary>
+                删除文件或目录请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DeleteFileRequest.Directory">
+            <summary>
+                是否递归删除目录
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DeleteFileRequest.Name">
+            <summary>
+                对象相对路径
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.DepartmentTreeItem">
+            <summary>
+                部门树节点
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Children">
+            <summary>
+                子部门节点集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Code">
+            <summary>
+                部门编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.CreatedAt">
+            <summary>
+                创建时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Email">
+            <summary>
+                部门邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Id">
+            <summary>
+                部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.IsEnabled">
+            <summary>
+                是否启用部门
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Leader">
+            <summary>
+                部门负责人
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Name">
+            <summary>
+                部门名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.ParentId">
+            <summary>
+                父部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Phone">
+            <summary>
+                部门电话
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DepartmentTreeItem.Sort">
+            <summary>
+                同级显示顺序
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.DictionaryCategoryResult">
+            <summary>
+                字典目录树节点
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.DictionaryCategoryResult.#ctor(System.Int64,System.DateTimeOffset,System.String,System.String,System.Nullable{System.Int64},System.Int32,System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Contracts.DictionaryCategoryResult})">
+            <summary>
+                字典目录树节点
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.DictionaryItemResult">
+            <summary>
+                字典内容列表项
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.DictionaryItemResult.#ctor(System.Int64,System.DateTimeOffset,System.Int64,System.String,System.String,System.Int32,System.Boolean,System.String)">
+            <summary>
+                字典内容列表项
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.DynamicFilter">
+            <summary>
+                动态筛选节点
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicFilter.Field">
+            <summary>
+                字段路径，支持实体的单值导航属性路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicFilter.Filters">
+            <summary>
+                子筛选条件
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicFilter.Logic">
+            <summary>
+                子条件的连接逻辑，支持 And 或 Or
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicFilter.NestedDynamicFilter">
+            <summary>
+                可嵌套的筛选节点包装，兼容 FreeSql DynamicFilterInfo 的请求格式
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicFilter.Operator">
+            <summary>
+                操作符名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicFilter.Value">
+            <summary>
+                筛选值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.DynamicQueryRequest">
+            <summary>
+                列表动态查询请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicQueryRequest.Current">
+            <summary>
+                当前页码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicQueryRequest.DynamicFilter">
+            <summary>
+                动态筛选根节点
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicQueryRequest.Size">
+            <summary>
+                每页记录数
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicQueryRequest.SortField">
+            <summary>
+                排序字段名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.DynamicQueryRequest.SortOrder">
+            <summary>
+                排序方向，支持 asc 或 desc
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ListFilterFieldResult">
+            <summary>
+                列表筛选字段响应
+            </summary>
+            <param name="Field">实体属性名称</param>
+            <param name="Label">字段显示名称</param>
+            <param name="Control">前端控件类型</param>
+            <param name="Span">控件占用的二十四栅格列数</param>
+            <param name="Sort">控件显示顺序</param>
+            <param name="Placeholder">输入提示文字</param>
+            <param name="Options">可选项列表</param>
+            <param name="ValueType">字段值类型</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ListFilterFieldResult.#ctor(System.String,System.String,System.String,System.Int32,System.Int32,System.String,System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Contracts.ListFilterOptionResult},System.String)">
+            <summary>
+                列表筛选字段响应
+            </summary>
+            <param name="Field">实体属性名称</param>
+            <param name="Label">字段显示名称</param>
+            <param name="Control">前端控件类型</param>
+            <param name="Span">控件占用的二十四栅格列数</param>
+            <param name="Sort">控件显示顺序</param>
+            <param name="Placeholder">输入提示文字</param>
+            <param name="Options">可选项列表</param>
+            <param name="ValueType">字段值类型</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Field">
+            <summary>实体属性名称</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Label">
+            <summary>字段显示名称</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Control">
+            <summary>前端控件类型</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Span">
+            <summary>控件占用的二十四栅格列数</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Sort">
+            <summary>控件显示顺序</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Placeholder">
+            <summary>输入提示文字</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.Options">
+            <summary>可选项列表</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterFieldResult.ValueType">
+            <summary>字段值类型</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ListFilterOptionResult">
+            <summary>
+                列表筛选可选项响应
+            </summary>
+            <param name="Label">选项显示名称</param>
+            <param name="Value">选项值</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ListFilterOptionResult.#ctor(System.String,System.String)">
+            <summary>
+                列表筛选可选项响应
+            </summary>
+            <param name="Label">选项显示名称</param>
+            <param name="Value">选项值</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterOptionResult.Label">
+            <summary>选项显示名称</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ListFilterOptionResult.Value">
+            <summary>选项值</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.LoginChallengeResult">
+            <summary>
+                登录算力挑战
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.LoginChallengeResult.#ctor(System.String,System.Int32)">
+            <summary>
+                登录算力挑战
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.LoginConfigResult">
+            <summary>
+                登录页面配置
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.LoginConfigResult.#ctor(System.Boolean,System.Boolean,System.Boolean)">
+            <summary>
+                登录页面配置
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.LoginRequest">
+            <summary>
+                登录请求
+            </summary>
+            <param name="UserName">登录用户名</param>
+            <param name="Password">登录密码</param>
+            <param name="Challenge">算力挑战</param>
+            <param name="Proof">算力证明</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.LoginRequest.#ctor(System.String,System.String,System.String,System.String)">
+            <summary>
+                登录请求
+            </summary>
+            <param name="UserName">登录用户名</param>
+            <param name="Password">登录密码</param>
+            <param name="Challenge">算力挑战</param>
+            <param name="Proof">算力证明</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.LoginRequest.UserName">
+            <summary>登录用户名</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.LoginRequest.Password">
+            <summary>登录密码</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.LoginRequest.Challenge">
+            <summary>算力挑战</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.LoginRequest.Proof">
+            <summary>算力证明</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.LoginResult">
+            <summary>
+                登录令牌响应
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.LoginResult.#ctor(System.String,System.String)">
+            <summary>
+                登录令牌响应
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.MenuItemRequest">
+            <summary>
+                种子菜单节点请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.Children">
+            <summary>
+                子菜单集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.Component">
+            <summary>
+                前端组件路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.Meta">
+            <summary>
+                菜单元数据
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.Name">
+            <summary>
+                菜单名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.ParentName">
+            <summary>
+                父级菜单名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.Path">
+            <summary>
+                菜单路由路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.MenuItemRequest.Sort">
+            <summary>
+                菜单排序值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.MenuItemResult">
+            <summary>
+                菜单树节点响应
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.MenuItemResult.#ctor(System.Int64,System.DateTimeOffset,System.String,System.String,System.String,System.String,System.Int32,System.Boolean,System.Text.Json.JsonElement,System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Contracts.MenuItemResult})">
+            <summary>
+                菜单树节点响应
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.PagedResponse`1">
+            <summary>
+                分页查询响应
+            </summary>
+            <typeparam name="T">记录类型</typeparam>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.PagedResponse`1.#ctor(System.Collections.Generic.IReadOnlyList{`0},System.Int32,System.Int32,System.Int32)">
+            <summary>
+                分页查询响应
+            </summary>
+            <typeparam name="T">记录类型</typeparam>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RedisCacheKeyResult">
+            <summary>
+                Redis 缓存键摘要
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RedisCacheKeyResult.#ctor(System.String,System.String,System.Int64,System.Int64,System.Int64)">
+            <summary>
+                Redis 缓存键摘要
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RedisCacheValueResult">
+            <summary>
+                Redis 缓存键内容
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RedisCacheValueResult.#ctor(System.String,System.String,System.String,System.Int64,System.Int64,System.Int64)">
+            <summary>
+                Redis 缓存键内容
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RedisServerInfoResult">
+            <summary>
+                Redis 服务器运行信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RedisServerInfoResult.#ctor(System.String,System.String,System.String,System.Int64,System.String,System.String,System.Int64,System.Double,System.Int64,System.Double)">
+            <summary>
+                Redis 服务器运行信息
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ReferralTreeItem">
+            <summary>
+                邀请关系树节点
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeItem.Children">
+            <summary>
+                直接下级集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeItem.CreatedAt">
+            <summary>
+                注册时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeItem.Email">
+            <summary>
+                电子邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeItem.Id">
+            <summary>
+                用户主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeItem.InvitationCode">
+            <summary>
+                该用户继续邀请其他用户时使用的邀请码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeItem.UserName">
+            <summary>
+                登录用户名
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ReferralTreeResult">
+            <summary>
+                当前用户邀请关系查询结果
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeResult.Children">
+            <summary>
+                当前用户的直接下级及其后代
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ReferralTreeResult.InvitationCode">
+            <summary>
+                当前用户的邀请码
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RegisterCodeRequest">
+            <summary>
+                发送注册邮箱验证码请求
+            </summary>
+            <param name="Email">电子邮箱</param>
+            <param name="PuzzleTicket">拼图校验凭证</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RegisterCodeRequest.#ctor(System.String,System.String)">
+            <summary>
+                发送注册邮箱验证码请求
+            </summary>
+            <param name="Email">电子邮箱</param>
+            <param name="PuzzleTicket">拼图校验凭证</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterCodeRequest.Email">
+            <summary>电子邮箱</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterCodeRequest.PuzzleTicket">
+            <summary>拼图校验凭证</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RegisterPuzzleResult">
+            <summary>
+                邮箱验证码拼图挑战
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RegisterPuzzleResult.#ctor(System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+                邮箱验证码拼图挑战
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RegisterRequest">
+            <summary>
+                用户注册请求
+            </summary>
+            <param name="UserName">登录用户名</param>
+            <param name="Password">登录密码</param>
+            <param name="Email">电子邮箱</param>
+            <param name="VerificationCode">邮箱验证码</param>
+            <param name="InvitationCode">邀请码</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RegisterRequest.#ctor(System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+                用户注册请求
+            </summary>
+            <param name="UserName">登录用户名</param>
+            <param name="Password">登录密码</param>
+            <param name="Email">电子邮箱</param>
+            <param name="VerificationCode">邮箱验证码</param>
+            <param name="InvitationCode">邀请码</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterRequest.UserName">
+            <summary>登录用户名</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterRequest.Password">
+            <summary>登录密码</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterRequest.Email">
+            <summary>电子邮箱</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterRequest.VerificationCode">
+            <summary>邮箱验证码</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.RegisterRequest.InvitationCode">
+            <summary>邀请码</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.RoleListItem">
+            <summary>
+                角色列表项
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.RoleListItem.#ctor(System.Int64,System.String,System.String,System.String,System.String,System.Boolean,System.DateTimeOffset)">
+            <summary>
+                角色列表项
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveDepartmentRequest">
+            <summary>
+                部门新增或修改请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.Code">
+            <summary>
+                部门编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.Email">
+            <summary>
+                部门邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.IsEnabled">
+            <summary>
+                是否启用部门
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.Leader">
+            <summary>
+                部门负责人
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.Name">
+            <summary>
+                部门名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.ParentId">
+            <summary>
+                父部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.Phone">
+            <summary>
+                部门电话
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDepartmentRequest.Sort">
+            <summary>
+                同级显示顺序
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest">
+            <summary>
+                字典目录保存请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest.Code">
+            <summary>
+                目录编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest.Name">
+            <summary>
+                目录名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest.ParentId">
+            <summary>
+                父目录主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest.Sort">
+            <summary>
+                排序值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveDictionaryItemRequest">
+            <summary>
+                字典内容保存请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryItemRequest.IsEnabled">
+            <summary>
+                启用状态
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryItemRequest.Label">
+            <summary>
+                字典标签
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryItemRequest.Remark">
+            <summary>
+                备注
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryItemRequest.Sort">
+            <summary>
+                排序值
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveDictionaryItemRequest.Value">
+            <summary>
+                字典键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SavedQueryResult">
+            <summary>
+                已保存查询条件响应
+            </summary>
+            <param name="Id">查询条件主键</param>
+            <param name="Name">查询条件名称</param>
+            <param name="IsGlobal">是否为全局查询</param>
+            <param name="DynamicFilter">动态筛选根节点</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.SavedQueryResult.#ctor(System.Int64,System.String,System.Boolean,AiAdmin.Api.Contracts.DynamicFilter)">
+            <summary>
+                已保存查询条件响应
+            </summary>
+            <param name="Id">查询条件主键</param>
+            <param name="Name">查询条件名称</param>
+            <param name="IsGlobal">是否为全局查询</param>
+            <param name="DynamicFilter">动态筛选根节点</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SavedQueryResult.Id">
+            <summary>查询条件主键</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SavedQueryResult.Name">
+            <summary>查询条件名称</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SavedQueryResult.IsGlobal">
+            <summary>是否为全局查询</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SavedQueryResult.DynamicFilter">
+            <summary>动态筛选根节点</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveMenuRequest">
+            <summary>
+                菜单新增或修改请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.Component">
+            <summary>
+                前端组件路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.IsEnabled">
+            <summary>
+                是否启用菜单
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.Meta">
+            <summary>
+                菜单元数据
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.Name">
+            <summary>
+                菜单名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.ParentName">
+            <summary>
+                父级菜单名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.Path">
+            <summary>
+                菜单路由路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveMenuRequest.Sort">
+            <summary>
+                菜单排序值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveQueryRequest">
+            <summary>
+                保存查询条件请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveQueryRequest.DynamicFilter">
+            <summary>
+                动态筛选根节点
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveQueryRequest.IsGlobal">
+            <summary>
+                是否保存为全局查询
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveQueryRequest.Name">
+            <summary>
+                查询条件名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveQueryRequest.Route">
+            <summary>
+                当前页面路由
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveRedisCacheRequest">
+            <summary>
+                Redis 字符串缓存保存请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRedisCacheRequest.ExpireSeconds">
+            <summary>
+                过期时间秒数，零表示永不过期
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRedisCacheRequest.Key">
+            <summary>
+                缓存键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRedisCacheRequest.Value">
+            <summary>
+                缓存值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveRoleApisRequest">
+            <summary>
+                保存角色接口授权请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleApisRequest.ApiIds">
+            <summary>
+                接口主键集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveRoleMenusRequest">
+            <summary>
+                保存角色菜单授权请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleMenusRequest.MenuIds">
+            <summary>
+                菜单主键集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveRoleRequest">
+            <summary>
+                角色新增或修改请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleRequest.DataScope">
+            <summary>
+                数据权限范围代码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleRequest.Description">
+            <summary>
+                角色描述
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleRequest.Enabled">
+            <summary>
+                是否启用角色
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleRequest.RoleCode">
+            <summary>
+                角色编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveRoleRequest.RoleName">
+            <summary>
+                角色名称
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveScheduledJobRequest">
+            <summary>
+                计划作业保存请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.CronExpression">
+            <summary>
+                Cron 表达式
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.IsEnabled">
+            <summary>
+                是否启用
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.Name">
+            <summary>
+                作业名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.RequestBody">
+            <summary>
+                请求体模板
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.RequestHeadersJson">
+            <summary>
+                请求头 JSON
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.RequestMethod">
+            <summary>
+                请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.RequestUrl">
+            <summary>
+                请求地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveScheduledJobRequest.TimeoutSeconds">
+            <summary>
+                超时秒数
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.SaveUserRequest">
+            <summary>
+                用户新增或修改请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.DepartmentIds">
+            <summary>
+                所属部门主键集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.Email">
+            <summary>
+                电子邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.Gender">
+            <summary>
+                性别编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.IsEnabled">
+            <summary>
+                是否启用用户
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.Password">
+            <summary>
+                登录密码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.Phone">
+            <summary>
+                联系电话
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.Roles">
+            <summary>
+                角色编码集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.SaveUserRequest.UserName">
+            <summary>
+                登录用户名
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ScheduledJobExecutionResult">
+            <summary>
+                计划作业执行记录结果
+            </summary>
+            <param name="Id">执行记录编号</param>
+            <param name="ScheduledJobId">计划作业编号</param>
+            <param name="CreatedAt">创建时间</param>
+            <param name="UpdatedAt">最后更新时间</param>
+            <param name="StartedAt">开始时间</param>
+            <param name="FinishedAt">完成时间</param>
+            <param name="RequestUrl">请求地址</param>
+            <param name="RequestMethod">请求方法</param>
+            <param name="RequestHeaders">请求头</param>
+            <param name="RequestBody">请求体</param>
+            <param name="ResponseStatusCode">响应状态码</param>
+            <param name="ResponseHeaders">响应头</param>
+            <param name="ResponseBody">响应体</param>
+            <param name="Status">执行状态</param>
+            <param name="ErrorMessage">错误信息</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.#ctor(System.Int64,System.Int64,System.DateTimeOffset,System.Nullable{System.DateTimeOffset},System.DateTimeOffset,System.Nullable{System.DateTimeOffset},System.String,System.String,System.String,System.String,System.Nullable{System.Int32},System.String,System.String,AiAdmin.Api.Models.ScheduledJobStatus,System.String)">
+            <summary>
+                计划作业执行记录结果
+            </summary>
+            <param name="Id">执行记录编号</param>
+            <param name="ScheduledJobId">计划作业编号</param>
+            <param name="CreatedAt">创建时间</param>
+            <param name="UpdatedAt">最后更新时间</param>
+            <param name="StartedAt">开始时间</param>
+            <param name="FinishedAt">完成时间</param>
+            <param name="RequestUrl">请求地址</param>
+            <param name="RequestMethod">请求方法</param>
+            <param name="RequestHeaders">请求头</param>
+            <param name="RequestBody">请求体</param>
+            <param name="ResponseStatusCode">响应状态码</param>
+            <param name="ResponseHeaders">响应头</param>
+            <param name="ResponseBody">响应体</param>
+            <param name="Status">执行状态</param>
+            <param name="ErrorMessage">错误信息</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.Id">
+            <summary>执行记录编号</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.ScheduledJobId">
+            <summary>计划作业编号</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.CreatedAt">
+            <summary>创建时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.UpdatedAt">
+            <summary>最后更新时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.StartedAt">
+            <summary>开始时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.FinishedAt">
+            <summary>完成时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.RequestUrl">
+            <summary>请求地址</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.RequestMethod">
+            <summary>请求方法</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.RequestHeaders">
+            <summary>请求头</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.RequestBody">
+            <summary>请求体</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.ResponseStatusCode">
+            <summary>响应状态码</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.ResponseHeaders">
+            <summary>响应头</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.ResponseBody">
+            <summary>响应体</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.Status">
+            <summary>执行状态</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobExecutionResult.ErrorMessage">
+            <summary>错误信息</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.ScheduledJobResult">
+            <summary>
+                计划作业列表项
+            </summary>
+            <param name="Id">作业编号</param>
+            <param name="CreatedAt">创建时间</param>
+            <param name="Name">作业名称</param>
+            <param name="CronExpression">Cron 表达式</param>
+            <param name="RequestUrl">请求地址</param>
+            <param name="RequestMethod">请求方法</param>
+            <param name="RequestHeadersJson">请求头 JSON</param>
+            <param name="RequestBody">请求体</param>
+            <param name="TimeoutSeconds">超时秒数</param>
+            <param name="IsEnabled">是否启用</param>
+            <param name="Status">作业状态</param>
+            <param name="LastTriggeredAt">最后触发时间</param>
+            <param name="LastFinishedAt">最后完成时间</param>
+            <param name="LastError">最后一次错误信息</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.ScheduledJobResult.#ctor(System.Int64,System.DateTimeOffset,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Boolean,AiAdmin.Api.Models.ScheduledJobStatus,System.Nullable{System.DateTimeOffset},System.Nullable{System.DateTimeOffset},System.String)">
+            <summary>
+                计划作业列表项
+            </summary>
+            <param name="Id">作业编号</param>
+            <param name="CreatedAt">创建时间</param>
+            <param name="Name">作业名称</param>
+            <param name="CronExpression">Cron 表达式</param>
+            <param name="RequestUrl">请求地址</param>
+            <param name="RequestMethod">请求方法</param>
+            <param name="RequestHeadersJson">请求头 JSON</param>
+            <param name="RequestBody">请求体</param>
+            <param name="TimeoutSeconds">超时秒数</param>
+            <param name="IsEnabled">是否启用</param>
+            <param name="Status">作业状态</param>
+            <param name="LastTriggeredAt">最后触发时间</param>
+            <param name="LastFinishedAt">最后完成时间</param>
+            <param name="LastError">最后一次错误信息</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.Id">
+            <summary>作业编号</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.CreatedAt">
+            <summary>创建时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.Name">
+            <summary>作业名称</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.CronExpression">
+            <summary>Cron 表达式</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.RequestUrl">
+            <summary>请求地址</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.RequestMethod">
+            <summary>请求方法</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.RequestHeadersJson">
+            <summary>请求头 JSON</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.RequestBody">
+            <summary>请求体</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.TimeoutSeconds">
+            <summary>超时秒数</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.IsEnabled">
+            <summary>是否启用</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.Status">
+            <summary>作业状态</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.LastTriggeredAt">
+            <summary>最后触发时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.LastFinishedAt">
+            <summary>最后完成时间</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.ScheduledJobResult.LastError">
+            <summary>最后一次错误信息</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.UpdateCurrentUserProfileRequest">
+            <summary>
+                当前用户资料更新请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateCurrentUserProfileRequest.Email">
+            <summary>
+                电子邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateCurrentUserProfileRequest.Gender">
+            <summary>
+                性别编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateCurrentUserProfileRequest.Phone">
+            <summary>
+                联系电话
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.UpdateEnabledRequest">
+            <summary>
+                列表行启用状态更新请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateEnabledRequest.IsEnabled">
+            <summary>
+                是否启用当前记录
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.UpdateUserRequest">
+            <summary>
+                用户修改请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.Avatar">
+            <summary>
+                用户头像地址，空字符串表示清空头像
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.DepartmentIds">
+            <summary>
+                所属部门主键集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.Email">
+            <summary>
+                电子邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.Gender">
+            <summary>
+                性别编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.IsEnabled">
+            <summary>
+                是否启用用户
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.Password">
+            <summary>
+                新登录密码，为空时保留原密码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.Phone">
+            <summary>
+                联系电话
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.RemoveAvatar">
+            <summary>
+                是否清空用户头像地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.UpdateUserRequest.Roles">
+            <summary>
+                角色编码集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.UserListItem">
+            <summary>
+                用户列表项
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.UserListItem.#ctor(System.Int64,System.String,System.String,System.String,AiAdmin.Api.Models.UserGender,System.String,System.String,System.Boolean,System.String[],System.Int64[],System.String[],System.String,System.DateTimeOffset,System.String,System.Nullable{System.DateTimeOffset})">
+            <summary>
+                用户列表项
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.VerifyRegisterPuzzleRequest">
+            <summary>
+                拼图校验请求
+            </summary>
+            <param name="ChallengeId">挑战主键</param>
+            <param name="OffsetX">拼图横向偏移</param>
+            <param name="Email">接收验证码的电子邮箱</param>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.VerifyRegisterPuzzleRequest.#ctor(System.String,System.Int32,System.String)">
+            <summary>
+                拼图校验请求
+            </summary>
+            <param name="ChallengeId">挑战主键</param>
+            <param name="OffsetX">拼图横向偏移</param>
+            <param name="Email">接收验证码的电子邮箱</param>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.VerifyRegisterPuzzleRequest.ChallengeId">
+            <summary>挑战主键</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.VerifyRegisterPuzzleRequest.OffsetX">
+            <summary>拼图横向偏移</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Contracts.VerifyRegisterPuzzleRequest.Email">
+            <summary>接收验证码的电子邮箱</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Contracts.VerifyRegisterPuzzleResult">
+            <summary>
+                拼图校验结果
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Contracts.VerifyRegisterPuzzleResult.#ctor(System.String)">
+            <summary>
+                拼图校验结果
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Data.Crc32">
+            <summary>
+                计算文本 CRC32 校验值
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.Crc32.Compute(System.String)">
+            <summary>
+                计算 UTF-8 文本的 CRC32
+            </summary>
+            <param name="value">待计算文本</param>
+            <returns>有符号 CRC32 整数</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Data.SnowflakeIdGenerator">
+            <summary>
+                生成按时间递增且跨实例唯一的 Snowflake 主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.SnowflakeIdGenerator.WorkerId">
+            <summary>
+                获取当前实例的 Snowflake WorkerId
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.SnowflakeIdGenerator.Configure(System.Int64)">
+            <summary>
+                设置当前实例的 Snowflake WorkerId
+            </summary>
+            <param name="workerId">实例编号，范围为 0 到 31</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">实例编号超出有效范围时抛出</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Data.SnowflakeIdGenerator.Next">
+            <summary>
+                生成下一个 Snowflake 主键
+            </summary>
+            <returns>正数 Snowflake 主键</returns>
+            <exception cref="T:System.InvalidOperationException">当前时间超出 Snowflake 时间戳有效范围时抛出</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Data.SnowflakeIdGenerator.CurrentTimestamp">
+            <summary>
+                获取相对于自定义纪元的当前毫秒数
+            </summary>
+            <returns>相对毫秒时间戳</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.SnowflakeIdGenerator.WaitUntil(System.Int64)">
+            <summary>
+                等待系统时钟达到指定相对毫秒时间戳
+            </summary>
+            <param name="timestamp">目标相对毫秒时间戳</param>
+            <returns>等待后的相对毫秒时间戳</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Models.ApiEndpoint">
+            <summary>
+                系统接口实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.Action">
+            <summary>
+                操作方法名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.AllowAnonymous">
+            <summary>
+                是否允许匿名访问
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.Controller">
+            <summary>
+                控制器代码名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.ControllerName">
+            <summary>
+                控制器显示名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.Id">
+            <summary>
+                接口主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.Method">
+            <summary>
+                HTTP 请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.Name">
+            <summary>
+                接口显示名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.Path">
+            <summary>
+                接口路由路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.PathCrc32">
+            <summary>
+                接口路径的 CRC32 值
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ApiEndpoint.RoleApis">
+            <summary>
+                角色接口关联集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.DatabaseAuditLog">
+            <summary>
+                数据库写入审计日志
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.ActorUserId">
+            <summary>
+                操作用户主键，系统任务为 null
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.EntityId">
+            <summary>
+                实体主键文本
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.EntityName">
+            <summary>
+                实体类型名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.Id">
+            <summary>
+                审计日志主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.Method">
+            <summary>
+                请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.Operation">
+            <summary>
+                数据库操作类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DatabaseAuditLog.Path">
+            <summary>
+                请求路径
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.Department">
+            <summary>
+                系统部门实体
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.Department.DEFAULT_CODE">
+            <summary>
+                默认部门编码
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.Department.DEFAULT_NAME">
+            <summary>
+                默认部门数据库名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Children">
+            <summary>
+                子部门集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Code">
+            <summary>
+                部门编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Email">
+            <summary>
+                部门邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Id">
+            <summary>
+                部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.IsEnabled">
+            <summary>
+                是否启用部门
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Leader">
+            <summary>
+                部门负责人
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Name">
+            <summary>
+                部门名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Parent">
+            <summary>
+                父部门
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.ParentId">
+            <summary>
+                父部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Phone">
+            <summary>
+                部门电话
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.Sort">
+            <summary>
+                同级显示顺序
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Department.UserDepartments">
+            <summary>
+                用户部门关联集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.DictionaryCategory">
+            <summary>
+                字典目录实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.Children">
+            <summary>
+                子目录集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.Code">
+            <summary>
+                目录编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.Id">
+            <summary>
+                目录主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.Items">
+            <summary>
+                字典内容集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.Name">
+            <summary>
+                目录名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.ParentId">
+            <summary>
+                父目录主键，根目录为 null
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryCategory.Sort">
+            <summary>
+                排序值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.DictionaryItem">
+            <summary>
+                字典内容实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.Category">
+            <summary>
+                所属目录
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.CategoryId">
+            <summary>
+                所属目录主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.Id">
+            <summary>
+                内容主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.IsEnabled">
+            <summary>
+                是否启用
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.Label">
+            <summary>
+                字典标签
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.Remark">
+            <summary>
+                备注
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.Sort">
+            <summary>
+                排序值
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.DictionaryItem.Value">
+            <summary>
+                字典键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.EntityBase">
+            <summary>
+                数据库实体基类
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.EntityBase.CreatedAt">
+            <summary>
+                创建时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.EntityBase.UpdatedAt">
+            <summary>
+                最后更新时间
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.IOwner">
+            <summary>
+                定义业务数据的所有者和所属部门
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.IOwner.OwnerDepartmentId">
+            <summary>
+                所有者部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.IOwner.OwnerId">
+            <summary>
+                所有者用户主键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.Menu">
+            <summary>
+                系统菜单实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.Component">
+            <summary>
+                前端组件路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.Id">
+            <summary>
+                菜单主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.IsEnabled">
+            <summary>
+                是否启用菜单
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.MetaJson">
+            <summary>
+                菜单元数据 JSON
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.Name">
+            <summary>
+                菜单名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.ParentName">
+            <summary>
+                父级菜单名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.Path">
+            <summary>
+                菜单路由路径
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.RoleMenus">
+            <summary>
+                角色菜单关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Menu.Sort">
+            <summary>
+                菜单排序值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.Role">
+            <summary>
+                系统角色实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.Code">
+            <summary>
+                角色编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.DataScope">
+            <summary>
+                角色数据权限范围代码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.Description">
+            <summary>
+                角色描述
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.Id">
+            <summary>
+                角色主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.IsEnabled">
+            <summary>
+                是否启用角色
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.Name">
+            <summary>
+                角色名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.RoleApis">
+            <summary>
+                角色接口关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.RoleMenus">
+            <summary>
+                角色菜单关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.Role.UserRoles">
+            <summary>
+                用户角色关联集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.RoleApi">
+            <summary>
+                角色与接口关联实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleApi.ApiEndpoint">
+            <summary>
+                关联接口
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleApi.ApiEndpointId">
+            <summary>
+                接口主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleApi.Role">
+            <summary>
+                关联角色
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleApi.RoleId">
+            <summary>
+                角色主键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.RoleDataScope">
+            <summary>
+                角色数据权限范围代码
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.RoleDataScope.ALL">
+            <summary>
+                全部数据
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.RoleDataScope.DEPARTMENT">
+            <summary>
+                本部门数据
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.RoleDataScope.DEPARTMENT_AND_CHILDREN">
+            <summary>
+                本部门和子部门数据
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.RoleDataScope.SELF">
+            <summary>
+                本人数据
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Models.RoleDataScope.IsValid(System.String)">
+            <summary>
+                判断数据权限范围代码是否有效
+            </summary>
+            <param name="dataScope">数据权限范围代码</param>
+            <returns>代码有效时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Models.RoleMenu">
+            <summary>
+                角色与菜单关联实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleMenu.Menu">
+            <summary>
+                关联菜单
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleMenu.MenuId">
+            <summary>
+                菜单主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleMenu.Role">
+            <summary>
+                关联角色
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.RoleMenu.RoleId">
+            <summary>
+                角色主键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.SavedQuery">
+            <summary>
+                用户保存的查询条件实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.FilterJson">
+            <summary>
+                查询条件序列化文本
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.Id">
+            <summary>
+                查询条件主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.IsGlobal">
+            <summary>
+                是否对所有用户可见
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.Name">
+            <summary>
+                查询条件名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.Route">
+            <summary>
+                页面路由
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.User">
+            <summary>
+                所属用户
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.SavedQuery.UserId">
+            <summary>
+                所属用户主键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.ScheduledJob">
+            <summary>
+                计划作业实体，描述一个按 Cron 表达式执行的 HTTP 请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.CronExpression">
+            <summary>
+                Cron 触发表达式
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.Executions">
+            <summary>
+                作业执行记录集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.Id">
+            <summary>
+                作业主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.IsEnabled">
+            <summary>
+                是否启用
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.LastError">
+            <summary>
+                最近一次错误信息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.LastFinishedAt">
+            <summary>
+                最近一次完成时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.LastTriggeredAt">
+            <summary>
+                最近一次触发时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.Name">
+            <summary>
+                作业名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.RequestBody">
+            <summary>
+                请求体模板
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.RequestHeadersJson">
+            <summary>
+                请求头模板 JSON
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.RequestMethod">
+            <summary>
+                请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.RequestUrl">
+            <summary>
+                请求地址模板
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.Status">
+            <summary>
+                当前执行状态
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJob.TimeoutSeconds">
+            <summary>
+                超时时间（秒）
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.ScheduledJobExecution">
+            <summary>
+                计划作业执行记录，保存完整的请求和响应内容
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.ErrorMessage">
+            <summary>
+                错误信息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.FinishedAt">
+            <summary>
+                结束执行时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.Id">
+            <summary>
+                执行记录主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.RequestBody">
+            <summary>
+                请求体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.RequestHeaders">
+            <summary>
+                请求头
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.RequestMethod">
+            <summary>
+                请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.RequestUrl">
+            <summary>
+                请求地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.ResponseBody">
+            <summary>
+                响应体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.ResponseHeaders">
+            <summary>
+                响应头
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.ResponseStatusCode">
+            <summary>
+                响应状态码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.ScheduledJob">
+            <summary>
+                所属作业
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.ScheduledJobId">
+            <summary>
+                作业主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.StartedAt">
+            <summary>
+                开始执行时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.ScheduledJobExecution.Status">
+            <summary>
+                执行结果状态
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.ScheduledJobStatus">
+            <summary>
+                计划作业执行状态
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.ScheduledJobStatus.Waiting">
+            <summary>
+                等待执行
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.ScheduledJobStatus.Running">
+            <summary>
+                执行中
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.ScheduledJobStatus.Success">
+            <summary>
+                执行成功
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.ScheduledJobStatus.Failed">
+            <summary>
+                执行失败
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.ScheduledJobStatus.Timeout">
+            <summary>
+                执行超时
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.User">
+            <summary>
+                系统用户实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.Avatar">
+            <summary>
+                头像地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.Email">
+            <summary>
+                电子邮箱
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.Gender">
+            <summary>
+                性别编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.Id">
+            <summary>
+                用户主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.InvitationCode">
+            <summary>
+                该用户用于邀请新用户的邀请码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.IsEnabled">
+            <summary>
+                是否启用
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.PasswordHash">
+            <summary>
+                密码哈希
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.Phone">
+            <summary>
+                联系电话
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.UserDepartments">
+            <summary>
+                用户部门关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.UserName">
+            <summary>
+                登录用户名
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.User.UserRoles">
+            <summary>
+                用户角色关联集合
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.UserDepartment">
+            <summary>
+                用户与部门关联实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserDepartment.Department">
+            <summary>
+                关联部门
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserDepartment.DepartmentId">
+            <summary>
+                部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserDepartment.User">
+            <summary>
+                关联用户
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserDepartment.UserId">
+            <summary>
+                用户主键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.UserGender">
+            <summary>
+                用户性别
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.UserGender.Male">
+            <summary>
+                男
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Models.UserGender.Female">
+            <summary>
+                女
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.UserReferral">
+            <summary>
+                用户邀请关系实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserReferral.Id">
+            <summary>
+                邀请关系主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserReferral.Invitee">
+            <summary>
+                被邀请用户
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserReferral.InviteeUserId">
+            <summary>
+                被邀请用户主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserReferral.OwnerDepartmentId">
+            <summary>
+                邀请者个人部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserReferral.OwnerId">
+            <summary>
+                邀请者用户主键
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Models.UserRole">
+            <summary>
+                用户与角色关联实体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserRole.Role">
+            <summary>
+                关联角色
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserRole.RoleId">
+            <summary>
+                角色主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserRole.User">
+            <summary>
+                关联用户
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Models.UserRole.UserId">
+            <summary>
+                用户主键
+            </summary>
+        </member>
+    </members>
+</doc>

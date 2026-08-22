@@ -1,9 +1,9 @@
 <template>
-  <SystemLogPage />
+    <SystemLogPage />
 </template>
 
-<script setup lang="ts">
-  import SystemLogPage from './system-log/index.vue'
+<script lang="ts" setup>
+import SystemLogPage from './system-log/index.vue'
 
-  defineOptions({ name: 'SystemLogRoute' })
+defineOptions({ name: 'SystemLogRoute' })
 </script>

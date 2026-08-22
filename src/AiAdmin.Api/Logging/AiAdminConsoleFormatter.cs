@@ -46,7 +46,7 @@ internal sealed class AiAdminConsoleFormatter() : ConsoleFormatter("aiadmin")
         if (string.Equals(logType, "Api", StringComparison.OrdinalIgnoreCase)) {
             AddFields(
                 lines, fields, "RequestMethod", "ClientIp", "ServerIp", "UserAgent", "RequestRelativeUrl", "ElapsedMilliseconds", "StatusCode"
-                , "ApiResponseCode", "UserId", "UserName", "RequestBody", "RequestHeaders", "RequestContentType", "RequestId", "ResponseHeaders"
+                , "ApiResponseCode", "UserId", "UserName", "RequestBody", "RequestHeaders", "RequestContentType", "TraceId", "ResponseHeaders"
                 , "ResponseBody", "ResponseContentType"
             );
         }

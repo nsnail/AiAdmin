@@ -1,203 +1,190 @@
 <template>
-  <ElDialog
-    v-model="visible"
-    :title="dialogType === 'add' ? '新增角色' : '编辑角色'"
-    width="30%"
-    align-center
-    @close="handleClose"
-  >
-    <ElTabs v-model="activeTab">
-      <ElTabPane label="基本信息" name="form">
-        <ElForm ref="formRef" :model="form" :rules="rules" label-width="120px">
-          <ElFormItem label="角色名称" prop="roleName">
-            <ElInput v-model="form.roleName" placeholder="请输入角色名称" />
-          </ElFormItem>
-          <ElFormItem label="角色编码" prop="roleCode">
-            <ElInput v-model="form.roleCode" placeholder="请输入角色编码" />
-          </ElFormItem>
-          <ElFormItem label="描述" prop="description">
-            <ElInput
-              v-model="form.description"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入角色描述"
-            />
-          </ElFormItem>
-          <ElFormItem label="数据权限" prop="dataScope">
-            <ElSelect v-model="form.dataScope" class="w-full" filterable>
-              <ElOption label="全部数据" value="all" />
-              <ElOption label="本部门数据" value="department" />
-              <ElOption label="本部门和子部门数据" value="department_and_children" />
-              <ElOption label="本人数据" value="self" />
-            </ElSelect>
-          </ElFormItem>
-          <ElFormItem label="启用">
-            <ElSwitch v-model="form.enabled" />
-          </ElFormItem>
-        </ElForm>
-      </ElTabPane>
-      <ElTabPane v-if="props.dialogType === 'edit'" label="原始数据" name="raw-data"
-        ><ArtRawData :data="rawData"
-      /></ElTabPane>
-    </ElTabs>
-    <template #footer>
-      <ElButton :disabled="saving" @click="handleClose">取消</ElButton>
-      <ElButton type="primary" :loading="saving" @click="handleSubmit">提交</ElButton>
-    </template>
-  </ElDialog>
+    <ElDialog v-model="visible" :title="dialogType === 'add' ? '新增角色' : '编辑角色'" @close="handleClose" align-center width="30%">
+        <ElTabs v-model="activeTab">
+            <ElTabPane label="基本信息" name="form">
+                <ElForm :model="form" :rules="rules" label-width="120px" ref="formRef">
+                    <ElFormItem label="角色名称" prop="roleName">
+                        <ElInput v-model="form.roleName" placeholder="请输入角色名称" />
+                    </ElFormItem>
+                    <ElFormItem label="角色编码" prop="roleCode">
+                        <ElInput v-model="form.roleCode" placeholder="请输入角色编码" />
+                    </ElFormItem>
+                    <ElFormItem label="描述" prop="description">
+                        <ElInput v-model="form.description" :rows="3" placeholder="请输入角色描述" type="textarea" />
+                    </ElFormItem>
+                    <ElFormItem label="数据权限" prop="dataScope">
+                        <ElSelect v-model="form.dataScope" class="w-full" filterable>
+                            <ElOption label="全部数据" value="all" />
+                            <ElOption label="本部门数据" value="department" />
+                            <ElOption label="本部门和子部门数据" value="department_and_children" />
+                            <ElOption label="本人数据" value="self" />
+                        </ElSelect>
+                    </ElFormItem>
+                    <ElFormItem label="启用">
+                        <ElSwitch v-model="form.enabled" />
+                    </ElFormItem>
+                </ElForm>
+            </ElTabPane>
+            <ElTabPane v-if="props.dialogType === 'edit'" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+        </ElTabs>
+        <template #footer>
+            <ElButton :disabled="saving" @click="handleClose">取消</ElButton>
+            <ElButton :loading="saving" @click="handleSubmit" type="primary">提交</ElButton>
+        </template>
+    </ElDialog>
 </template>
 
-<script setup lang="ts">
-  import type { FormInstance, FormRules } from 'element-plus'
-  import { fetchCreateRole, fetchUpdateRole } from '@/api/system-manage'
-  import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+<script lang="ts" setup>
+import type { FormInstance, FormRules } from 'element-plus'
+import { fetchCreateRole, fetchUpdateRole } from '@/api/system-manage'
+import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
-  type RoleListItem = Api.SystemManage.RoleListItem
+type RoleListItem = Api.SystemManage.RoleListItem
 
-  interface Props {
+interface Props {
     modelValue: boolean
     dialogType: 'add' | 'edit'
     roleData?: RoleListItem
-  }
+}
 
-  interface Emits {
+interface Emits {
     (e: 'update:modelValue', value: boolean): void
     (e: 'success'): void
-  }
+}
 
-  const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
     modelValue: false,
     dialogType: 'add',
-    roleData: undefined
-  })
+    roleData: undefined,
+})
 
-  const emit = defineEmits<Emits>()
+const emit = defineEmits<Emits>()
 
-  const formRef = ref<FormInstance>()
-  const activeTab = ref('form')
-  const saving = ref(false)
+const formRef = ref<FormInstance>()
+const activeTab = ref('form')
+const saving = ref(false)
 
-  /**
-   * 弹窗显示状态双向绑定
-   */
-  const visible = computed({
+/**
+ * 弹窗显示状态双向绑定
+ */
+const visible = computed({
     get: () => props.modelValue,
-    set: (value) => emit('update:modelValue', value)
-  })
+    set: (value) => emit('update:modelValue', value),
+})
 
-  /**
-   * 表单验证规则
-   */
-  const rules = reactive<FormRules>({
+/**
+ * 表单验证规则
+ */
+const rules = reactive<FormRules>({
     roleName: [
-      { required: true, message: '请输入角色名称', trigger: 'blur' },
-      { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
+        { required: true, message: '请输入角色名称', trigger: 'blur' },
+        { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' },
     ],
     roleCode: [
-      { required: true, message: '请输入角色编码', trigger: 'blur' },
-      { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+        { required: true, message: '请输入角色编码', trigger: 'blur' },
+        { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' },
     ],
     description: [{ required: true, message: '请输入角色描述', trigger: 'blur' }],
-    dataScope: [{ required: true, message: '请选择数据权限', trigger: 'change' }]
-  })
+    dataScope: [{ required: true, message: '请选择数据权限', trigger: 'change' }],
+})
 
-  /**
-   * 表单数据
-   */
-  const form = reactive<RoleListItem>({
+/**
+ * 表单数据
+ */
+const form = reactive<RoleListItem>({
     roleId: '',
     roleName: '',
     roleCode: '',
     description: '',
     dataScope: 'self',
     createTime: '',
-    enabled: true
-  })
-  const rawData = computed(() => (props.dialogType === 'edit' ? props.roleData : form))
+    enabled: true,
+})
+const rawData = computed(() => (props.dialogType === 'edit' ? props.roleData : form))
 
-  /**
-   * 监听弹窗打开，初始化表单数据
-   */
-  watch(
+/**
+ * 监听弹窗打开，初始化表单数据
+ */
+watch(
     () => props.modelValue,
     (newVal) => {
-      if (newVal) {
-        activeTab.value = 'form'
-        initForm()
-      }
-    }
-  )
+        if (newVal) {
+            activeTab.value = 'form'
+            initForm()
+        }
+    },
+)
 
-  /**
-   * 监听角色数据变化，更新表单
-   */
-  watch(
+/**
+ * 监听角色数据变化，更新表单
+ */
+watch(
     () => props.roleData,
     (newData) => {
-      if (newData && props.modelValue) initForm()
+        if (newData && props.modelValue) initForm()
     },
-    { deep: true }
-  )
+    { deep: true },
+)
 
-  /**
-   * 初始化表单数据
-   * 根据弹窗类型填充表单或重置表单
-   */
-  const initForm = () => {
+/**
+ * 初始化表单数据
+ * 根据弹窗类型填充表单或重置表单
+ */
+const initForm = () => {
     if (props.dialogType === 'edit' && props.roleData) {
-      Object.assign(form, props.roleData)
+        Object.assign(form, props.roleData)
     } else {
-      Object.assign(form, {
-        roleId: '',
-        roleName: '',
-        roleCode: '',
-        description: '',
-        dataScope: 'self',
-        createTime: '',
-        enabled: true
-      })
+        Object.assign(form, {
+            roleId: '',
+            roleName: '',
+            roleCode: '',
+            description: '',
+            dataScope: 'self',
+            createTime: '',
+            enabled: true,
+        })
     }
-  }
+}
 
-  /**
-   * 关闭弹窗并重置表单
-   */
-  const handleClose = () => {
+/**
+ * 关闭弹窗并重置表单
+ */
+const handleClose = () => {
     if (saving.value) return
     visible.value = false
     formRef.value?.resetFields()
-  }
+}
 
-  /**
-   * 提交表单
-   * 验证通过后调用接口保存数据
-   */
-  const handleSubmit = async () => {
+/**
+ * 提交表单
+ * 验证通过后调用接口保存数据
+ */
+const handleSubmit = async () => {
     if (!formRef.value || saving.value) return
 
     try {
-      await formRef.value.validate()
-      saving.value = true
-      const data: Api.SystemManage.SaveRoleParams = {
-        roleName: form.roleName,
-        roleCode: form.roleCode,
-        description: form.description,
-        dataScope: form.dataScope,
-        enabled: form.enabled
-      }
-      if (props.dialogType === 'edit') {
-        await fetchUpdateRole(form.roleId, data)
-      } else {
-        await fetchCreateRole(data)
-      }
-      const message = props.dialogType === 'add' ? '新增成功' : '修改成功'
-      ElMessage.success(message)
-      emit('success')
-      handleClose()
+        await formRef.value.validate()
+        saving.value = true
+        const data: Api.SystemManage.SaveRoleParams = {
+            roleName: form.roleName,
+            roleCode: form.roleCode,
+            description: form.description,
+            dataScope: form.dataScope,
+            enabled: form.enabled,
+        }
+        if (props.dialogType === 'edit') {
+            await fetchUpdateRole(form.roleId, data)
+        } else {
+            await fetchCreateRole(data)
+        }
+        const message = props.dialogType === 'add' ? '新增成功' : '修改成功'
+        ElMessage.success(message)
+        emit('success')
+        handleClose()
     } catch (error) {
-      console.log('表单验证失败:', error)
+        console.log('表单验证失败:', error)
     } finally {
-      saving.value = false
+        saving.value = false
     }
-  }
+}
 </script>

@@ -1,21 +1,21 @@
 <!-- 系统logo -->
 <template>
-  <div class="flex-cc">
-    <img :style="logoStyle" src="@imgs/common/logo.webp" alt="logo" class="w-full h-full" />
-  </div>
+    <div class="flex-cc">
+        <img :style="logoStyle" alt="logo" class="w-full h-full" src="@imgs/common/logo.webp" />
+    </div>
 </template>
 
-<script setup lang="ts">
-  defineOptions({ name: 'ArtLogo' })
+<script lang="ts" setup>
+defineOptions({ name: 'ArtLogo' })
 
-  interface Props {
+interface Props {
     /** logo 大小 */
     size?: number | string
-  }
+}
 
-  const props = withDefaults(defineProps<Props>(), {
-    size: 36
-  })
+const props = withDefaults(defineProps<Props>(), {
+    size: 36,
+})
 
-  const logoStyle = computed(() => ({ width: `${props.size}px` }))
+const logoStyle = computed(() => ({ width: `${props.size}px` }))
 </script>

@@ -71,11 +71,6 @@ public sealed record SystemLogItem
     public string? RequestHeaders { get; init; }
 
     /// <summary>
-    ///     请求编号
-    /// </summary>
-    public string? RequestId { get; init; }
-
-    /// <summary>
     ///     HTTP 请求方法
     /// </summary>
     public string? RequestMethod { get; init; }
@@ -136,6 +131,11 @@ public sealed record SystemLogItem
     public DateTimeOffset Timestamp { get; init; }
 
     /// <summary>
+    ///     雪花链路主键
+    /// </summary>
+    public long? TraceId { get; init; }
+
+    /// <summary>
     ///     客户端 User-Agent
     /// </summary>
     public string? UserAgent { get; init; }
@@ -149,4 +149,9 @@ public sealed record SystemLogItem
     ///     用户名
     /// </summary>
     public string? UserName { get; init; }
+
+    /// <summary>
+    ///     Snowflake WorkerId
+    /// </summary>
+    public long WorkerId { get; init; }
 }

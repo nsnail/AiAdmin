@@ -1,38 +1,37 @@
 <template>
-  <ElPopconfirm
-    v-if="modelValue"
-    title="确定要禁用当前记录吗？"
-    confirm-button-text="确定禁用"
-    cancel-button-text="取消"
-    width="220"
-    @confirm="updateEnabled(false)"
-  >
-    <template #reference>
-      <ElSwitch :model-value="modelValue" :loading="loading" />
-    </template>
-  </ElPopconfirm>
-  <ElSwitch v-else :model-value="modelValue" :loading="loading" @change="updateEnabled(true)" />
+    <ElPopconfirm
+        v-if="modelValue"
+        @confirm="updateEnabled(false)"
+        cancel-button-text="取消"
+        confirm-button-text="确定禁用"
+        title="确定要禁用当前记录吗？"
+        width="220">
+        <template #reference>
+            <ElSwitch :loading="loading" :model-value="modelValue" />
+        </template>
+    </ElPopconfirm>
+    <ElSwitch v-else :loading="loading" :model-value="modelValue" @change="updateEnabled(true)" />
 </template>
 
-<script setup lang="ts">
-  import { ElMessage } from 'element-plus'
-  import { fetchUpdateEnabledState, type EnabledStateResource } from '@/api/system-manage'
+<script lang="ts" setup>
+import { ElMessage } from 'element-plus'
+import { fetchUpdateEnabledState, type EnabledStateResource } from '@/api/system-manage'
 
-  defineOptions({ name: 'ArtEnabledSwitch' })
+defineOptions({ name: 'ArtEnabledSwitch' })
 
-  const props = defineProps<{ id: string; modelValue: boolean; resource: EnabledStateResource }>()
-  const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
-  const loading = ref(false)
+const props = defineProps<{ id: string; modelValue: boolean; resource: EnabledStateResource }>()
+const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
+const loading = ref(false)
 
-  const updateEnabled = async (isEnabled: boolean): Promise<void> => {
+const updateEnabled = async (isEnabled: boolean): Promise<void> => {
     loading.value = true
     try {
-      await fetchUpdateEnabledState(props.resource, props.id, isEnabled)
-      emit('update:modelValue', isEnabled)
+        await fetchUpdateEnabledState(props.resource, props.id, isEnabled)
+        emit('update:modelValue', isEnabled)
     } catch {
-      ElMessage.error('状态更新失败')
+        ElMessage.error('状态更新失败')
     } finally {
-      loading.value = false
+        loading.value = false
     }
-  }
+}
 </script>

@@ -5,7 +5,23 @@
         <Project Path="src/AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
     </Folder>
     <Folder Name="/build/">
+        <File Path="build/code.clean.dot.ps1"/>
+        <File Path="build/code.clean.full.ps1"/>
+        <File Path="build/code.clean.prettier.ps1"/>
+        <File Path="build/code.clean.resharper.ps1"/>
         <File Path="build/code.quality.props"/>
         <File Path="build/stylecop.analyzers.ruleset"/>
+        <File Path="build/sync.slnx.files.csx"/>
+    </Folder>
+    <Folder Name="/root/">
+        <File Path=".editorconfig"/>
+        <File Path=".gitattributes"/>
+        <File Path=".gitignore"/>
+        <File Path="AGENTS.md"/>
+        <File Path="AiAdmin.slnx.DotSettings"/>
+        <File Path="Directory.Build.props"/>
+        <File Path="global.json"/>
+        <File Path="LICENSE"/>
+        <File Path="README.md"/>
     </Folder>
 </Solution>

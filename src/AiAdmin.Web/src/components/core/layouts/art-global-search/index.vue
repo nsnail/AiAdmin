@@ -1,330 +1,307 @@
 <!-- 全局搜索组件 -->
 <template>
-  <div class="layout-search">
-    <ElDialog
-      v-model="showSearchDialog"
-      width="600"
-      :show-close="false"
-      :lock-scroll="false"
-      modal-class="search-modal"
-      @close="closeSearchDialog"
-    >
-      <ElInput
-        v-model.trim="searchVal"
-        :placeholder="$t('search.placeholder')"
-        @input="search"
-        @blur="searchBlur"
-        ref="searchInput"
-        :prefix-icon="Search"
-        class="h-12"
-      >
-        <template #suffix>
-          <div
-            class="h-4.5 flex-cc rounded border border-g-300 dark:!bg-g-200/50 !bg-box px-1.5 text-g-500"
-          >
-            <ArtSvgIcon icon="fluent:arrow-enter-left-20-filled" />
-          </div>
-        </template>
-      </ElInput>
-      <ElScrollbar class="mt-5" max-height="370px" ref="searchResultScrollbar" always>
-        <div class="result w-full" v-show="searchResult.length">
-          <div
-            class="box !mt-0 c-p text-base leading-none"
-            v-for="(item, index) in searchResult"
-            :key="index"
-          >
-            <div
-              class="mt-2 h-12 flex-cb rounded-custom-sm bg-g-200/80 px-4 text-sm text-g-700"
-              :class="isHighlighted(index) ? 'highlighted !bg-theme/70 !text-white' : ''"
-              @click="searchGoPage(item)"
-              @mouseenter="highlightOnHover(index)"
-            >
-              {{ formatMenuTitle(item.meta.title) }}
-              <ArtSvgIcon v-show="isHighlighted(index)" icon="fluent:arrow-enter-left-20-filled" />
-            </div>
-          </div>
-        </div>
+    <div class="layout-search">
+        <ElDialog
+            v-model="showSearchDialog"
+            :lock-scroll="false"
+            :show-close="false"
+            @close="closeSearchDialog"
+            modal-class="search-modal"
+            width="600">
+            <ElInput
+                v-model.trim="searchVal"
+                :placeholder="$t('search.placeholder')"
+                :prefix-icon="Search"
+                @blur="searchBlur"
+                @input="search"
+                class="h-12"
+                ref="searchInput">
+                <template #suffix>
+                    <div class="h-4.5 flex-cc rounded border border-g-300 dark:!bg-g-200/50 !bg-box px-1.5 text-g-500">
+                        <ArtSvgIcon icon="fluent:arrow-enter-left-20-filled" />
+                    </div>
+                </template>
+            </ElInput>
+            <ElScrollbar always class="mt-5" max-height="370px" ref="searchResultScrollbar">
+                <div v-show="searchResult.length" class="result w-full">
+                    <div v-for="(item, index) in searchResult" :key="index" class="box !mt-0 c-p text-base leading-none">
+                        <div
+                            :class="isHighlighted(index) ? 'highlighted !bg-theme/70 !text-white' : ''"
+                            @click="searchGoPage(item)"
+                            @mouseenter="highlightOnHover(index)"
+                            class="mt-2 h-12 flex-cb rounded-custom-sm bg-g-200/80 px-4 text-sm text-g-700">
+                            {{ formatMenuTitle(item.meta.title) }}
+                            <ArtSvgIcon v-show="isHighlighted(index)" icon="fluent:arrow-enter-left-20-filled" />
+                        </div>
+                    </div>
+                </div>
 
-        <div v-show="!searchVal && searchResult.length === 0 && historyResult.length > 0">
-          <p class="text-xs text-g-500">{{ $t('search.historyTitle') }}</p>
-          <div class="mt-1.5 w-full">
-            <div
-              class="box mt-2 h-12 c-p flex-cb rounded-custom-sm bg-g-200/80 px-4 text-sm text-g-800"
-              v-for="(item, index) in historyResult"
-              :key="index"
-              :class="
-                historyHIndex === index
-                  ? 'highlighted !bg-theme/70 !text-white [&_.selected-icon]:!text-white'
-                  : ''
-              "
-              @click="searchGoPage(item)"
-              @mouseenter="highlightOnHoverHistory(index)"
-            >
-              {{ formatMenuTitle(item.meta.title) }}
-              <div
-                class="size-5 selected-icon select-none rounded-full text-g-500 flex-cc c-p"
-                @click.stop="deleteHistory(index)"
-              >
-                <ArtSvgIcon icon="ri:close-large-fill" class="text-xs" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </ElScrollbar>
+                <div v-show="!searchVal && searchResult.length === 0 && historyResult.length > 0">
+                    <p class="text-xs text-g-500">{{ $t('search.historyTitle') }}</p>
+                    <div class="mt-1.5 w-full">
+                        <div
+                            v-for="(item, index) in historyResult"
+                            :class="historyHIndex === index ? 'highlighted !bg-theme/70 !text-white [&_.selected-icon]:!text-white' : ''"
+                            :key="index"
+                            @click="searchGoPage(item)"
+                            @mouseenter="highlightOnHoverHistory(index)"
+                            class="box mt-2 h-12 c-p flex-cb rounded-custom-sm bg-g-200/80 px-4 text-sm text-g-800">
+                            {{ formatMenuTitle(item.meta.title) }}
+                            <div @click.stop="deleteHistory(index)" class="size-5 selected-icon select-none rounded-full text-g-500 flex-cc c-p">
+                                <ArtSvgIcon class="text-xs" icon="ri:close-large-fill" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </ElScrollbar>
 
-      <template #footer>
-        <div class="dialog-footer box-border flex-c border-t-d pt-4.5 pb-1">
-          <div class="flex-cc">
-            <ArtSvgIcon icon="fluent:arrow-enter-left-20-filled" class="keyboard" />
-            <span class="mr-3.5 text-xs text-g-700">{{ $t('search.selectKeydown') }}</span>
-          </div>
-          <div class="flex-c">
-            <ArtSvgIcon icon="ri:arrow-up-wide-fill" class="keyboard" />
-            <ArtSvgIcon icon="ri:arrow-down-wide-fill" class="keyboard" />
-            <span class="mr-3.5 text-xs text-g-700">{{ $t('search.switchKeydown') }}</span>
-          </div>
-          <div class="flex-c">
-            <i class="keyboard !w-8 flex-cc"><p class="text-[10px] font-medium">ESC</p></i>
-            <span class="mr-3.5 text-xs text-g-700">{{ $t('search.exitKeydown') }}</span>
-          </div>
-        </div>
-      </template>
-    </ElDialog>
-  </div>
+            <template #footer>
+                <div class="dialog-footer box-border flex-c border-t-d pt-4.5 pb-1">
+                    <div class="flex-cc">
+                        <ArtSvgIcon class="keyboard" icon="fluent:arrow-enter-left-20-filled" />
+                        <span class="mr-3.5 text-xs text-g-700">{{ $t('search.selectKeydown') }}</span>
+                    </div>
+                    <div class="flex-c">
+                        <ArtSvgIcon class="keyboard" icon="ri:arrow-up-wide-fill" />
+                        <ArtSvgIcon class="keyboard" icon="ri:arrow-down-wide-fill" />
+                        <span class="mr-3.5 text-xs text-g-700">{{ $t('search.switchKeydown') }}</span>
+                    </div>
+                    <div class="flex-c">
+                        <i class="keyboard !w-8 flex-cc"><p class="text-[10px] font-medium">ESC</p></i>
+                        <span class="mr-3.5 text-xs text-g-700">{{ $t('search.exitKeydown') }}</span>
+                    </div>
+                </div>
+            </template>
+        </ElDialog>
+    </div>
 </template>
 
 <script lang="ts" setup>
-  import { useUserStore } from '@/store/modules/user'
-  import { AppRouteRecord } from '@/types/router'
-  import { Search } from '@element-plus/icons-vue'
-  import { mittBus } from '@/utils/sys'
-  import { useMenuStore } from '@/store/modules/menu'
-  import { formatMenuTitle } from '@/utils/router'
-  import { handleMenuJump } from '@/utils/navigation'
-  import { type ScrollbarInstance } from 'element-plus'
+import { useUserStore } from '@/store/modules/user'
+import { AppRouteRecord } from '@/types/router'
+import { Search } from '@element-plus/icons-vue'
+import { mittBus } from '@/utils/sys'
+import { useMenuStore } from '@/store/modules/menu'
+import { formatMenuTitle } from '@/utils/router'
+import { handleMenuJump } from '@/utils/navigation'
+import { type ScrollbarInstance } from 'element-plus'
 
-  defineOptions({ name: 'ArtGlobalSearch' })
+defineOptions({ name: 'ArtGlobalSearch' })
 
-  const userStore = useUserStore()
-  const { menuList } = storeToRefs(useMenuStore())
+const userStore = useUserStore()
+const { menuList } = storeToRefs(useMenuStore())
 
-  const showSearchDialog = ref(false)
-  const searchVal = ref('')
-  const searchResult = ref<AppRouteRecord[]>([])
-  const historyMaxLength = 10
+const showSearchDialog = ref(false)
+const searchVal = ref('')
+const searchResult = ref<AppRouteRecord[]>([])
+const historyMaxLength = 10
 
-  const { searchHistory: historyResult } = storeToRefs(userStore)
+const { searchHistory: historyResult } = storeToRefs(userStore)
 
-  const searchInput = ref<HTMLInputElement | null>(null)
-  const highlightedIndex = ref(0)
-  const historyHIndex = ref(0)
-  const searchResultScrollbar = ref<ScrollbarInstance>()
-  const isKeyboardNavigating = ref(false) // 新增状态：是否正在使用键盘导航
+const searchInput = ref<HTMLInputElement | null>(null)
+const highlightedIndex = ref(0)
+const historyHIndex = ref(0)
+const searchResultScrollbar = ref<ScrollbarInstance>()
+const isKeyboardNavigating = ref(false) // 新增状态：是否正在使用键盘导航
 
-  // 生命周期钩子
-  onMounted(() => {
+// 生命周期钩子
+onMounted(() => {
     mittBus.on('openSearchDialog', openSearchDialog)
     document.addEventListener('keydown', handleKeydown)
-  })
+})
 
-  onUnmounted(() => {
+onUnmounted(() => {
     document.removeEventListener('keydown', handleKeydown)
-  })
+})
 
-  // 键盘快捷键处理
-  const handleKeydown = (event: KeyboardEvent) => {
+// 键盘快捷键处理
+const handleKeydown = (event: KeyboardEvent) => {
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
     const isCommandKey = isMac ? event.metaKey : event.ctrlKey
 
     if (isCommandKey && event.key.toLowerCase() === 'k') {
-      event.preventDefault()
-      showSearchDialog.value = true
-      focusInput()
+        event.preventDefault()
+        showSearchDialog.value = true
+        focusInput()
     }
 
     // 当搜索对话框打开时，处理方向键和回车键
     if (showSearchDialog.value) {
-      if (event.key === 'ArrowUp') {
-        event.preventDefault()
-        highlightPrevious()
-      } else if (event.key === 'ArrowDown') {
-        event.preventDefault()
-        highlightNext()
-      } else if (event.key === 'Enter') {
-        event.preventDefault()
-        selectHighlighted()
-      } else if (event.key === 'Escape') {
-        event.preventDefault()
-        showSearchDialog.value = false
-      }
+        if (event.key === 'ArrowUp') {
+            event.preventDefault()
+            highlightPrevious()
+        } else if (event.key === 'ArrowDown') {
+            event.preventDefault()
+            highlightNext()
+        } else if (event.key === 'Enter') {
+            event.preventDefault()
+            selectHighlighted()
+        } else if (event.key === 'Escape') {
+            event.preventDefault()
+            showSearchDialog.value = false
+        }
     }
-  }
+}
 
-  const focusInput = () => {
+const focusInput = () => {
     setTimeout(() => {
-      searchInput.value?.focus()
+        searchInput.value?.focus()
     }, 100)
-  }
+}
 
-  // 搜索逻辑
-  const search = (val: string) => {
+// 搜索逻辑
+const search = (val: string) => {
     if (val) {
-      searchResult.value = flattenAndFilterMenuItems(menuList.value, val)
+        searchResult.value = flattenAndFilterMenuItems(menuList.value, val)
     } else {
-      searchResult.value = []
+        searchResult.value = []
     }
-  }
+}
 
-  const flattenAndFilterMenuItems = (items: AppRouteRecord[], val: string): AppRouteRecord[] => {
+const flattenAndFilterMenuItems = (items: AppRouteRecord[], val: string): AppRouteRecord[] => {
     const lowerVal = val.toLowerCase()
     const result: AppRouteRecord[] = []
 
     const flattenAndMatch = (item: AppRouteRecord) => {
-      if (item.meta?.isHide) return
+        if (item.meta?.isHide) return
 
-      const lowerItemTitle = formatMenuTitle(item.meta.title).toLowerCase()
+        const lowerItemTitle = formatMenuTitle(item.meta.title).toLowerCase()
 
-      if (item.children && item.children.length > 0) {
-        item.children.forEach(flattenAndMatch)
-        return
-      }
+        if (item.children && item.children.length > 0) {
+            item.children.forEach(flattenAndMatch)
+            return
+        }
 
-      if (
-        lowerItemTitle.includes(lowerVal) &&
-        ((item.path && item.path.trim()) || item.meta.link || item.meta.isIframe)
-      ) {
-        result.push({ ...item, children: undefined })
-      }
+        if (lowerItemTitle.includes(lowerVal) && ((item.path && item.path.trim()) || item.meta.link || item.meta.isIframe)) {
+            result.push({ ...item, children: undefined })
+        }
     }
 
     items.forEach(flattenAndMatch)
     return result
-  }
+}
 
-  // 高亮控制并实现滚动条跟随
-  const highlightPrevious = () => {
+// 高亮控制并实现滚动条跟随
+const highlightPrevious = () => {
     isKeyboardNavigating.value = true
     if (searchVal.value) {
-      highlightedIndex.value =
-        (highlightedIndex.value - 1 + searchResult.value.length) % searchResult.value.length
-      scrollToHighlightedItem()
+        highlightedIndex.value = (highlightedIndex.value - 1 + searchResult.value.length) % searchResult.value.length
+        scrollToHighlightedItem()
     } else {
-      historyHIndex.value =
-        (historyHIndex.value - 1 + historyResult.value.length) % historyResult.value.length
-      scrollToHighlightedHistoryItem()
+        historyHIndex.value = (historyHIndex.value - 1 + historyResult.value.length) % historyResult.value.length
+        scrollToHighlightedHistoryItem()
     }
     // 延迟重置键盘导航状态，防止立即被 hover 覆盖
     setTimeout(() => {
-      isKeyboardNavigating.value = false
+        isKeyboardNavigating.value = false
     }, 100)
-  }
+}
 
-  const highlightNext = () => {
+const highlightNext = () => {
     isKeyboardNavigating.value = true
     if (searchVal.value) {
-      highlightedIndex.value = (highlightedIndex.value + 1) % searchResult.value.length
-      scrollToHighlightedItem()
+        highlightedIndex.value = (highlightedIndex.value + 1) % searchResult.value.length
+        scrollToHighlightedItem()
     } else {
-      historyHIndex.value = (historyHIndex.value + 1) % historyResult.value.length
-      scrollToHighlightedHistoryItem()
+        historyHIndex.value = (historyHIndex.value + 1) % historyResult.value.length
+        scrollToHighlightedHistoryItem()
     }
     setTimeout(() => {
-      isKeyboardNavigating.value = false
+        isKeyboardNavigating.value = false
     }, 100)
-  }
+}
 
-  const scrollToHighlightedItem = () => {
+const scrollToHighlightedItem = () => {
     nextTick(() => {
-      if (!searchResultScrollbar.value || !searchResult.value.length) return
+        if (!searchResultScrollbar.value || !searchResult.value.length) return
 
-      const scrollWrapper = searchResultScrollbar.value.wrapRef
-      if (!scrollWrapper) return
+        const scrollWrapper = searchResultScrollbar.value.wrapRef
+        if (!scrollWrapper) return
 
-      const highlightedElements = scrollWrapper.querySelectorAll('.result .box')
-      if (!highlightedElements[highlightedIndex.value]) return
+        const highlightedElements = scrollWrapper.querySelectorAll('.result .box')
+        if (!highlightedElements[highlightedIndex.value]) return
 
-      const highlightedElement = highlightedElements[highlightedIndex.value] as HTMLElement
-      const itemHeight = highlightedElement.offsetHeight
-      const scrollTop = scrollWrapper.scrollTop
-      const containerHeight = scrollWrapper.clientHeight
-      const itemTop = highlightedElement.offsetTop
-      const itemBottom = itemTop + itemHeight
+        const highlightedElement = highlightedElements[highlightedIndex.value] as HTMLElement
+        const itemHeight = highlightedElement.offsetHeight
+        const scrollTop = scrollWrapper.scrollTop
+        const containerHeight = scrollWrapper.clientHeight
+        const itemTop = highlightedElement.offsetTop
+        const itemBottom = itemTop + itemHeight
 
-      if (itemTop < scrollTop) {
-        searchResultScrollbar.value.setScrollTop(itemTop)
-      } else if (itemBottom > scrollTop + containerHeight) {
-        searchResultScrollbar.value.setScrollTop(itemBottom - containerHeight)
-      }
+        if (itemTop < scrollTop) {
+            searchResultScrollbar.value.setScrollTop(itemTop)
+        } else if (itemBottom > scrollTop + containerHeight) {
+            searchResultScrollbar.value.setScrollTop(itemBottom - containerHeight)
+        }
     })
-  }
+}
 
-  const scrollToHighlightedHistoryItem = () => {
+const scrollToHighlightedHistoryItem = () => {
     nextTick(() => {
-      if (!searchResultScrollbar.value || !historyResult.value.length) return
+        if (!searchResultScrollbar.value || !historyResult.value.length) return
 
-      const scrollWrapper = searchResultScrollbar.value.wrapRef
-      if (!scrollWrapper) return
+        const scrollWrapper = searchResultScrollbar.value.wrapRef
+        if (!scrollWrapper) return
 
-      const historyItems = scrollWrapper.querySelectorAll('.history-result .box')
-      if (!historyItems[historyHIndex.value]) return
+        const historyItems = scrollWrapper.querySelectorAll('.history-result .box')
+        if (!historyItems[historyHIndex.value]) return
 
-      const highlightedElement = historyItems[historyHIndex.value] as HTMLElement
-      const itemHeight = highlightedElement.offsetHeight
-      const scrollTop = scrollWrapper.scrollTop
-      const containerHeight = scrollWrapper.clientHeight
-      const itemTop = highlightedElement.offsetTop
-      const itemBottom = itemTop + itemHeight
+        const highlightedElement = historyItems[historyHIndex.value] as HTMLElement
+        const itemHeight = highlightedElement.offsetHeight
+        const scrollTop = scrollWrapper.scrollTop
+        const containerHeight = scrollWrapper.clientHeight
+        const itemTop = highlightedElement.offsetTop
+        const itemBottom = itemTop + itemHeight
 
-      if (itemTop < scrollTop) {
-        searchResultScrollbar.value.setScrollTop(itemTop)
-      } else if (itemBottom > scrollTop + containerHeight) {
-        searchResultScrollbar.value.setScrollTop(itemBottom - containerHeight)
-      }
+        if (itemTop < scrollTop) {
+            searchResultScrollbar.value.setScrollTop(itemTop)
+        } else if (itemBottom > scrollTop + containerHeight) {
+            searchResultScrollbar.value.setScrollTop(itemBottom - containerHeight)
+        }
     })
-  }
+}
 
-  const selectHighlighted = () => {
+const selectHighlighted = () => {
     if (searchVal.value && searchResult.value.length) {
-      searchGoPage(searchResult.value[highlightedIndex.value])
+        searchGoPage(searchResult.value[highlightedIndex.value])
     } else if (!searchVal.value && historyResult.value.length) {
-      searchGoPage(historyResult.value[historyHIndex.value])
+        searchGoPage(historyResult.value[historyHIndex.value])
     }
-  }
+}
 
-  const isHighlighted = (index: number) => {
+const isHighlighted = (index: number) => {
     return highlightedIndex.value === index
-  }
+}
 
-  const searchBlur = () => {
+const searchBlur = () => {
     highlightedIndex.value = 0
-  }
+}
 
-  const searchGoPage = (item: AppRouteRecord) => {
+const searchGoPage = (item: AppRouteRecord) => {
     showSearchDialog.value = false
     addHistory(item)
     handleMenuJump(item)
     searchVal.value = ''
     searchResult.value = []
-  }
+}
 
-  // 历史记录管理
-  const updateHistory = () => {
+// 历史记录管理
+const updateHistory = () => {
     if (Array.isArray(historyResult.value)) {
-      userStore.setSearchHistory(historyResult.value)
+        userStore.setSearchHistory(historyResult.value)
     }
-  }
+}
 
-  const addHistory = (item: AppRouteRecord) => {
+const addHistory = (item: AppRouteRecord) => {
     const itemKey = item.path || String(item.meta.link || '')
     const hasItemIndex = historyResult.value.findIndex(
-      (historyItem: AppRouteRecord) =>
-        (historyItem.path || String(historyItem.meta.link || '')) === itemKey
+        (historyItem: AppRouteRecord) => (historyItem.path || String(historyItem.meta.link || '')) === itemKey,
     )
 
     if (hasItemIndex !== -1) {
-      historyResult.value.splice(hasItemIndex, 1)
+        historyResult.value.splice(hasItemIndex, 1)
     } else if (historyResult.value.length >= historyMaxLength) {
-      historyResult.value.pop()
+        historyResult.value.pop()
     }
 
     const cleanedItem = { ...item }
@@ -332,90 +309,90 @@
     delete cleanedItem.meta.authList
     historyResult.value.unshift(cleanedItem)
     updateHistory()
-  }
+}
 
-  const deleteHistory = (index: number) => {
+const deleteHistory = (index: number) => {
     historyResult.value.splice(index, 1)
     updateHistory()
-  }
+}
 
-  // 对话框控制
-  const openSearchDialog = () => {
+// 对话框控制
+const openSearchDialog = () => {
     showSearchDialog.value = true
     focusInput()
-  }
+}
 
-  const closeSearchDialog = () => {
+const closeSearchDialog = () => {
     searchVal.value = ''
     searchResult.value = []
     highlightedIndex.value = 0
     historyHIndex.value = 0
-  }
+}
 
-  // 修改 hover 高亮逻辑，只有在非键盘导航时才生效
-  const highlightOnHover = (index: number) => {
+// 修改 hover 高亮逻辑，只有在非键盘导航时才生效
+const highlightOnHover = (index: number) => {
     if (!isKeyboardNavigating.value && searchVal.value) {
-      highlightedIndex.value = index
+        highlightedIndex.value = index
     }
-  }
+}
 
-  const highlightOnHoverHistory = (index: number) => {
+const highlightOnHoverHistory = (index: number) => {
     if (!isKeyboardNavigating.value && !searchVal.value) {
-      historyHIndex.value = index
+        historyHIndex.value = index
     }
-  }
+}
 </script>
 <style lang="scss" scoped>
-  .layout-search {
+.layout-search {
     :deep(.search-modal) {
-      background-color: rgb(0 0 0 / 20%);
+        background-color: rgb(0 0 0 / 20%);
     }
 
     :deep(.el-dialog__body) {
-      padding: 5px 0 0 !important;
+        padding: 5px 0 0 !important;
     }
 
     :deep(.el-dialog__header) {
-      padding: 0;
+        padding: 0;
     }
 
     .el-input {
-      :deep(.el-input__wrapper) {
-        background-color: var(--art-gray-200);
-        border: 1px solid var(--default-border-dashed);
-        border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
-        box-shadow: none;
-      }
+        :deep(.el-input__wrapper) {
+            background-color: var(--art-gray-200);
+            border: 1px solid var(--default-border-dashed);
+            border-radius: calc(var(--custom-radius) / 2 + 2px) !important;
+            box-shadow: none;
+        }
 
-      :deep(.el-input__inner) {
-        color: var(--art-gray-800) !important;
-      }
+        :deep(.el-input__inner) {
+            color: var(--art-gray-800) !important;
+        }
     }
-  }
+}
 
-  .dark .layout-search {
+.dark .layout-search {
     .el-input {
-      :deep(.el-input__wrapper) {
-        background-color: #333;
-        border: 1px solid #4c4d50;
-      }
+        :deep(.el-input__wrapper) {
+            background-color: #333;
+            border: 1px solid #4c4d50;
+        }
     }
 
     :deep(.search-modal) {
-      background-color: rgb(23 23 26 / 60%);
-      backdrop-filter: none;
+        background-color: rgb(23 23 26 / 60%);
+        backdrop-filter: none;
     }
 
     :deep(.el-dialog) {
-      background-color: #252526;
+        background-color: #252526;
     }
-  }
+}
 </style>
 
 <style scoped>
-  @reference '@styles/core/tailwind.css';
+@reference '@styles/core/tailwind.css';
 
-  .keyboard {
+.keyboard {
     @apply mr-2 
     box-border
     h-5 
@@ -427,5 +404,5 @@
     text-g-500
     shadow-[0_2px_0_var(--default-border-dashed)] 
     last-of-type:mr-1.5;
-  }
+}
 </style>

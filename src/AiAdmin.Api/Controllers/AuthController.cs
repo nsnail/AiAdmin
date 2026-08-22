@@ -28,6 +28,7 @@ public sealed class AuthController(
     , TokenService tokenService
     , IDistributedCache cache
     , DictionarySnapshotService dictionarySnapshotService
+    , IpLocationService ipLocationService
     , ILogger<AuthController> logger) : ControllerBase
 {
     private const int _PROOF_DIFFICULTY = 4;
@@ -94,9 +95,56 @@ public sealed class AuthController(
             .ThenInclude(x => x.Role)
             .SingleOrDefaultAsync(x => x.UserName == request.UserName)
             .ConfigureAwait(false);
-        return user?.IsEnabled != true || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)
-            ? Unauthorized(new ApiResponse<object>(401, "Invalid username or password", null))
-            : Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty), "Login successful"));
+        if (user?.IsEnabled != true || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)) {
+            return Unauthorized(new ApiResponse<object>(401, "Invalid username or password", null));
+        }
+
+        var previousEntity = await db
+            .LoginLogs.AsNoTracking()
+            .Where(x => x.UserId == user.Id)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => new { x.ClientIp, x.Region, x.CreatedAt })
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+        var previous = previousEntity is null
+            ? null
+            : new PreviousLoginResult(previousEntity.ClientIp, previousEntity.Region, ServerTime.ToOffset(previousEntity.CreatedAt));
+        var clientIp = GetClientIp();
+        var region = await ipLocationService.GetRegionAsync(clientIp, HttpContext.RequestAborted).ConfigureAwait(false);
+        var clientInfo = request.ClientInfo;
+        var ownerDepartmentId = await db
+            .Departments.Where(x => x.Code == $"USER_{user.Id}")
+            .Select(x => x.Id)
+            .FirstOrDefaultAsync()
+            .ConfigureAwait(false);
+        _ = await db
+            .LoginLogs.AddAsync(
+                new LoginLog
+                {
+                    UserId = user.Id
+                    , OwnerId = user.Id
+                    , OwnerDepartmentId = ownerDepartmentId
+                    , UserName = Limit(user.UserName, 50)
+                    , ClientIp = Limit(clientIp, 64)
+                    , Region = Limit(region, 300)
+                    , UserAgent = Limit(Request.Headers.UserAgent.ToString(), 2000)
+                    , OperatingSystem = Limit(clientInfo?.OperatingSystem, 200)
+                    , Browser = Limit(clientInfo?.Browser, 200)
+                    , DeviceType = Limit(clientInfo?.DeviceType, 50)
+                    , Platform = Limit(clientInfo?.Platform, 200)
+                    , Language = Limit(clientInfo?.Language, 100)
+                    , TimeZone = Limit(clientInfo?.TimeZone, 100)
+                    , ScreenResolution = Limit(clientInfo?.ScreenResolution, 50)
+                    , ViewportSize = Limit(clientInfo?.ViewportSize, 50)
+                    , ColorDepth = clientInfo?.ColorDepth
+                    , PixelRatio = clientInfo?.PixelRatio
+                    , TouchPoints = clientInfo?.TouchPoints
+                    , ClientHints = clientInfo?.ClientHints ?? string.Empty
+                }
+            )
+            .ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, previous), "Login successful"));
     }
 
     /// <summary>
@@ -347,8 +395,31 @@ public sealed class AuthController(
         return digest.StartsWith(new string('0', difficulty), StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    ///     限制外部客户端文本长度以保护日志存储
+    /// </summary>
+    /// <param name="value">客户端文本</param>
+    /// <param name="maximumLength">最大字符数</param>
+    /// <returns>截断后的安全文本</returns>
+    private static string Limit(
+        string? value
+        , int maximumLength
+    ) {
+        var text = value?.Trim() ?? string.Empty;
+        return text.Length <= maximumLength ? text : text[..maximumLength];
+    }
+
     private static string ToSvgDataUrl(string svg) {
         return $"data:image/svg+xml;base64,{Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))}";
+    }
+
+    /// <summary>
+    ///     获取当前请求的客户端 IP 地址
+    /// </summary>
+    /// <returns>标准化后的客户端 IP 地址</returns>
+    private string GetClientIp() {
+        var address = HttpContext.Connection.RemoteIpAddress;
+        return address?.IsIPv4MappedToIPv6 == true ? address.MapToIPv4().ToString() : address?.ToString() ?? string.Empty;
     }
 
     /// <summary>

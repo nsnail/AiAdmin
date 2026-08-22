@@ -1,0 +1,778 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AiAdmin.Infrastructure</name>
+    </assembly>
+    <members>
+        <member name="T:AiAdmin.Api.Data.AppDbContext">
+            <summary>
+                应用数据库上下文
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.#ctor(Microsoft.EntityFrameworkCore.DbContextOptions{AiAdmin.Api.Data.AppDbContext},AiAdmin.Api.Services.DataScopeContext,Microsoft.AspNetCore.Http.IHttpContextAccessor)">
+            <summary>
+                应用数据库上下文
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.ApiEndpoints">
+            <summary>
+                接口实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.CurrentAuditActorUserId">
+            <summary>
+                当前数据库操作审计用户主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.DatabaseAuditLogs">
+            <summary>
+                数据库写入审计日志集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.Departments">
+            <summary>
+                部门实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.DictionaryCategories">
+            <summary>
+                字典目录实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.DictionaryItems">
+            <summary>
+                字典内容实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.Menus">
+            <summary>
+                菜单实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.RoleApis">
+            <summary>
+                角色接口关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.RoleMenus">
+            <summary>
+                角色菜单关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.Roles">
+            <summary>
+                角色实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.SavedQueries">
+            <summary>
+                用户保存的查询条件集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.ScheduledJobExecutions">
+            <summary>
+                计划作业执行记录集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.ScheduledJobs">
+            <summary>
+                计划作业实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.UserDepartments">
+            <summary>
+                用户部门关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.UserReferrals">
+            <summary>
+                用户邀请关系实体集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.UserRoles">
+            <summary>
+                用户角色关联集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Data.AppDbContext.Users">
+            <summary>
+                用户实体集合
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.SaveChanges(System.Boolean)">
+            <summary>
+                保存实体变更并自动维护审计时间
+            </summary>
+            <param name="acceptAllChangesOnSuccess">保存成功后是否接受所有变更</param>
+            <returns>写入数据库的状态条目数</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.SaveChangesAsync(System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+                异步保存实体变更并自动维护审计时间
+            </summary>
+            <param name="acceptAllChangesOnSuccess">保存成功后是否接受所有变更</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>写入数据库的状态条目数</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <summary>
+                配置实体关系、表名和索引
+            </summary>
+            <param name="modelBuilder">实体模型构建器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.AddDatabaseAuditLogs(System.Collections.Generic.IReadOnlyList{Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry})">
+            <summary>
+                为本次数据库写入创建审计日志
+            </summary>
+            <param name="entries">本次保存的实体状态条目</param>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.AssignOwners(System.Collections.Generic.IReadOnlyList{Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry})">
+            <summary>
+                为新增的受管控实体补齐当前操作者和所属部门
+            </summary>
+            <param name="entries">本次保存的实体状态条目</param>
+            <exception cref="T:AiAdmin.Api.Services.DataAccessDeniedException">当前用户无权操作目标实体时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.PrepareSaveChanges">
+            <summary>
+                根据实体状态维护创建时间和最后更新时间
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.AppDbContext.UpdateAuditTimes">
+            <summary>
+                根据实体状态维护创建时间和最后更新时间
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor">
+            <summary>
+                记录数据库读取和写入命令审计信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.#ctor(Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Data.DatabaseCommandAuditInterceptor})">
+            <summary>
+                记录数据库读取和写入命令审计信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.NonQueryExecuted(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData,System.Int32)">
+            <summary>
+                记录同步非查询命令完成信息
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <returns>命令执行结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.NonQueryExecutedAsync(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+                记录异步非查询命令完成信息
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步命令执行结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.NonQueryExecuting(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Int32})">
+            <summary>
+                记录同步写入命令
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <returns>允许继续执行写入命令的拦截结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.NonQueryExecutingAsync(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Int32},System.Threading.CancellationToken)">
+            <summary>
+                记录异步写入命令
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步命令执行结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ReaderExecuted(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData,System.Data.Common.DbDataReader)">
+            <summary>
+                记录同步读取命令完成信息
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <returns>读取结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ReaderExecutedAsync(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData,System.Data.Common.DbDataReader,System.Threading.CancellationToken)">
+            <summary>
+                记录异步读取命令完成信息
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步读取结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ReaderExecuting(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Data.Common.DbDataReader})">
+            <summary>
+                记录同步读取命令
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <returns>允许继续执行读取命令的拦截结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ReaderExecutingAsync(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Data.Common.DbDataReader},System.Threading.CancellationToken)">
+            <summary>
+                记录异步读取命令
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步命令执行结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ScalarExecuted(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData,System.Object)">
+            <summary>
+                记录同步标量命令完成信息
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <returns>标量结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ScalarExecutedAsync(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData,System.Object,System.Threading.CancellationToken)">
+            <summary>
+                记录异步标量命令完成信息
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步标量结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ScalarExecuting(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Object})">
+            <summary>
+                记录同步标量读取命令
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <returns>允许继续执行标量读取命令的拦截结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.ScalarExecutingAsync(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandEventData,Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult{System.Object},System.Threading.CancellationToken)">
+            <summary>
+                记录异步标量读取命令
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+            <param name="result">命令执行结果</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步命令执行结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseCommandAuditInterceptor.WriteAudit(System.Data.Common.DbCommand,Microsoft.EntityFrameworkCore.Diagnostics.CommandExecutedEventData)">
+            <summary>
+                输出数据库操作审计日志
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="eventData">命令事件数据</param>
+        </member>
+        <member name="T:AiAdmin.Api.Data.DatabaseInitializer">
+            <summary>
+                数据库结构和基础数据初始化器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.InitializeAsync(System.IServiceProvider)">
+            <summary>
+                初始化数据库结构、基础角色和菜单数据
+            </summary>
+            <param name="services">应用服务提供器</param>
+            <returns>异步初始化任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.InitializeRoleApisAsync(System.IServiceProvider)">
+            <summary>
+                为非超级管理员角色补充进入后台所需的基础接口权限
+            </summary>
+            <param name="services">应用服务提供器</param>
+            <returns>异步初始化任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.AddSeedUserDepartmentsAsync(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Models.Department,AiAdmin.Api.Models.User[])">
+            <summary>
+                为种子用户创建默认部门下的个人子部门并建立关联
+            </summary>
+            <param name="db">数据库上下文</param>
+            <param name="defaultDepartment">默认部门</param>
+            <param name="users">种子用户集合</param>
+            <returns>异步处理任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.EnsureDefaultDepartmentAsync(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                确保默认部门种子存在
+            </summary>
+            <param name="db">数据库上下文</param>
+            <returns>默认部门实体</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.EnsureRedisCacheMenuAsync(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                确保已有数据库包含 Redis 缓存管理菜单
+            </summary>
+            <param name="db">应用数据库上下文</param>
+            <returns>异步初始化任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.EnsureScheduledJobMenuAsync(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                确保计划作业菜单存在，兼容已有数据库和旧菜单种子
+            </summary>
+            <param name="db">数据库上下文</param>
+            <returns>异步初始化任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Data.DatabaseInitializer.EnsureScheduledJobSeedAsync(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                初始化计划作业占位符目录和公共 IP 示例作业
+            </summary>
+            <param name="db">应用数据库上下文</param>
+            <returns>异步初始化任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ApiEndpointKey">
+            <summary>
+                提供接口方法与路径的规范化标识
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiEndpointKey.Create(System.String,System.String)">
+            <summary>
+                生成接口唯一键
+            </summary>
+            <param name="method">HTTP 方法</param>
+            <param name="path">接口路径</param>
+            <returns>规范化接口键</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiEndpointKey.NormalizePath(System.String)">
+            <summary>
+                规范化接口路径
+            </summary>
+            <param name="path">原始接口路径</param>
+            <returns>以斜杠开头的小写路径</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ApiEndpointSyncService">
+            <summary>
+                反射并同步系统 Web API 到接口权限表
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiEndpointSyncService.#ctor(AiAdmin.Api.Data.AppDbContext,Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider,AiAdmin.Api.Services.ApiPermissionCache)">
+            <summary>
+                反射并同步系统 Web API 到接口权限表
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiEndpointSyncService.SyncAsync(System.Threading.CancellationToken)">
+            <summary>
+                执行接口新增、更新和删除同步
+            </summary>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>同步统计结果</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ApiPermissionCache">
+            <summary>
+                缓存接口匿名配置和角色接口授权关系
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiPermissionCache.#ctor(Microsoft.Extensions.Caching.Distributed.IDistributedCache,Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)">
+            <summary>
+                缓存接口匿名配置和角色接口授权关系
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiPermissionCache.GetAsync(System.Threading.CancellationToken)">
+            <summary>
+                获取当前权限快照
+            </summary>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>权限快照</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiPermissionCache.Invalidate">
+            <summary>
+                使权限缓存失效
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ApiPermissionSnapshot">
+            <summary>
+                内存中的接口权限快照
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiPermissionSnapshot.#ctor(System.Boolean,System.Collections.Generic.IReadOnlySet{System.String},System.Collections.Generic.IReadOnlyDictionary{System.String,System.Collections.Generic.HashSet{System.String}})">
+            <summary>
+                内存中的接口权限快照
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ApiPermissionSnapshot.Allows(System.Collections.Generic.IEnumerable{System.String},System.String)">
+            <summary>
+                判断多个角色对接口的权限并集是否包含目标接口
+            </summary>
+            <param name="roles">当前用户角色编码</param>
+            <param name="apiKey">接口键</param>
+            <returns>拥有权限时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.DataAccessDeniedException">
+            <summary>
+                表示当前用户无权操作目标数据
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DataAccessDeniedException.#ctor">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.DataAccessDeniedException" /> class.
+                初始化数据权限不足异常
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DataAccessDeniedException.#ctor(System.String)">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.DataAccessDeniedException" /> class.
+                使用指定错误消息初始化数据权限不足异常
+            </summary>
+            <param name="message">描述异常原因的错误消息</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DataAccessDeniedException.#ctor(System.String,System.Exception)">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.DataAccessDeniedException" /> class.
+                使用指定错误消息和内部异常初始化数据权限不足异常
+            </summary>
+            <param name="message">描述异常原因的错误消息</param>
+            <param name="innerException">导致当前异常的内部异常</param>
+        </member>
+        <member name="T:AiAdmin.Api.Services.DataScopeContext">
+            <summary>
+                当前请求的数据权限上下文
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DataScopeContext.DefaultOwnerDepartmentId">
+            <summary>
+                新增数据时默认写入的所有者部门主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DataScopeContext.DepartmentIds">
+            <summary>
+                当前用户可操作的所有者部门主键集合
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DataScopeContext.HasAllData">
+            <summary>
+                是否拥有全部数据权限
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DataScopeContext.HasSelfData">
+            <summary>
+                是否允许访问本人数据
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DataScopeContext.IsInitialized">
+            <summary>
+                是否已为当前请求完成初始化
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DataScopeContext.UserId">
+            <summary>
+                当前登录用户主键
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DataScopeContext.CanAccess(AiAdmin.Api.Models.IOwner)">
+            <summary>
+                判断是否可操作指定所有者数据
+            </summary>
+            <param name="owner">目标数据所有者</param>
+            <returns>可操作时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DataScopeContext.Initialize(System.Int64,System.Boolean,System.Boolean,System.Collections.Generic.IReadOnlySet{System.Int64},System.Int64)">
+            <summary>
+                初始化当前请求的数据权限范围
+            </summary>
+            <param name="userId">当前登录用户主键</param>
+            <param name="hasAllData">是否拥有全部数据权限</param>
+            <param name="hasSelfData">是否允许访问本人数据</param>
+            <param name="departmentIds">可操作部门主键集合</param>
+            <param name="defaultOwnerDepartmentId">新增数据默认所属部门主键</param>
+        </member>
+        <member name="T:AiAdmin.Api.Services.DynamicFilterExtensions">
+            <summary>
+                为 EF Core 查询提供 FreeSql 风格的动态筛选能力
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DynamicFilterExtensions.ApplyDynamicFilter``1(System.Linq.IQueryable{``0},AiAdmin.Api.Contracts.DynamicFilter)">
+            <summary>
+                对查询应用可递归嵌套的动态筛选条件
+            </summary>
+            <typeparam name="T">查询实体类型</typeparam>
+            <param name="query">待筛选的查询</param>
+            <param name="filter">动态筛选根节点</param>
+            <returns>附加筛选条件后的查询</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DynamicFilterExtensions.ApplyDynamicSort``1(System.Linq.IQueryable{``0},System.String,System.String,System.String,System.Boolean,System.Collections.Generic.IReadOnlyDictionary{System.String,System.String})">
+            <summary>
+                根据客户端字段名应用动态排序
+            </summary>
+            <typeparam name="T">查询实体类型</typeparam>
+            <param name="query">待排序的查询</param>
+            <param name="sortField">排序字段名称</param>
+            <param name="sortOrder">排序方向</param>
+            <param name="defaultField">未指定排序字段时使用的默认字段</param>
+            <param name="defaultDescending">默认字段是否倒序</param>
+            <param name="aliases">客户端字段名到实体字段路径的映射</param>
+            <returns>附加排序后的查询</returns>
+            <exception cref="T:AiAdmin.Api.Services.DynamicFilterValidationException">排序方向或字段无效时抛出</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DynamicFilterExtensions.ParseEnumValue(System.Type,System.String)">
+            <summary>
+                将枚举名称或数字文本转换为枚举值
+            </summary>
+            <param name="targetType">目标枚举类型</param>
+            <param name="value">枚举名称或数字文本</param>
+            <returns>转换后的枚举值</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.DynamicFilterValidationException">
+            <summary>
+                表示动态筛选请求格式不合法的异常
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DynamicFilterValidationException.#ctor">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.DynamicFilterValidationException" /> class
+                初始化动态筛选格式异常
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DynamicFilterValidationException.#ctor(System.String)">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.DynamicFilterValidationException" /> class
+                使用错误消息初始化动态筛选格式异常
+            </summary>
+            <param name="message">错误消息</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DynamicFilterValidationException.#ctor(System.String,System.Exception)">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.DynamicFilterValidationException" /> class
+                使用错误消息和内部异常初始化动态筛选格式异常
+            </summary>
+            <param name="message">错误消息</param>
+            <param name="innerException">内部异常</param>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ListFilterMetadataService">
+            <summary>
+                列表筛选字段元数据反射服务
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ListFilterMetadataService.GetFields``1">
+            <summary>
+                获取指定实体声明的列表筛选字段
+            </summary>
+            <typeparam name="TEntity">实体类型</typeparam>
+            <returns>筛选字段元数据</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ListFilterMetadataService.GetValueType(System.Type)">
+            <summary>
+                获取前端字段值类型
+            </summary>
+            <param name="type">实体属性类型</param>
+            <returns>前端值类型</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ListFilterMetadataService.ToOption(System.String)">
+            <summary>
+                将特性选项文本转换为响应模型
+            </summary>
+            <param name="option">值和显示名称文本</param>
+            <returns>筛选选项</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.LongJsonConverter">
+            <summary>
+                支持字符串和数字输入并始终输出字符串的 Int64 JSON 转换器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.LongJsonConverter.Read(System.Text.Json.Utf8JsonReader@,System.Type,System.Text.Json.JsonSerializerOptions)">
+            <summary>
+                从 JSON 字符串或数字读取 Int64 值
+            </summary>
+            <param name="reader">JSON 读取器</param>
+            <param name="typeToConvert">目标类型</param>
+            <param name="options">序列化配置</param>
+            <returns>读取到的 Int64 值</returns>
+            <exception cref="T:System.Text.Json.JsonException">JSON 值不是有效的 Int64 字符串或数字时抛出</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Services.LongJsonConverter.Write(System.Text.Json.Utf8JsonWriter,System.Int64,System.Text.Json.JsonSerializerOptions)">
+            <summary>
+                将 Int64 值写为 JSON 字符串
+            </summary>
+            <param name="writer">JSON 写入器</param>
+            <param name="value">待写入值</param>
+            <param name="options">序列化配置</param>
+        </member>
+        <member name="T:AiAdmin.Api.Services.MinioObject">
+            <summary>
+                MinIO 文件对象信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioObject.#ctor(System.String,System.Int64,System.DateTime,System.Boolean)">
+            <summary>
+                MinIO 文件对象信息
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Services.MinioOptions">
+            <summary>
+                MinIO 存储配置
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.MinioOptions.AccessKey">
+            <summary>
+                MinIO 访问密钥
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.MinioOptions.Bucket">
+            <summary>
+                MinIO 存储桶名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.MinioOptions.Endpoint">
+            <summary>
+                MinIO 服务地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.MinioOptions.PublicUrl">
+            <summary>
+                对象预览域名
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.MinioOptions.SecretKey">
+            <summary>
+                MinIO 私密密钥
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.MinioOptions.UseSsl">
+            <summary>
+                是否使用 HTTPS
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Services.MinioStorageService">
+            <summary>
+                MinIO 文件存储服务
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.#ctor(Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Services.MinioStorageService" /> class.
+                初始化 MinIO 存储客户端
+            </summary>
+            <param name="configuration">应用配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.CreateDirectoryAsync(System.String)">
+            <summary>
+                创建 MinIO 虚拟目录
+            </summary>
+            <param name="objectName">目录对象名称</param>
+            <returns>异步操作任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.DeleteAsync(System.String)">
+            <summary>
+                删除 MinIO 文件对象
+            </summary>
+            <param name="objectName">对象名称</param>
+            <returns>异步操作任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.DeleteDirectoryAsync(System.String)">
+            <summary>
+                递归删除 MinIO 虚拟目录及其全部对象
+            </summary>
+            <param name="prefix">目录对象前缀</param>
+            <returns>异步操作任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.GetDownloadUrlAsync(System.String)">
+            <summary>
+                创建文件临时下载地址
+            </summary>
+            <param name="objectName">对象名称</param>
+            <returns>临时下载地址</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.GetPreviewUrl(System.String)">
+            <summary>
+                获取对象预览地址
+            </summary>
+            <param name="objectName">对象名称</param>
+            <returns>对象预览地址或对象路径</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.ListAsync(System.String,System.String,System.String,System.Boolean)">
+            <summary>
+                列出指定目录下的直接子项
+            </summary>
+            <param name="prefix">用户目录前缀</param>
+            <param name="keyword">文件或目录名称关键词</param>
+            <param name="sortField">排序字段</param>
+            <param name="descending">是否倒序</param>
+            <returns>文件和目录列表</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.MinioStorageService.UploadAsync(System.String,System.IO.Stream,System.Int64,System.String)">
+            <summary>
+                上传文件到 MinIO
+            </summary>
+            <param name="objectName">对象名称</param>
+            <param name="stream">文件流</param>
+            <param name="size">文件大小</param>
+            <param name="contentType">文件类型</param>
+            <returns>异步操作任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.PermissionCacheModel">
+            <summary>
+                分布式缓存中的接口权限序列化模型
+            </summary>
+            <param name="HasApis">是否存在接口配置</param>
+            <param name="AnonymousKeys">允许匿名访问的接口键集合</param>
+            <param name="ByRole">按角色编码分组的接口键集合</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.PermissionCacheModel.#ctor(System.Boolean,System.String[],System.Collections.Generic.Dictionary{System.String,System.String[]})">
+            <summary>
+                分布式缓存中的接口权限序列化模型
+            </summary>
+            <param name="HasApis">是否存在接口配置</param>
+            <param name="AnonymousKeys">允许匿名访问的接口键集合</param>
+            <param name="ByRole">按角色编码分组的接口键集合</param>
+        </member>
+        <member name="P:AiAdmin.Api.Services.PermissionCacheModel.HasApis">
+            <summary>是否存在接口配置</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.PermissionCacheModel.AnonymousKeys">
+            <summary>允许匿名访问的接口键集合</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.PermissionCacheModel.ByRole">
+            <summary>按角色编码分组的接口键集合</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ServerTime">
+            <summary>
+                服务器时间辅助类
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ServerTime.Now">
+            <summary>
+                获取服务器所在时区的当前本地时间
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ServerTime.ToLocal(System.DateTimeOffset)">
+            <summary>
+                将客户端带偏移量的时间转换为服务器本地时间
+            </summary>
+            <param name="value">客户端时间</param>
+            <returns>服务器本地时间</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ServerTime.ToOffset(System.DateTime)">
+            <summary>
+                将数据库中的服务器本地时间转换为带服务器偏移量的时间
+            </summary>
+            <param name="value">服务器本地时间</param>
+            <returns>带服务器时区偏移量的时间</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.TokenService">
+            <summary>
+                JWT 访问令牌服务
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.TokenService.#ctor(Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+                JWT 访问令牌服务
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.TokenService.Create(AiAdmin.Api.Models.User)">
+            <summary>
+                为用户创建包含角色声明的 JWT
+            </summary>
+            <param name="user">登录用户</param>
+            <returns>JWT 字符串</returns>
+        </member>
+    </members>
+</doc>

@@ -79,7 +79,8 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
                 , RequestBody = GetString(fields, "RequestBody")
                 , RequestHeaders = GetString(fields, "RequestHeaders")
                 , RequestContentType = GetString(fields, "RequestContentType")
-                , RequestId = GetString(fields, "RequestId")
+                , TraceId = GetLong(fields, "TraceId")
+                , WorkerId = GetLong(fields, "WorkerId") ?? 0
                 , ResponseHeaders = GetString(fields, "ResponseHeaders")
                 , ResponseBody = GetString(fields, "ResponseBody")
                 , ResponseContentType = GetString(fields, "ResponseContentType")

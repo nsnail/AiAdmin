@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using AiAdmin.Api.Logging;
@@ -9,8 +10,12 @@ namespace AiAdmin.Api.Services;
 ///     统一执行并记录外部 HTTP 请求
 /// </summary>
 /// <param name="httpClientFactory">HTTP 客户端工厂</param>
+/// <param name="httpContextAccessor">当前 HTTP 请求上下文访问器</param>
 /// <param name="logger">外部请求日志记录器</param>
-public sealed class ExternalHttpRequestService(IHttpClientFactory httpClientFactory, ILogger<ExternalHttpRequestService> logger)
+public sealed class ExternalHttpRequestService(
+    IHttpClientFactory httpClientFactory
+    , IHttpContextAccessor httpContextAccessor
+    , ILogger<ExternalHttpRequestService> logger)
 {
     /// <summary>
     ///     发送外部 HTTP 请求并返回完整快照
@@ -25,6 +30,13 @@ public sealed class ExternalHttpRequestService(IHttpClientFactory httpClientFact
         , HttpCompletionOption completionOption
         , CancellationToken cancellationToken
     ) {
+        long? traceId = null;
+        if (HttpTraceContext.TryGet(httpContextAccessor.HttpContext, out var currentTraceId)) {
+            traceId = currentTraceId;
+            _ = request.Headers.Remove(HttpTraceContext.HEADER_NAME);
+            _ = request.Headers.TryAddWithoutValidation(HttpTraceContext.HEADER_NAME, currentTraceId.ToString(CultureInfo.InvariantCulture));
+        }
+
         var requestBody = request.Content is not null && IsTextContentType(request.Content.Headers.ContentType?.MediaType)
             ? await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)
             : string.Empty;
@@ -69,6 +81,7 @@ public sealed class ExternalHttpRequestService(IHttpClientFactory httpClientFact
             , ["ResponseHeaders"] = result.ResponseHeaders
             , ["ResponseBody"] = result.ResponseBody
             , ["ResponseContentType"] = result.ResponseContentType
+            , ["TraceId"] = traceId
         };
         var state = new StructuredLogState("External HTTP request completed", fields);
         logger.Log(
@@ -81,6 +94,11 @@ public sealed class ExternalHttpRequestService(IHttpClientFactory httpClientFact
         return result;
     }
 
+    /// <summary>
+    ///     判断内容类型是否适合按文本读取
+    /// </summary>
+    /// <param name="mediaType">HTTP 媒体类型</param>
+    /// <returns>适合按文本读取时返回 true</returns>
     private static bool IsTextContentType(string? mediaType) {
         return !string.IsNullOrWhiteSpace(mediaType)
                && (mediaType.StartsWith("text/", StringComparison.OrdinalIgnoreCase)
@@ -90,6 +108,12 @@ public sealed class ExternalHttpRequestService(IHttpClientFactory httpClientFact
                    || mediaType.Contains("x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase));
     }
 
+    /// <summary>
+    ///     将请求或响应头序列化为 JSON
+    /// </summary>
+    /// <param name="headers">HTTP 消息头</param>
+    /// <param name="contentHeaders">HTTP 内容头</param>
+    /// <returns>序列化后的请求头</returns>
     private static string SerializeHeaders(
         HttpHeaders headers
         , HttpContentHeaders? contentHeaders

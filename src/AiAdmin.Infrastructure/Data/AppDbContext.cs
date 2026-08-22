@@ -43,6 +43,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     public DbSet<DictionaryItem> DictionaryItems => Set<DictionaryItem>();
 
     /// <summary>
+    ///     用户登录日志集合
+    /// </summary>
+    public DbSet<LoginLog> LoginLogs => Set<LoginLog>();
+
+    /// <summary>
     ///     菜单实体集合
     /// </summary>
     public DbSet<Menu> Menus => Set<Menu>();
@@ -141,6 +146,37 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Phone).HasMaxLength(20);
                 _ = entity.Property(x => x.Gender).HasConversion<int>();
                 _ = entity.Property(x => x.Avatar).HasMaxLength(500);
+            }
+        );
+
+        _ = modelBuilder.Entity<LoginLog>(entity =>
+            {
+                _ = entity.ToTable("sys_login_log");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.HasIndex(x => new { x.UserId, x.CreatedAt });
+                _ = entity.HasIndex(x => x.ClientIp);
+                _ = entity.HasIndex(x => x.OwnerDepartmentId);
+                _ = entity.Property(x => x.UserName).HasMaxLength(50).IsRequired();
+                _ = entity.Property(x => x.ClientIp).HasMaxLength(64).IsRequired();
+                _ = entity.Property(x => x.Region).HasMaxLength(300);
+                _ = entity.Property(x => x.UserAgent).HasMaxLength(2000);
+                _ = entity.Property(x => x.OperatingSystem).HasMaxLength(200);
+                _ = entity.Property(x => x.Browser).HasMaxLength(200);
+                _ = entity.Property(x => x.DeviceType).HasMaxLength(50);
+                _ = entity.Property(x => x.Platform).HasMaxLength(200);
+                _ = entity.Property(x => x.Language).HasMaxLength(100);
+                _ = entity.Property(x => x.TimeZone).HasMaxLength(100);
+                _ = entity.Property(x => x.ScreenResolution).HasMaxLength(50);
+                _ = entity.Property(x => x.ViewportSize).HasMaxLength(50);
+                _ = entity.Property(x => x.ClientHints).HasColumnType("TEXT");
+                _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+                _ = entity.HasQueryFilter(x =>
+                    !dataScope.IsInitialized
+                    || dataScope.HasAllData
+                    || (dataScope.HasSelfData && x.OwnerId == dataScope.UserId)
+                    || dataScope.DepartmentIds.Contains(x.OwnerDepartmentId)
+                );
             }
         );
 

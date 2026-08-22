@@ -1,0 +1,41 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "AiAdmin.Core/0.0.0-beta.37": {
+        "dependencies": {
+          "ProductiveRage.SealedClassVerification.Net": "1.7.0"
+        },
+        "runtime": {
+          "AiAdmin.Core.dll": {}
+        }
+      },
+      "ProductiveRage.SealedClassVerification.Net/1.7.0": {
+        "runtime": {
+          "lib/netstandard1.6/ProductiveRage.SealedClassVerification.Net.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "AiAdmin.Core/0.0.0-beta.37": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "ProductiveRage.SealedClassVerification.Net/1.7.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-jHaB5m8m4Qof5fZXsVmptL8Q1mwzW7hFSetZz7Q0SwvmGPRpl2ncrJuajXH/wJj8Fruc6B+dw/GvK0xDsD8epg==",
+      "path": "productiverage.sealedclassverification.net/1.7.0",
+      "hashPath": "productiverage.sealedclassverification.net.1.7.0.nupkg.sha512"
+    }
+  }
+}

@@ -1,0 +1,2390 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>AiAdmin.Api</name>
+    </assembly>
+    <members>
+        <member name="T:AiAdmin.Api.Caching.RedisKeyPrefix">
+            <summary>
+                定义应用内部 Redis 键的统一前缀
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Caching.RedisKeyPrefix.VALUE">
+            <summary>
+                应用内部 Redis 键前缀
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.ApiEndpointsController">
+            <summary>
+                管理系统接口及其授权配置
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiEndpointsController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.ApiEndpointSyncService)">
+            <summary>
+                管理系统接口及其授权配置
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiEndpointsController.FilterFields">
+            <summary>
+                查询接口列表筛选字段元数据
+            </summary>
+            <returns>接口筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiEndpointsController.ListAsync(AiAdmin.Api.Contracts.DynamicQueryRequest)">
+            <summary>
+                查询系统接口列表
+            </summary>
+            <param name="request">包含动态筛选信息的请求体</param>
+            <returns>接口列表响应</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiEndpointsController.SyncAsync">
+            <summary>
+                反射并同步系统接口
+            </summary>
+            <returns>同步统计响应</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.ApiLogsController">
+            <summary>
+                API 数据库日志管理
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiLogsController.#ctor(AiAdmin.Api.Logging.ApiLogQueryService)">
+            <summary>
+                API 数据库日志管理
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiLogsController.FilterFields">
+            <summary>
+                查询接口日志高级筛选字段
+            </summary>
+            <returns>筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ApiLogsController.ListAsync(AiAdmin.Api.Logging.ApiLogQueryRequest,System.Threading.CancellationToken)">
+            <summary>
+                按日期范围分页查询 API 日志
+            </summary>
+            <param name="request">日志查询条件</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>日志分页结果</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.AuthController">
+            <summary>
+                提供用户登录接口
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.TokenService,Microsoft.Extensions.Caching.Distributed.IDistributedCache,AiAdmin.Api.Services.DictionarySnapshotService,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Controllers.AuthController})">
+            <summary>
+                提供用户登录接口
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.ChallengeEndpointAsync">
+            <summary>
+                创建登录算力挑战
+            </summary>
+            <returns>算力挑战和难度</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.ConfigAsync">
+            <summary>
+                查询登录页面配置
+            </summary>
+            <returns>登录页面配置</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.LoginAsync(AiAdmin.Api.Contracts.LoginRequest)">
+            <summary>
+                校验账号密码并签发访问令牌
+            </summary>
+            <param name="request">登录凭据</param>
+            <returns>登录结果或失败响应</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.RegisterAsync(AiAdmin.Api.Contracts.RegisterRequest)">
+            <summary>
+                注册普通用户
+            </summary>
+            <param name="request">注册信息</param>
+            <returns>注册结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.RegisterCodeAsync(AiAdmin.Api.Contracts.RegisterCodeRequest)">
+            <summary>
+                发送注册邮箱验证码
+            </summary>
+            <param name="request">邮箱请求</param>
+            <returns>发送结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.RegisterPuzzleAsync">
+            <summary>
+                创建发送邮箱验证码前的拼图挑战
+            </summary>
+            <returns>拼图挑战</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.VerifyRegisterPuzzleAsync(AiAdmin.Api.Contracts.VerifyRegisterPuzzleRequest)">
+            <summary>
+                校验发送邮箱验证码前的拼图位置
+            </summary>
+            <param name="request">拼图校验请求</param>
+            <returns>一次性发送凭证</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.IsSettingEnabled(System.Collections.Generic.IEnumerable{AiAdmin.Api.Services.DictionarySnapshotItem},System.String)">
+            <summary>
+                判断系统设置快照中的指定开关是否启用
+            </summary>
+            <param name="settings">系统设置快照</param>
+            <param name="label">设置标签</param>
+            <returns>设置存在、已启用且值为 true 时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.GetSmtpSettingsAsync">
+            <summary>
+                从系统设置快照读取 SMTP 配置
+            </summary>
+            <returns>SMTP 连接与发件配置</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.AuthController.IsSettingEnabledAsync(System.String)">
+            <summary>
+                判断指定系统设置开关是否启用
+            </summary>
+            <param name="label">设置标签</param>
+            <returns>设置存在、已启用且值为 true 时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.DepartmentsController">
+            <summary>
+                部门管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.#ctor(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                部门管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.CreateAsync(AiAdmin.Api.Contracts.SaveDepartmentRequest)">
+            <summary>
+                创建部门
+            </summary>
+            <param name="request">部门保存请求</param>
+            <returns>创建后的部门节点</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.DeleteAsync(System.Int64)">
+            <summary>
+                删除部门
+            </summary>
+            <param name="id">部门主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.FilterFields">
+            <summary>
+                查询部门列表筛选字段元数据
+            </summary>
+            <returns>部门筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.TreeAsync">
+            <summary>
+                查询全部部门树
+            </summary>
+            <returns>部门树节点集合</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.UpdateAsync(System.Int64,AiAdmin.Api.Contracts.SaveDepartmentRequest)">
+            <summary>
+                更新部门
+            </summary>
+            <param name="id">部门主键</param>
+            <param name="request">部门保存请求</param>
+            <returns>更新后的部门节点</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.ApplyRequest(AiAdmin.Api.Models.Department,AiAdmin.Api.Contracts.SaveDepartmentRequest)">
+            <summary>
+                将请求字段应用到部门实体
+            </summary>
+            <param name="department">部门实体</param>
+            <param name="request">部门保存请求</param>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.BuildTree(System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Models.Department})">
+            <summary>
+                将平面部门集合构建为树
+            </summary>
+            <param name="departments">平面部门集合</param>
+            <returns>部门树节点集合</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.FromRequest(AiAdmin.Api.Contracts.SaveDepartmentRequest)">
+            <summary>
+                根据请求创建部门实体
+            </summary>
+            <param name="request">部门保存请求</param>
+            <returns>部门实体</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.ToTreeItem(AiAdmin.Api.Models.Department,System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Contracts.DepartmentTreeItem})">
+            <summary>
+                将部门实体转换为树节点
+            </summary>
+            <param name="department">部门实体</param>
+            <param name="children">子部门节点集合</param>
+            <returns>部门树节点</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.CreatesCycleAsync(System.Int64,System.Nullable{System.Int64})">
+            <summary>
+                判断目标父部门是否会形成循环引用
+            </summary>
+            <param name="id">当前部门主键</param>
+            <param name="parentId">目标父部门主键</param>
+            <returns>会形成循环引用时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DepartmentsController.ParentExistsAsync(System.Nullable{System.Int64})">
+            <summary>
+                判断父部门是否存在
+            </summary>
+            <param name="parentId">父部门主键</param>
+            <returns>父部门为空或存在时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.DictionariesController">
+            <summary>
+                字典管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.DictionarySnapshotService)">
+            <summary>
+                字典管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.CategoriesAsync">
+            <summary>
+                查询字典目录树
+            </summary>
+            <returns>字典目录树</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.CreateCategoryAsync(AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest)">
+            <summary>
+                新增字典目录
+            </summary>
+            <param name="request">目录保存请求</param>
+            <returns>新增目录</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.CreateItemAsync(System.Int64,AiAdmin.Api.Contracts.SaveDictionaryItemRequest)">
+            <summary>
+                新增字典内容
+            </summary>
+            <param name="categoryId">目录主键</param>
+            <param name="request">内容保存请求</param>
+            <returns>新增内容</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.DeleteCategoryAsync(System.Int64)">
+            <summary>
+                删除字典目录
+            </summary>
+            <param name="id">目录主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.DeleteItemAsync(System.Int64)">
+            <summary>
+                删除字典内容
+            </summary>
+            <param name="id">内容主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.FilterFields">
+            <summary>
+                查询字典内容筛选字段元数据
+            </summary>
+            <returns>字典内容筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.ItemsAsync(System.Int64)">
+            <summary>
+                查询指定目录的字典内容
+            </summary>
+            <param name="categoryId">目录主键</param>
+            <returns>字典内容列表</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.UpdateCategoryAsync(System.Int64,AiAdmin.Api.Contracts.SaveDictionaryCategoryRequest)">
+            <summary>
+                修改字典目录
+            </summary>
+            <param name="id">目录主键</param>
+            <param name="request">目录保存请求</param>
+            <returns>修改后的目录</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.UpdateItemAsync(System.Int64,AiAdmin.Api.Contracts.SaveDictionaryItemRequest)">
+            <summary>
+                修改字典内容
+            </summary>
+            <param name="id">内容主键</param>
+            <param name="request">内容保存请求</param>
+            <returns>修改后的内容</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.BuildTree(System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Models.DictionaryCategory})">
+            <summary>
+                将字典目录列表构建为树
+            </summary>
+            <param name="rows">字典目录列表</param>
+            <returns>字典目录树</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.ToItem(AiAdmin.Api.Models.DictionaryItem)">
+            <summary>
+                将字典内容实体转换为响应模型
+            </summary>
+            <param name="item">字典内容实体</param>
+            <returns>字典内容响应模型</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.ToResult(AiAdmin.Api.Models.DictionaryCategory)">
+            <summary>
+                将字典目录实体转换为响应模型
+            </summary>
+            <param name="category">字典目录实体</param>
+            <returns>字典目录响应模型</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.IsDescendantAsync(System.Int64,System.Int64)">
+            <summary>
+                判断候选父目录是否为当前目录的后代
+            </summary>
+            <param name="id">当前目录主键</param>
+            <param name="candidate">候选父目录主键</param>
+            <returns>候选目录位于当前目录子树时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.DictionariesController.RefreshCategorySnapshotAsync(System.Int64)">
+            <summary>
+                在字典内容写入成功后刷新所属内置目录的 Redis 快照
+            </summary>
+            <param name="categoryId">字典目录主键</param>
+            <returns>异步执行任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.EnabledStatesController">
+            <summary>
+                管理系统资源的启用状态
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.EnabledStatesController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.ApiPermissionCache)">
+            <summary>
+                管理系统资源的启用状态
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.EnabledStatesController.UpdateAsync(System.String,System.Int64,AiAdmin.Api.Contracts.UpdateEnabledRequest)">
+            <summary>
+                更新指定资源的启用状态
+            </summary>
+            <param name="resource">资源类型</param>
+            <param name="id">记录主键</param>
+            <param name="request">启用状态请求</param>
+            <returns>状态更新结果</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.FilesController">
+            <summary>
+                文件管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.#ctor(AiAdmin.Api.Services.MinioStorageService)">
+            <summary>
+                文件管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.CreateDirectoryAsync(AiAdmin.Api.Contracts.CreateFileDirectoryRequest)">
+            <summary>
+                创建文件目录
+            </summary>
+            <param name="request">目录创建请求</param>
+            <returns>创建结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.DeleteAsync(System.String,System.Boolean)">
+            <summary>
+                删除文件
+            </summary>
+            <param name="name">对象名称</param>
+            <param name="directory">是否递归删除目录</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.DeleteByRequestAsync(AiAdmin.Api.Contracts.DeleteFileRequest)">
+            <summary>
+                通过 JSON 请求删除文件或目录
+            </summary>
+            <param name="request">删除请求</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.DownloadAsync(System.String)">
+            <summary>
+                获取文件下载地址
+            </summary>
+            <param name="name">对象名称</param>
+            <returns>下载地址</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.ListAsync(System.String,System.String,System.String,System.String)">
+            <summary>
+                查询文件列表
+            </summary>
+            <param name="path">当前目录相对路径</param>
+            <param name="keyword">文件或目录名称关键词</param>
+            <param name="sortField">排序字段，支持 Name、Size、LastModified</param>
+            <param name="sortOrder">排序顺序，支持 ascending、descending</param>
+            <returns>文件列表</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.FilesController.UploadAsync(Microsoft.AspNetCore.Http.IFormFile,System.String)">
+            <summary>
+                上传文件
+            </summary>
+            <param name="file">上传的文件</param>
+            <param name="path">当前目录相对路径</param>
+            <returns>文件对象信息</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.MenusController">
+            <summary>
+                菜单管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.#ctor(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                菜单管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.CreateAsync(AiAdmin.Api.Contracts.SaveMenuRequest)">
+            <summary>
+                创建菜单
+            </summary>
+            <param name="request">菜单保存请求</param>
+            <returns>创建后的菜单</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.CurrentAsync">
+            <summary>
+                查询当前用户可访问的菜单树
+            </summary>
+            <returns>当前用户菜单树</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.DeleteAsync(System.Int64)">
+            <summary>
+                删除菜单
+            </summary>
+            <param name="id">菜单主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.FilterFields">
+            <summary>
+                查询菜单列表筛选字段元数据
+            </summary>
+            <returns>菜单筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.ListAsync(AiAdmin.Api.Contracts.DynamicQueryRequest)">
+            <summary>
+                查询全部菜单树
+            </summary>
+            <param name="request">包含动态筛选信息的请求体</param>
+            <returns>菜单树</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.MenusController.UpdateAsync(System.Int64,AiAdmin.Api.Contracts.SaveMenuRequest)">
+            <summary>
+                更新菜单
+            </summary>
+            <param name="id">菜单主键</param>
+            <param name="request">菜单保存请求</param>
+            <returns>更新后的菜单</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.RedisCacheController">
+            <summary>
+                管理 Redis 服务器和缓存键
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.#ctor(StackExchange.Redis.IConnectionMultiplexer)">
+            <summary>
+                管理 Redis 服务器和缓存键
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.DeleteAsync(System.String)">
+            <summary>
+                删除 Redis 缓存键
+            </summary>
+            <param name="key">缓存键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.KeysAsync(System.String,System.Int32)">
+            <summary>
+                扫描 Redis 缓存键
+            </summary>
+            <param name="pattern">键匹配模式</param>
+            <param name="limit">最多返回数量</param>
+            <returns>缓存键列表</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.SaveAsync(AiAdmin.Api.Contracts.SaveRedisCacheRequest)">
+            <summary>
+                新增或更新 Redis 字符串缓存
+            </summary>
+            <param name="request">缓存保存请求</param>
+            <returns>保存后的缓存内容</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.ServerInfoAsync">
+            <summary>
+                查询 Redis 服务器运行信息
+            </summary>
+            <returns>Redis 服务器信息</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.ValueAsync(System.String)">
+            <summary>
+                查询 Redis 缓存键内容
+            </summary>
+            <param name="key">缓存键</param>
+            <returns>缓存键内容</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.TryGetDatabaseSizeAsync(StackExchange.Redis.IServer,System.Int32)">
+            <summary>
+                尝试读取 Redis 数据库键数量
+            </summary>
+            <param name="server">Redis 服务器</param>
+            <param name="database">数据库编号</param>
+            <returns>键数量，无法读取时返回零</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.TryGetMemoryBytesAsync(StackExchange.Redis.IDatabase,StackExchange.Redis.RedisKey)">
+            <summary>
+                尝试读取单个 Redis 键的内存占用
+            </summary>
+            <param name="database">Redis 数据库</param>
+            <param name="key">缓存键</param>
+            <returns>占用字节数，不支持时返回零</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RedisCacheController.TryGetServerInfoAsync(StackExchange.Redis.IServer)">
+            <summary>
+                尝试读取 Redis INFO，未开启管理员权限时返回空信息
+            </summary>
+            <param name="server">Redis 服务器</param>
+            <returns>Redis INFO 字段</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.RolesController">
+            <summary>
+                角色和权限管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.ApiPermissionCache)">
+            <summary>
+                角色和权限管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.ApisAsync(System.Int64)">
+            <summary>
+                查询角色已授权的接口主键
+            </summary>
+            <param name="id">角色主键</param>
+            <returns>接口主键集合</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.CreateAsync(AiAdmin.Api.Contracts.SaveRoleRequest)">
+            <summary>
+                创建角色
+            </summary>
+            <param name="request">角色保存请求</param>
+            <returns>创建后的角色</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.DeleteAsync(System.Int64)">
+            <summary>
+                删除角色
+            </summary>
+            <param name="id">角色主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.FilterFields">
+            <summary>
+                查询角色列表筛选字段元数据
+            </summary>
+            <returns>角色筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.ListAsync(AiAdmin.Api.Contracts.DynamicQueryRequest)">
+            <summary>
+                分页查询角色
+            </summary>
+            <param name="request">包含动态筛选和分页信息的请求体</param>
+            <returns>角色分页结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.MenusAsync(System.Int64)">
+            <summary>
+                查询角色已授权的菜单树
+            </summary>
+            <param name="id">角色主键</param>
+            <returns>角色菜单树</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.SaveApisAsync(System.Int64,AiAdmin.Api.Contracts.SaveRoleApisRequest)">
+            <summary>
+                保存角色接口权限
+            </summary>
+            <param name="id">角色主键</param>
+            <param name="request">接口授权请求</param>
+            <returns>保存结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.SaveMenusAsync(System.Int64,AiAdmin.Api.Contracts.SaveRoleMenusRequest)">
+            <summary>
+                保存角色菜单权限
+            </summary>
+            <param name="id">角色主键</param>
+            <param name="request">菜单授权请求</param>
+            <returns>保存结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.RolesController.UpdateAsync(System.Int64,AiAdmin.Api.Contracts.SaveRoleRequest)">
+            <summary>
+                更新角色
+            </summary>
+            <param name="id">角色主键</param>
+            <param name="request">角色保存请求</param>
+            <returns>更新后的角色</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.SavedQueriesController">
+            <summary>
+                管理当前用户按页面保存的查询条件
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SavedQueriesController.#ctor(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                管理当前用户按页面保存的查询条件
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SavedQueriesController.DeleteAsync(System.Int64)">
+            <summary>
+                删除当前用户的查询条件
+            </summary>
+            <param name="id">查询条件主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SavedQueriesController.ListAsync(System.String)">
+            <summary>
+                查询当前页面已保存的查询条件
+            </summary>
+            <param name="route">当前页面路由</param>
+            <returns>已保存查询条件列表</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SavedQueriesController.SaveAsync(AiAdmin.Api.Contracts.SaveQueryRequest)">
+            <summary>
+                保存或更新当前页面的命名查询条件
+            </summary>
+            <param name="request">查询条件保存请求</param>
+            <returns>保存后的查询条件</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SavedQueriesController.GetCurrentUserId">
+            <summary>
+                获取当前登录用户主键
+            </summary>
+            <returns>当前登录用户主键</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.ScheduledJobsController">
+            <summary>
+                计划作业管理控制器
+            </summary>
+            <param name="db">数据库上下文</param>
+            <param name="lockService">计划作业分布式锁服务</param>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.ScheduledJobLockService)">
+            <summary>
+                计划作业管理控制器
+            </summary>
+            <param name="db">数据库上下文</param>
+            <param name="lockService">计划作业分布式锁服务</param>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.CreateAsync(AiAdmin.Api.Contracts.SaveScheduledJobRequest)">
+            <summary>
+                新增计划作业
+            </summary>
+            <param name="request">作业保存请求</param>
+            <returns>新增作业</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.DeleteAsync(System.Int64)">
+            <summary>
+                删除计划作业
+            </summary>
+            <param name="id">作业主键</param>
+            <returns>删除结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.ExecutionListAsync(System.Int64,AiAdmin.Api.Contracts.DynamicQueryRequest)">
+            <summary>
+                分页查询作业执行记录
+            </summary>
+            <param name="id">作业主键</param>
+            <param name="request">包含筛选、排序和分页信息的请求体</param>
+            <returns>执行记录分页结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.ExecutionsAsync(System.Int64,System.Int32,System.Int32)">
+            <summary>
+                查询作业执行记录
+            </summary>
+            <param name="id">作业主键</param>
+            <param name="current">当前页码</param>
+            <param name="size">每页记录数</param>
+            <returns>执行记录分页结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.FilterFields">
+            <summary>
+                查询计划作业列表筛选字段元数据
+            </summary>
+            <returns>计划作业筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.ListAsync(AiAdmin.Api.Contracts.DynamicQueryRequest)">
+            <summary>
+                分页查询计划作业
+            </summary>
+            <param name="request">包含动态筛选和分页信息的请求体</param>
+            <returns>计划作业分页结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.RunAsync(System.Int64)">
+            <summary>
+                立即执行指定作业
+            </summary>
+            <param name="id">作业主键</param>
+            <returns>执行结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.ScheduledJobsController.UpdateAsync(System.Int64,AiAdmin.Api.Contracts.SaveScheduledJobRequest)">
+            <summary>
+                修改计划作业
+            </summary>
+            <param name="id">作业主键</param>
+            <param name="request">作业保存请求</param>
+            <returns>修改后的作业</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.SystemLogsController">
+            <summary>
+                系统日志管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SystemLogsController.#ctor(AiAdmin.Api.Logging.ElasticsearchLogQueryService)">
+            <summary>
+                系统日志管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.SystemLogsController.ListAsync(AiAdmin.Api.Logging.SystemLogQueryRequest,System.Threading.CancellationToken)">
+            <summary>
+                分页查询 Elasticsearch 系统日志
+            </summary>
+            <param name="request">日志分页查询请求</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>系统日志分页结果</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Controllers.UsersController">
+            <summary>
+                用户管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.#ctor(AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.MinioStorageService)">
+            <summary>
+                用户管理控制器
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.ChangePasswordAsync(AiAdmin.Api.Contracts.ChangePasswordRequest)">
+            <summary>
+                修改当前登录用户密码
+            </summary>
+            <param name="request">密码修改请求</param>
+            <returns>密码修改结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.CreateAsync(AiAdmin.Api.Contracts.SaveUserRequest)">
+            <summary>
+                创建用户
+            </summary>
+            <param name="request">用户保存请求</param>
+            <returns>创建后的用户</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.DeleteAvatarAsync(System.Int64)">
+            <summary>
+                清空用户头像地址
+            </summary>
+            <param name="id">用户主键</param>
+            <returns>更新后的用户列表项</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.FilterFields">
+            <summary>
+                查询用户列表筛选字段元数据
+            </summary>
+            <returns>用户筛选字段定义</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.InfoAsync">
+            <summary>
+                查询当前登录用户信息
+            </summary>
+            <returns>当前用户信息</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.ListAsync(AiAdmin.Api.Contracts.DynamicQueryRequest)">
+            <summary>
+                分页查询用户
+            </summary>
+            <param name="request">包含动态筛选和分页信息的请求体</param>
+            <returns>用户分页结果</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.ReferralsAsync">
+            <summary>
+                查询当前用户的全部下级邀请关系树
+            </summary>
+            <returns>当前用户邀请码和下级邀请关系树</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.RolesAsync">
+            <summary>
+                查询可分配角色
+            </summary>
+            <returns>角色选项集合</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.UpdateAsync(System.Int64,AiAdmin.Api.Contracts.UpdateUserRequest)">
+            <summary>
+                更新用户
+            </summary>
+            <param name="id">用户主键</param>
+            <param name="request">用户修改请求</param>
+            <returns>更新后的用户</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.UpdateProfileAsync(AiAdmin.Api.Contracts.UpdateCurrentUserProfileRequest)">
+            <summary>
+                更新当前登录用户资料
+            </summary>
+            <param name="request">个人资料更新请求</param>
+            <returns>更新后的当前用户信息</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.UploadAvatarAsync(System.Int64,Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+                上传并更新用户头像
+            </summary>
+            <param name="id">用户主键</param>
+            <param name="file">头像图片文件</param>
+            <returns>更新后的用户列表项</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Controllers.UsersController.ResolveDepartmentsAsync(System.Int64[])">
+            <summary>
+                校验并加载用户选择的部门
+            </summary>
+            <param name="ids">部门主键集合</param>
+            <returns>有效部门集合，无效时返回空值</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.AiAdminConsoleFormatter">
+            <summary>
+                将结构化日志状态解析为字段列表并输出到控制台
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.AiAdminConsoleFormatter.#ctor">
+            <summary>
+                将结构化日志状态解析为字段列表并输出到控制台
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.AiAdminConsoleFormatter.Write``1(Microsoft.Extensions.Logging.Abstractions.LogEntry{``0}@,Microsoft.Extensions.Logging.IExternalScopeProvider,System.IO.TextWriter)">
+            <summary>
+                将日志条目格式化为字段列表并写入控制台
+            </summary>
+            <typeparam name="TState">日志状态类型</typeparam>
+            <param name="logEntry">待格式化的日志条目</param>
+            <param name="scopeProvider">日志作用域提供程序</param>
+            <param name="textWriter">日志输出文本写入器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.AiAdminConsoleFormatter.GetColor(Microsoft.Extensions.Logging.LogLevel)">
+            <summary>
+                获取日志级别对应的 ANSI 颜色
+            </summary>
+            <param name="logLevel">日志级别</param>
+            <returns>ANSI 颜色转义序列</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogDatabaseBackgroundService">
+            <summary>
+                使用单个消费循环将 Redis API 日志队列批量写入数据库
+            </summary>
+            <param name="queue">API 日志 Redis 队列</param>
+            <param name="writer">API 日志数据库写入器</param>
+            <param name="options">API 日志存储配置</param>
+            <param name="logger">后台任务日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseBackgroundService.#ctor(AiAdmin.Api.Logging.ApiLogQueue,AiAdmin.Api.Logging.ApiLogDatabaseWriter,AiAdmin.Api.Logging.ApiLogStorageOptions,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Logging.ApiLogDatabaseBackgroundService})">
+            <summary>
+                使用单个消费循环将 Redis API 日志队列批量写入数据库
+            </summary>
+            <param name="queue">API 日志 Redis 队列</param>
+            <param name="writer">API 日志数据库写入器</param>
+            <param name="options">API 日志存储配置</param>
+            <param name="logger">后台任务日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseBackgroundService.ExecuteAsync(System.Threading.CancellationToken)">
+            <summary>
+                启动唯一的 API 日志消费循环
+            </summary>
+            <param name="stoppingToken">应用停止令牌</param>
+            <returns>后台任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseBackgroundService.RequeueWithoutCancellationAsync(System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Logging.ApiLogEntry})">
+            <summary>
+                在消费失败或应用停止时将批次放回 Redis
+            </summary>
+            <param name="entries">API 日志集合</param>
+            <returns>异步写入任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogDatabaseWriter">
+            <summary>
+                创建 API 日志日表并批量写入紧凑日志数据
+            </summary>
+            <param name="serviceScopeFactory">服务作用域工厂</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.#ctor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory)">
+            <summary>
+                创建 API 日志日表并批量写入紧凑日志数据
+            </summary>
+            <param name="serviceScopeFactory">服务作用域工厂</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.WriteAsync(System.Collections.Generic.IReadOnlyCollection{AiAdmin.Api.Logging.ApiLogEntry},System.Threading.CancellationToken)">
+            <summary>
+                按日志日期分组并在单事务中写入各自日表
+            </summary>
+            <param name="entries">API 日志集合</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步写入任务</returns>
+            <exception cref="T:System.InvalidOperationException">数据库提供程序不可用时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.AddParameter(System.Data.Common.DbCommand,System.String,System.Data.DbType)">
+            <summary>
+                为数据库命令添加参数
+            </summary>
+            <param name="command">数据库命令</param>
+            <param name="name">参数名称</param>
+            <param name="type">参数类型</param>
+            <returns>创建的参数</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.EnsureTableAsync(System.Data.Common.DbConnection,System.String,System.String,System.Threading.CancellationToken)">
+            <summary>
+                创建指定日期的 API 日志表
+            </summary>
+            <param name="connection">数据库连接</param>
+            <param name="providerName">数据库提供程序名称</param>
+            <param name="tableName">日志表名</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步创建任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.GetCreateTableSql(System.String,System.String)">
+            <summary>
+                获取创建 API 日志日表的数据库方言
+            </summary>
+            <param name="providerName">数据库提供程序名称</param>
+            <param name="tableName">日志表名</param>
+            <returns>创建数据表 SQL</returns>
+            <exception cref="T:System.NotSupportedException">数据库提供程序不受支持时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.GetInsertSql(System.String,System.String)">
+            <summary>
+                获取参数化插入 SQL
+            </summary>
+            <param name="providerName">数据库提供程序名称</param>
+            <param name="tableName">日志表名</param>
+            <returns>插入 SQL</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.GetTableName(System.Int32)">
+            <summary>
+                根据分表日期生成并校验数据表名
+            </summary>
+            <param name="partitionDate">分表日期</param>
+            <returns>数据表名</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">分表日期无效时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogDatabaseWriter.WriteTableAsync(System.Data.Common.DbConnection,System.String,System.String,System.Collections.Generic.IEnumerable{AiAdmin.Api.Logging.ApiLogEntry},System.Threading.CancellationToken)">
+            <summary>
+                在事务中向单个日表写入日志
+            </summary>
+            <param name="connection">数据库连接</param>
+            <param name="providerName">数据库提供程序名称</param>
+            <param name="tableName">日志表名</param>
+            <param name="entries">同一天的 API 日志集合</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步写入任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogEntry">
+            <summary>
+                API 日志队列中的紧凑数据记录
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.Id">
+            <summary>
+                日志雪花主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.ClientIp">
+            <summary>
+                客户端 IPv4 地址的有符号整数位表示
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.ElapsedMilliseconds">
+            <summary>
+                请求耗时毫秒数
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.PartitionDate">
+            <summary>
+                日志分表日期，格式为 yyyyMMdd
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.RequestMethod">
+            <summary>
+                HTTP 请求方法编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.RequestRelativeUrlCrc32">
+            <summary>
+                请求相对地址的 CRC32 有符号整数位表示
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.StatusCode">
+            <summary>
+                HTTP 响应状态码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.TraceId">
+            <summary>
+                请求链路主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogEntry.WorkerId">
+            <summary>
+                Snowflake WorkerId
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogItem">
+            <summary>
+                API 日志及其接口信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogItem.#ctor(System.Int64,System.DateTime,System.DateOnly,System.Int32,System.String,System.Int32,System.String,System.Int16,System.Int64,System.Byte,System.Nullable{System.Int64},System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+                API 日志及其接口信息
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogQueryRequest">
+            <summary>
+                API 日志日期范围和筛选条件
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.Current">
+            <summary>当前页码</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.Size">
+            <summary>每页记录数</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.CreatedAt">
+            <summary>创建时间范围，结束时间不包含在查询内</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.RequestMethod">
+            <summary>HTTP 请求方法</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.StatusCode">
+            <summary>响应状态码</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.WorkerId">
+            <summary>WorkerId</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.TraceId">
+            <summary>链路主键</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.DynamicFilter">
+            <summary>表格右键生成的动态筛选条件</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.Id">
+            <summary>日志雪花编号</summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogQueryRequest.ElapsedMilliseconds">
+            <summary>耗时毫秒数</summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogQueryService">
+            <summary>
+                按日期分表查询 API 日志并关联接口信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueryService.#ctor(AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                按日期分表查询 API 日志并关联接口信息
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueryService.SearchAsync(AiAdmin.Api.Logging.ApiLogQueryRequest,System.Threading.CancellationToken)">
+            <summary>
+                查询日期范围内的 API 日志
+            </summary>
+            <param name="request">查询条件</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>日志记录和总数</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogQueue">
+            <summary>
+                使用 Redis List 保存待写入数据库的紧凑 API 日志队列
+            </summary>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+            <param name="options">API 日志存储配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueue.#ctor(StackExchange.Redis.IConnectionMultiplexer,AiAdmin.Api.Logging.ApiLogStorageOptions)">
+            <summary>
+                使用 Redis List 保存待写入数据库的紧凑 API 日志队列
+            </summary>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+            <param name="options">API 日志存储配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueue.DequeueBatchAsync(System.Int32)">
+            <summary>
+                从 Redis 队列取出一批日志
+            </summary>
+            <param name="maximumCount">最大取出数量</param>
+            <returns>取出的日志集合</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueue.EnqueueAsync(AiAdmin.Api.Logging.ApiLogEntry)">
+            <summary>
+                将紧凑日志写入 Redis 队列尾部
+            </summary>
+            <param name="entry">API 日志</param>
+            <returns>异步写入任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueue.RequeueAsync(System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Logging.ApiLogEntry})">
+            <summary>
+                将数据库写入失败的日志按原顺序放回队列头部
+            </summary>
+            <param name="entries">API 日志集合</param>
+            <returns>异步写入任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueue.Serialize(AiAdmin.Api.Logging.ApiLogEntry)">
+            <summary>
+                将 API 日志序列化为固定长度二进制数据
+            </summary>
+            <param name="entry">API 日志</param>
+            <returns>二进制数据</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogQueue.TryDeserialize(StackExchange.Redis.RedisValue,AiAdmin.Api.Logging.ApiLogEntry@)">
+            <summary>
+                尝试从固定长度二进制数据还原 API 日志
+            </summary>
+            <param name="value">Redis 数据</param>
+            <param name="entry">还原后的 API 日志</param>
+            <returns>数据格式有效时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogStorageOptions">
+            <summary>
+                API 日志数据库存储配置
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogStorageOptions.BatchSize">
+            <summary>
+                单次数据库事务写入的最大日志数量
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogStorageOptions.Enabled">
+            <summary>
+                是否启用 API 日志数据库存储
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogStorageOptions.PollInterval">
+            <summary>
+                Redis 队列为空时的轮询间隔
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ApiLogStorageOptions.QueueKey">
+            <summary>
+                API 日志 Redis 队列键名
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ApiLogValueConverter">
+            <summary>
+                将 API 日志文本字段转换为紧凑整数值
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogValueConverter.ConvertClientIp(System.Net.IPAddress)">
+            <summary>
+                将客户端 IPv4 地址转换为有符号整数位表示
+            </summary>
+            <param name="address">客户端 IP 地址</param>
+            <returns>IPv4 地址整数值，无法转换时返回零</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogValueConverter.ConvertRequestMethod(System.String)">
+            <summary>
+                将 HTTP 请求方法转换为 tinyint 编码
+            </summary>
+            <param name="method">HTTP 请求方法</param>
+            <returns>请求方法编码，未知方法返回零</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ApiLogValueConverter.GetCrc32(System.String)">
+            <summary>
+                计算请求相对地址的 UTF-8 CRC32 值
+            </summary>
+            <param name="value">请求相对地址</param>
+            <returns>CRC32 的有符号整数位表示</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogBackgroundService">
+            <summary>
+                批量消费 Redis 日志队列并写入 Elasticsearch 的后台任务
+            </summary>
+            <param name="queue">Redis 日志队列</param>
+            <param name="writer">Elasticsearch 日志写入器</param>
+            <param name="options">日志输出配置</param>
+            <param name="logger">后台任务运行日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogBackgroundService.#ctor(AiAdmin.Api.Logging.ElasticsearchLogQueue,AiAdmin.Api.Logging.ElasticsearchLogWriter,Microsoft.Extensions.Options.IOptions{AiAdmin.Api.Logging.ElasticsearchLogOptions},Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Logging.ElasticsearchLogBackgroundService})">
+            <summary>
+                批量消费 Redis 日志队列并写入 Elasticsearch 的后台任务
+            </summary>
+            <param name="queue">Redis 日志队列</param>
+            <param name="writer">Elasticsearch 日志写入器</param>
+            <param name="options">日志输出配置</param>
+            <param name="logger">后台任务运行日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogBackgroundService.ExecuteAsync(System.Threading.CancellationToken)">
+            <summary>
+                启动日志消费循环
+            </summary>
+            <param name="stoppingToken">应用停止令牌</param>
+            <returns>后台任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogEntry">
+            <summary>
+                Elasticsearch 日志文档
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ApiResponseCode">
+            <summary>
+                API 响应业务编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Category">
+            <summary>
+                日志分类名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ClientIp">
+            <summary>
+                客户端 IP
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ElapsedMilliseconds">
+            <summary>
+                整体耗时毫秒数
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.EventId">
+            <summary>
+                事件编号
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.EventName">
+            <summary>
+                事件名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Exception">
+            <summary>
+                异常详细信息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Level">
+            <summary>
+                日志级别
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.LogType">
+            <summary>
+                日志类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Message">
+            <summary>
+                格式化后的日志消息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.RequestBody">
+            <summary>
+                请求体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.RequestContentType">
+            <summary>
+                请求内容类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.RequestHeaders">
+            <summary>
+                请求头
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.RequestMethod">
+            <summary>
+                HTTP 请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.RequestRelativeUrl">
+            <summary>
+                请求相对地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.RequestUrl">
+            <summary>
+                请求绝对地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ResponseBody">
+            <summary>
+                响应体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ResponseContentType">
+            <summary>
+                响应内容类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ResponseHeaders">
+            <summary>
+                响应头
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ServerIp">
+            <summary>
+                服务器 IP
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Source">
+            <summary>
+                日志来源
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Sql">
+            <summary>
+                SQL 语句
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.StatusCode">
+            <summary>
+                响应 HTTP 状态码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.ThreadId">
+            <summary>
+                线程编号
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.Timestamp">
+            <summary>
+                日志产生时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.TraceId">
+            <summary>
+                雪花链路主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.UserAgent">
+            <summary>
+                客户端 User-Agent
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.UserId">
+            <summary>
+                用户编号
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.UserName">
+            <summary>
+                用户名
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogEntry.WorkerId">
+            <summary>
+                Snowflake WorkerId
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogger">
+            <summary>
+                将单个日志分类写入 Redis 队列的记录器
+            </summary>
+            <param name="categoryName">日志分类名称</param>
+            <param name="queue">Redis 日志队列</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.#ctor(System.String,AiAdmin.Api.Logging.ElasticsearchLogQueue,AiAdmin.Api.Logging.ElasticsearchLogOptions)">
+            <summary>
+                将单个日志分类写入 Redis 队列的记录器
+            </summary>
+            <param name="categoryName">日志分类名称</param>
+            <param name="queue">Redis 日志队列</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.BeginScope``1(``0)">
+            <summary>
+                创建日志作用域
+            </summary>
+            <typeparam name="TState">作用域状态类型</typeparam>
+            <param name="state">作用域状态</param>
+            <returns>用于结束作用域的对象</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.IsEnabled(Microsoft.Extensions.Logging.LogLevel)">
+            <summary>
+                判断指定日志级别是否启用
+            </summary>
+            <param name="logLevel">日志级别</param>
+            <returns>启用时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.Log``1(Microsoft.Extensions.Logging.LogLevel,Microsoft.Extensions.Logging.EventId,``0,System.Exception,System.Func{``0,System.Exception,System.String})">
+            <summary>
+                格式化日志并异步写入 Redis 队列
+            </summary>
+            <typeparam name="TState">日志状态类型</typeparam>
+            <param name="logLevel">日志级别</param>
+            <param name="eventId">日志事件</param>
+            <param name="state">日志状态</param>
+            <param name="exception">日志异常</param>
+            <param name="formatter">日志格式化方法</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.GetInt(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String)">
+            <summary>
+                获取结构化整数数值字段
+            </summary>
+            <param name="fields">结构化字段集合</param>
+            <param name="name">字段名称</param>
+            <returns>字段值</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.GetLong(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String)">
+            <summary>
+                获取结构化长整数数值字段
+            </summary>
+            <param name="fields">结构化字段集合</param>
+            <param name="name">字段名称</param>
+            <returns>字段值</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.GetString(System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object},System.String)">
+            <summary>
+                获取结构化字符串字段
+            </summary>
+            <param name="fields">结构化字段集合</param>
+            <param name="name">字段名称</param>
+            <returns>字段值</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.ReadFields``1(``0)">
+            <summary>
+                从结构化日志状态读取字段
+            </summary>
+            <typeparam name="TState">日志状态类型</typeparam>
+            <param name="state">日志状态</param>
+            <returns>结构化字段集合</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.ResolveLogType(Microsoft.Extensions.Logging.EventId)">
+            <summary>
+                根据事件编号解析日志类型
+            </summary>
+            <param name="eventId">日志事件编号</param>
+            <returns>日志类型</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogger.EnqueueAsync(AiAdmin.Api.Logging.ElasticsearchLogEntry)">
+            <summary>
+                将日志写入 Redis 队列并隔离队列故障
+            </summary>
+            <param name="entry">日志内容</param>
+            <returns>异步写入任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLoggerProvider">
+            <summary>
+                将 Microsoft 日志转换并写入 Elasticsearch Redis 队列的日志提供程序
+            </summary>
+            <param name="queue">Redis 日志队列</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLoggerProvider.#ctor(AiAdmin.Api.Logging.ElasticsearchLogQueue,AiAdmin.Api.Logging.ElasticsearchLogOptions)">
+            <summary>
+                将 Microsoft 日志转换并写入 Elasticsearch Redis 队列的日志提供程序
+            </summary>
+            <param name="queue">Redis 日志队列</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLoggerProvider.CreateLogger(System.String)">
+            <summary>
+                创建指定分类的日志记录器
+            </summary>
+            <param name="categoryName">日志分类名称</param>
+            <returns>日志记录器</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLoggerProvider.Dispose">
+            <summary>
+                释放日志提供程序
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogOptions">
+            <summary>
+                Elasticsearch 日志输出配置
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.BatchSize">
+            <summary>
+                单次写入 Elasticsearch 的最大日志数量
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.Enabled">
+            <summary>
+                是否启用 Elasticsearch 日志输出
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.FlushInterval">
+            <summary>
+                后台任务消费间隔
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.Index">
+            <summary>
+                日志索引名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.Password">
+            <summary>
+                Elasticsearch 密码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.QueueCapacity">
+            <summary>
+                内存队列容量
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.QueueKey">
+            <summary>
+                Redis 日志队列键名
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.Uri">
+            <summary>
+                Elasticsearch 服务地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.ElasticsearchLogOptions.Username">
+            <summary>
+                Elasticsearch 用户名
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogQueryService">
+            <summary>
+                从 Elasticsearch 查询系统日志
+            </summary>
+            <param name="httpClient">HTTP 客户端</param>
+            <param name="options">Elasticsearch 配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueryService.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Options.IOptions{AiAdmin.Api.Logging.ElasticsearchLogOptions})">
+            <summary>
+                从 Elasticsearch 查询系统日志
+            </summary>
+            <param name="httpClient">HTTP 客户端</param>
+            <param name="options">Elasticsearch 配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueryService.SearchAsync(AiAdmin.Api.Logging.SystemLogQueryRequest,System.Threading.CancellationToken)">
+            <summary>
+                分页查询系统日志
+            </summary>
+            <param name="request">日志查询请求</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>日志分页结果</returns>
+            <exception cref="T:System.Net.Http.HttpRequestException">Elasticsearch 请求失败</exception>
+            <exception cref="T:System.InvalidOperationException">Elasticsearch 返回的日志文档格式无效</exception>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogQueue">
+            <summary>
+                使用 Redis List 保存待写入 Elasticsearch 的日志队列
+            </summary>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueue.#ctor(StackExchange.Redis.IConnectionMultiplexer,AiAdmin.Api.Logging.ElasticsearchLogOptions)">
+            <summary>
+                使用 Redis List 保存待写入 Elasticsearch 的日志队列
+            </summary>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueue.Complete">
+            <summary>
+                关闭当前实例的日志生产端
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueue.DequeueAsync(System.Threading.CancellationToken)">
+            <summary>
+                从 Redis 队列原子取出一条日志
+            </summary>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>取出的日志，没有日志时返回 null</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueue.EnqueueAsync(AiAdmin.Api.Logging.ElasticsearchLogEntry)">
+            <summary>
+                将日志序列化后写入 Redis 队列
+            </summary>
+            <param name="entry">日志内容</param>
+            <returns>日志成功进入队列时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogQueue.TryDequeueAsync">
+            <summary>
+                无等待地从 Redis 队列取出一条日志
+            </summary>
+            <returns>取出的日志，队列为空时返回 null</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.ElasticsearchLogWriter">
+            <summary>
+                调用 Elasticsearch Bulk API 写入日志
+            </summary>
+            <param name="httpClient">HTTP 客户端</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogWriter.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Options.IOptions{AiAdmin.Api.Logging.ElasticsearchLogOptions})">
+            <summary>
+                调用 Elasticsearch Bulk API 写入日志
+            </summary>
+            <param name="httpClient">HTTP 客户端</param>
+            <param name="options">日志输出配置</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.ElasticsearchLogWriter.WriteAsync(System.Collections.Generic.IReadOnlyCollection{AiAdmin.Api.Logging.ElasticsearchLogEntry},System.Threading.CancellationToken)">
+            <summary>
+                将日志批量写入 Elasticsearch
+            </summary>
+            <param name="entries">待写入日志</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异步写入任务</returns>
+            <exception cref="T:System.Net.Http.HttpRequestException">Elasticsearch 请求失败</exception>
+            <exception cref="T:System.InvalidOperationException">Elasticsearch Bulk 响应包含失败项</exception>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.HttpTraceContext">
+            <summary>
+                在入口请求上下文与外部 HTTP 请求之间传递雪花链路主键
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Logging.HttpTraceContext.HEADER_NAME">
+            <summary>
+                外部 HTTP 请求携带链路主键的请求头名称
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.HttpTraceContext.Initialize(Microsoft.AspNetCore.Http.HttpContext,System.Int64)">
+            <summary>
+                将服务端生成的链路主键写入当前 HTTP 请求上下文
+            </summary>
+            <param name="context">HTTP 上下文</param>
+            <param name="traceId">雪花链路主键</param>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.HttpTraceContext.TryGet(Microsoft.AspNetCore.Http.HttpContext,System.Int64@)">
+            <summary>
+                尝试从当前 HTTP 请求上下文读取链路主键
+            </summary>
+            <param name="context">HTTP 上下文</param>
+            <param name="traceId">雪花链路主键</param>
+            <returns>存在有效链路主键时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.StructuredLogState">
+            <summary>
+                保存可供日志提供程序解析的结构化日志状态
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.StructuredLogState.#ctor(System.String,System.Collections.Generic.IReadOnlyDictionary{System.String,System.Object})">
+            <summary>
+                Initializes a new instance of the <see cref="T:AiAdmin.Api.Logging.StructuredLogState" /> class
+                初始化结构化日志状态
+            </summary>
+            <param name="template">日志文本模板</param>
+            <param name="fields">日志字段</param>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.StructuredLogState.Count">
+            <summary>
+                获取结构化字段数量
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.StructuredLogState.Message">
+            <summary>
+                获取格式化后的日志消息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.StructuredLogState.Item(System.Int32)">
+            <summary>
+                获取指定位置的结构化字段
+            </summary>
+            <param name="index">字段索引</param>
+            <returns>结构化字段</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.StructuredLogState.GetEnumerator">
+            <summary>
+                获取字段枚举器
+            </summary>
+            <returns>字段枚举器</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.StructuredLogState.ToString">
+            <summary>
+                返回格式化后的日志消息
+            </summary>
+            <returns>格式化后的日志消息</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Logging.StructuredLogState.System#Collections#IEnumerable#GetEnumerator">
+            <summary>
+                获取字段枚举器
+            </summary>
+            <returns>字段枚举器</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.SystemLogItem">
+            <summary>
+                系统日志列表项
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ApiResponseCode">
+            <summary>
+                API 响应业务编码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Category">
+            <summary>
+                日志分类
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ClientIp">
+            <summary>
+                客户端 IP
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ElapsedMilliseconds">
+            <summary>
+                整体耗时毫秒数
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.EventId">
+            <summary>
+                事件编号
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.EventName">
+            <summary>
+                事件名称
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Exception">
+            <summary>
+                异常信息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Level">
+            <summary>
+                日志级别
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.LogType">
+            <summary>
+                日志类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Message">
+            <summary>
+                日志消息
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.RequestBody">
+            <summary>
+                请求体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.RequestContentType">
+            <summary>
+                请求内容类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.RequestHeaders">
+            <summary>
+                请求头
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.RequestMethod">
+            <summary>
+                HTTP 请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.RequestRelativeUrl">
+            <summary>
+                请求相对地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.RequestUrl">
+            <summary>
+                请求绝对地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ResponseBody">
+            <summary>
+                响应体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ResponseContentType">
+            <summary>
+                响应内容类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ResponseHeaders">
+            <summary>
+                响应头
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ServerIp">
+            <summary>
+                服务器 IP
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Source">
+            <summary>
+                日志来源
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Sql">
+            <summary>
+                SQL 语句
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.StatusCode">
+            <summary>
+                响应 HTTP 状态码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.ThreadId">
+            <summary>
+                线程编号
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.Timestamp">
+            <summary>
+                日志产生时间
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.TraceId">
+            <summary>
+                雪花链路主键
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.UserAgent">
+            <summary>
+                客户端 User-Agent
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.UserId">
+            <summary>
+                用户编号
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.UserName">
+            <summary>
+                用户名
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogItem.WorkerId">
+            <summary>
+                Snowflake WorkerId
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Logging.SystemLogQueryRequest">
+            <summary>
+                系统日志分页查询请求
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogQueryRequest.Current">
+            <summary>
+                当前页码
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogQueryRequest.DynamicFilter">
+            <summary>
+                动态查询条件
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogQueryRequest.Size">
+            <summary>
+                每页记录数
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogQueryRequest.SortField">
+            <summary>
+                排序字段
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Logging.SystemLogQueryRequest.SortOrder">
+            <summary>
+                排序方向
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware">
+            <summary>
+                记录系统 API 请求和响应的完整 HTTP 快照
+            </summary>
+            <param name="next">下一个请求处理委托</param>
+            <param name="logger">HTTP 日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware})">
+            <summary>
+                记录系统 API 请求和响应的完整 HTTP 快照
+            </summary>
+            <param name="next">下一个请求处理委托</param>
+            <param name="logger">HTTP 日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware.InvokeAsync(Microsoft.AspNetCore.Http.HttpContext,AiAdmin.Api.Logging.ApiLogQueue,AiAdmin.Api.Logging.ApiLogStorageOptions)">
+            <summary>
+                记录 API 请求并继续执行请求管道
+            </summary>
+            <param name="context">HTTP 上下文</param>
+            <param name="apiLogQueue">API 日志数据库队列</param>
+            <param name="apiLogStorageOptions">API 日志存储配置</param>
+            <returns>异步请求处理任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware.IsTextContentType(System.String)">
+            <summary>
+                判断内容类型是否适合按文本读取
+            </summary>
+            <param name="contentType">HTTP 内容类型</param>
+            <returns>适合按文本读取时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware.ReadBodyAsync(System.IO.Stream,System.Threading.CancellationToken)">
+            <summary>
+                从当前位置读取流中的全部文本
+            </summary>
+            <param name="stream">输入流</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>读取到的文本</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware.TryGetBusinessCode(System.String)">
+            <summary>
+                从 JSON 响应中读取业务码
+            </summary>
+            <param name="responseBody">响应体</param>
+            <returns>业务码</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Middleware.ApiPermissionMiddleware">
+            <summary>
+                执行基于角色接口映射的请求鉴权
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiPermissionMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate)">
+            <summary>
+                执行基于角色接口映射的请求鉴权
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ApiPermissionMiddleware.InvokeAsync(Microsoft.AspNetCore.Http.HttpContext,AiAdmin.Api.Services.ApiPermissionCache,AiAdmin.Api.Data.AppDbContext)">
+            <summary>
+                校验当前请求的匿名、登录和接口权限状态
+            </summary>
+            <param name="context">HTTP 请求上下文</param>
+            <param name="permissionCache">接口权限缓存</param>
+            <param name="db">数据库上下文</param>
+            <returns>异步请求处理任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Middleware.DataAccessExceptionHandler">
+            <summary>
+                处理数据权限不足异常
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.DataAccessExceptionHandler.TryHandleAsync(Microsoft.AspNetCore.Http.HttpContext,System.Exception,System.Threading.CancellationToken)">
+            <summary>
+                将数据权限不足转换为 403 响应
+            </summary>
+            <param name="httpContext">HTTP 请求上下文</param>
+            <param name="exception">当前异常</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>异常已处理时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Middleware.DataScopeMiddleware">
+            <summary>
+                初始化当前请求的数据权限范围
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.DataScopeMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate)">
+            <summary>
+                初始化当前请求的数据权限范围
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.DataScopeMiddleware.InvokeAsync(Microsoft.AspNetCore.Http.HttpContext,AiAdmin.Api.Data.AppDbContext,AiAdmin.Api.Services.DataScopeContext)">
+            <summary>
+                根据用户角色和绑定部门计算数据权限范围
+            </summary>
+            <param name="context">HTTP 请求上下文</param>
+            <param name="db">应用数据库上下文</param>
+            <param name="dataScope">当前请求的数据权限上下文</param>
+            <returns>异步请求处理任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware">
+            <summary>
+                递归移除 JSON 对象中值为 null 或空字符串的属性
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware.#ctor(Microsoft.AspNetCore.Http.RequestDelegate)">
+            <summary>
+                递归移除 JSON 对象中值为 null 或空字符串的属性
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware.InvokeAsync(Microsoft.AspNetCore.Http.HttpContext)">
+            <summary>
+                Initializes a new instance of the response JSON cleanup middleware
+            </summary>
+            <summary>
+                执行请求并清理 JSON 响应中的空字段
+            </summary>
+            <param name="context">当前 HTTP 上下文</param>
+            <returns>异步请求处理任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware.CleanJsonAsync(System.IO.Stream,System.Threading.CancellationToken)">
+            <summary>
+                读取并清理 JSON 内容
+            </summary>
+            <param name="body">响应内容流</param>
+            <param name="cancellationToken">请求取消令牌</param>
+            <returns>清理后的 UTF-8 JSON 字节</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware.IsEmptyString(System.Text.Json.Nodes.JsonNode)">
+            <summary>
+                判断 JSON 节点是否为空字符串
+            </summary>
+            <param name="node">JSON 节点</param>
+            <returns>是否为空字符串</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware.IsJsonResponse(Microsoft.AspNetCore.Http.HttpResponse)">
+            <summary>
+                判断响应是否为 JSON 内容
+            </summary>
+            <param name="response">HTTP 响应</param>
+            <returns>是否为 JSON 响应</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Middleware.ResponseJsonCleanupMiddleware.RemoveEmptyProperties(System.Text.Json.Nodes.JsonNode)">
+            <summary>
+                递归移除对象中的 null 和空字符串属性
+            </summary>
+            <param name="node">待清理 JSON 节点</param>
+        </member>
+        <member name="T:AiAdmin.Api.Services.CronMatcher">
+            <summary>
+                匹配计划作业 Cron 表达式
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.CronMatcher.IsDue(System.String,System.DateTime)">
+            <summary>
+                判断 Cron 表达式在指定时间是否到期
+            </summary>
+            <param name="expression">Cron 表达式</param>
+            <param name="now">待匹配时间</param>
+            <returns>到期时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.CronMatcher.IsSameTriggerWindow(System.String,System.DateTime,System.DateTime)">
+            <summary>
+                判断作业是否仍处于同一个触发时间窗口
+            </summary>
+            <param name="expression">Cron 表达式</param>
+            <param name="previous">上一次触发时间</param>
+            <param name="current">当前时间</param>
+            <returns>是否属于同一个触发窗口</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.CronMatcher.Match(System.String,System.Int32,System.Int32,System.Int32)">
+            <summary>
+                判断 Cron 字段是否匹配指定数值
+            </summary>
+            <param name="field">Cron 字段</param>
+            <param name="value">待匹配数值</param>
+            <param name="min">字段最小值</param>
+            <param name="max">字段最大值</param>
+            <returns>匹配时返回 true</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.DictionarySnapshotItem">
+            <summary>
+                Redis 字典快照中的字典项
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DictionarySnapshotItem.IsEnabled">
+            <summary>
+                是否启用
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DictionarySnapshotItem.Label">
+            <summary>
+                字典标签
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DictionarySnapshotItem.Remark">
+            <summary>
+                备注
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DictionarySnapshotItem.Sort">
+            <summary>
+                排序值
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.DictionarySnapshotItem.Value">
+            <summary>
+                字典值
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Services.DictionarySnapshotService">
+            <summary>
+                将内置字典目录保存到 Redis，并在缓存不可用时回退数据库
+            </summary>
+            <param name="db">应用数据库上下文</param>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+            <param name="logger">日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.#ctor(AiAdmin.Api.Data.AppDbContext,StackExchange.Redis.IConnectionMultiplexer,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Services.DictionarySnapshotService})">
+            <summary>
+                将内置字典目录保存到 Redis，并在缓存不可用时回退数据库
+            </summary>
+            <param name="db">应用数据库上下文</param>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+            <param name="logger">日志记录器</param>
+        </member>
+        <member name="F:AiAdmin.Api.Services.DictionarySnapshotService.SCHEDULED_JOB_PLACEHOLDERS_CODE">
+            <summary>
+                计划作业占位符目录编码
+            </summary>
+        </member>
+        <member name="F:AiAdmin.Api.Services.DictionarySnapshotService.SYSTEM_SETTINGS_CODE">
+            <summary>
+                系统设置目录编码
+            </summary>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.GetItemsAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+                获取内置目录的字典项快照，Redis 未命中时从数据库加载并回写
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>按排序值和主键排序的字典项快照</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">目录不属于支持快照的内置目录时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.RefreshAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+                从数据库重新生成指定内置目录的 Redis 快照
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>异步执行任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.RemoveAsync(System.String)">
+            <summary>
+                删除指定内置目录的 Redis 快照
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <returns>异步执行任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.EnsureSupported(System.String)">
+            <summary>
+                校验目录是否支持 Redis 快照
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">目录不属于支持快照的内置目录时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.GetKey(System.String)">
+            <summary>
+                获取指定目录的 Redis 键
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <returns>Redis 键</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.IsSupported(System.String)">
+            <summary>
+                判断目录是否为需要保存快照的内置目录
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <returns>需要保存快照时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.LoadFromDatabaseAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+                从数据库读取指定目录的完整字典项
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>字典项快照</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.DictionarySnapshotService.WriteAsync(System.String,System.Collections.Generic.IReadOnlyList{AiAdmin.Api.Services.DictionarySnapshotItem})">
+            <summary>
+                将字典项写入 Redis
+            </summary>
+            <param name="categoryCode">字典目录编码</param>
+            <param name="items">字典项快照</param>
+            <returns>异步执行任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ExternalHttpRequestService">
+            <summary>
+                统一执行并记录外部 HTTP 请求
+            </summary>
+            <param name="httpClientFactory">HTTP 客户端工厂</param>
+            <param name="httpContextAccessor">当前 HTTP 请求上下文访问器</param>
+            <param name="logger">外部请求日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ExternalHttpRequestService.#ctor(System.Net.Http.IHttpClientFactory,Microsoft.AspNetCore.Http.IHttpContextAccessor,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Services.ExternalHttpRequestService})">
+            <summary>
+                统一执行并记录外部 HTTP 请求
+            </summary>
+            <param name="httpClientFactory">HTTP 客户端工厂</param>
+            <param name="httpContextAccessor">当前 HTTP 请求上下文访问器</param>
+            <param name="logger">外部请求日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ExternalHttpRequestService.SendAsync(System.Net.Http.HttpRequestMessage,System.Net.Http.HttpCompletionOption,System.Threading.CancellationToken)">
+            <summary>
+                发送外部 HTTP 请求并返回完整快照
+            </summary>
+            <param name="request">待发送的 HTTP 请求</param>
+            <param name="completionOption">响应完成模式</param>
+            <param name="cancellationToken">取消操作令牌</param>
+            <returns>包含请求和响应详情的快照</returns>
+            <exception cref="T:System.Net.Http.HttpRequestException">外部请求发送失败</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ExternalHttpRequestService.IsTextContentType(System.String)">
+            <summary>
+                判断内容类型是否适合按文本读取
+            </summary>
+            <param name="mediaType">HTTP 媒体类型</param>
+            <returns>适合按文本读取时返回 true</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ExternalHttpRequestService.SerializeHeaders(System.Net.Http.Headers.HttpHeaders,System.Net.Http.Headers.HttpContentHeaders)">
+            <summary>
+                将请求或响应头序列化为 JSON
+            </summary>
+            <param name="headers">HTTP 消息头</param>
+            <param name="contentHeaders">HTTP 内容头</param>
+            <returns>序列化后的请求头</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ExternalHttpResponse">
+            <summary>
+                外部 HTTP 请求的完整响应快照
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.ElapsedMilliseconds">
+            <summary>
+                请求耗时毫秒数
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.RequestBody">
+            <summary>
+                请求体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.RequestContentType">
+            <summary>
+                请求内容类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.RequestHeaders">
+            <summary>
+                请求头 JSON
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.RequestMethod">
+            <summary>
+                请求方法
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.RequestUrl">
+            <summary>
+                请求地址
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.ResponseBody">
+            <summary>
+                响应体
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.ResponseContentType">
+            <summary>
+                响应内容类型
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.ResponseHeaders">
+            <summary>
+                响应头 JSON
+            </summary>
+        </member>
+        <member name="P:AiAdmin.Api.Services.ExternalHttpResponse.StatusCode">
+            <summary>
+                响应状态码
+            </summary>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ScheduledJobHostedService">
+            <summary>
+                计划作业后台调度器，按秒检查到期作业并串行保护同一作业
+            </summary>
+            <param name="scopeFactory">服务作用域工厂</param>
+            <param name="externalHttpRequestService">外部 HTTP 请求服务</param>
+            <param name="lockService">计划作业分布式锁服务</param>
+            <param name="logger">日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobHostedService.#ctor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory,AiAdmin.Api.Services.ExternalHttpRequestService,AiAdmin.Api.Services.ScheduledJobLockService,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Services.ScheduledJobHostedService})">
+            <summary>
+                计划作业后台调度器，按秒检查到期作业并串行保护同一作业
+            </summary>
+            <param name="scopeFactory">服务作用域工厂</param>
+            <param name="externalHttpRequestService">外部 HTTP 请求服务</param>
+            <param name="lockService">计划作业分布式锁服务</param>
+            <param name="logger">日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobHostedService.ExecuteAsync(System.Threading.CancellationToken)">
+            <summary>
+                后台循环入口
+            </summary>
+            <param name="stoppingToken">停止令牌</param>
+            <returns>异步执行任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobHostedService.Resolve(System.String,System.Collections.Generic.Dictionary{System.String,System.String})">
+            <summary>
+                使用字典值替换文本中的占位符
+            </summary>
+            <param name="value">待处理文本</param>
+            <param name="values">占位符值集合</param>
+            <returns>替换后的文本</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobHostedService.ExecuteJobAsync(System.Int64,System.Threading.CancellationToken)">
+            <summary>
+                执行指定计划作业并保存执行结果
+            </summary>
+            <param name="jobId">作业编号</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>异步执行任务</returns>
+            <exception cref="T:System.InvalidOperationException">无法获取计划作业锁时引发</exception>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobHostedService.TickAsync(System.Threading.CancellationToken)">
+            <summary>
+                检查并触发当前时间到期的作业
+            </summary>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>异步处理任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ScheduledJobLockHandle">
+            <summary>
+                计划作业 Redis 分布式锁句柄，释放时仅删除当前持有者创建的锁
+            </summary>
+            <param name="database">Redis 数据库</param>
+            <param name="key">锁键</param>
+            <param name="value">锁持有者令牌</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobLockHandle.#ctor(StackExchange.Redis.IDatabase,StackExchange.Redis.RedisKey,StackExchange.Redis.RedisValue)">
+            <summary>
+                计划作业 Redis 分布式锁句柄，释放时仅删除当前持有者创建的锁
+            </summary>
+            <param name="database">Redis 数据库</param>
+            <param name="key">锁键</param>
+            <param name="value">锁持有者令牌</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobLockHandle.DisposeAsync">
+            <summary>
+                释放当前持有的计划作业锁
+            </summary>
+            <returns>异步释放任务</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ScheduledJobLockService">
+            <summary>
+                为计划作业状态变更提供跨实例 Redis 分布式锁
+            </summary>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobLockService.#ctor(StackExchange.Redis.IConnectionMultiplexer)">
+            <summary>
+                为计划作业状态变更提供跨实例 Redis 分布式锁
+            </summary>
+            <param name="connectionMultiplexer">Redis 连接复用器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobLockService.TryAcquireAsync(System.Int64,System.TimeSpan,System.Threading.CancellationToken)">
+            <summary>
+                尝试在指定等待时间内获取计划作业锁
+            </summary>
+            <param name="jobId">计划作业编号</param>
+            <param name="waitTimeout">最长等待时间</param>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>成功时返回锁句柄，否则返回空值</returns>
+        </member>
+        <member name="T:AiAdmin.Api.Services.ScheduledJobReleaseHostedService">
+            <summary>
+                定期释放运行时间超过作业超时设置的计划作业
+            </summary>
+            <param name="scopeFactory">服务作用域工厂</param>
+            <param name="lockService">计划作业分布式锁服务</param>
+            <param name="logger">日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobReleaseHostedService.#ctor(Microsoft.Extensions.DependencyInjection.IServiceScopeFactory,AiAdmin.Api.Services.ScheduledJobLockService,Microsoft.Extensions.Logging.ILogger{AiAdmin.Api.Services.ScheduledJobReleaseHostedService})">
+            <summary>
+                定期释放运行时间超过作业超时设置的计划作业
+            </summary>
+            <param name="scopeFactory">服务作用域工厂</param>
+            <param name="lockService">计划作业分布式锁服务</param>
+            <param name="logger">日志记录器</param>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobReleaseHostedService.ExecuteAsync(System.Threading.CancellationToken)">
+            <summary>
+                启动计划作业超时释放循环
+            </summary>
+            <param name="stoppingToken">停止令牌</param>
+            <returns>异步执行任务</returns>
+        </member>
+        <member name="M:AiAdmin.Api.Services.ScheduledJobReleaseHostedService.ReleaseTimedOutJobsAsync(System.Threading.CancellationToken)">
+            <summary>
+                扫描并释放已超过运行超时时间的计划作业
+            </summary>
+            <param name="cancellationToken">取消令牌</param>
+            <returns>异步处理任务</returns>
+        </member>
+        <member name="T:Program">
+            <summary>
+            Auto-generated public partial Program class for top-level statement apps.
+            </summary>
+        </member>
+    </members>
+</doc>
