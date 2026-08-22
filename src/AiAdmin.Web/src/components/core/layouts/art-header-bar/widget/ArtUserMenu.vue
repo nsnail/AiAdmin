@@ -11,18 +11,14 @@
         ref="userMenuPopover"
         trigger="hover">
         <template #reference>
-            <img
-                :src="userInfo.avatar || defaultAvatar"
-                @error="handleAvatarError"
-                alt="avatar"
-                class="size-8.5 mr-5 c-p rounded-full max-sm:w-6.5 max-sm:h-6.5 max-sm:mr-[16px]" />
+            <ArtUserAvatar :name="userInfo.userName" :src="userInfo.avatar" class="size-8.5 mr-5 c-p max-sm:w-6.5 max-sm:h-6.5 max-sm:mr-[16px]" />
         </template>
         <template #default>
             <div class="pt-3">
                 <div class="flex-c pb-1 px-0">
-                    <img
-                        :src="userInfo.avatar || defaultAvatar"
-                        @error="handleAvatarError"
+                    <ArtUserAvatar
+                        :name="userInfo.userName"
+                        :src="userInfo.avatar"
                         class="w-10 h-10 mr-3 ml-0 overflow-hidden rounded-full float-left" />
                     <div class="w-[calc(100%-60px)] h-full">
                         <span class="block text-sm font-medium text-g-800 truncate">{{ userInfo.userName }}</span>
@@ -67,7 +63,7 @@ import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
 import { WEB_LINKS } from '@/utils/constants'
 import { mittBus } from '@/utils/sys'
-import defaultAvatar from '@/assets/images/user/avatar.png'
+import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 
 defineOptions({ name: 'ArtUserMenu' })
 
@@ -77,12 +73,6 @@ const userStore = useUserStore()
 
 const { getUserInfo: userInfo } = storeToRefs(userStore)
 const userMenuPopover = ref()
-
-/** 图片加载失败时回退到默认头像，避免显示破损图片 */
-const handleAvatarError = (event: Event): void => {
-    const image = event.target as HTMLImageElement
-    image.src = defaultAvatar
-}
 
 /**
  * 页面跳转

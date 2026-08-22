@@ -7,11 +7,11 @@
                     <img class="absolute top-0 left-0 w-full h-50 object-cover" src="@imgs/user/bg.webp" />
                     <ElUpload :auto-upload="false" :on-change="handleAvatarChange" :show-file-list="false" accept="image/*">
                         <div class="avatar-upload relative z-10 w-20 h-20 mt-30 mx-auto">
-                            <img
-                                :alt="displayName"
-                                :src="userInfo.avatar || defaultAvatar"
-                                @error="handleAvatarError"
-                                class="w-full h-full object-cover border-2 border-white rounded-full" />
+                            <ArtUserAvatar
+                                :name="displayName"
+                                :size="80"
+                                :src="userInfo.avatar"
+                                class="w-full h-full border-2 border-white rounded-full" />
                             <div class="avatar-upload-mask"><ArtSvgIcon icon="ri:camera-line" /></div>
                             <ElButton
                                 v-if="userInfo.avatar"
@@ -127,7 +127,7 @@
 </template>
 
 <script lang="ts" setup>
-import defaultAvatar from '@/assets/images/user/avatar.png'
+import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 import { fetchChangeUserPassword, fetchUpdateUserProfile } from '@/api/auth'
 import { fetchDeleteUserAvatar, fetchUploadUserAvatar } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
@@ -145,10 +145,6 @@ const isEditPwd = ref(false)
 const ruleFormRef = ref<FormInstance>()
 const pwdFormRef = ref<FormInstance>()
 const displayName = computed(() => userInfo.value.userName || t('userCenter.empty.user'))
-const handleAvatarError = (event: Event): void => {
-    const image = event.target as HTMLImageElement
-    image.src = defaultAvatar
-}
 const genderLabel = computed(() => t(userInfo.value.gender === 2 ? 'userCenter.gender.female' : 'userCenter.gender.male'))
 
 /**

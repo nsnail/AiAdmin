@@ -19,12 +19,12 @@
 <script lang="ts" setup>
 import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElImage, ElTag } from 'element-plus'
+import { ElTag } from 'element-plus'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import { fetchGetWalletList, type DynamicFilter, type WalletInfo } from '@/api/system-manage'
 import WalletSearch from './modules/wallet-search.vue'
-import defaultAvatar from '@/assets/images/user/avatar.png'
 
 defineOptions({ name: 'MyWallet' })
 const { t, locale } = useI18n()
@@ -65,13 +65,7 @@ const {
                 minWidth: 280,
                 formatter: (row: WalletInfo) =>
                     h('div', { class: 'user flex-c' }, [
-                        h(ElImage, {
-                            class: 'size-9.5 rounded-full',
-                            src: row.userAvatar || defaultAvatar,
-                            fallback: defaultAvatar,
-                            previewSrcList: row.userAvatar ? [row.userAvatar] : [],
-                            previewTeleported: true,
-                        }),
+                        h(ArtUserAvatar, { class: 'size-9.5 rounded-full', src: row.userAvatar, name: row.userName }),
                         h('div', { class: 'ml-2' }, [
                             h('p', { class: 'user-name' }, row.userName),
                             h('p', { class: 'email text-gray-400' }, row.userEmail),

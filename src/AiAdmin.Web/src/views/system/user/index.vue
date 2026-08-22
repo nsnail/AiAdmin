@@ -49,10 +49,10 @@ import { useTable } from '@/hooks/core/useTable'
 import { fetchCreateUser, fetchGetUserList, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
 import UserSearch from './modules/user-search.vue'
 import UserDialog from './modules/user-dialog.vue'
-import { ElImage, ElMessage, ElTag } from 'element-plus'
+import { ElMessage, ElTag } from 'element-plus'
 import { DialogType } from '@/types'
 import { useI18n } from 'vue-i18n'
-import defaultAvatar from '@/assets/images/user/avatar.png'
+import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 
 defineOptions({ name: 'User' })
 const { t, locale } = useI18n()
@@ -120,18 +120,7 @@ const {
                 // visible: false, // 默认是否显示列
                 formatter: (row) => {
                     return h('div', { class: 'user flex-c' }, [
-                        h(ElImage, {
-                            class: 'size-9.5 rounded-full',
-                            src: row.avatar || defaultAvatar,
-                            fallback: defaultAvatar,
-                            previewSrcList: row.avatar ? [row.avatar] : [],
-                            onError: (event: Event) => {
-                                const image = event.target as HTMLImageElement
-                                image.src = defaultAvatar
-                            },
-                            // 图片预览是否插入至 body 元素上，用于解决表格内部图片预览样式异常
-                            previewTeleported: true,
-                        }),
+                        h(ArtUserAvatar, { class: 'size-9.5 rounded-full', src: row.avatar, name: row.userName }),
                         h('div', { class: 'ml-2' }, [
                             h(
                                 'p',
