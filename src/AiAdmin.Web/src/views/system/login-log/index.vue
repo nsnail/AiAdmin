@@ -19,11 +19,18 @@
                 @sort-change="handleSortChange" />
         </ElCard>
         <ElDialog v-model="detailVisible" :title="t('loginLog.detail.title')" destroy-on-close width="850px">
-            <ElDescriptions v-if="selectedLog" :column="2" :label-width="150" border>
-                <ElDescriptionsItem v-for="field in detailFields" :key="field" :label="t(`loginLog.fields.${field}`)">
-                    <span class="detail-value">{{ formatValue(selectedLog[field]) }}</span>
-                </ElDescriptionsItem>
-            </ElDescriptions>
+            <ElTabs v-if="selectedLog" v-model="activeDetailTab" type="card">
+                <ElTabPane :label="t('loginLog.detail.tabs.details')" name="details">
+                    <ElDescriptions :column="2" :label-width="150" border>
+                        <ElDescriptionsItem v-for="field in detailFields" :key="field" :label="t(`loginLog.fields.${field}`)">
+                            <span class="detail-value">{{ formatValue(selectedLog[field]) }}</span>
+                        </ElDescriptionsItem>
+                    </ElDescriptions>
+                </ElTabPane>
+                <ElTabPane :label="t('loginLog.detail.tabs.rawData')" name="rawData">
+                    <ArtRawData :data="selectedLog" />
+                </ElTabPane>
+            </ElTabs>
             <template #footer
                 ><ElButton @click="detailVisible = false">{{ t('loginLog.detail.close') }}</ElButton></template
             >
@@ -40,6 +47,7 @@ import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/a
 import { useTable } from '@/hooks/core/useTable'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
 defineOptions({ name: 'LoginLog' })
 const { t } = useI18n()
@@ -47,6 +55,7 @@ const filterFields = ref<ListFilterField[]>([])
 const searchForm = ref<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
 const detailVisible = ref(false)
 const selectedLog = ref<LoginLogRecord>()
+const activeDetailTab = ref('details')
 const detailFields = [
     'userName',
     'ownerId',
@@ -179,6 +188,7 @@ const applyCellQuery = async (condition: DynamicFilter) => {
 }
 const openDetail = (row: LoginLogRecord) => {
     selectedLog.value = row
+    activeDetailTab.value = 'details'
     detailVisible.value = true
 }
 const formatValue = (value: unknown) =>

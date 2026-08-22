@@ -548,7 +548,7 @@
             "tablet": "Tablet",
             "unknown": "Unknown"
         },
-        "detail": { "title": "Login details", "view": "View", "close": "Close" },
+        "detail": { "title": "Login details", "view": "View", "close": "Close", "tabs": { "details": "Details", "rawData": "Raw data" } },
         "success": {
             "title": "Login successful",
             "message": "Welcome back",
@@ -615,7 +615,8 @@
                 "api": "API",
                 "sql": "SQL",
                 "http": "HTTP call",
-                "other": "Other"
+                "other": "Other",
+                "rawData": "Raw data"
             }
         }
     },

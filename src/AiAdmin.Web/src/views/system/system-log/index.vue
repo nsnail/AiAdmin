@@ -34,6 +34,9 @@
                         </ElDescriptionsItem>
                     </ElDescriptions>
                 </ElTabPane>
+                <ElTabPane :label="t('systemLog.detail.tabs.rawData')" name="rawData">
+                    <ArtRawData :data="selectedLog" />
+                </ElTabPane>
             </ElTabs>
             <template #footer>
                 <ElButton @click="detailVisible = false">{{ t('systemLog.detail.close') }}</ElButton>
@@ -50,6 +53,7 @@ import { fetchGetSystemLogs, type SystemLogSearchParams } from '@/api/system-man
 import { useTable } from '@/hooks/core/useTable'
 import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import { getDateTimeShortcuts } from '@/utils/date-time-shortcuts'
+import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
 type SystemLogSearchForm = SystemLogSearchParams & {
     timestamp?: string[]

@@ -539,7 +539,7 @@
             "actions": "操作"
         },
         "devices": { "desktop": "桌面端", "mobile": "移动端", "tablet": "平板端", "unknown": "未知" },
-        "detail": { "title": "登录详情", "view": "查看", "close": "关闭" },
+        "detail": { "title": "登录详情", "view": "查看", "close": "关闭", "tabs": { "details": "详情", "rawData": "原始数据" } },
         "success": {
             "title": "登录成功",
             "message": "欢迎回来",
@@ -606,7 +606,8 @@
                 "api": "API 信息",
                 "sql": "SQL 信息",
                 "http": "HTTP 调用信息",
-                "other": "其他信息"
+                "other": "其他信息",
+                "rawData": "原始数据"
             }
         }
     },
