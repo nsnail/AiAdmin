@@ -27,9 +27,7 @@
             <div @scroll="onScroll" class="notification-list scrollbar-thin" ref="listElement">
                 <div v-for="item in items" :class="{ unread: !item.isRead }" :key="item.id" class="notification-item">
                     <div @click="toggle(item)" class="notification-row">
-                        <ElAvatar :size="30" :src="item.senderAvatar || undefined" class="notification-avatar">{{
-                            item.senderName.slice(0, 1)
-                        }}</ElAvatar>
+                        <ArtUserAvatar :name="item.senderName" :size="30" :src="item.senderAvatar" class="notification-avatar" />
                         <div class="notification-sender-block">
                             <div class="notification-sender">{{ item.senderName }}</div>
                             <div class="notification-time">{{ formatDate(item.createdAt) }}</div>
@@ -68,6 +66,7 @@ import {
 } from '@/api/system-manage'
 import { useI18n } from 'vue-i18n'
 import mittBus from '@/utils/sys/mittBus'
+import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 defineOptions({ name: 'ArtNotification' })
 const props = defineProps<{ value: boolean }>()
 const emit = defineEmits<{ 'update:value': [value: boolean]; 'unread-change': [value: number] }>()
