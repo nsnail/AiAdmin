@@ -361,6 +361,13 @@ declare namespace Api {
             createdAt: string
             recipientCount: number
         }
+        interface SystemMessageRecipientItem {
+            userId: number
+            userName: string
+            userEmail: string
+            isRead: boolean
+            isDeleted: boolean
+        }
         interface UserMessageListItem {
             id: number
             title: string

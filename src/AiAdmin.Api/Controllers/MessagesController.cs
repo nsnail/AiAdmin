@@ -68,6 +68,9 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     /// <param name="keyword">标题关键字</param>
     /// <param name="startTime">开始时间</param>
     /// <param name="endTime">结束时间</param>
+    /// <param name="filterField">右键筛选字段</param>
+    /// <param name="filterOperator">右键筛选操作符</param>
+    /// <param name="filterValue">右键筛选值</param>
     /// <returns>消息列表</returns>
     [HttpGet("list")]
     [ApiDescription("Query sent messages")]
@@ -77,11 +80,26 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         , string? keyword = null
         , DateTime? startTime = null
         , DateTime? endTime = null
+        , string? filterField = null
+        , string? filterOperator = null
+        , string? filterValue = null
     ) {
         current = Math.Max(current, 1);
         size = Math.Clamp(size, 1, 100);
         var query = db.SystemMessages.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(keyword)) {
+        if (!string.IsNullOrWhiteSpace(filterField)
+            && filterField.Equals(nameof(SystemMessage.Title), StringComparison.OrdinalIgnoreCase)
+            && !string.IsNullOrWhiteSpace(filterValue)) {
+            query = filterOperator?.ToLowerInvariant() switch
+            {
+                "notequal" => query.Where(x => x.Title != filterValue)
+                , "equal" => query.Where(x => x.Title == filterValue)
+                , "startswith" => query.Where(x => x.Title.StartsWith(filterValue))
+                , "endswith" => query.Where(x => x.Title.EndsWith(filterValue))
+                , _ => query.Where(x => x.Title.Contains(filterValue))
+            };
+        }
+        else if (!string.IsNullOrWhiteSpace(keyword)) {
             query = query.Where(x => x.Title.Contains(keyword));
         }
 
@@ -101,6 +119,27 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
             .ToListAsync()
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<SystemMessageListItem>>.Ok(items));
+    }
+
+    /// <summary>查询系统消息收件人状态明细</summary>
+    /// <param name="id">消息主键</param>
+    /// <returns>收件人状态明细</returns>
+    [HttpGet("{id:long}/recipients")]
+    [ApiDescription("Query system message recipients")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SystemMessageRecipientItem>>>> RecipientsAsync(long id) {
+        var exists = await db.SystemMessages.AsNoTracking().AnyAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (!exists) {
+            return NotFound(new ApiResponse<IReadOnlyList<SystemMessageRecipientItem>>(404, "Message not found", null));
+        }
+
+        var items = await db
+            .UserMessages.AsNoTracking()
+            .Where(x => x.MessageId == id)
+            .OrderBy(x => x.User.UserName)
+            .Select(x => new SystemMessageRecipientItem(x.UserId, x.User.UserName, x.User.Email, x.IsRead, x.IsDeleted))
+            .ToListAsync(HttpContext.RequestAborted)
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<SystemMessageRecipientItem>>.Ok(items));
     }
 
     /// <summary>

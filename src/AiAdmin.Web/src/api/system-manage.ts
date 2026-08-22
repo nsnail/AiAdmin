@@ -331,7 +331,16 @@ export function fetchGetDepartmentTree() {
     return request.get<Api.SystemManage.DepartmentTreeItem[]>({ url: '/api/department/tree' })
 }
 
-export function fetchGetSystemMessages(params: { current: number; size: number; keyword?: string; startTime?: string; endTime?: string }) {
+export function fetchGetSystemMessages(params: {
+    current: number
+    size: number
+    keyword?: string
+    startTime?: string
+    endTime?: string
+    filterField?: string
+    filterOperator?: string
+    filterValue?: string
+}) {
     return request.get<Api.SystemManage.SystemMessageListItem[]>({ url: '/api/message/list', params })
 }
 
@@ -349,6 +358,10 @@ export function fetchDeleteSystemMessage(id: number) {
 
 export function fetchBatchDeleteSystemMessages(ids: number[]) {
     return request.del<void>({ url: '/api/message', data: ids, showSuccessMessage: true })
+}
+
+export function fetchGetSystemMessageRecipients(id: number) {
+    return request.get<Api.SystemManage.SystemMessageRecipientItem[]>({ url: `/api/message/${id}/recipients` })
 }
 
 export function fetchGetNotifications(current = 1, size = 20) {

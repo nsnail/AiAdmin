@@ -39,21 +39,19 @@
             destroy-on-close
             fullscreen>
             <ElForm :model="form" class="editor-form" label-position="top">
-                <ElFormItem :label="t('messageManagement.title')"><ElInput v-model="form.title" maxlength="200" show-word-limit /></ElFormItem>
+                <ElFormItem><ElInput v-model="form.title" :placeholder="t('messageManagement.title')" maxlength="200" show-word-limit /></ElFormItem>
                 <ElFormItem
                     ><ElCheckbox v-model="form.isPopup">{{ t('messageManagement.popup') }}</ElCheckbox></ElFormItem
                 >
-                <ElFormItem :label="t('messageManagement.target')"
-                    ><ElSelect v-model="form.targetType" class="w-full"
+                <ElFormItem
+                    ><ElSelect v-model="form.targetType" :placeholder="t('messageManagement.target')" class="w-full"
                         ><ElOption v-for="item in targetOptions" :key="item.value" :label="item.label" :value="item.value" /></ElSelect
                 ></ElFormItem>
-                <ElFormItem
-                    v-if="form.targetType === 'department' || form.targetType === 'department_children'"
-                    :label="t('messageManagement.department')"
+                <ElFormItem v-if="form.targetType === 'department' || form.targetType === 'department_children'"
                     ><ElSelect v-model="form.departmentIds" :placeholder="t('messageManagement.selectDepartment')" class="w-full" filterable multiple
                         ><ElOption v-for="item in departmentOptions" :key="item.id" :label="item.name" :value="Number(item.id)" /></ElSelect
                 ></ElFormItem>
-                <ElFormItem v-if="form.targetType === 'user'" :label="t('messageManagement.user')"
+                <ElFormItem v-if="form.targetType === 'user'"
                     ><ElSelect
                         v-model="form.userIds"
                         :loading="userLoading"
@@ -69,7 +67,7 @@
                             :label="`${item.userName} (${item.userEmail})`"
                             :value="Number(item.id)" /></ElSelect
                 ></ElFormItem>
-                <ElFormItem :label="t('messageManagement.content')"><div class="editor-host" ref="editorElement" /></ElFormItem>
+                <ElFormItem><div class="editor-host" ref="editorElement" /></ElFormItem>
             </ElForm>
             <template #footer
                 ><ElButton @click="preview">{{ t('messageManagement.preview') }}</ElButton
@@ -78,10 +76,14 @@
             >
         </ElDialog>
         <ElDialog v-model="previewVisible" :title="form.title" width="900px"><div v-html="previewHtml" class="message-content" /></ElDialog>
+        <ElDialog v-model="recipientsVisible" :title="recipientsTitle" width="900px">
+            <ArtTable :columns="recipientColumns" :data="recipients" />
+        </ElDialog>
     </div>
 </template>
 <script lang="ts" setup>
 import { h } from 'vue'
+import { ElTag } from 'element-plus'
 import { AiEditor } from 'aieditor'
 import 'aieditor/dist/style.css'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
@@ -91,6 +93,7 @@ import {
     fetchDeleteSystemMessage,
     fetchGetDepartmentTree,
     fetchGetSystemMessages,
+    fetchGetSystemMessageRecipients,
     fetchGetUserList,
     fetchSendSystemMessage,
     fetchUpdateSystemMessage,
@@ -106,6 +109,9 @@ const sending = ref(false)
 const userLoading = ref(false)
 const editorVisible = ref(false)
 const previewVisible = ref(false)
+const recipientsVisible = ref(false)
+const recipientsTitle = ref('')
+const recipients = ref<Api.SystemManage.SystemMessageRecipientItem[]>([])
 const users = ref<Api.SystemManage.UserListItem[]>([])
 const departmentOptions = ref<{ id: string; name: string }[]>([])
 const editorElement = ref<HTMLElement>()
@@ -122,7 +128,15 @@ const form = reactive<Api.SystemManage.SendSystemMessageParams>({
     isPopup: false,
 })
 const getQuery = () => {
-    const query: { keyword?: string; startTime?: string; endTime?: string } = { keyword: searchForm.value.title }
+    const query: { keyword?: string; startTime?: string; endTime?: string; filterField?: string; filterOperator?: string; filterValue?: string } = {
+        keyword: String(searchForm.value.Title ?? searchForm.value.title ?? ''),
+    }
+    const formValues = searchForm.value as Record<string, unknown>
+    const dateRange = formValues.CreatedAt ?? formValues.createdAt
+    if (Array.isArray(dateRange) && dateRange.length === 2) {
+        query.startTime = String(dateRange[0])
+        query.endTime = String(dateRange[1])
+    }
     const filters = searchForm.value.dynamicFilter?.filters ?? ([searchForm.value.dynamicFilter].filter(Boolean) as DynamicFilter[])
     for (const filter of filters) {
         if (filter?.field === 'Title') query.keyword = String(filter.value ?? '')
@@ -130,6 +144,12 @@ const getQuery = () => {
             query.startTime = String(filter.value[0])
             query.endTime = String(filter.value[1])
         }
+    }
+    const filter = filters.find((item) => item?.field)
+    if (filter) {
+        query.filterField = filter.field
+        query.filterOperator = filter.operator
+        query.filterValue = String(filter.value ?? '')
     }
     return query
 }
@@ -161,15 +181,16 @@ const {
                 label: t('messageManagement.title'),
                 minWidth: 240,
             },
-            { prop: 'recipientCount', label: t('messageManagement.recipientCount'), width: 120 },
+            { prop: 'recipientCount', label: t('messageManagement.recipientCount'), width: 120, align: 'right' },
             { prop: 'createdAt', label: t('messageManagement.createdAt'), width: 190, formatter: (row) => formatDateTime(row.createdAt) },
             {
                 prop: 'actions',
                 label: t('messageManagement.actions'),
-                width: 110,
+                width: 150,
                 fixed: 'right',
                 formatter: (row) =>
                     h('div', { class: 'flex gap-1' }, [
+                        h(ArtButtonTable, { type: 'view', onClick: () => viewRecipients(row) }),
                         h(ArtButtonTable, { type: 'edit', onClick: () => openEdit(row) }),
                         h(
                             ElPopconfirm,
@@ -187,6 +208,26 @@ const {
         ],
     },
 })
+const recipientColumns = computed(() => [
+    { prop: 'userName', label: t('messageManagement.user'), minWidth: 160 },
+    { prop: 'userEmail', label: t('messageManagement.email'), minWidth: 220 },
+    {
+        prop: 'isRead',
+        label: t('messageManagement.readStatus'),
+        width: 130,
+        formatter: (row: Api.SystemManage.SystemMessageRecipientItem) =>
+            h(ElTag, { type: row.isRead ? 'success' : 'info' }, () => t(row.isRead ? 'messageManagement.read' : 'messageManagement.unread')),
+    },
+    {
+        prop: 'isDeleted',
+        label: t('messageManagement.deleteStatus'),
+        width: 130,
+        formatter: (row: Api.SystemManage.SystemMessageRecipientItem) =>
+            h(ElTag, { type: row.isDeleted ? 'danger' : 'info' }, () =>
+                t(row.isDeleted ? 'messageManagement.deleted' : 'messageManagement.notDeleted'),
+            ),
+    },
+])
 const targetOptions = computed(() => [
     { value: 'all', label: t('messageManagement.allUsers') },
     { value: 'department', label: t('messageManagement.departmentOnly') },
@@ -305,6 +346,11 @@ const batchDelete = async () => {
     selectedRows.value = []
     await refreshData()
 }
+const viewRecipients = async (row: Api.SystemManage.SystemMessageListItem) => {
+    recipientsTitle.value = row.title
+    recipients.value = await fetchGetSystemMessageRecipients(row.id)
+    recipientsVisible.value = true
+}
 const search = (params: Api.SystemManage.SystemMessageSearchParams) => {
     searchForm.value = params
     replaceSearchParams(params)
@@ -316,11 +362,12 @@ const resetSearch = () => {
     void getData()
 }
 const applyCellQuery = async (condition: { field: string; operator: string; value: unknown }) => {
-    if (condition.field === 'Title') {
-        searchForm.value = { title: String(condition.value ?? '') }
-        replaceSearchParams(searchForm.value)
-        await getData()
+    searchForm.value = {
+        ...searchForm.value,
+        dynamicFilter: condition,
     }
+    replaceSearchParams(searchForm.value)
+    await getData()
 }
 watch(useI18n().locale, () => resetColumns?.())
 onMounted(load)
