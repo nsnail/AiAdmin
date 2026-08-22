@@ -1,3 +1,4 @@
+using System.Globalization;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -103,6 +104,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     public DbSet<User> Users => Set<User>();
 
     /// <summary>
+    ///     用户钱包实体集合
+    /// </summary>
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+
+    /// <summary>
     ///     保存实体变更并自动维护审计时间
     /// </summary>
     /// <param name="acceptAllChangesOnSuccess">保存成功后是否接受所有变更</param>
@@ -146,6 +152,27 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Phone).HasMaxLength(20);
                 _ = entity.Property(x => x.Gender).HasConversion<int>();
                 _ = entity.Property(x => x.Avatar).HasMaxLength(500);
+            }
+        );
+
+        _ = modelBuilder.Entity<Wallet>(entity =>
+            {
+                _ = entity.ToTable("finance_wallet");
+                _ = entity.HasKey(x => x.UserId);
+                _ = entity.Property(x => x.UserId).ValueGeneratedNever();
+                _ = entity.Property(x => x.AvailableBalance).HasPrecision(18, 2);
+                _ = entity.Property(x => x.FrozenBalance).HasPrecision(18, 2);
+                _ = entity.Property(x => x.TotalIncome).HasPrecision(18, 2);
+                _ = entity.Property(x => x.TotalExpense).HasPrecision(18, 2);
+                _ = entity.Property(x => x.Version).IsConcurrencyToken().IsRequired();
+                _ = entity.HasIndex(x => x.OwnerDepartmentId);
+                _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+                _ = entity.HasQueryFilter(x =>
+                    !dataScope.IsInitialized
+                    || dataScope.HasAllData
+                    || (dataScope.HasSelfData && x.OwnerId == dataScope.UserId)
+                    || dataScope.DepartmentIds.Contains(x.OwnerDepartmentId)
+                );
             }
         );
 
@@ -460,15 +487,33 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     /// </summary>
     private void UpdateAuditTimes() {
         var now = ServerTime.Now;
+
+        static void EnsureInitialVersion(EntityBase entity) {
+            if (entity is IVersion versionedEntity && versionedEntity.Version <= 0) {
+                versionedEntity.Version = 1;
+            }
+        }
+
+        static void IncrementVersion(EntityEntry<EntityBase> entry) {
+            if (entry.Entity is not IVersion versionedEntity) {
+                return;
+            }
+
+            var originalVersion = Convert.ToInt32(entry.Property(nameof(IVersion.Version)).OriginalValue, CultureInfo.InvariantCulture);
+            versionedEntity.Version = originalVersion + 1;
+        }
+
         foreach (var entry in ChangeTracker.Entries<EntityBase>()) {
             switch (entry.State) {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = now;
                     entry.Entity.UpdatedAt = null;
+                    EnsureInitialVersion(entry.Entity);
                     break;
                 case EntityState.Modified:
                     entry.Property(x => x.CreatedAt).IsModified = false;
                     entry.Entity.UpdatedAt = now;
+                    IncrementVersion(entry);
                     break;
             }
         }

@@ -78,6 +78,51 @@ export interface RedisCacheValue extends RedisCacheKey {
     value: string
 }
 
+export interface WalletInfo {
+    id: string
+    createdAt: string
+    userId: string
+    userName: string
+    userEmail: string
+    userAvatar: string | null
+    currency: string
+    availableBalance: number
+    frozenBalance: number
+    totalIncome: number
+    totalExpense: number
+    lastTransactionAt: string | null
+    version: number
+}
+
+export function fetchGetMyWallet() {
+    return request.get<WalletInfo>({ url: '/api/wallet/me' })
+}
+
+export type WalletListParams = {
+    current: number
+    size: number
+    dynamicFilter?: DynamicFilter
+    sortField?: string
+    sortOrder?: 'asc' | 'desc'
+    [field: string]: unknown
+}
+
+export function fetchGetWalletList(data: WalletListParams) {
+    const queryFields = new Set(['current', 'size', 'dynamicFilter', 'sortField', 'sortOrder'])
+    const filters = Object.entries(data)
+        .filter(([field, value]) => !queryFields.has(field) && value !== undefined && value !== null && value !== '')
+        .map(([field, value]) => ({
+            field,
+            operator: Array.isArray(value) ? (field === 'LastTransactionAt' ? 'DateRange' : 'Any') : getGeneratedFilterOperator(value),
+            value: normalizeDateRange(value === 'true' ? true : value === 'false' ? false : value),
+        }))
+    if (data.dynamicFilter) filters.push(data.dynamicFilter)
+    return request.post<Api.Common.PaginatedResponse<WalletInfo>>({
+        url: '/api/wallet/list',
+        data: createDynamicQuery(data.current, data.size, filters, data.sortField, data.sortOrder),
+    })
+}
+
 export interface SaveRedisCacheParams {
     key: string
     value: string
@@ -108,7 +153,9 @@ export function fetchUpdateEnabledState(resource: EnabledStateResource, id: stri
     return request.put<void>({ url: `/api/enabled-state/${resource}/${id}`, data: { isEnabled } })
 }
 
-export function fetchGetListFilterFields(resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint' | 'scheduled-job' | 'login-log') {
+export function fetchGetListFilterFields(
+    resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint' | 'scheduled-job' | 'login-log' | 'wallet',
+) {
     return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
 }
 
@@ -546,4 +593,8 @@ export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExec
         url: `/api/scheduled-job/${id}/executions/list`,
         data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder),
     })
+}
+
+export function fetchScheduledJobExecutionFilterFields(id: string) {
+    return request.get<ListFilterField[]>({ url: `/api/scheduled-job/${id}/executions/filter-fields` })
 }

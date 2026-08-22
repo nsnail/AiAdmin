@@ -226,6 +226,7 @@ import ArtJsonEditor from '../art-json-editor/index.vue'
 import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
 import { fetchGetSavedQueries, fetchDeleteSavedQuery, fetchSaveQuery, type ListFilterField, type SavedQuery } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
+import ArtUserSelect from '../art-user-select/index.vue'
 
 defineOptions({ name: 'ArtSearchBar' })
 
@@ -248,6 +249,7 @@ const componentMap = {
     timepicker: ElTimePicker, // 时间选择器
     timeselect: ElTimeSelect, // 时间选择
     treeselect: ElTreeSelect, // 树选择器
+    'user-select': ArtUserSelect,
 }
 
 const { width } = useWindowSize()
@@ -844,7 +846,17 @@ const backendFormItems = computed<SearchFormItem[]>(() =>
         return {
             key: field.field,
             label: undefined,
-            type: field.control === 'select' ? 'select' : field.control === 'date' ? 'date' : field.control === 'number' ? 'number' : 'input',
+            type:
+                field.control === 'user-select'
+                    ? 'user-select'
+                    : field.control === 'select'
+                      ? 'select'
+                      : field.control === 'date'
+                        ? 'date'
+                        : field.control === 'number'
+                          ? 'number'
+                          : 'input',
+            render: field.control === 'user-select' ? ArtUserSelect : undefined,
             span: field.span,
             placeholder: fieldPlaceholder,
             props: controlProps,

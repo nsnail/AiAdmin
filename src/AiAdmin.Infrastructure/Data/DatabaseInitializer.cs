@@ -197,6 +197,7 @@ public static class DatabaseInitializer
         foreach (var user in users) {
             var department = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id, Sort = 0 };
             user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
+            _ = await db.Wallets.AddAsync(new Wallet { UserId = user.Id, OwnerDepartmentId = department.Id }).ConfigureAwait(false);
         }
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);

@@ -1,3 +1,4 @@
+using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
 namespace AiAdmin.Api.Models;
@@ -10,11 +11,13 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     错误信息
     /// </summary>
+    [ListFilter("scheduledJob.executionFields.errorMessage")]
     public string ErrorMessage { get; set; } = string.Empty;
 
     /// <summary>
     ///     结束执行时间
     /// </summary>
+    [ListFilter("scheduledJob.executionFields.finishedAt", "date")]
     public DateTime? FinishedAt { get; set; }
 
     /// <summary>
@@ -35,11 +38,15 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     请求方法
     /// </summary>
+    [ListFilter(
+        "scheduledJob.executionFields.requestMethod", "select", Options = ["GET:GET", "POST:POST", "PUT:PUT", "PATCH:PATCH", "DELETE:DELETE"]
+    )]
     public string RequestMethod { get; init; } = string.Empty;
 
     /// <summary>
     ///     请求地址
     /// </summary>
+    [ListFilter("scheduledJob.executionFields.requestUrl")]
     public string RequestUrl { get; init; } = string.Empty;
 
     /// <summary>
@@ -55,6 +62,7 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     响应状态码
     /// </summary>
+    [ListFilter("scheduledJob.executionFields.responseStatusCode", "number")]
     public int? ResponseStatusCode { get; set; }
 
     /// <summary>
@@ -70,10 +78,19 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     开始执行时间
     /// </summary>
+    [ListFilter("scheduledJob.executionFields.startedAt", "date")]
     public DateTime StartedAt { get; init; }
 
     /// <summary>
     ///     执行结果状态
     /// </summary>
+    [ListFilter(
+        "scheduledJob.executionFields.status", "select"
+        , Options =
+        [
+            "0:scheduledJob.status.waiting", "1:scheduledJob.status.running", "2:scheduledJob.status.success", "3:scheduledJob.status.failed"
+            , "4:scheduledJob.status.timeout"
+        ]
+    )]
     public ScheduledJobStatus Status { get; set; } = ScheduledJobStatus.Running;
 }

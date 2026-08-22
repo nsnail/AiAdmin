@@ -95,6 +95,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
 
         var personalDepartment = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id, Sort = 0 };
         user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
+        _ = await db.Wallets.AddAsync(new Wallet { UserId = user.Id, OwnerDepartmentId = personalDepartment.Id }).ConfigureAwait(false);
 
         var departments = await ResolveDepartmentsAsync(request.DepartmentIds).ConfigureAwait(false);
         if (departments is null) {

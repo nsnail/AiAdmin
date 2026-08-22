@@ -252,6 +252,7 @@ public sealed class AuthController(
             Name = user.UserName, Code = $"USER_{user.Id}", ParentId = inviterDepartment?.Id ?? defaultDepartment.Id, Sort = 0
         };
         user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
+        _ = await db.Wallets.AddAsync(new Wallet { UserId = user.Id, OwnerDepartmentId = personalDepartment.Id }).ConfigureAwait(false);
 
         // 事务确保用户、邀请关系、个人部门及关联数据同时创建成功
         await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);

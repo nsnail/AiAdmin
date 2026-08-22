@@ -29,7 +29,7 @@
                     v-model="executionSearchForm"
                     v-show="executionShowSearchBar"
                     :advanced-query-fields="executionAdvancedQueryFields"
-                    :items="executionSearchItems"
+                    :filter-fields="executionFilterFields"
                     @reset="resetExecutionSearch"
                     @search="handleExecutionSearch" />
                 <ElCard :style="{ 'margin-top': executionShowSearchBar ? '12px' : '0' }" class="art-table-card">
@@ -65,12 +65,14 @@ import {
     fetchDeleteScheduledJob,
     fetchGetScheduledJobs,
     fetchRunScheduledJob,
+    fetchScheduledJobExecutionFilterFields,
     fetchScheduledJobExecutions,
     fetchUpdateScheduledJob,
     type SaveScheduledJob,
     type ScheduledJob,
     type ScheduledJobExecution,
     type ScheduledJobExecutionSearchParams,
+    type ListFilterField,
     type ScheduledJobSearchParams,
 } from '@/api/system-manage'
 import ScheduledJobDialog from './modules/scheduled-job-dialog.vue'
@@ -86,6 +88,7 @@ const currentJob = ref<ScheduledJob>()
 const executionJob = ref<ScheduledJob>()
 const executionVisible = ref(false)
 const executionSearchForm = ref<ScheduledJobExecutionSearchParams>({})
+const executionFilterFields = ref<ListFilterField[]>([])
 const executionShowSearchBar = ref(true)
 const selectedExecution = ref<ScheduledJobExecution>()
 const detailVisible = ref(false)
@@ -274,40 +277,9 @@ const {
     },
 })
 
-const executionSearchItems = [
-    { label: '请求地址', key: 'RequestUrl', type: 'input', props: { clearable: true } },
-    {
-        label: '请求方法',
-        key: 'RequestMethod',
-        type: 'select',
-        props: {
-            clearable: true,
-            options: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map((value) => ({ label: value, value })),
-        },
-    },
-    {
-        label: '执行状态',
-        key: 'Status',
-        type: 'select',
-        props: {
-            clearable: true,
-            options: Object.entries(statusMap).map(([value, item]) => ({
-                label: item.label,
-                value: Number(value),
-            })),
-        },
-    },
-    { label: '错误信息', key: 'ErrorMessage', type: 'input', props: { clearable: true } },
-]
-const executionAdvancedQueryFields: DynamicQueryField[] = [
-    { field: 'StartedAt', label: '开始时间', type: 'date' },
-    { field: 'FinishedAt', label: '完成时间', type: 'date' },
-    { field: 'RequestMethod', label: '请求方法', type: 'string' },
-    { field: 'RequestUrl', label: '请求地址', type: 'string' },
-    { field: 'ResponseStatusCode', label: '响应状态', type: 'number' },
-    { field: 'Status', label: '执行状态', type: 'number' },
-    { field: 'ErrorMessage', label: '错误信息', type: 'string' },
-]
+const executionAdvancedQueryFields = computed<DynamicQueryField[]>(() =>
+    executionFilterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })),
+)
 const executionTable = useTable({
     core: {
         apiFn: (params: ScheduledJobExecutionSearchParams) => fetchScheduledJobExecutions(executionJob.value?.id || '0', params),
@@ -455,6 +427,7 @@ const handleAction = async (item: ButtonMoreItem, job: ScheduledJob): Promise<vo
         executionReplaceSearchParams({ current: 1, size: 20 })
         executionSearchForm.value = {}
         executionVisible.value = true
+        executionFilterFields.value = await fetchScheduledJobExecutionFilterFields(job.id)
         await executionGetData()
         return
     }

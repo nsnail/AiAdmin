@@ -50,6 +50,18 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
     }
 
     /// <summary>
+    ///     查询作业执行记录筛选字段元数据
+    /// </summary>
+    /// <param name="id">作业主键</param>
+    /// <returns>执行记录筛选字段定义</returns>
+    [HttpGet("{id:long}/executions/filter-fields")]
+    [ApiDescription("Query scheduled job execution filter fields")]
+    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> ExecutionFilterFields(long id) {
+        _ = id;
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<ScheduledJobExecution>()));
+    }
+
+    /// <summary>
     ///     分页查询作业执行记录
     /// </summary>
     /// <param name="id">作业主键</param>

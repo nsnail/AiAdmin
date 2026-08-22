@@ -380,6 +380,10 @@
             "title": "Marketing Management",
             "referrals": "My Referrals"
         },
+        "finance": {
+            "title": "Finance Management",
+            "wallet": "My Wallet"
+        },
         "dictionaryCategories": {
             "systemSettings": "System Settings",
             "scheduledJobPlaceholders": "Scheduled Job Placeholders"
@@ -670,6 +674,15 @@
             "lastFinishedAt": "Last finished",
             "lastError": "Last error"
         },
+        "executionFields": {
+            "errorMessage": "Error message",
+            "finishedAt": "Finished at",
+            "requestMethod": "Request method",
+            "requestUrl": "Request URL",
+            "responseStatusCode": "Response status code",
+            "startedAt": "Started at",
+            "status": "Execution status"
+        },
         "placeholder": {
             "name": "Enter job name",
             "cronExpression": "Enter Cron expression",
@@ -821,6 +834,22 @@
             "patch": "PATCH",
             "delete": "DELETE"
         }
+    },
+    "wallet": {
+        "title": "My Wallet",
+        "refresh": "Refresh",
+        "currency": "Currency",
+        "userId": "User ID",
+        "user": "User",
+        "userPlaceholder": "Select a user",
+        "version": "Version",
+        "availableBalance": "Available balance",
+        "frozenBalance": "Frozen amount",
+        "totalIncome": "Total income",
+        "totalExpense": "Total expense",
+        "lastTransactionAt": "Last transaction",
+        "empty": "No wallet record",
+        "loadFailed": "Failed to load wallet"
     },
     "table": {
         "form": {
