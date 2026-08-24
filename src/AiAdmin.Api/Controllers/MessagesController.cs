@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Globalization;
 using System.Security.Claims;
 using AiAdmin.Api.Attributes;
@@ -20,6 +21,16 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/message")]
 public sealed class MessagesController(AppDbContext db) : ControllerBase
 {
+    private static readonly IReadOnlyDictionary<string, string> _listAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["id"] = nameof(SystemMessage.Id)
+        , ["createdAt"] = nameof(SystemMessage.CreatedAt)
+        , ["updatedAt"] = nameof(SystemMessage.UpdatedAt)
+        , ["title"] = nameof(SystemMessage.Title)
+        , ["isPopup"] = nameof(SystemMessage.IsPopup)
+        , ["recipientCount"] = $"{nameof(SystemMessage.Recipients)}.{nameof(ICollection.Count)}"
+    };
+
     /// <summary>批量删除系统消息</summary>
     /// <param name="ids">消息主键集合</param>
     /// <returns>操作结果</returns>
@@ -61,64 +72,45 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     查询当前消息筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>可用于进一步筛选的字段分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query message filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService
+            .GetGroupsAsync(db.SystemMessages.AsNoTracking(), request.DynamicFilter, _listAliases)
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
     ///     查询管理员已发送的消息
     /// </summary>
-    /// <param name="current">当前页码</param>
-    /// <param name="size">每页条数</param>
-    /// <param name="keyword">标题关键字</param>
-    /// <param name="startTime">开始时间</param>
-    /// <param name="endTime">结束时间</param>
-    /// <param name="filterField">右键筛选字段</param>
-    /// <param name="filterOperator">右键筛选操作符</param>
-    /// <param name="filterValue">右键筛选值</param>
-    /// <returns>消息列表</returns>
-    [HttpGet("list")]
+    /// <param name="request">动态查询请求</param>
+    /// <returns>消息分页列表</returns>
+    [HttpPost("list")]
     [ApiDescription("Query sent messages")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<SystemMessageListItem>>>> ListAsync(
-        int current = 1
-        , int size = 20
-        , string? keyword = null
-        , DateTime? startTime = null
-        , DateTime? endTime = null
-        , string? filterField = null
-        , string? filterOperator = null
-        , string? filterValue = null
-    ) {
-        current = Math.Max(current, 1);
-        size = Math.Clamp(size, 1, 100);
-        var query = db.SystemMessages.AsNoTracking();
-        if (!string.IsNullOrWhiteSpace(filterField)
-            && filterField.Equals(nameof(SystemMessage.Title), StringComparison.OrdinalIgnoreCase)
-            && !string.IsNullOrWhiteSpace(filterValue)) {
-            query = filterOperator?.ToLowerInvariant() switch
-            {
-                "notequal" => query.Where(x => x.Title != filterValue)
-                , "equal" => query.Where(x => x.Title == filterValue)
-                , "startswith" => query.Where(x => x.Title.StartsWith(filterValue))
-                , "endswith" => query.Where(x => x.Title.EndsWith(filterValue))
-                , _ => query.Where(x => x.Title.Contains(filterValue))
-            };
-        }
-        else if (!string.IsNullOrWhiteSpace(keyword)) {
-            query = query.Where(x => x.Title.Contains(keyword));
-        }
-
-        if (startTime.HasValue) {
-            query = query.Where(x => x.CreatedAt >= startTime.Value);
-        }
-
-        if (endTime.HasValue) {
-            query = query.Where(x => x.CreatedAt < endTime.Value);
-        }
-
+    public async Task<ActionResult<ApiResponse<PagedResponse<SystemMessageListItem>>>> ListAsync([FromBody] DynamicQueryRequest request) {
+        var query = db.SystemMessages.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter, _listAliases);
+        var total = await query.CountAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         var items = await query
-            .OrderByDescending(x => x.CreatedAt)
-            .Skip((current - 1) * size)
-            .Take(size)
-            .Select(x => new SystemMessageListItem(x.Id, x.Title, x.Content, ServerTime.ToOffset(x.CreatedAt), x.Recipients.Count))
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(SystemMessage.CreatedAt), true, _listAliases)
+            .Skip((request.Current - 1) * request.Size)
+            .Take(request.Size)
+            .Select(x => new SystemMessageListItem(
+                    x.Id, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null, x.Title, x.Content
+                    , x.IsPopup, x.Recipients.Count
+                )
+            )
             .ToListAsync()
             .ConfigureAwait(false);
-        return Ok(ApiResponse<IReadOnlyList<SystemMessageListItem>>.Ok(items));
+        return Ok(
+            ApiResponse<PagedResponse<SystemMessageListItem>>.Ok(
+                new PagedResponse<SystemMessageListItem>(items, request.Current, request.Size, total)
+            )
+        );
     }
 
     /// <summary>查询系统消息收件人状态明细</summary>

@@ -240,6 +240,14 @@ public static class DynamicFilterExtensions
                 throw new DynamicFilterValidationException($"Dynamic filter field '{string.Join('.', segments)}' is not available.");
             }
 
+            if (index == segments.Count - 2 && string.Equals(segments[index + 1], nameof(ICollection.Count), StringComparison.OrdinalIgnoreCase)) {
+                var countProperty = property.PropertyType.GetProperty(nameof(ICollection.Count), BindingFlags.Instance | BindingFlags.Public)
+                                    ?? throw new DynamicFilterValidationException(
+                                        $"Dynamic filter field '{string.Join('.', segments)}' is not available."
+                                    );
+                return BuildMemberCondition(Expression.Property(member, countProperty), filter);
+            }
+
             var elementType = GetCollectionElementType(property.PropertyType);
             var element = Expression.Parameter(elementType, "item");
             var (predicateFilter, negate) = NormalizeCollectionFilter(filter);

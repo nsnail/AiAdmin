@@ -1,37 +1,28 @@
 <template>
     <div class="message-page art-full-height">
-        <MessageSearch v-model="searchForm" @reset="resetSearch" @search="search" />
-        <ElCard class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
-                <template #left
-                    ><ElSpace
-                        ><ElButton @click="openCreate" type="primary">{{ t('messageManagement.send') }}</ElButton
-                        ><ElPopconfirm
-                            :cancel-button-text="t('common.cancel')"
-                            :confirm-button-text="t('common.confirm')"
-                            :disabled="!selectedRows.length"
-                            :title="t('messageManagement.batchDeleteConfirm')"
-                            @confirm="batchDelete"
-                            width="280">
-                            <template #reference>
-                                <ElButton :disabled="!selectedRows.length" plain type="danger">
-                                    {{ t('messageManagement.batchDelete') }}
-                                </ElButton>
-                            </template>
-                        </ElPopconfirm></ElSpace
-                    ></template
-                >
-            </ArtTableHeader>
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                @cell-query="applyCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @selection-change="selectedRows = $event" />
-        </ElCard>
+        <ArtTablePage
+            v-model:column-checks="columnChecks"
+            :columns="columns"
+            :data="data"
+            :loading="loading"
+            :pagination="pagination"
+            @filter-change="handleFilterChange"
+            @page-change="handleCurrentChange"
+            @refresh="refreshData"
+            @reset="resetSearchParams"
+            @selection-change="selectedRows = $event"
+            @size-change="handleSizeChange"
+            @sort-change="handleSortChange"
+            resource="message">
+            <template #header-left>
+                <ElSpace wrap>
+                    <ElButton @click="openCreate" type="primary">{{ t('messageManagement.send') }}</ElButton>
+                    <ElButton :disabled="!selectedRows.length" @click="confirmBatchDelete" plain type="danger">
+                        {{ t('messageManagement.batchDelete') }}
+                    </ElButton>
+                </ElSpace>
+            </template>
+        </ArtTablePage>
         <ElDialog
             v-model="editorVisible"
             :title="editingId ? t('messageManagement.edit') : t('messageManagement.send')"
@@ -83,10 +74,12 @@
 </template>
 <script lang="ts" setup>
 import { h } from 'vue'
-import { ElTag } from 'element-plus'
+import { ElMessageBox, ElTag } from 'element-plus'
 import { AiEditor } from 'aieditor'
 import 'aieditor/dist/style.css'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import {
     fetchBatchDeleteSystemMessages,
@@ -99,12 +92,9 @@ import {
     fetchUpdateSystemMessage,
     type DynamicFilter,
 } from '@/api/system-manage'
-import { formatDateTime } from '@/utils/date'
 import { useI18n } from 'vue-i18n'
 import mittBus from '@/utils/sys/mittBus'
-import MessageSearch from './modules/message-search.vue'
 const { t } = useI18n()
-const searchForm = ref<Api.SystemManage.SystemMessageSearchParams>({})
 const sending = ref(false)
 const userLoading = ref(false)
 const editorVisible = ref(false)
@@ -118,7 +108,7 @@ const editorElement = ref<HTMLElement>()
 let editor: AiEditor | undefined
 const previewHtml = ref('')
 const selectedRows = ref<Api.SystemManage.SystemMessageListItem[]>([])
-const editingId = ref<number>()
+const editingId = ref<string>()
 const form = reactive<Api.SystemManage.SendSystemMessageParams>({
     title: '',
     content: '',
@@ -127,32 +117,6 @@ const form = reactive<Api.SystemManage.SendSystemMessageParams>({
     userIds: [],
     isPopup: false,
 })
-const getQuery = () => {
-    const query: { keyword?: string; startTime?: string; endTime?: string; filterField?: string; filterOperator?: string; filterValue?: string } = {
-        keyword: String(searchForm.value.Title ?? searchForm.value.title ?? ''),
-    }
-    const formValues = searchForm.value as Record<string, unknown>
-    const dateRange = formValues.CreatedAt ?? formValues.createdAt
-    if (Array.isArray(dateRange) && dateRange.length === 2) {
-        query.startTime = String(dateRange[0])
-        query.endTime = String(dateRange[1])
-    }
-    const filters = searchForm.value.dynamicFilter?.filters ?? ([searchForm.value.dynamicFilter].filter(Boolean) as DynamicFilter[])
-    for (const filter of filters) {
-        if (filter?.field === 'Title') query.keyword = String(filter.value ?? '')
-        if (filter?.field === 'CreatedAt' && Array.isArray(filter.value)) {
-            query.startTime = String(filter.value[0])
-            query.endTime = String(filter.value[1])
-        }
-    }
-    const filter = filters.find((item) => item?.field)
-    if (filter) {
-        query.filterField = filter.field
-        query.filterOperator = filter.operator
-        query.filterValue = String(filter.value ?? '')
-    }
-    return query
-}
 const {
     data,
     columns,
@@ -168,11 +132,19 @@ const {
     resetColumns,
 } = useTable({
     core: {
-        apiFn: ({ current, size }) =>
-            fetchGetSystemMessages({ current, size, ...getQuery() }).then((records) => ({ records, current, size, total: records.length })),
+        apiFn: fetchGetSystemMessages,
         apiParams: { current: 1, size: 20 },
         columnsFactory: () => [
             { type: 'selection', width: 50 },
+            {
+                prop: 'id',
+                queryField: 'Id',
+                queryValueType: 'number',
+                label: 'ID',
+                width: 150,
+                align: 'left',
+                formatter: (row) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
+            },
             {
                 prop: 'title',
                 queryField: 'Title',
@@ -181,8 +153,25 @@ const {
                 label: t('messageManagement.title'),
                 minWidth: 240,
             },
-            { prop: 'recipientCount', label: t('messageManagement.recipientCount'), width: 120, align: 'right' },
-            { prop: 'createdAt', label: t('messageManagement.createdAt'), width: 190, formatter: (row) => formatDateTime(row.createdAt) },
+            {
+                prop: 'isPopup',
+                queryField: 'IsPopup',
+                queryValueField: 'isPopup',
+                queryValueType: 'boolean',
+                label: t('messageManagement.popup'),
+                width: 120,
+                align: 'center',
+                formatter: (row) =>
+                    h(ElTag, { type: row.isPopup ? 'success' : 'info' }, () => t(row.isPopup ? 'listFilter.option.yes' : 'listFilter.option.no')),
+            },
+            {
+                prop: 'recipientCount',
+                queryField: 'RecipientCount',
+                queryValueType: 'number',
+                label: t('messageManagement.recipientCount'),
+                width: 120,
+                align: 'right',
+            },
             {
                 prop: 'actions',
                 label: t('messageManagement.actions'),
@@ -336,7 +325,7 @@ const send = async () => {
         sending.value = false
     }
 }
-const deleteOne = async (id: number) => {
+const deleteOne = async (id: string) => {
     await fetchDeleteSystemMessage(id)
     await refreshData()
 }
@@ -346,27 +335,26 @@ const batchDelete = async () => {
     selectedRows.value = []
     await refreshData()
 }
+const confirmBatchDelete = async (): Promise<void> => {
+    if (!selectedRows.value.length) return
+    try {
+        await ElMessageBox.confirm(t('messageManagement.batchDeleteConfirm'), t('messageManagement.batchDelete'), {
+            cancelButtonText: t('common.cancel'),
+            confirmButtonText: t('common.confirm'),
+            type: 'warning',
+        })
+        await batchDelete()
+    } catch {
+        // 用户取消确认时保持当前选择和列表状态
+    }
+}
 const viewRecipients = async (row: Api.SystemManage.SystemMessageListItem) => {
     recipientsTitle.value = row.title
     recipients.value = await fetchGetSystemMessageRecipients(row.id)
     recipientsVisible.value = true
 }
-const search = (params: Api.SystemManage.SystemMessageSearchParams) => {
-    searchForm.value = params
-    replaceSearchParams(params)
-    void getData()
-}
-const resetSearch = () => {
-    searchForm.value = {}
-    resetSearchParams()
-    void getData()
-}
-const applyCellQuery = async (condition: { field: string; operator: string; value: unknown }) => {
-    searchForm.value = {
-        ...searchForm.value,
-        dynamicFilter: condition,
-    }
-    replaceSearchParams(searchForm.value)
+const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    replaceSearchParams({ dynamicFilter })
     await getData()
 }
 watch(useI18n().locale, () => resetColumns?.())

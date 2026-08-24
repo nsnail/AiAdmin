@@ -336,36 +336,27 @@ export function fetchGetDepartmentList(params: DynamicTableQuery) {
     return request.post<Api.Common.PaginatedResponse<Api.SystemManage.DepartmentTreeItem>>({ url: '/api/department/list', data: params })
 }
 
-export function fetchGetSystemMessages(params: {
-    current: number
-    size: number
-    keyword?: string
-    startTime?: string
-    endTime?: string
-    filterField?: string
-    filterOperator?: string
-    filterValue?: string
-}) {
-    return request.get<Api.SystemManage.SystemMessageListItem[]>({ url: '/api/message/list', params })
+export function fetchGetSystemMessages(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<Api.SystemManage.SystemMessageListItem>>({ url: '/api/message/list', data: params })
 }
 
 export function fetchSendSystemMessage(data: Api.SystemManage.SendSystemMessageParams) {
     return request.post<void>({ url: '/api/message', data, showSuccessMessage: true })
 }
 
-export function fetchUpdateSystemMessage(id: number, data: { title: string; content: string }) {
+export function fetchUpdateSystemMessage(id: string, data: { title: string; content: string }) {
     return request.post<void>({ url: `/api/message/${id}`, data, showSuccessMessage: true })
 }
 
-export function fetchDeleteSystemMessage(id: number) {
+export function fetchDeleteSystemMessage(id: string) {
     return request.post<void>({ url: `/api/message/${id}/delete`, showSuccessMessage: true })
 }
 
-export function fetchBatchDeleteSystemMessages(ids: number[]) {
+export function fetchBatchDeleteSystemMessages(ids: string[]) {
     return request.post<void>({ url: '/api/message/delete', data: ids, showSuccessMessage: true })
 }
 
-export function fetchGetSystemMessageRecipients(id: number) {
+export function fetchGetSystemMessageRecipients(id: string) {
     return request.get<Api.SystemManage.SystemMessageRecipientItem[]>({ url: `/api/message/${id}/recipients` })
 }
 

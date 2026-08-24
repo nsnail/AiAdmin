@@ -352,14 +352,13 @@ declare namespace Api {
             userIds: number[]
             isPopup: boolean
         }
-        type SystemMessageSearchParams = Partial<{ title: string; createdAt: string[] }> & {
-            dynamicFilter?: import('@/api/system-manage').DynamicFilter
-        }
         interface SystemMessageListItem {
-            id: number
+            id: string
+            createdAt: string
+            updatedAt: string | null
             title: string
             content: string
-            createdAt: string
+            isPopup: boolean
             recipientCount: number
         }
         interface SystemMessageRecipientItem {
