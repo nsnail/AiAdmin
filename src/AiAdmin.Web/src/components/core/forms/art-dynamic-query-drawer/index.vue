@@ -76,6 +76,10 @@ const jsonError = ref('')
 const highlightRef = ref<HTMLElement>()
 let syncingFromJson = false
 
+interface DynamicQueryJson {
+    dynamicFilter?: DynamicFilter
+}
+
 const convertValue = (value: unknown, field: DynamicQueryField | undefined, operator: string): unknown => {
     const values = ['Range', 'DateRange', 'Any', 'NotAny'].includes(operator)
         ? Array.isArray(value)
@@ -109,21 +113,24 @@ const toFilter = (group: QueryGroup): DynamicFilter | undefined => {
         .filter((node): node is DynamicFilter => Boolean(node))
     return filters.length ? { logic: group.logic, filters } : undefined
 }
-const fromFilter = (filter?: DynamicFilter): QueryGroup => ({
-    logic: filter?.logic || 'And',
-    filters: (filter?.filters || []).map((item): QueryNode =>
-        item.filters?.length
-            ? { id: crypto.randomUUID(), kind: 'group', group: fromFilter(item) }
-            : {
-                  id: crypto.randomUUID(),
-                  kind: 'condition',
-                  field: item.field || '',
-                  operator: item.operator || 'Contains',
-                  value: item.value ?? '',
-              },
-    ),
-})
-const formatFilterJson = (filter?: DynamicFilter) => JSON.stringify(filter, null, 2) ?? '{}'
+const fromFilter = (filter?: DynamicFilter): QueryGroup => {
+    const filters = filter?.filters?.length ? filter.filters : filter?.field && filter.operator ? [filter] : []
+    return {
+        logic: filter?.logic || 'And',
+        filters: filters.map((item): QueryNode =>
+            item.filters?.length
+                ? { id: crypto.randomUUID(), kind: 'group', group: fromFilter(item) }
+                : {
+                      id: crypto.randomUUID(),
+                      kind: 'condition',
+                      field: item.field || '',
+                      operator: item.operator || 'Contains',
+                      value: item.value ?? '',
+                  },
+        ),
+    }
+}
+const formatFilterJson = (filter?: DynamicFilter) => JSON.stringify(filter ? { dynamicFilter: filter } : {}, null, 2)
 // 先转义用户输入，再为 JSON 标记语法类型，避免预览内容被浏览器当作 HTML 执行。
 const highlightedPreview = computed(() => {
     const escaped = jsonText.value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -157,12 +164,17 @@ const parseJsonText = (): DynamicFilter | undefined => {
     if (!text || text === '{}') return undefined
     try {
         const parsed: unknown = JSON.parse(text)
-        if (!isDynamicFilter(parsed)) {
+        if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !('dynamicFilter' in parsed)) {
+            jsonError.value = 'JSON 不是有效的动态查询结构'
+            return undefined
+        }
+        const query = parsed as DynamicQueryJson
+        if (!isDynamicFilter(query.dynamicFilter)) {
             jsonError.value = 'JSON 不是有效的动态查询结构'
             return undefined
         }
         jsonError.value = ''
-        return parsed
+        return query.dynamicFilter
     } catch {
         jsonError.value = 'JSON 格式不正确'
         return undefined

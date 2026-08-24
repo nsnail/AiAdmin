@@ -45,6 +45,8 @@
 <script lang="ts" setup>
 import AppConfig from '@/config'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { formatDateTime } from '@/utils/date'
 
 interface Comment {
     id: number
@@ -58,6 +60,7 @@ const props = defineProps<{
     comment: Comment
     showReplyForm: number | null
 }>()
+const { locale } = useI18n()
 
 const emit = defineEmits<{
     (event: 'toggle-reply', commentId: number): void
@@ -85,10 +88,7 @@ const handleSubmit = () => {
     replyContent.value = ''
 }
 
-const formatDate = (timestamp: string) => {
-    const date = new Date(timestamp)
-    return date.toLocaleString()
-}
+const formatDate = (timestamp: string) => formatDateTime(timestamp, locale.value)
 
 let lastColor: string | null = null
 

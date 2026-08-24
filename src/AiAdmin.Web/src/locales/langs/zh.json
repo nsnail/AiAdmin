@@ -481,7 +481,15 @@
         "messages": { "profileUpdated": "个人资料更新成功", "passwordChanged": "密码修改成功" }
     },
     "userManagement": {
-        "actions": { "add": "新增用户", "save": "保存", "edit": "编辑", "delete": "删除" },
+        "actions": {
+            "add": "新增用户",
+            "save": "保存",
+            "edit": "编辑",
+            "delete": "删除",
+            "exportData": "导出数据",
+            "exportExcel": "Excel",
+            "exportJson": "JSON"
+        },
         "fields": {
             "userName": "用户名",
             "password": "密码",
@@ -492,16 +500,19 @@
             "departments": "所属部门",
             "status": "是否启用",
             "createdAt": "创建日期",
+            "updatedAt": "更新日期",
             "operation": "操作"
         },
         "status": { "enabled": "启用", "disabled": "停用", "unknown": "未知" },
         "gender": { "male": "男", "female": "女" },
         "dialog": {
             "addTitle": "添加用户",
+            "basicInfo": "基本信息",
             "editTitle": "编辑用户",
             "passwordKeep": "留空表示不修改；新密码至少 8 位且包含字母和数字",
             "passwordNew": "至少 8 位且包含字母和数字"
         },
+        "export": { "sheetName": "用户数据" },
         "placeholder": {
             "userName": "请输入用户名",
             "email": "请输入邮箱",
@@ -517,7 +528,14 @@
             "rolesRequired": "请选择角色"
         },
         "confirm": { "deleteTitle": "删除用户", "deleteMessage": "确定要删除用户“{name}”吗？" },
-        "message": { "created": "创建成功", "updated": "更新成功" },
+        "message": {
+            "created": "创建成功",
+            "updated": "更新成功",
+            "exported": "已导出 {count} 条数据",
+            "exportEmpty": "没有可导出的数据",
+            "exportFailed": "导出失败",
+            "exportTruncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
+        },
         "defaultDepartment": "默认部门"
     },
     "referralManagement": {
@@ -538,7 +556,8 @@
         "loadFailed": "未找到系统设置目录",
         "sections": {
             "registration": "注册与验证",
-            "smtp": "邮件服务"
+            "smtp": "邮件服务",
+            "export": "数据导出"
         },
         "fields": {
             "enableLoginSliderVerification": "开启登录滑块验证",
@@ -549,7 +568,8 @@
             "smtpSsl": "启用 SMTP SSL",
             "smtpUser": "SMTP 用户名",
             "smtpPassword": "SMTP 密码",
-            "smtpFrom": "发件人"
+            "smtpFrom": "发件人",
+            "maximumExportRows": "最大导出条数"
         }
     },
     "rawData": "原始数据",
@@ -805,6 +825,7 @@
         }
     },
     "listFilter": {
+        "group": { "all": "全部" },
         "common": { "status": "是否启用" },
         "user": { "userName": "用户名", "email": "邮箱", "phone": "手机号", "gender": "性别" },
         "role": {
@@ -867,6 +888,21 @@
             "delete": "DELETE"
         }
     },
+    "roleManagement": {
+        "actions": {
+            "add": "新增角色",
+            "menuPermission": "菜单权限",
+            "apiPermission": "接口权限",
+            "edit": "编辑角色",
+            "delete": "删除角色"
+        },
+        "fields": { "operation": "操作" },
+        "confirm": {
+            "deleteTitle": "删除确认",
+            "deleteMessage": "确定删除角色“{name}”吗？此操作不可恢复！"
+        },
+        "message": { "deleteCancelled": "已取消删除" }
+    },
     "wallet": {
         "title": "我的钱包",
         "refresh": "刷新",
@@ -884,6 +920,7 @@
         "loadFailed": "钱包信息加载失败"
     },
     "table": {
+        "contextMenu": { "copyHint": "复制(C)" },
         "form": {
             "reset": "重置",
             "submit": "提交"
@@ -930,7 +967,8 @@
         "column": {
             "selection": "勾选",
             "expand": "展开",
-            "index": "序号"
+            "index": "序号",
+            "reset": "重置列设置"
         },
         "zebra": "斑马纹",
         "border": "边框",

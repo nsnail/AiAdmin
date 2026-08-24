@@ -19,12 +19,28 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     用户管理控制器
 /// </summary>
+/// <param name="db">数据库上下文</param>
+/// <param name="storage">对象存储服务</param>
+/// <param name="dictionarySnapshotService">字典快照服务</param>
 [ApiController]
 [ApiDescription("User management")]
 [Authorize]
 [Route("api/user")]
-public sealed class UsersController(AppDbContext db, MinioStorageService storage) : ControllerBase
+public sealed class UsersController(AppDbContext db, MinioStorageService storage, DictionarySnapshotService dictionarySnapshotService)
+    : ControllerBase
 {
+    private const int _DEFAULT_EXPORT_LIMIT = 10000;
+    private const string _MAXIMUM_EXPORT_ROWS_LABEL = "Maximum export rows";
+
+    private const int _MAX_EXPORT_LIMIT = 100000;
+
+    // 对外使用稳定查询字段名，实体路径仅由后端维护
+    private static readonly IReadOnlyDictionary<string, string> _filterAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["DepartmentName"] = $"{nameof(Models.User.UserDepartments)}.{nameof(UserDepartment.Department)}.{nameof(Department.Name)}"
+        , ["RoleName"] = $"{nameof(Models.User.UserRoles)}.{nameof(UserRole.Role)}.{nameof(Role.Name)}"
+    };
+
     /// <summary>
     ///     修改当前登录用户密码
     /// </summary>
@@ -144,13 +160,52 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     }
 
     /// <summary>
+    ///     导出符合动态查询条件的用户数据
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <returns>受系统设置上限约束的用户导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export user data")]
+    public async Task<ActionResult<ApiResponse<UserExportResult>>> ExportAsync([FromBody] UserExportRequest request) {
+        var query = BuildListQuery(request.DynamicFilter);
+        var total = await query.CountAsync().ConfigureAwait(false);
+        var limit = await GetExportLimitAsync().ConfigureAwait(false);
+        var users = await ApplyListSort(query, request.SortField, request.SortOrder).Take(limit).ToListAsync().ConfigureAwait(false);
+        var records = users.ConvertAll(ToListItem);
+        return Ok(ApiResponse<UserExportResult>.Ok(new UserExportResult(records, limit, total)));
+    }
+
+    /// <summary>
     ///     查询用户列表筛选字段元数据
     /// </summary>
     /// <returns>用户筛选字段定义</returns>
     [HttpGet("filter-fields")]
     [ApiDescription("Query user filter fields")]
     public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
-        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<User>()));
+        IReadOnlyList<ListFilterFieldResult> fields =
+        [
+            .. ListFilterMetadataService.GetFields<User>()
+            , new("RoleName", "userManagement.fields.roles", "input", 3, int.MaxValue, "listFilter.placeholder.roleName", [], "string", false)
+            , new(
+                "DepartmentName", "userManagement.fields.departments", "input", 3, int.MaxValue, "listFilter.placeholder.departmentName", []
+                , "string", false
+            )
+        ];
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(fields));
+    }
+
+    /// <summary>
+    ///     查询当前用户筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>可用于进一步筛选的字段分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query user filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService
+            .GetGroupsAsync(db.Users.AsNoTracking(), request.DynamicFilter, _filterAliases)
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
     }
 
     /// <summary>
@@ -178,47 +233,10 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     public async Task<ActionResult<ApiResponse<PagedResponse<UserListItem>>>> ListAsync([FromBody] DynamicQueryRequest request) {
         var current = request.Current;
         var size = request.Size;
-        var query = db
-            .Users.AsNoTracking()
-            .Include(x => x.UserRoles)
-            .ThenInclude(x => x.Role)
-            .Include(x => x.UserDepartments)
-            .ThenInclude(x => x.Department)
-            .ApplyDynamicFilter(request.DynamicFilter);
+        var query = BuildListQuery(request.DynamicFilter);
 
         var total = await query.CountAsync().ConfigureAwait(false);
-        var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["userInfo"] = nameof(Models.User.UserName)
-            , ["userName"] = nameof(Models.User.UserName)
-            , ["userGender"] = nameof(Models.User.Gender)
-            , ["userPhone"] = nameof(Models.User.Phone)
-            , ["userEmail"] = nameof(Models.User.Email)
-            , ["status"] = nameof(Models.User.IsEnabled)
-            , ["isEnabled"] = nameof(Models.User.IsEnabled)
-            , ["createTime"] = nameof(Models.User.CreatedAt)
-        };
-        var descending = string.Equals(request.SortOrder, "desc", StringComparison.OrdinalIgnoreCase);
-        var sortedQuery = request.SortField?.ToLowerInvariant() switch
-        {
-            "userroles" => descending
-                ? query.OrderByDescending(x => x.UserRoles.OrderBy(role => role.Role.Name).Select(role => role.Role.Name).FirstOrDefault())
-                : query.OrderBy(x => x.UserRoles.OrderBy(role => role.Role.Name).Select(role => role.Role.Name).FirstOrDefault())
-            , "departmentnames" => descending
-                ? query.OrderByDescending(x =>
-                    x
-                        .UserDepartments.OrderBy(department => department.Department.Name)
-                        .Select(department => department.Department.Name)
-                        .FirstOrDefault()
-                )
-                : query.OrderBy(x =>
-                    x
-                        .UserDepartments.OrderBy(department => department.Department.Name)
-                        .Select(department => department.Department.Name)
-                        .FirstOrDefault()
-                )
-            , _ => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Models.User.CreatedAt), true, sortAliases)
-        };
+        var sortedQuery = ApplyListSort(query, request.SortField, request.SortOrder);
         var users = await sortedQuery.Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
         var items = users.ConvertAll(ToListItem);
         return Ok(ApiResponse<PagedResponse<UserListItem>>.Ok(new PagedResponse<UserListItem>(items, current, size, total)));
@@ -456,6 +474,57 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "Avatar uploaded"));
     }
 
+    /// <summary>
+    ///     对用户列表应用统一排序规则
+    /// </summary>
+    /// <param name="query">用户列表查询</param>
+    /// <param name="sortField">排序字段</param>
+    /// <param name="sortOrder">排序方向</param>
+    /// <returns>已排序的用户列表查询</returns>
+    private static IQueryable<User> ApplyListSort(
+        IQueryable<User> query
+        , string? sortField
+        , string? sortOrder
+    ) {
+        var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["userInfo"] = nameof(Models.User.UserName)
+            , ["userName"] = nameof(Models.User.UserName)
+            , ["userGender"] = nameof(Models.User.Gender)
+            , ["userPhone"] = nameof(Models.User.Phone)
+            , ["userEmail"] = nameof(Models.User.Email)
+            , ["status"] = nameof(Models.User.IsEnabled)
+            , ["isEnabled"] = nameof(Models.User.IsEnabled)
+            , ["createTime"] = nameof(Models.User.CreatedAt)
+        };
+        var descending = string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        return sortField?.ToLowerInvariant() switch
+        {
+            "userroles" or "rolename" => descending
+                ? query.OrderByDescending(x => x.UserRoles.OrderBy(role => role.Role.Name).Select(role => role.Role.Name).FirstOrDefault())
+                : query.OrderBy(x => x.UserRoles.OrderBy(role => role.Role.Name).Select(role => role.Role.Name).FirstOrDefault())
+            , "departmentnames" or "departmentname" => descending
+                ? query.OrderByDescending(x =>
+                    x
+                        .UserDepartments.OrderBy(department => department.Department.Name)
+                        .Select(department => department.Department.Name)
+                        .FirstOrDefault()
+                )
+                : query.OrderBy(x =>
+                    x
+                        .UserDepartments.OrderBy(department => department.Department.Name)
+                        .Select(department => department.Department.Name)
+                        .FirstOrDefault()
+                )
+            , _ => query.ApplyDynamicSort(sortField, sortOrder, nameof(Models.User.CreatedAt), true, sortAliases)
+        };
+    }
+
+    /// <summary>
+    ///     将用户实体转换为当前用户信息
+    /// </summary>
+    /// <param name="user">用户实体</param>
+    /// <returns>当前用户信息</returns>
     private static CurrentUserResult ToCurrentUserResult(User user) {
         return new CurrentUserResult(
             user.Id, user.UserName, user.Email, user.Phone, user.Gender, user.Avatar, [.. user.UserRoles.Select(x => x.Role.Code)]
@@ -463,13 +532,51 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
         );
     }
 
+    /// <summary>
+    ///     将用户实体转换为列表项
+    /// </summary>
+    /// <param name="user">用户实体</param>
+    /// <returns>用户列表项</returns>
     private static UserListItem ToListItem(User user) {
         return new UserListItem(
             user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.Phone, user.Email, user.IsEnabled
-            , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserDepartments.Select(x => x.DepartmentId)]
-            , [.. user.UserDepartments.Select(x => x.Department.Name)], "system", ServerTime.ToOffset(user.CreatedAt), "system"
-            , user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null
+            , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserRoles.Select(x => x.Role.Name)]
+            , [.. user.UserDepartments.Select(x => x.DepartmentId)], [.. user.UserDepartments.Select(x => x.Department.Name)], "system"
+            , ServerTime.ToOffset(user.CreatedAt), "system", user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null
         );
+    }
+
+    /// <summary>
+    ///     构建包含用户关联数据和动态筛选的列表查询
+    /// </summary>
+    /// <param name="dynamicFilter">动态筛选条件</param>
+    /// <returns>用户列表查询</returns>
+    private IQueryable<User> BuildListQuery(DynamicFilter? dynamicFilter) {
+        return db
+            .Users.AsNoTracking()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .ApplyDynamicFilter(dynamicFilter, _filterAliases);
+    }
+
+    /// <summary>
+    ///     从系统设置读取单次导出上限
+    /// </summary>
+    /// <returns>经过安全范围限制的导出条数</returns>
+    private async Task<int> GetExportLimitAsync() {
+        var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SYSTEM_SETTINGS_CODE).ConfigureAwait(false);
+        var configuredValue = settings.FirstOrDefault(x => x.IsEnabled && x.Label == _MAXIMUM_EXPORT_ROWS_LABEL)?.Value;
+        configuredValue ??= await db
+            .DictionaryItems.AsNoTracking()
+            .Where(x => x.IsEnabled && x.Label == _MAXIMUM_EXPORT_ROWS_LABEL && x.Category.Code == DictionarySnapshotService.SYSTEM_SETTINGS_CODE)
+            .Select(x => x.Value)
+            .SingleOrDefaultAsync()
+            .ConfigureAwait(false);
+        return int.TryParse(configuredValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var limit)
+            ? Math.Clamp(limit, 1, _MAX_EXPORT_LIMIT)
+            : _DEFAULT_EXPORT_LIMIT;
     }
 
     /// <summary>
@@ -483,6 +590,11 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
         return departments.Count == distinct.Length ? departments : null;
     }
 
+    /// <summary>
+    ///     校验并加载用户选择的角色
+    /// </summary>
+    /// <param name="codes">角色编码集合</param>
+    /// <returns>有效角色集合，无效时返回空值</returns>
     private async Task<List<Role>?> ResolveRolesAsync(string[] codes) {
         var distinct = codes.Distinct().ToArray();
         var roles = await db.Roles.Where(x => distinct.Contains(x.Code)).ToListAsync().ConfigureAwait(false);

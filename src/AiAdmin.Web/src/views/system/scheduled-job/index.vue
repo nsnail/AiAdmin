@@ -2,7 +2,7 @@
     <div class="art-full-height">
         <ScheduledJobSearch v-model="searchForm" v-show="showSearchBar" @reset="resetSearchParams" @search="handleSearch" />
         <ElCard :style="{ 'margin-top': showSearchBar ? '12px' : '0' }" class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
+            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData" column-storage-key="scheduled-job">
                 <template #left><ElButton v-ripple @click="openDialog()">新增作业</ElButton></template>
             </ArtTableHeader>
             <ArtTable
@@ -33,7 +33,11 @@
                     @reset="resetExecutionSearch"
                     @search="handleExecutionSearch" />
                 <ElCard :style="{ 'margin-top': executionShowSearchBar ? '12px' : '0' }" class="art-table-card">
-                    <ArtTableHeader v-model:columns="executionColumnChecks" :loading="executionLoading" @refresh="executionRefreshData" />
+                    <ArtTableHeader
+                        v-model:columns="executionColumnChecks"
+                        :loading="executionLoading"
+                        @refresh="executionRefreshData"
+                        column-storage-key="scheduled-job-execution" />
                     <ArtTable
                         :columns="executionColumns"
                         :data="executionData"
@@ -78,9 +82,10 @@ import {
 import ScheduledJobDialog from './modules/scheduled-job-dialog.vue'
 import ScheduledJobExecutionDialog from './modules/scheduled-job-execution-dialog.vue'
 import ScheduledJobSearch from './modules/scheduled-job-search.vue'
+import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'ScheduledJobManagement' })
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const showSearchBar = ref(true)
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -100,7 +105,7 @@ const statusMap: Record<number, { label: string; type: 'info' | 'primary' | 'suc
     3: { label: '执行失败', type: 'danger' },
     4: { label: '超时', type: 'warning' },
 }
-const formatTime = (value: string | null): string => (value ? new Date(value).toLocaleString('zh-CN', { hour12: false }) : '-')
+const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')
 const describeCron = (value?: string): string => {
     if (!value?.trim()) return '-'
     const parts = value.trim().split(/\s+/)

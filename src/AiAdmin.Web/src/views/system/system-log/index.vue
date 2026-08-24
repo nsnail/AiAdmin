@@ -54,6 +54,7 @@ import { useTable } from '@/hooks/core/useTable'
 import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import { getDateTimeShortcuts } from '@/utils/date-time-shortcuts'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+import { formatDateTime } from '@/utils/date'
 
 type SystemLogSearchForm = SystemLogSearchParams & {
     timestamp?: string[]
@@ -261,19 +262,7 @@ const levelType = (level: string) => {
     if (level === 'Information') return 'success'
     return 'info'
 }
-const formatTime = (value: string) =>
-    value
-        ? new Date(value).toLocaleString(locale.value, {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-              second: '2-digit',
-              fractionalSecondDigits: 3,
-              hour12: false,
-          })
-        : '-'
+const formatTime = (value: string) => (value ? formatDateTime(value, locale.value, { fractionalSecondDigits: 3 }) : '-')
 const detailVisible = ref(false)
 const selectedLog = ref<Api.SystemManage.SystemLogItem | null>(null)
 const activeDetailTab = ref('basic')

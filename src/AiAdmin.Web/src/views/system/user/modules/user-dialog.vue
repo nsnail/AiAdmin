@@ -5,7 +5,7 @@
         align-center
         width="520px">
         <ElTabs v-model="activeTab">
-            <ElTabPane :label="t('common.edit')" name="form">
+            <ElTabPane :label="t('userManagement.dialog.basicInfo')" name="form">
                 <ElForm :model="formData" :rules="rules" label-width="90px" ref="formRef">
                     <ElFormItem label="头像">
                         <div class="avatar-field">

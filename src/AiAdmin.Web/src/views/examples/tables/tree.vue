@@ -183,7 +183,14 @@ const defaultFilter = ref<Api.SystemManage.UserSearchParams>({
 
 const { data, columns, columnChecks, loading, pagination, refreshData, handleSizeChange, handleCurrentChange } = useTable({
     core: {
-        apiFn: fetchGetUserList,
+        apiFn: (params) =>
+            fetchGetUserList({
+                current: params.current,
+                size: params.size,
+                dynamicFilter: params.dynamicFilter,
+                sortField: params.sortField,
+                sortOrder: params.sortOrder,
+            }),
         apiParams: {
             current: 1,
             size: 20,

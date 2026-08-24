@@ -8,6 +8,7 @@
             v-bind="mergedTableProps"
             v-loading="!!loading"
             @cell-contextmenu="handleCellContextMenu"
+            @selection-change="emit('selection-change', $event)"
             @sort-change="handleSortChange"
             ref="elTableRef">
             <template v-for="col in columns" :key="col.prop || col.type">
@@ -66,10 +67,20 @@
 
         <Teleport to="body">
             <div v-if="queryMenu.visible" :style="{ left: `${queryMenu.x}px`, top: `${queryMenu.y}px` }" @contextmenu.prevent class="cell-query-menu">
-                <button @click="copyQueryValue" class="cell-query-title" type="button">
-                    <span>{{ queryMenu.label }}</span>
-                    <span class="cell-query-copy-hint">点击复制</span>
-                </button>
+                <div :class="{ 'opens-left': queryMenu.submenuLeft }" class="cell-query-submenu cell-query-title-submenu">
+                    <button @click="copyQueryValue" aria-keyshortcuts="C" class="cell-query-title" type="button">
+                        <span>{{ queryMenu.label }}</span>
+                        <span class="cell-query-shortcut">{{ t('table.contextMenu.copyHint') }}</span>
+                    </button>
+                    <div v-if="queryMenu.sortable" class="cell-query-submenu-panel">
+                        <button @click="applyContextSort('ascending')" class="cell-query-operation" type="button">
+                            <span>顺序</span><span class="cell-query-symbol">↑</span>
+                        </button>
+                        <button @click="applyContextSort('descending')" class="cell-query-operation" type="button">
+                            <span>倒序</span><span class="cell-query-symbol">↓</span>
+                        </button>
+                    </div>
+                </div>
                 <button
                     v-for="operator in availableOperators"
                     :key="operator.value"
@@ -79,20 +90,6 @@
                     <span>{{ operator.label }}</span>
                     <span class="cell-query-symbol">{{ operator.symbol }}</span>
                 </button>
-                <div v-if="queryMenu.sortable" :class="{ 'opens-left': queryMenu.submenuLeft }" @click.stop class="cell-query-submenu">
-                    <button @click.stop class="cell-query-operation cell-query-submenu-trigger" type="button">
-                        <span>排序</span>
-                        <span class="cell-query-symbol">›</span>
-                    </button>
-                    <div class="cell-query-submenu-panel">
-                        <button @click="applyContextSort('ascending')" class="cell-query-operation" type="button">
-                            <span>顺序</span><span class="cell-query-symbol">↑</span>
-                        </button>
-                        <button @click="applyContextSort('descending')" class="cell-query-operation" type="button">
-                            <span>倒序</span><span class="cell-query-symbol">↓</span>
-                        </button>
-                    </div>
-                </div>
             </div>
         </Teleport>
 
@@ -153,10 +150,12 @@ import { useTableStore } from '@/store/modules/table'
 import { useCommon } from '@/hooks/core/useCommon'
 import { useTableHeight } from '@/hooks/core/useTableHeight'
 import { useResizeObserver, useWindowSize } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ArtTable' })
 
 const { width } = useWindowSize()
+const { t } = useI18n()
 const elTableRef = ref<InstanceType<typeof ElTable> | null>(null)
 const paginationRef = ref<HTMLElement>()
 const tableHeaderRef = ref<HTMLElement>()
@@ -512,6 +511,13 @@ const closeQueryMenu = () => {
     queryMenu.visible = false
 }
 
+/** 右键菜单打开时，按 C 快速复制当前单元格值 */
+const handleQueryMenuKeydown = (event: KeyboardEvent) => {
+    if (!queryMenu.visible || event.key.toLowerCase() !== 'c' || event.ctrlKey || event.metaKey || event.altKey) return
+    event.preventDefault()
+    void copyQueryValue()
+}
+
 /** 从单元格右键菜单触发服务端字段排序 */
 const applyContextSort = (order: 'ascending' | 'descending') => {
     emit('sort-change', {
@@ -543,8 +549,14 @@ const copyQueryValue = async () => {
     }
 }
 
-onMounted(() => document.addEventListener('click', closeQueryMenu))
-onUnmounted(() => document.removeEventListener('click', closeQueryMenu))
+onMounted(() => {
+    document.addEventListener('click', closeQueryMenu)
+    document.addEventListener('keydown', handleQueryMenuKeydown)
+})
+onUnmounted(() => {
+    document.removeEventListener('click', closeQueryMenu)
+    document.removeEventListener('keydown', handleQueryMenuKeydown)
+})
 
 // 分页大小变化
 const handleSizeChange = (val: number) => {
@@ -590,6 +602,7 @@ const emit = defineEmits<{
         },
     ): void
     (e: 'cell-query', val: { field: string; operator: string; value: unknown }): void
+    (e: 'selection-change', val: any[]): void
 }>()
 
 // 查找并绑定表格头部元素 - 使用 VueUse 优化
@@ -659,7 +672,7 @@ defineExpose({
     overflow: hidden;
     font-size: 12px;
     text-align: left;
-    color: var(--el-text-color-secondary);
+    color: var(--el-text-color-primary);
     cursor: pointer;
     background: transparent;
     border: 0;
@@ -673,10 +686,14 @@ defineExpose({
     }
 }
 
-.cell-query-copy-hint {
+.cell-query-shortcut {
     flex: none;
     margin-left: 8px;
-    color: var(--el-text-color-placeholder);
+    color: inherit;
+    font-family: Consolas, Monaco, monospace;
+    font-size: 12px;
+    background: transparent;
+    border: 0;
 }
 
 .cell-query-operation {
@@ -717,8 +734,9 @@ defineExpose({
     }
 }
 
-.cell-query-submenu-trigger {
-    margin-top: 4px;
+.cell-query-title-submenu {
+    margin-top: 0;
+    border-top: 0;
 }
 
 .cell-query-submenu-panel {

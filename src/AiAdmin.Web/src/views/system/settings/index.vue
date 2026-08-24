@@ -36,6 +36,12 @@
                 <ElFormItem :label="t('systemSettings.fields.smtpFrom')">
                     <ElInput v-model="values['SMTP From']" maxlength="100" />
                 </ElFormItem>
+
+                <ElDivider />
+                <h3>{{ t('systemSettings.sections.export') }}</h3>
+                <ElFormItem :label="t('systemSettings.fields.maximumExportRows')">
+                    <ElInputNumber v-model="maximumExportRows" :max="100000" :min="1" class="w-full" />
+                </ElFormItem>
             </ElForm>
             <ElEmpty v-else :description="t('systemSettings.loadFailed')" />
         </ElCard>
@@ -70,6 +76,12 @@ const smtpPort = computed({
     get: () => Number(values['SMTP Port'] || 25),
     set: (value: number | undefined) => {
         values['SMTP Port'] = String(value ?? 25)
+    },
+})
+const maximumExportRows = computed({
+    get: () => Number(values['Maximum export rows'] || 10000),
+    set: (value: number | undefined) => {
+        values['Maximum export rows'] = String(value ?? 10000)
     },
 })
 

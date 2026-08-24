@@ -1,7 +1,23 @@
 ###############################################################################
-# Set default behavior to automatically normalize line endings.
+# Normalize repository text files to LF so Git and formatters use the same
+# line-ending convention on Windows, Linux, and macOS.
 ###############################################################################
-* text=auto
+* text=auto eol=lf
+
+# Keep scripts consumed by cmd.exe in the conventional Windows format.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Never attempt line-ending conversion for binary assets.
+*.gif binary
+*.ico binary
+*.jpg binary
+*.jpeg binary
+*.pdf binary
+*.png binary
+*.webp binary
+*.woff binary
+*.woff2 binary
 
 ###############################################################################
 # Set default behavior for command prompt diff.

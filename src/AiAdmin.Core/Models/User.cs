@@ -23,7 +23,9 @@ public sealed class User : EntityBase
     /// <summary>
     ///     性别编码
     /// </summary>
-    [ListFilter("listFilter.user.gender", "select", Span = 2, Options = ["1:listFilter.option.male", "2:listFilter.option.female"])]
+    [ListFilter(
+        "listFilter.user.gender", "select", Span = 2, Options = ["1:listFilter.option.male", "2:listFilter.option.female"], GroupCount = true
+    )]
     public UserGender Gender { get; set; } = UserGender.Male;
 
     /// <summary>
@@ -39,7 +41,10 @@ public sealed class User : EntityBase
     /// <summary>
     ///     是否启用
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Span = 2, Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
+    [ListFilter(
+        "listFilter.common.status", "select", Span = 2, Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"]
+        , GroupCount = true
+    )]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>

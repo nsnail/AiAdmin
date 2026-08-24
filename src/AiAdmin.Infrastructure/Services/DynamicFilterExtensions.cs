@@ -18,17 +18,19 @@ public static class DynamicFilterExtensions
     /// <typeparam name="T">查询实体类型</typeparam>
     /// <param name="query">待筛选的查询</param>
     /// <param name="filter">动态筛选根节点</param>
+    /// <param name="aliases">客户端字段名到实体字段路径的映射</param>
     /// <returns>附加筛选条件后的查询</returns>
     public static IQueryable<T> ApplyDynamicFilter<T>(
         this IQueryable<T> query
         , DynamicFilter? filter
+        , IReadOnlyDictionary<string, string>? aliases = null
     ) {
         if (filter is null) {
             return query;
         }
 
         var parameter = Expression.Parameter(typeof(T), "entity");
-        var condition = BuildCondition(parameter, filter);
+        var condition = BuildCondition(parameter, filter, aliases);
         return condition is null ? query : query.Where(Expression.Lambda<Func<T, bool>>(condition, parameter));
     }
 
@@ -116,14 +118,15 @@ public static class DynamicFilterExtensions
     private static Expression? BuildCondition(
         ParameterExpression parameter
         , DynamicFilter suppliedFilter
+        , IReadOnlyDictionary<string, string>? aliases
     ) {
         var filter = Unwrap(suppliedFilter);
         var conditions = new List<Expression>();
         if (!string.IsNullOrWhiteSpace(filter.Field) || !string.IsNullOrWhiteSpace(filter.Operator)) {
-            conditions.Add(BuildFieldCondition(parameter, filter));
+            conditions.Add(BuildFieldCondition(parameter, filter, aliases));
         }
 
-        conditions.AddRange(filter.Filters.Select(child => BuildCondition(parameter, child)).OfType<Expression>());
+        conditions.AddRange(filter.Filters.Select(child => BuildCondition(parameter, child, aliases)).OfType<Expression>());
 
         if (conditions.Count == 0) {
             return null;
@@ -158,13 +161,35 @@ public static class DynamicFilterExtensions
     private static Expression BuildFieldCondition(
         ParameterExpression parameter
         , DynamicFilter filter
+        , IReadOnlyDictionary<string, string>? aliases
     ) {
         if (string.IsNullOrWhiteSpace(filter.Field) || string.IsNullOrWhiteSpace(filter.Operator)) {
             throw new DynamicFilterValidationException("Dynamic filter field and operator are required.");
         }
 
-        var member = ResolveMember(parameter, filter.Field);
-        var operation = filter.Operator.Trim();
+        var field = filter.Field.Trim();
+        if (aliases is not null && aliases.TryGetValue(field, out var mappedField)) {
+            field = mappedField;
+        }
+
+        var segments = field.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return segments.Length == 0
+            ? throw new DynamicFilterValidationException("Dynamic filter field is required.")
+            : BuildPathCondition(parameter, segments, 0, filter);
+    }
+
+    /// <summary>
+    ///     根据操作符构建最终字段条件
+    /// </summary>
+    /// <param name="member">实体字段表达式</param>
+    /// <param name="filter">动态筛选节点</param>
+    /// <returns>字段条件表达式</returns>
+    /// <exception cref="DynamicFilterValidationException">筛选值或操作符无效时抛出</exception>
+    private static Expression BuildMemberCondition(
+        MemberExpression member
+        , DynamicFilter filter
+    ) {
+        var operation = filter.Operator!.Trim();
         var value = filter.Value ?? throw new DynamicFilterValidationException("Dynamic filter value is required.");
         return operation.ToUpperInvariant() switch
         {
@@ -187,6 +212,43 @@ public static class DynamicFilterExtensions
             , "CUSTOM" => throw new DynamicFilterValidationException("Dynamic filter operator Custom is not supported.")
             , _ => throw new DynamicFilterValidationException($"Unsupported dynamic filter operator '{filter.Operator}'.")
         };
+    }
+
+    /// <summary>
+    ///     沿实体属性路径构建筛选表达式，集合导航属性自动转换为 Any 子查询
+    /// </summary>
+    /// <param name="current">当前属性路径表达式</param>
+    /// <param name="segments">属性路径片段</param>
+    /// <param name="index">当前路径片段索引</param>
+    /// <param name="filter">动态筛选节点</param>
+    /// <returns>字段筛选表达式</returns>
+    /// <exception cref="DynamicFilterValidationException">属性路径或集合类型无效时抛出</exception>
+    private static Expression BuildPathCondition(
+        Expression current
+        , IReadOnlyList<string> segments
+        , int index
+        , DynamicFilter filter
+    ) {
+        var property = current.Type.GetProperty(segments[index], BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
+        if (property is null || property.GetIndexParameters().Length != 0) {
+            throw new DynamicFilterValidationException($"Dynamic filter field '{string.Join('.', segments)}' is not available.");
+        }
+
+        var member = Expression.Property(current, property);
+        if (IsCollection(property.PropertyType)) {
+            if (index == segments.Count - 1) {
+                throw new DynamicFilterValidationException($"Dynamic filter field '{string.Join('.', segments)}' is not available.");
+            }
+
+            var elementType = GetCollectionElementType(property.PropertyType);
+            var element = Expression.Parameter(elementType, "item");
+            var (predicateFilter, negate) = NormalizeCollectionFilter(filter);
+            var predicate = BuildPathCondition(element, segments, index + 1, predicateFilter);
+            var any = Expression.Call(typeof(Enumerable), nameof(Enumerable.Any), [elementType], member, Expression.Lambda(predicate, element));
+            return negate ? Expression.Not(any) : any;
+        }
+
+        return index < segments.Count - 1 ? BuildPathCondition(member, segments, index + 1, filter) : BuildMemberCondition(member, filter);
     }
 
     private static BinaryExpression BuildRange(
@@ -235,6 +297,25 @@ public static class DynamicFilterExtensions
     private static JsonElement CreateStringElement(string value) {
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(value));
         return document.RootElement.Clone();
+    }
+
+    /// <summary>
+    ///     获取集合导航属性的元素类型
+    /// </summary>
+    /// <param name="collectionType">集合属性类型</param>
+    /// <returns>集合元素类型</returns>
+    /// <exception cref="DynamicFilterValidationException">无法解析集合元素类型时抛出</exception>
+    private static Type GetCollectionElementType(Type collectionType) {
+        if (collectionType.IsArray) {
+            return collectionType.GetElementType()!;
+        }
+
+        var enumerableType = collectionType
+            .GetInterfaces()
+            .Append(collectionType)
+            .FirstOrDefault(type => type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>));
+        return enumerableType?.GetGenericArguments()[0]
+               ?? throw new DynamicFilterValidationException("Dynamic filter collection element type is not available.");
     }
 
     private static JsonElement GetDateRangeEnd(JsonElement value) {
@@ -286,6 +367,27 @@ public static class DynamicFilterExtensions
         var startDate = ParseDate(start);
         var endDate = ParseDate(end);
         return startDate.Date == endDate.Date && endDate.TimeOfDay == TimeSpan.Zero;
+    }
+
+    /// <summary>
+    ///     将集合字段的否定操作符转换为对 Any 结果取反，避免多元素集合产生错误语义
+    /// </summary>
+    /// <param name="filter">动态筛选节点</param>
+    /// <returns>集合元素条件以及是否对 Any 结果取反</returns>
+    private static (DynamicFilter Filter, bool Negate) NormalizeCollectionFilter(DynamicFilter filter) {
+        var operation = filter.Operator?.Trim().ToUpperInvariant();
+        var positiveOperation = operation switch
+        {
+            "NOTCONTAINS" => "Contains"
+            , "NOTSTARTSWITH" => "StartsWith"
+            , "NOTENDSWITH" => "EndsWith"
+            , "NOTEQUAL" => "Equal"
+            , "NOTANY" => "Any"
+            , _ => null
+        };
+        return positiveOperation is null
+            ? (filter, false)
+            : (new DynamicFilter { Field = filter.Field, Operator = positiveOperation, Value = filter.Value }, true);
     }
 
     private static DateTimeOffset ParseDate(JsonElement value) {
@@ -359,23 +461,6 @@ public static class DynamicFilterExtensions
             ]
             , _ => [value]
         };
-    }
-
-    private static MemberExpression ResolveMember(
-        ParameterExpression parameter
-        , string field
-    ) {
-        Expression current = parameter;
-        foreach (var name in field.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)) {
-            var property = current.Type.GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase);
-            if (property is null || property.GetIndexParameters().Length != 0 || IsCollection(property.PropertyType)) {
-                throw new DynamicFilterValidationException($"Dynamic filter field '{field}' is not available.");
-            }
-
-            current = Expression.Property(current, property);
-        }
-
-        return current as MemberExpression ?? throw new DynamicFilterValidationException($"Dynamic filter field '{field}' is not available.");
     }
 
     private static DynamicFilter Unwrap(DynamicFilter filter) {

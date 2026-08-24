@@ -9,7 +9,7 @@ namespace AiAdmin.Api.Contracts;
 public sealed class DynamicFilter
 {
     /// <summary>
-    ///     字段路径，支持实体的单值导航属性路径
+    ///     字段路径，支持实体的单值导航和集合导航属性路径
     /// </summary>
     public string? Field { get; init; }
 

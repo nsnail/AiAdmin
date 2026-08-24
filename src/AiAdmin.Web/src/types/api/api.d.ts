@@ -212,6 +212,7 @@ declare namespace Api {
             userEmail: string
             isEnabled: boolean
             userRoles: string[]
+            roleNames: string[]
             departmentIds: string[]
             departmentNames: string[]
             createBy: string

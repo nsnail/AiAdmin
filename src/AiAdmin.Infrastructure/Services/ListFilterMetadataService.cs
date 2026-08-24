@@ -30,7 +30,7 @@ public static class ListFilterMetadataService
                 .Select(item => new ListFilterFieldResult(
                         item.Property.Name, item.Attribute!.Label, item.Attribute.Control, item.Attribute.Span, item.Attribute.Sort
                         , item.Attribute.Placeholder
-                        , [.. item.Attribute.Options.Select(ToOption)], GetValueType(item.Property.PropertyType)
+                        , [.. item.Attribute.Options.Select(ToOption)], GetValueType(item.Property.PropertyType), item.Attribute.GroupCount
                     )
                 )
         ];

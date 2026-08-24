@@ -11,6 +11,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="Placeholder">输入提示文字</param>
 /// <param name="Options">可选项列表</param>
 /// <param name="ValueType">字段值类型</param>
+/// <param name="GroupCount">是否启用分组计数筛选</param>
 public sealed record ListFilterFieldResult(
     string Field
     , string Label
@@ -19,4 +20,5 @@ public sealed record ListFilterFieldResult(
     , int Sort
     , string Placeholder
     , IReadOnlyList<ListFilterOptionResult> Options
-    , string ValueType);
+    , string ValueType
+    , bool GroupCount);

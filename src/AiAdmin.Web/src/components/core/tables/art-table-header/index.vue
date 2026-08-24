@@ -39,7 +39,9 @@
             <ElPopover v-if="shouldShow('columns')" placement="bottom" trigger="click">
                 <template #reference>
                     <div class="button">
-                        <ArtSvgIcon icon="ri:align-right" />
+                        <ElBadge :hidden="!hasHiddenColumns" class="column-settings-badge" is-dot>
+                            <ArtSvgIcon icon="ri:align-right" />
+                        </ElBadge>
                     </div>
                 </template>
                 <div>
@@ -65,6 +67,12 @@
                             </div>
                         </VueDraggable>
                     </ElScrollbar>
+                    <div class="column-settings-footer">
+                        <ElButton @click="resetColumnPreferences" text>
+                            <ArtSvgIcon class="mr-1" icon="ri:restart-line" />
+                            {{ t('table.column.reset') }}
+                        </ElButton>
+                    </div>
                 </div>
             </ElPopover>
             <!-- 其他设置 -->
@@ -86,14 +94,17 @@
 </template>
 
 <script lang="ts" setup>
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { TableSizeEnum } from '@/enums/formEnum'
 import { useTableStore } from '@/store/modules/table'
 import { VueDraggable } from 'vue-draggable-plus'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import type { ColumnOption } from '@/types/component'
 import { ElScrollbar } from 'element-plus'
+import { getColumnKey } from '@/hooks/core/useTableColumns'
+import { StorageConfig } from '@/utils/storage/storage-config'
 
 defineOptions({ name: 'ArtTableHeader' })
 
@@ -114,6 +125,8 @@ interface Props {
     loading?: boolean
     /** 搜索栏显示状态 */
     showSearchBar?: boolean
+    /** 列显示设置的本地存储标识，同一路由存在多张表时需要分别指定 */
+    columnStorageKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -129,6 +142,24 @@ const columns = defineModel<ColumnOption[]>('columns', {
     required: false,
     default: () => [],
 })
+
+interface StoredColumnPreference {
+    key: string
+    visible: boolean
+}
+
+interface StoredColumnPreferences {
+    columns: StoredColumnPreference[]
+}
+
+const route = useRoute()
+const resolvedColumnStorageKey = computed(() => {
+    const identity = props.columnStorageKey || String(route.name || route.path)
+    return StorageConfig.generateStorageKey(`table-columns-${encodeURIComponent(identity)}`)
+})
+let columnPreferencesInitialized = false
+let defaultColumnOrder: string[] = []
+const defaultColumnVisibility = new Map<string, boolean>()
 
 const emit = defineEmits<{
     (e: 'refresh'): void
@@ -156,6 +187,88 @@ const updateColumnVisibility = (col: ColumnOption, value: boolean | string | num
     col.checked = boolValue
     col.visible = boolValue
 }
+
+/** 是否存在被用户隐藏的列，用于在列设置图标上显示提醒 */
+const hasHiddenColumns = computed(() => columns.value.some((column) => !getColumnVisibility(column)))
+
+/** 将当前列的显示状态和顺序保存到浏览器 */
+const saveColumnPreferences = (): void => {
+    if (!columnPreferencesInitialized || columns.value.length === 0) return
+    const preferences: StoredColumnPreferences = {
+        columns: columns.value.map((column) => ({
+            key: getColumnKey(column),
+            visible: getColumnVisibility(column),
+        })),
+    }
+    try {
+        localStorage.setItem(resolvedColumnStorageKey.value, JSON.stringify(preferences))
+    } catch {
+        // 浏览器禁用或限制本地存储时继续使用当前会话内设置
+    }
+}
+
+/** 从浏览器恢复列设置，并兼容后来新增或删除的列 */
+const restoreColumnPreferences = (): void => {
+    if (columnPreferencesInitialized || columns.value.length === 0) return
+    defaultColumnOrder = columns.value.map(getColumnKey)
+    defaultColumnVisibility.clear()
+    columns.value.forEach((column) => defaultColumnVisibility.set(getColumnKey(column), getColumnVisibility(column)))
+    columnPreferencesInitialized = true
+    try {
+        const stored = localStorage.getItem(resolvedColumnStorageKey.value)
+        if (!stored) return
+        const preferences = JSON.parse(stored) as StoredColumnPreferences
+        if (!Array.isArray(preferences.columns)) return
+
+        const preferenceMap = new Map(preferences.columns.map((item) => [item.key, item]))
+        const currentMap = new Map(columns.value.map((column) => [getColumnKey(column), column]))
+        const orderedKeys = [
+            ...preferences.columns.map((item) => item.key).filter((key) => currentMap.has(key)),
+            ...columns.value.map(getColumnKey).filter((key) => !preferenceMap.has(key)),
+        ]
+        columns.value = orderedKeys.map((key) => {
+            const column = currentMap.get(key)!
+            const storedVisibility = preferenceMap.get(key)?.visible
+            const visible = column.disabled || typeof storedVisibility !== 'boolean' ? getColumnVisibility(column) : storedVisibility
+            return { ...column, checked: visible, visible }
+        })
+    } catch {
+        // 忽略损坏的浏览器数据，使用代码中的默认列配置
+    }
+}
+
+/** 清除个性化列设置并恢复代码定义的默认状态 */
+const resetColumnPreferences = (): void => {
+    const currentMap = new Map(columns.value.map((column) => [getColumnKey(column), column]))
+    const orderedKeys = [
+        ...defaultColumnOrder.filter((key) => currentMap.has(key)),
+        ...columns.value.map(getColumnKey).filter((key) => !defaultColumnVisibility.has(key)),
+    ]
+    try {
+        localStorage.removeItem(resolvedColumnStorageKey.value)
+    } catch {
+        // 浏览器禁用或限制本地存储时仍恢复当前会话内设置
+    }
+    columns.value = orderedKeys.map((key) => {
+        const column = currentMap.get(key)!
+        const visible = defaultColumnVisibility.get(key) ?? getColumnVisibility(column)
+        return { ...column, checked: visible, visible }
+    })
+}
+
+watch(
+    columns,
+    () => {
+        if (!columnPreferencesInitialized) restoreColumnPreferences()
+        else saveColumnPreferences()
+    },
+    { deep: true },
+)
+
+watch(resolvedColumnStorageKey, () => {
+    columnPreferencesInitialized = false
+    restoreColumnPreferences()
+})
 
 /** 表格大小选项配置 */
 const tableSizeOptions = [
@@ -262,6 +375,7 @@ const handleEscapeKey = (e: KeyboardEvent) => {
 
 /** 组件挂载时注册全局事件监听器 */
 onMounted(() => {
+    restoreColumnPreferences()
     document.addEventListener('keydown', handleEscapeKey)
 })
 
@@ -298,5 +412,17 @@ onUnmounted(() => {
     hover:bg-g-300 
     md:ml-0 
     md:mr-2.5;
+}
+
+.column-settings-badge {
+    display: flex;
+}
+
+.column-settings-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 6px;
+    margin-top: 6px;
+    border-top: 1px solid var(--el-border-color-lighter);
 }
 </style>

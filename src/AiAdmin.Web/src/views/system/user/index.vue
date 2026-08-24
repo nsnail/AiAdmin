@@ -4,55 +4,64 @@
 <!-- 更多 useTable 使用示例请移步至 功能示例 下面的高级表格示例或者查看官方文档 -->
 <!-- useTable 文档：https://www.artd.pro/docs/zh/guide/hooks/use-table.html -->
 <template>
-    <div class="user-page art-full-height">
-        <!-- 搜索栏 -->
-        <UserSearch v-model="searchForm" @reset="resetSearchParams" @search="handleSearch"></UserSearch>
+    <ArtTablePage
+        v-model:column-checks="columnChecks"
+        :columns="columns"
+        :data="data"
+        :default-filter="defaultFilter"
+        :loading="loading"
+        :pagination="pagination"
+        @filter-change="handleFilterChange"
+        @page-change="handleCurrentChange"
+        @refresh="refreshData"
+        @reset="resetSearchParams"
+        @selection-change="selectedRows = $event"
+        @size-change="handleSizeChange"
+        @sort-change="handleSortChange"
+        resource="user">
+        <template #header-left>
+            <ElSpace wrap>
+                <ElButton v-ripple @click="showDialog('add')">{{ t('userManagement.actions.add') }}</ElButton>
+                <ElDropdown :disabled="exporting" @command="handleExport">
+                    <ElButton :loading="exporting">
+                        <ArtSvgIcon class="mr-1" icon="ri:download-2-line" />{{ t('userManagement.actions.exportData') }}
+                        <ArtSvgIcon class="ml-1" icon="ri:arrow-down-s-line" />
+                    </ElButton>
+                    <template #dropdown>
+                        <ElDropdownMenu>
+                            <ElDropdownItem command="excel">{{ t('userManagement.actions.exportExcel') }}</ElDropdownItem>
+                            <ElDropdownItem command="json">{{ t('userManagement.actions.exportJson') }}</ElDropdownItem>
+                        </ElDropdownMenu>
+                    </template>
+                </ElDropdown>
+            </ElSpace>
+        </template>
 
-        <ElCard class="art-table-card">
-            <!-- 表格头部 -->
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
-                <template #left>
-                    <ElSpace wrap>
-                        <ElButton v-ripple @click="showDialog('add')">{{ t('userManagement.actions.add') }}</ElButton>
-                    </ElSpace>
-                </template>
-            </ArtTableHeader>
-
-            <!-- 表格 -->
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                @cell-query="applyCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @sort-change="handleSortChange">
-            </ArtTable>
-
-            <!-- 用户弹窗 -->
-            <UserDialog
-                v-model:visible="dialogVisible"
-                :saving="dialogSaving"
-                :type="dialogType"
-                :user-data="currentUserData"
-                @submit="handleDialogSubmit" />
-        </ElCard>
-    </div>
+        <UserDialog
+            v-model:visible="dialogVisible"
+            :saving="dialogSaving"
+            :type="dialogType"
+            :user-data="currentUserData"
+            @submit="handleDialogSubmit" />
+    </ArtTablePage>
 </template>
 
 <script lang="ts" setup>
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
-import { fetchCreateUser, fetchGetUserList, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
-import UserSearch from './modules/user-search.vue'
+import { fetchCreateUser, fetchExportUsers, fetchGetUserList, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
 import UserDialog from './modules/user-dialog.vue'
 import { ElMessage, ElTag } from 'element-plus'
 import { DialogType } from '@/types'
 import { useI18n } from 'vue-i18n'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
+import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
+import * as XLSX from 'xlsx'
+import FileSaver from 'file-saver'
+import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'User' })
 const { t, locale } = useI18n()
@@ -64,11 +73,10 @@ const dialogType = ref<DialogType>('add')
 const dialogVisible = ref(false)
 const currentUserData = ref<Partial<UserListItem>>({})
 const dialogSaving = ref(false)
+const selectedRows = ref<UserListItem[]>([])
+const exporting = ref(false)
 
-// 搜索表单
-const searchForm = ref<Api.SystemManage.UserSearchParams>({
-    IsEnabled: true,
-} as Api.SystemManage.UserSearchParams)
+const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
 const roleName = (role: string): string => {
     const key = `userCenter.roleNames.${role}`
     return t(key) === key ? role : t(key)
@@ -80,6 +88,7 @@ const {
     data,
     loading,
     pagination,
+    searchParams,
     getData,
     replaceSearchParams,
     resetSearchParams,
@@ -95,7 +104,7 @@ const {
         apiParams: {
             current: 1,
             size: 20,
-            ...searchForm.value,
+            dynamicFilter: defaultFilter,
         },
         // 自定义分页字段映射，未设置时将使用全局配置 tableConfig.ts 中的 paginationKey
         // paginationKey: {
@@ -103,6 +112,11 @@ const {
         //   size: 'pageSize'
         // },
         columnsFactory: () => [
+            {
+                type: 'selection',
+                width: 48,
+                fixed: 'left',
+            },
             {
                 prop: 'id',
                 queryField: 'Id',
@@ -169,19 +183,35 @@ const {
             },
             {
                 prop: 'userRoles',
-                queryField: false,
+                queryField: 'RoleName',
+                queryValueField: 'roleNames.0',
+                queryValueType: 'string',
                 label: t('userManagement.fields.roles'),
                 minWidth: 160,
                 formatter: (row) =>
                     h(
                         'div',
                         { class: 'flex flex-wrap gap-1' },
-                        row.userRoles.map((role) => h(ElTag, { size: 'small' }, () => roleName(role))),
+                        row.userRoles.map((role, index) =>
+                            h(
+                                ElTag,
+                                {
+                                    size: 'small',
+                                    'data-query-field': 'RoleName',
+                                    'data-query-label': t('userManagement.fields.roles'),
+                                    'data-query-value': row.roleNames[index],
+                                    'data-query-value-type': 'string',
+                                },
+                                () => roleName(role),
+                            ),
+                        ),
                     ),
             },
             {
                 prop: 'departmentNames',
-                queryField: false,
+                queryField: 'DepartmentName',
+                queryValueField: 'departmentNames.0',
+                queryValueType: 'string',
                 label: t('userManagement.fields.departments'),
                 minWidth: 160,
                 formatter: (row) =>
@@ -189,7 +219,20 @@ const {
                         ? h(
                               'div',
                               { class: 'flex flex-wrap gap-1' },
-                              row.departmentNames.map((department) => h(ElTag, { size: 'small', type: 'info' }, () => department)),
+                              row.departmentNames.map((department) =>
+                                  h(
+                                      ElTag,
+                                      {
+                                          size: 'small',
+                                          type: 'info',
+                                          'data-query-field': 'DepartmentName',
+                                          'data-query-label': t('userManagement.fields.departments'),
+                                          'data-query-value': department,
+                                          'data-query-value-type': 'string',
+                                      },
+                                      () => department,
+                                  ),
+                              ),
                           )
                         : '-',
             },
@@ -230,22 +273,89 @@ const {
 
 watch(locale, () => resetColumns?.())
 
+type ExportFormat = 'excel' | 'json'
+
+const exportFileName = (extension: ExportFormat): string => {
+    const timestamp = new Date().toISOString().replace('T', '_').replace(/:/g, '-').replace(/\..+$/, '')
+    return `users_${timestamp}.${extension === 'excel' ? 'xlsx' : 'json'}`
+}
+
+const downloadExcel = (rows: UserListItem[]): void => {
+    const exportRows = rows.map((row) => ({
+        ID: row.id,
+        [t('userManagement.fields.userName')]: row.userName,
+        [t('userManagement.fields.email')]: row.userEmail,
+        [t('userManagement.fields.phone')]: row.userPhone,
+        [t('userManagement.fields.gender')]: t(row.userGender === 2 ? 'userManagement.gender.female' : 'userManagement.gender.male'),
+        [t('userManagement.fields.roles')]: row.userRoles.map(roleName).join(', '),
+        [t('userManagement.fields.departments')]: row.departmentNames.join(', '),
+        [t('userManagement.fields.status')]: t(row.isEnabled ? 'userManagement.status.enabled' : 'userManagement.status.disabled'),
+        [t('userManagement.fields.createdAt')]: formatDateTime(row.createTime, locale.value),
+        [t('userManagement.fields.updatedAt')]: formatDateTime(row.updateTime, locale.value),
+    }))
+    const worksheet = XLSX.utils.json_to_sheet(exportRows)
+    worksheet['!cols'] = Object.keys(exportRows[0]).map((key) => ({
+        wch: Math.min(Math.max(key.length + 2, ...exportRows.map((row) => String(row[key as keyof typeof row] ?? '').length + 2)), 50),
+    }))
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, t('userManagement.export.sheetName'))
+    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array', compression: true })
+    FileSaver.saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), exportFileName('excel'))
+}
+
+const downloadJson = (rows: UserListItem[]): void => {
+    const exportRows = rows.map((row) => ({
+        id: row.id,
+        userName: row.userName,
+        email: row.userEmail,
+        phone: row.userPhone,
+        gender: row.userGender,
+        roles: row.roleNames,
+        departments: row.departmentNames,
+        isEnabled: row.isEnabled,
+        createdAt: formatDateTime(row.createTime, locale.value),
+        updatedAt: formatDateTime(row.updateTime, locale.value),
+    }))
+    FileSaver.saveAs(new Blob([JSON.stringify(exportRows, null, 2)], { type: 'application/json;charset=utf-8' }), exportFileName('json'))
+}
+
+const handleExport = async (format: ExportFormat): Promise<void> => {
+    if (exporting.value) return
+    exporting.value = true
+    try {
+        let rows = selectedRows.value
+        if (rows.length === 0) {
+            const result = await fetchExportUsers({
+                dynamicFilter: searchParams.dynamicFilter as DynamicFilter | undefined,
+                sortField: searchParams.sortField as string | undefined,
+                sortOrder: searchParams.sortOrder as 'asc' | 'desc' | undefined,
+            })
+            rows = result.records
+            if (result.total > result.records.length) {
+                ElMessage.warning(t('userManagement.message.exportTruncated', { total: result.total, limit: result.limit }))
+            }
+        }
+        if (rows.length === 0) {
+            ElMessage.info(t('userManagement.message.exportEmpty'))
+            return
+        }
+        if (format === 'excel') downloadExcel(rows)
+        else downloadJson(rows)
+        ElMessage.success(t('userManagement.message.exported', { count: rows.length }))
+    } catch (error) {
+        console.error(error)
+        ElMessage.error(t('userManagement.message.exportFailed'))
+    } finally {
+        exporting.value = false
+    }
+}
+
 /**
  * 搜索处理
  * @param params 参数
  */
-const handleSearch = (params: Api.SystemManage.UserSearchParams) => {
-    replaceSearchParams(params)
-    getData()
-}
-
-const applyCellQuery = async (condition: { field: string; operator: string; value: unknown }): Promise<void> => {
-    const currentFilter = searchForm.value.dynamicFilter
-    searchForm.value = {
-        ...searchForm.value,
-        dynamicFilter: currentFilter ? { logic: 'And', filters: [currentFilter, condition] } : condition,
-    }
-    replaceSearchParams(searchForm.value)
+const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    replaceSearchParams({ dynamicFilter })
     await getData()
 }
 

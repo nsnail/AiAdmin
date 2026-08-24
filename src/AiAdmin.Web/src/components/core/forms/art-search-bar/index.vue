@@ -377,15 +377,25 @@ const activeAdvancedFilter = ref<DynamicFilter>()
 const initialModelValue = ref<Record<string, any>>({})
 const useUpdatedAt = ref(false)
 
+// 外部应用已保存条件或右键条件时，时间类型开关必须与动态查询中的字段保持一致。
+watch(
+    () => (modelValue.value as Record<string, unknown>).UpdatedAt !== undefined,
+    (hasUpdatedAt) => {
+        if (hasUpdatedAt !== useUpdatedAt.value) useUpdatedAt.value = hasUpdatedAt
+    },
+    { immediate: true },
+)
+
 // 在创建时间和更新时间之间切换时，保留用户已经输入的日期范围
 watch(useUpdatedAt, (enabled) => {
-    const dateRange = modelValue.value.CreatedAt ?? modelValue.value.UpdatedAt
+    const filterModel = modelValue.value as Record<string, unknown>
+    const dateRange = filterModel.CreatedAt ?? filterModel.UpdatedAt
     if (enabled) {
-        delete modelValue.value.CreatedAt
-        if (dateRange !== undefined) modelValue.value.UpdatedAt = dateRange
+        delete filterModel.CreatedAt
+        if (dateRange !== undefined) filterModel.UpdatedAt = dateRange
     } else {
-        delete modelValue.value.UpdatedAt
-        if (dateRange !== undefined) modelValue.value.CreatedAt = dateRange
+        delete filterModel.UpdatedAt
+        if (dateRange !== undefined) filterModel.CreatedAt = dateRange
     }
 })
 
@@ -1004,12 +1014,18 @@ const applyAdvancedFilter = (filter: DynamicFilter | undefined) => {
 
 const handleAdvancedQueryApply = (filter: DynamicFilter | undefined) => applyAdvancedFilter(filter)
 
+/** 同步表格右键筛选等外部来源的完整动态查询 */
+const setDynamicFilter = (filter: DynamicFilter | undefined) => {
+    activeAdvancedFilter.value = filter
+}
+
 defineExpose({
     ref: formInstance,
     validate: (...args: any[]) => formInstance.value?.validate(...args),
     reset: handleReset,
     // 允许外部在手动组装请求前直接读取清洗后的参数。
     getOutput: getSanitizedOutput,
+    setDynamicFilter,
 })
 
 // 解构 props 以便在模板中直接使用

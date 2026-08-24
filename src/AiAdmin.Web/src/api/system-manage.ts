@@ -9,6 +9,17 @@ export type DynamicFilter = {
     filters?: DynamicFilter[]
 }
 
+export type ListFilterResource =
+    'api-endpoint' | 'department' | 'dictionary' | 'login-log' | 'menu' | 'message' | 'role' | 'scheduled-job' | 'user' | 'wallet'
+
+export interface DynamicTableQuery {
+    current?: number
+    size?: number
+    dynamicFilter?: DynamicFilter
+    sortField?: string
+    sortOrder?: 'asc' | 'desc'
+}
+
 export interface SavedQuery {
     id: string
     name: string
@@ -19,12 +30,27 @@ export interface SavedQuery {
 export interface ListFilterField {
     field: string
     label: string
-    control: 'input' | 'select' | 'date' | 'number'
+    control: 'input' | 'select' | 'date' | 'number' | 'user-select'
     span: number
     sort: number
     placeholder: string
     options: Array<{ label: string; value: string }>
     valueType: 'string' | 'number' | 'boolean' | 'date'
+    groupCount: boolean
+}
+
+export interface ListFilterGroupOption {
+    value: unknown
+    label: string
+    count: number
+}
+
+export interface ListFilterGroup {
+    field: string
+    label: string
+    valueType: 'string' | 'number' | 'boolean' | 'date'
+    total: number
+    options: ListFilterGroupOption[]
 }
 
 export interface LoginLogRecord {
@@ -109,7 +135,7 @@ export type WalletListParams = {
 
 export function fetchGetWalletList(data: WalletListParams) {
     const queryFields = new Set(['current', 'size', 'dynamicFilter', 'sortField', 'sortOrder'])
-    const filters = Object.entries(data)
+    const filters: DynamicFilter[] = Object.entries(data)
         .filter(([field, value]) => !queryFields.has(field) && value !== undefined && value !== null && value !== '')
         .map(([field, value]) => ({
             field,
@@ -153,10 +179,12 @@ export function fetchUpdateEnabledState(resource: EnabledStateResource, id: stri
     return request.post<void>({ url: `/api/enabled-state/${resource}/${id}`, data: { isEnabled } })
 }
 
-export function fetchGetListFilterFields(
-    resource: 'user' | 'role' | 'menu' | 'department' | 'api-endpoint' | 'scheduled-job' | 'login-log' | 'wallet' | 'message',
-) {
+export function fetchGetListFilterFields(resource: ListFilterResource) {
     return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
+}
+
+export function fetchGetListFilterGroups(resource: ListFilterResource, dynamicFilter?: DynamicFilter) {
+    return request.post<ListFilterGroup[]>({ url: `/api/${resource}/filter-groups`, data: { dynamicFilter } })
 }
 
 export function fetchGetLoginLogList(data: {
@@ -169,7 +197,7 @@ export function fetchGetLoginLogList(data: {
 }) {
     // 筛选栏字段名由元数据返回，不应依赖 PascalCase 命名约定，否则字段被序列化为 camelCase 时会被忽略。
     const queryFields = new Set(['current', 'size', 'dynamicFilter', 'sortField', 'sortOrder'])
-    const filters = Object.entries(data)
+    const filters: DynamicFilter[] = Object.entries(data)
         .filter(([field, value]) => !queryFields.has(field) && value !== undefined && value !== null && value !== '')
         .map(([field, value]) => ({
             field,
@@ -214,13 +242,7 @@ export function fetchGetSystemLogs(params: SystemLogSearchParams) {
     })
 }
 
-type DynamicQuery = {
-    current?: number
-    size?: number
-    dynamicFilter?: DynamicFilter
-    sortField?: string
-    sortOrder?: 'asc' | 'desc'
-}
+type DynamicQuery = DynamicTableQuery
 
 function createDynamicQuery(
     current: number | undefined,
@@ -236,11 +258,6 @@ function createDynamicQuery(
         sortOrder,
         ...(filters.length > 0 ? { dynamicFilter: { logic: 'And', filters } } : {}),
     }
-}
-
-function getTextFilter(field: string, value: string | undefined): DynamicFilter | undefined {
-    const text = value?.trim()
-    return text ? { field, operator: 'Contains', value: text } : undefined
 }
 
 function getGeneratedFilterOperator(value: unknown): 'Equal' | 'Contains' {
@@ -267,37 +284,21 @@ function normalizeDateRange(value: unknown): unknown {
 }
 
 // 获取用户列表
-export function fetchGetUserList(params: Api.SystemManage.UserSearchParams) {
-    const generatedFilters = Object.entries(params)
-        .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
-        .map(([field, value]) => ({
-            field,
-            operator: Array.isArray(value)
-                ? ['createdat', 'updatedat'].includes(field.toLowerCase())
-                    ? 'DateRange'
-                    : 'Any'
-                : getGeneratedFilterOperator(value),
-            value: normalizeDateRange(value === 'true' ? true : value === 'false' ? false : value),
-        }))
-    const baseFilters = generatedFilters.length
-        ? generatedFilters
-        : [
-              getTextFilter('UserName', params.userName),
-              getTextFilter('Phone', params.userPhone),
-              getTextFilter('Email', params.userEmail),
-              params.userGender ? { field: 'Gender', operator: 'Equal', value: params.userGender } : undefined,
-              params.status === '1'
-                  ? { field: 'IsEnabled', operator: 'Equal', value: true }
-                  : params.status === '2'
-                    ? { field: 'IsEnabled', operator: 'Equal', value: false }
-                    : undefined,
-          ].filter((filter): filter is DynamicFilter => Boolean(filter))
-    const filters = params.dynamicFilter ? [...baseFilters, params.dynamicFilter] : baseFilters
-
+export function fetchGetUserList(params: DynamicTableQuery) {
     return request.post<Api.SystemManage.UserList>({
         url: '/api/user/list',
-        data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder),
+        data: params,
     })
+}
+
+export interface UserExportResult {
+    records: Api.SystemManage.UserListItem[]
+    limit: number
+    total: number
+}
+
+export function fetchExportUsers(data: Omit<DynamicTableQuery, 'current' | 'size'>) {
+    return request.post<UserExportResult>({ url: '/api/user/export', data })
 }
 
 export function fetchCreateUser(data: Api.SystemManage.SaveUserParams) {
@@ -397,38 +398,10 @@ export function fetchDeleteDepartment(id: string) {
 }
 
 // 获取角色列表
-export function fetchGetRoleList(params: Api.SystemManage.RoleSearchParams) {
-    const generatedFilters = Object.entries(params)
-        .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
-        .map(([field, value]) => ({
-            field,
-            operator: Array.isArray(value)
-                ? ['createdat', 'updatedat'].includes(field.toLowerCase())
-                    ? 'DateRange'
-                    : 'Any'
-                : getGeneratedFilterOperator(value),
-            value: normalizeDateRange(value === 'true' ? true : value === 'false' ? false : value),
-        }))
-    const baseFilters = generatedFilters.length
-        ? generatedFilters
-        : [
-              getTextFilter('Name', params.roleName),
-              getTextFilter('Code', params.roleCode),
-              getTextFilter('Description', params.description),
-              typeof params.enabled === 'boolean' ? { field: 'IsEnabled', operator: 'Equal', value: params.enabled } : undefined,
-              params.startTime && params.endTime
-                  ? { field: 'CreatedAt', operator: 'Range', value: [params.startTime, params.endTime] }
-                  : params.startTime
-                    ? { field: 'CreatedAt', operator: 'GreaterThanOrEqual', value: params.startTime }
-                    : params.endTime
-                      ? { field: 'CreatedAt', operator: 'LessThan', value: params.endTime }
-                      : undefined,
-          ].filter((filter): filter is DynamicFilter => Boolean(filter))
-    const filters = params.dynamicFilter ? [...baseFilters, params.dynamicFilter] : baseFilters
-
+export function fetchGetRoleList(params: DynamicTableQuery) {
     return request.post<Api.SystemManage.RoleList>({
         url: '/api/role/list',
-        data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder),
+        data: params,
     })
 }
 

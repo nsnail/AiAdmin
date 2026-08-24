@@ -25,12 +25,13 @@ import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import { fetchGetWalletList, type DynamicFilter, type WalletInfo } from '@/api/system-manage'
 import WalletSearch from './modules/wallet-search.vue'
+import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'MyWallet' })
 const { t, locale } = useI18n()
 const searchForm = ref<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
 const money = (value: number) => value.toLocaleString(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const time = (value: string | null) => (value ? new Date(value).toLocaleString(locale.value) : '-')
+const time = (value: string | null) => (value ? formatDateTime(value, locale.value) : '-')
 const {
     columns,
     columnChecks,

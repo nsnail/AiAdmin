@@ -19,6 +19,11 @@ public sealed class ListFilterAttribute(string label, string control = "input") 
     public string Label { get; } = label;
 
     /// <summary>
+    ///     是否在列表顶部启用分组计数筛选
+    /// </summary>
+    public bool GroupCount { get; init; }
+
+    /// <summary>
     ///     下拉或单选选项，格式为值:客户端多语言键
     /// </summary>
     public string[] Options { get; init; } = [];

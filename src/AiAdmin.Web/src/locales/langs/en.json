@@ -485,7 +485,15 @@
         "messages": { "profileUpdated": "Profile updated", "passwordChanged": "Password changed" }
     },
     "userManagement": {
-        "actions": { "add": "Add user", "save": "Save", "edit": "Edit", "delete": "Delete" },
+        "actions": {
+            "add": "Add user",
+            "save": "Save",
+            "edit": "Edit",
+            "delete": "Delete",
+            "exportData": "Export data",
+            "exportExcel": "Excel",
+            "exportJson": "JSON"
+        },
         "fields": {
             "userName": "Username",
             "password": "Password",
@@ -496,16 +504,19 @@
             "departments": "Departments",
             "status": "Enabled",
             "createdAt": "Created at",
+            "updatedAt": "Updated at",
             "operation": "Actions"
         },
         "status": { "enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown" },
         "gender": { "male": "Male", "female": "Female" },
         "dialog": {
             "addTitle": "Add user",
+            "basicInfo": "Basic information",
             "editTitle": "Edit user",
             "passwordKeep": "Leave blank to keep unchanged; new passwords need 8+ characters with letters and numbers",
             "passwordNew": "8+ characters with letters and numbers"
         },
+        "export": { "sheetName": "Users" },
         "placeholder": {
             "userName": "Enter username",
             "email": "Enter email",
@@ -521,7 +532,14 @@
             "rolesRequired": "Select at least one role"
         },
         "confirm": { "deleteTitle": "Delete user", "deleteMessage": "Delete user “{name}”?" },
-        "message": { "created": "User created", "updated": "User updated" },
+        "message": {
+            "created": "User created",
+            "updated": "User updated",
+            "exported": "Exported {count} records",
+            "exportEmpty": "There is no data to export",
+            "exportFailed": "Export failed",
+            "exportTruncated": "{total} records matched; this export is limited to {limit} by system settings"
+        },
         "defaultDepartment": "Default Department"
     },
     "referralManagement": {
@@ -542,7 +560,8 @@
         "loadFailed": "System settings category was not found",
         "sections": {
             "registration": "Registration and Verification",
-            "smtp": "Email Service"
+            "smtp": "Email Service",
+            "export": "Data Export"
         },
         "fields": {
             "enableLoginSliderVerification": "Enable login slider verification",
@@ -553,7 +572,8 @@
             "smtpSsl": "Enable SMTP SSL",
             "smtpUser": "SMTP username",
             "smtpPassword": "SMTP password",
-            "smtpFrom": "Sender address"
+            "smtpFrom": "Sender address",
+            "maximumExportRows": "Maximum export rows"
         }
     },
     "rawData": "Raw Data",
@@ -814,6 +834,7 @@
         }
     },
     "listFilter": {
+        "group": { "all": "All" },
         "common": { "status": "Enabled" },
         "user": { "userName": "Username", "email": "Email", "phone": "Phone", "gender": "Gender" },
         "role": {
@@ -876,6 +897,21 @@
             "delete": "DELETE"
         }
     },
+    "roleManagement": {
+        "actions": {
+            "add": "Add role",
+            "menuPermission": "Menu permissions",
+            "apiPermission": "API permissions",
+            "edit": "Edit role",
+            "delete": "Delete role"
+        },
+        "fields": { "operation": "Actions" },
+        "confirm": {
+            "deleteTitle": "Delete role",
+            "deleteMessage": "Delete role \"{name}\"? This action cannot be undone."
+        },
+        "message": { "deleteCancelled": "Deletion cancelled" }
+    },
     "wallet": {
         "title": "My Wallet",
         "refresh": "Refresh",
@@ -893,6 +929,7 @@
         "loadFailed": "Failed to load wallet"
     },
     "table": {
+        "contextMenu": { "copyHint": "Copy (C)" },
         "form": {
             "reset": "Reset",
             "submit": "Submit"
@@ -939,7 +976,8 @@
         "column": {
             "selection": "Select",
             "expand": "Expand",
-            "index": "Index"
+            "index": "Index",
+            "reset": "Reset columns"
         },
         "zebra": "Zebra",
         "border": "Border",

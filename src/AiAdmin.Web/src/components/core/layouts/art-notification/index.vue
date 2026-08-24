@@ -67,10 +67,11 @@ import {
 import { useI18n } from 'vue-i18n'
 import mittBus from '@/utils/sys/mittBus'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
+import { formatDateTime } from '@/utils/date'
 defineOptions({ name: 'ArtNotification' })
 const props = defineProps<{ value: boolean }>()
 const emit = defineEmits<{ 'update:value': [value: boolean]; 'unread-change': [value: number] }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const visible = ref(false)
 const items = ref<Api.SystemManage.UserMessageListItem[]>([])
 const page = ref(1)
@@ -141,7 +142,7 @@ const onScroll = () => {
     const el = listElement.value
     if (el && el.scrollTop + el.clientHeight >= el.scrollHeight - 40) load()
 }
-const formatDate = (value: string) => new Date(value).toLocaleString()
+const formatDate = (value: string) => formatDateTime(value, locale.value)
 watch(
     () => props.value,
     (value) => {

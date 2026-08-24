@@ -135,6 +135,8 @@ public static class DatabaseInitializer
             , (Label: "SMTP Password", Value: configuration["SystemSettings:Smtp:Password"] ?? string.Empty, Sort: 7
                 , Remark: "SMTP login password")
             , (Label: "SMTP From", Value: configuration["SystemSettings:Smtp:From"] ?? string.Empty, Sort: 8, Remark: "SMTP sender address")
+            , (Label: "Maximum export rows", Value: configuration["SystemSettings:MaximumExportRows"] ?? "10000", Sort: 9
+                , Remark: "Maximum number of rows allowed per export")
         };
         var existingSystemSettingLabels = await db
             .DictionaryItems.Where(x => x.CategoryId == systemSettings.Id)

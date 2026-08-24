@@ -76,6 +76,7 @@ import { fetchLogin, fetchLoginChallenge, fetchLoginConfig } from '@/api/auth'
 import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
 import { useSettingStore } from '@/store/modules/setting'
 import { h } from 'vue'
+import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'Login' })
 
@@ -289,7 +290,7 @@ const showLoginSuccessNotice = (username: string, previousLogin?: Api.Auth.Login
             ? [
                   t('login.success.previousLoginIp', { ip: previousLogin.clientIp }),
                   t('login.success.previousLoginRegion', { region: previousLogin.region || t('login.success.unknownRegion') }),
-                  t('login.success.previousLoginTime', { time: new Date(previousLogin.loginAt).toLocaleString() }),
+                  t('login.success.previousLoginTime', { time: formatDateTime(previousLogin.loginAt, locale.value) }),
               ]
             : [t('login.success.firstLogin')]
         ElNotification({

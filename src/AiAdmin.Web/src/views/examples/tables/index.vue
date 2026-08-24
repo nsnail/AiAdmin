@@ -566,6 +566,24 @@ const buildSearchParams = (params: typeof searchFormState.value) => {
     }
 }
 
+const buildUserDynamicFilter = (params: typeof searchFormState.value) => {
+    const filters = [
+        params.name.trim() ? { field: 'UserName', operator: 'Contains', value: params.name.trim() } : undefined,
+        params.phone.trim() ? { field: 'Phone', operator: 'Contains', value: params.phone.trim() } : undefined,
+        params.status === '1'
+            ? { field: 'IsEnabled', operator: 'Equal', value: true }
+            : params.status === '2'
+              ? { field: 'IsEnabled', operator: 'Equal', value: false }
+              : undefined,
+        Array.isArray(params.daterange) && params.daterange.length === 2
+            ? { field: 'CreatedAt', operator: 'DateRange', value: params.daterange }
+            : undefined,
+    ].filter((filter): filter is NonNullable<typeof filter> => Boolean(filter))
+
+    if (filters.length === 0) return undefined
+    return filters.length === 1 ? filters[0] : { logic: 'And' as const, filters }
+}
+
 // 模拟网络请求
 // const simulateNetworkRequest = (): Promise<void> => {
 //   return new Promise((resolve) => {
@@ -655,7 +673,13 @@ const {
             // 记录缓存键（这里假设会被缓存）
             updateCacheKeys(requestKey)
 
-            return fetchGetUserList(params)
+            return fetchGetUserList({
+                current: params.current,
+                size: params.size,
+                dynamicFilter: buildUserDynamicFilter(params),
+                sortField: params.sortField,
+                sortOrder: params.sortOrder,
+            })
         },
         apiParams: {
             current: 1,

@@ -1,29 +1,24 @@
 <!-- 角色管理页面 -->
 <template>
-    <div class="art-full-height">
-        <RoleSearch v-model="searchForm" v-show="showSearchBar" @reset="resetSearchParams" @search="handleSearch"></RoleSearch>
-
-        <ElCard :style="{ 'margin-top': showSearchBar ? '12px' : '0' }" class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
-                <template #left>
-                    <ElSpace wrap>
-                        <ElButton v-ripple @click="showDialog('add')">新增角色</ElButton>
-                    </ElSpace>
-                </template>
-            </ArtTableHeader>
-
-            <!-- 表格 -->
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                @cell-query="applyCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @sort-change="handleSortChange">
-            </ArtTable>
-        </ElCard>
+    <ArtTablePage
+        v-model:column-checks="columnChecks"
+        :columns="columns"
+        :data="data"
+        :default-filter="defaultFilter"
+        :loading="loading"
+        :pagination="pagination"
+        @filter-change="handleFilterChange"
+        @page-change="handleCurrentChange"
+        @refresh="refreshData"
+        @reset="resetSearchParams"
+        @size-change="handleSizeChange"
+        @sort-change="handleSortChange"
+        resource="role">
+        <template #header-left>
+            <ElSpace wrap>
+                <ElButton v-ripple @click="showDialog('add')">{{ t('roleManagement.actions.add') }}</ElButton>
+            </ElSpace>
+        </template>
 
         <!-- 角色编辑弹窗 -->
         <RoleEditDialog v-model="dialogVisible" :dialog-type="dialogType" :role-data="currentRoleData" @success="refreshData" />
@@ -32,7 +27,7 @@
         <RolePermissionDialog v-model="permissionDialog" :role-data="currentRoleData" @success="refreshData" />
 
         <RoleApiDialog v-model="apiPermissionDialog" :role-data="currentRoleData" />
-    </div>
+    </ArtTablePage>
 </template>
 
 <script lang="ts" setup>
@@ -41,29 +36,18 @@ import { useTable } from '@/hooks/core/useTable'
 import { fetchDeleteRole, fetchGetRoleList } from '@/api/system-manage'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtButtonMore from '@/components/core/forms/art-button-more/index.vue'
-import RoleSearch from './modules/role-search.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import RoleEditDialog from './modules/role-edit-dialog.vue'
 import RolePermissionDialog from './modules/role-permission-dialog.vue'
 import RoleApiDialog from './modules/role-api-dialog.vue'
 import { ElMessageBox } from 'element-plus'
+import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'Role' })
 type RoleListItem = Api.SystemManage.RoleListItem
-type RoleSearchFormParams = Api.SystemManage.RoleSearchParams & {
-    daterange?: string[]
-}
-
-// 搜索表单
-const searchForm = ref<RoleSearchFormParams>({
-    roleName: undefined,
-    roleCode: undefined,
-    description: undefined,
-    enabled: undefined,
-    daterange: undefined,
-    IsEnabled: true,
-} as RoleSearchFormParams)
-
-const showSearchBar = ref(true)
+const { t, locale } = useI18n()
+const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
 
 const dialogVisible = ref(false)
 const permissionDialog = ref(false)
@@ -83,6 +67,7 @@ const {
     handleCurrentChange,
     handleSortChange,
     refreshData,
+    resetColumns,
 } = useTable({
     // 核心配置
     core: {
@@ -90,47 +75,47 @@ const {
         apiParams: {
             current: 1,
             size: 20,
-            IsEnabled: true,
+            dynamicFilter: defaultFilter,
         },
         // 排除 apiParams 中的属性
         columnsFactory: () => [
             {
                 prop: 'roleName',
                 queryField: 'Name',
-                label: '角色名称',
+                label: t('listFilter.role.name'),
                 minWidth: 120,
             },
             {
                 prop: 'roleCode',
                 queryField: 'Code',
-                label: '角色编码',
+                label: t('listFilter.role.code'),
                 minWidth: 120,
             },
             {
                 prop: 'description',
                 queryField: 'Description',
-                label: '角色描述',
+                label: t('listFilter.role.description'),
                 minWidth: 150,
                 showOverflowTooltip: true,
             },
             {
                 prop: 'dataScope',
                 queryField: 'DataScope',
-                label: '数据权限',
+                label: t('listFilter.role.dataScope'),
                 minWidth: 150,
                 formatter: (row) =>
                     ({
-                        all: '全部数据',
-                        department: '本部门数据',
-                        department_and_children: '本部门和子部门数据',
-                        self: '本人数据',
+                        all: t('listFilter.option.allData'),
+                        department: t('listFilter.option.departmentData'),
+                        department_and_children: t('listFilter.option.departmentAndChildren'),
+                        self: t('listFilter.option.ownData'),
                     })[row.dataScope] || row.dataScope,
             },
             {
                 prop: 'enabled',
                 queryField: 'IsEnabled',
                 queryValueType: 'boolean',
-                label: '是否启用',
+                label: t('listFilter.common.status'),
                 width: 120,
                 formatter: (row) =>
                     h(ArtEnabledSwitch, {
@@ -144,7 +129,7 @@ const {
             },
             {
                 prop: 'operation',
-                label: '操作',
+                label: t('roleManagement.fields.operation'),
                 width: 100,
                 fixed: 'right',
                 formatter: (row) =>
@@ -153,22 +138,22 @@ const {
                             list: [
                                 {
                                     key: 'permission',
-                                    label: '菜单权限',
+                                    label: t('roleManagement.actions.menuPermission'),
                                     icon: 'ri:user-3-line',
                                 },
                                 {
                                     key: 'apiPermission',
-                                    label: '接口权限',
+                                    label: t('roleManagement.actions.apiPermission'),
                                     icon: 'ri:route-line',
                                 },
                                 {
                                     key: 'edit',
-                                    label: '编辑角色',
+                                    label: t('roleManagement.actions.edit'),
                                     icon: 'ri:edit-2-line',
                                 },
                                 {
                                     key: 'delete',
-                                    label: '删除角色',
+                                    label: t('roleManagement.actions.delete'),
                                     icon: 'ri:delete-bin-4-line',
                                     color: '#f56c6c',
                                 },
@@ -180,6 +165,8 @@ const {
         ],
     },
 })
+
+watch(locale, () => resetColumns?.())
 
 const dialogType = ref<'add' | 'edit'>('add')
 
@@ -193,24 +180,8 @@ const showDialog = (type: 'add' | 'edit', row?: RoleListItem) => {
  * 搜索处理
  * @param params 搜索参数
  */
-const handleSearch = (params: RoleSearchFormParams) => {
-    // 处理日期区间参数，把 daterange 转换为 startTime 和 endTime
-    const { daterange, ...filtersParams } = params
-    const [startDate, endDate] = Array.isArray(daterange) ? daterange : [null, null]
-    const startTime = startDate ? new Date(`${startDate}T00:00:00`).toISOString() : null
-    const endTime = endDate ? new Date(new Date(`${endDate}T00:00:00`).getTime() + 24 * 60 * 60 * 1000).toISOString() : null
-
-    replaceSearchParams({ ...filtersParams, startTime, endTime })
-    getData()
-}
-
-const applyCellQuery = async (condition: { field: string; operator: string; value: unknown }): Promise<void> => {
-    const currentFilter = searchForm.value.dynamicFilter
-    searchForm.value = {
-        ...searchForm.value,
-        dynamicFilter: currentFilter ? { logic: 'And', filters: [currentFilter, condition] } : condition,
-    }
-    replaceSearchParams(searchForm.value)
+const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    replaceSearchParams({ dynamicFilter })
     await getData()
 }
 
@@ -238,9 +209,9 @@ const showPermissionDialog = (row?: RoleListItem) => {
 }
 
 const deleteRole = (row: RoleListItem) => {
-    ElMessageBox.confirm(`确定删除角色"${row.roleName}"吗？此操作不可恢复！`, '删除确认', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+    ElMessageBox.confirm(t('roleManagement.confirm.deleteMessage', { name: row.roleName }), t('roleManagement.confirm.deleteTitle'), {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning',
     })
         .then(async () => {
@@ -248,7 +219,7 @@ const deleteRole = (row: RoleListItem) => {
             refreshData()
         })
         .catch(() => {
-            ElMessage.info('已取消删除')
+            ElMessage.info(t('roleManagement.message.deleteCancelled'))
         })
 }
 </script>

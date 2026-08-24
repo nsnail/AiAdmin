@@ -114,6 +114,7 @@ import 'ace-builds/src-noconflict/theme-tomorrow'
 import { useI18n } from 'vue-i18n'
 import type { ScheduledJobExecution } from '@/api/system-manage'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import { formatDateTime } from '@/utils/date'
 
 const props = defineProps<{
     visible: boolean
@@ -157,12 +158,7 @@ const duration = computed(() => {
     const milliseconds = Math.max(0, new Date(props.execution.finishedAt).getTime() - new Date(props.execution.startedAt).getTime())
     return t('scheduledJob.executionDetail.durationValue', { value: milliseconds })
 })
-const formatTime = (value: string | null): string =>
-    value
-        ? new Date(value).toLocaleString(locale.value.startsWith('zh') ? 'zh-CN' : 'en-US', {
-              hour12: false,
-          })
-        : '-'
+const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')
 const tryFormatJson = (value: string, fallback: string): string => {
     if (!value?.trim()) return fallback
     try {

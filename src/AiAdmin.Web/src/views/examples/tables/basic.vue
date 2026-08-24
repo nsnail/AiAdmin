@@ -29,9 +29,6 @@ const { data, columns, loading, pagination, handleSizeChange, handleCurrentChang
         apiParams: {
             current: 1,
             size: 20,
-            userName: '',
-            userPhone: '',
-            userEmail: '',
         },
         columnsFactory: () => [
             {
