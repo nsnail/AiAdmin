@@ -951,6 +951,22 @@
         "confirm": { "deleteTitle": "删除部门", "deleteMessage": "确定删除部门“{name}”吗？" },
         "message": { "created": "部门创建成功", "updated": "部门更新成功" }
     },
+    "menuManagement": {
+        "actions": { "add": "添加菜单", "expand": "展开", "collapse": "收起" },
+        "fields": {
+            "name": "菜单名称",
+            "parent": "父级菜单",
+            "type": "菜单类型",
+            "path": "路由地址",
+            "component": "组件路径",
+            "permissions": "权限标识",
+            "permissionCount": "个权限标识",
+            "sort": "排序",
+            "status": "是否启用",
+            "updatedAt": "更新时间"
+        },
+        "placeholder": { "parent": "不选择则为根菜单" }
+    },
     "wallet": {
         "title": "我的钱包",
         "refresh": "刷新",

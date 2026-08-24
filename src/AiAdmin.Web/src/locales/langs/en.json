@@ -960,6 +960,22 @@
         "confirm": { "deleteTitle": "Delete department", "deleteMessage": "Delete department \"{name}\"?" },
         "message": { "created": "Department created", "updated": "Department updated" }
     },
+    "menuManagement": {
+        "actions": { "add": "Add menu", "expand": "Expand", "collapse": "Collapse" },
+        "fields": {
+            "name": "Menu name",
+            "parent": "Parent menu",
+            "type": "Menu type",
+            "path": "Route path",
+            "component": "Component path",
+            "permissions": "Permissions",
+            "permissionCount": "permissions",
+            "sort": "Sort",
+            "status": "Enabled",
+            "updatedAt": "Updated at"
+        },
+        "placeholder": { "parent": "Leave empty for a root menu" }
+    },
     "wallet": {
         "title": "My Wallet",
         "refresh": "Refresh",

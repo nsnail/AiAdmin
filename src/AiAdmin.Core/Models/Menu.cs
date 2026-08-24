@@ -11,6 +11,7 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     前端组件路径
     /// </summary>
+    [ListFilter("menuManagement.fields.component", Placeholder = "listFilter.placeholder.path", Span = 3)]
     public string Component { get; set; } = string.Empty;
 
     /// <summary>
@@ -55,5 +56,6 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     菜单排序值
     /// </summary>
+    [ListFilter("menuManagement.fields.sort", "number", Span = 2)]
     public int Sort { get; set; }
 }

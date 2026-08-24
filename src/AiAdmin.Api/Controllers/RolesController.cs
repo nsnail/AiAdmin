@@ -331,18 +331,27 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         var nodes = rows.ToDictionary(
             x => x.Name
             , x => new MenuItemResult(
-                x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.Path, x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
+                x.Id, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null, x.Name, x.Path
+                , x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
             ), StringComparer.Ordinal
         );
-        return BuildChildren(string.Empty);
+        return BuildChildren(string.Empty, new HashSet<string>(StringComparer.Ordinal));
 
-        IReadOnlyList<MenuItemResult> BuildChildren(string parentName) {
+        IReadOnlyList<MenuItemResult> BuildChildren(
+            string parentName
+            , HashSet<string> ancestors
+        ) {
             return
             [
                 .. nodes
-                    .Values.Where(x => x.ParentName == parentName)
+                    .Values.Where(x => x.ParentName == parentName && !ancestors.Contains(x.Name))
                     .OrderBy(x => x.Sort)
-                    .Select(x => x with { Children = BuildChildren(x.Name) })
+                    .Select(x =>
+                        {
+                            var nextAncestors = new HashSet<string>(ancestors, StringComparer.Ordinal) { x.Name };
+                            return x with { Children = BuildChildren(x.Name, nextAncestors) };
+                        }
+                    )
             ];
         }
     }

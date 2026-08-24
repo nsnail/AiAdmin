@@ -8,6 +8,7 @@ namespace AiAdmin.Api.Contracts;
 public sealed record MenuItemResult(
     long Id
     , DateTimeOffset CreatedAt
+    , DateTimeOffset? UpdatedAt
     , string Name
     , string Path
     , string Component

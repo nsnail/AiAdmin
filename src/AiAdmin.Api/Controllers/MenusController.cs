@@ -63,7 +63,8 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         var nodes = unique.ToDictionary(
             x => x.Name
             , x => new MenuItemResult(
-                x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.Path, x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
+                x.Id, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null, x.Name, x.Path
+                , x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
             ), StringComparer.Ordinal
         );
 
@@ -123,11 +124,14 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["meta.title"] = nameof(Menu.Name)
+            , ["component"] = nameof(Menu.Component)
+            , ["sort"] = nameof(Menu.Sort)
             , ["type"] = nameof(Menu.Name)
             , ["meta.authList"] = nameof(Menu.Name)
             , ["status"] = nameof(Menu.IsEnabled)
             , ["date"] = nameof(Menu.UpdatedAt)
             , ["createdAt"] = nameof(Menu.CreatedAt)
+            , ["updatedAt"] = nameof(Menu.UpdatedAt)
         };
         var menus = await db
             .Menus.AsNoTracking()
@@ -169,10 +173,23 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     private static IReadOnlyList<MenuItemResult> BuildTree(IReadOnlyList<Menu> rows) {
         var nodes = rows.ToDictionary(x => x.Name, ToResult, StringComparer.Ordinal);
 
-        return BuildChildren(string.Empty);
+        return BuildChildren(string.Empty, new HashSet<string>(StringComparer.Ordinal));
 
-        IReadOnlyList<MenuItemResult> BuildChildren(string parentName) {
-            return [.. nodes.Values.Where(x => x.ParentName == parentName).Select(x => x with { Children = BuildChildren(x.Name) })];
+        IReadOnlyList<MenuItemResult> BuildChildren(
+            string parentName
+            , HashSet<string> ancestors
+        ) {
+            return
+            [
+                .. nodes
+                    .Values.Where(x => x.ParentName == parentName && !ancestors.Contains(x.Name))
+                    .Select(x =>
+                        {
+                            var nextAncestors = new HashSet<string>(ancestors, StringComparer.Ordinal) { x.Name };
+                            return x with { Children = BuildChildren(x.Name, nextAncestors) };
+                        }
+                    )
+            ];
         }
     }
 
@@ -196,8 +213,8 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
 
     private static MenuItemResult ToResult(Menu menu) {
         return new MenuItemResult(
-            menu.Id, ServerTime.ToOffset(menu.CreatedAt), menu.Name, menu.Path, menu.Component, menu.ParentName, menu.Sort, menu.IsEnabled
-            , ParseMeta(menu.MetaJson), []
+            menu.Id, ServerTime.ToOffset(menu.CreatedAt), menu.UpdatedAt.HasValue ? ServerTime.ToOffset(menu.UpdatedAt.Value) : null, menu.Name
+            , menu.Path, menu.Component, menu.ParentName, menu.Sort, menu.IsEnabled, ParseMeta(menu.MetaJson), []
         );
     }
 }

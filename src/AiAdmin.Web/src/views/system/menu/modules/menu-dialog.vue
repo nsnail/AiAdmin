@@ -19,12 +19,6 @@
                     :span="width > 640 ? 12 : 24"
                     label-width="100px"
                     ref="formRef">
-                    <template #menuType>
-                        <ElRadioGroup v-model="form.menuType" :disabled="disableMenuType">
-                            <ElRadioButton label="menu" value="menu">菜单</ElRadioButton>
-                            <ElRadioButton label="button" value="button">按钮</ElRadioButton>
-                        </ElRadioGroup>
-                    </template>
                 </ArtForm>
             </ElTabPane>
             <ElTabPane v-if="props.editData?.id" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
@@ -49,8 +43,10 @@ import type { FormItem } from '@/components/core/forms/art-form/index.vue'
 import ArtForm from '@/components/core/forms/art-form/index.vue'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import { useWindowSize } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 
 const { width } = useWindowSize()
+const { t } = useI18n()
 
 /**
  * 创建带 tooltip 的表单标签
@@ -78,6 +74,7 @@ interface MenuFormData {
     name: string
     path: string
     label: string
+    parentName: string
     component: string
     icon: string
     isEnable: boolean
@@ -92,20 +89,18 @@ interface MenuFormData {
     showTextBadge: string
     fixedTab: boolean
     activePath: string
-    roles: string[]
     isFullPage: boolean
     authName: string
     authLabel: string
     authIcon: string
-    authSort: number
 }
 
 interface Props {
     visible: boolean
     editData?: AppRouteRecord | any
     type?: 'menu' | 'button'
-    lockType?: boolean
     saving?: boolean
+    menus?: AppRouteRecord[]
 }
 
 interface Emits {
@@ -116,7 +111,6 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
     visible: false,
     type: 'menu',
-    lockType: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -131,6 +125,7 @@ const form = reactive<MenuFormData & { menuType: 'menu' | 'button' }>({
     name: '',
     path: '',
     label: '',
+    parentName: '',
     component: '',
     icon: '',
     isEnable: true,
@@ -145,12 +140,10 @@ const form = reactive<MenuFormData & { menuType: 'menu' | 'button' }>({
     showTextBadge: '',
     fixedTab: false,
     activePath: '',
-    roles: [],
     isFullPage: false,
     authName: '',
     authLabel: '',
     authIcon: '',
-    authSort: 1,
 })
 const rawData = computed(() => props.editData ?? form)
 
@@ -165,19 +158,73 @@ const rules = reactive<FormRules>({
     authLabel: [{ required: true, message: '请输入权限标识', trigger: 'blur' }],
 })
 
+interface ParentMenuOption {
+    label: string
+    value: string
+    children: ParentMenuOption[]
+}
+
+const buildParentMenuOptions = (): ParentMenuOption[] => {
+    const excludedNames = new Set<string>()
+    const collectExcluded = (item?: AppRouteRecord): void => {
+        if (!item) return
+        if (item.name) excludedNames.add(String(item.name))
+        item.children?.forEach(collectExcluded)
+    }
+    collectExcluded(props.editData)
+
+    const convert = (items: AppRouteRecord[], ancestors = new Set<string>()): ParentMenuOption[] =>
+        items
+            .filter((item) => !item.meta?.isAuthButton && !excludedNames.has(String(item.name)))
+            .flatMap((item) => {
+                const value = String(item.name || '')
+                if (!value || ancestors.has(value)) return []
+                const nextAncestors = new Set(ancestors)
+                nextAncestors.add(value)
+                return [
+                    {
+                        label: formatMenuTitle(item.meta?.title || value),
+                        value,
+                        children: convert(item.children || [], nextAncestors),
+                    },
+                ]
+            })
+
+    return convert(props.menus || [])
+}
+const parentMenuOptions = shallowRef<ParentMenuOption[]>([])
+watch(
+    [() => props.menus, () => props.editData],
+    () => {
+        parentMenuOptions.value = buildParentMenuOptions()
+    },
+    { immediate: true },
+)
+
 /**
  * 表单项配置
  */
 const formItems = computed<FormItem[]>(() => {
-    const baseItems: FormItem[] = [{ label: '菜单类型', key: 'menuType', span: 24 }]
-
     // Switch 组件的 span：小屏幕 12，大屏幕 6
     const switchSpan = width.value < 640 ? 12 : 6
 
     if (form.menuType === 'menu') {
         return [
-            ...baseItems,
             { label: '菜单名称', key: 'name', type: 'input', props: { placeholder: '菜单名称' } },
+            {
+                label: t('menuManagement.fields.parent'),
+                key: 'parentName',
+                type: 'treeselect',
+                props: {
+                    data: parentMenuOptions.value,
+                    props: { label: 'label', value: 'value', children: 'children' },
+                    checkStrictly: true,
+                    clearable: true,
+                    filterable: true,
+                    placeholder: t('menuManagement.placeholder.parent'),
+                    style: { width: '100%' },
+                },
+            },
             {
                 label: createLabelTooltip('路由地址', '一级菜单：以 / 开头的绝对路径（如 /dashboard）\n二级及以下：相对路径（如 console、user）'),
                 key: 'path',
@@ -192,12 +239,6 @@ const formItems = computed<FormItem[]>(() => {
                 props: { placeholder: '如：/system/user 或留空' },
             },
             { label: '图标', key: 'icon', type: 'input', props: { placeholder: '如：ri:user-line' } },
-            {
-                label: createLabelTooltip('角色权限', '仅用于前端权限模式：配置角色标识（如 R_SUPER、R_ADMIN）\n后端权限模式：无需配置'),
-                key: 'roles',
-                type: 'inputtag',
-                props: { placeholder: '输入角色标识后按回车，如：R_SUPER' },
-            },
             {
                 label: '菜单排序',
                 key: 'sort',
@@ -233,7 +274,6 @@ const formItems = computed<FormItem[]>(() => {
         ]
     } else {
         return [
-            ...baseItems,
             {
                 label: '权限名称',
                 key: 'authName',
@@ -246,12 +286,6 @@ const formItems = computed<FormItem[]>(() => {
                 type: 'input',
                 props: { placeholder: '如：add、edit、delete' },
             },
-            {
-                label: '权限排序',
-                key: 'authSort',
-                type: 'number',
-                props: { min: 1, controlsPosition: 'right', style: { width: '100%' } },
-            },
         ]
     }
 })
@@ -259,15 +293,6 @@ const formItems = computed<FormItem[]>(() => {
 const dialogTitle = computed(() => {
     const type = form.menuType === 'menu' ? '菜单' : '按钮'
     return isEdit.value ? `编辑${type}` : `新建${type}`
-})
-
-/**
- * 是否禁用菜单类型切换
- */
-const disableMenuType = computed(() => {
-    if (isEdit.value) return true
-    if (!isEdit.value && form.menuType === 'menu' && props.lockType) return true
-    return false
 })
 
 /**
@@ -287,7 +312,7 @@ const loadFormData = (): void => {
     isEdit.value = true
 
     if (form.menuType === 'menu') {
-        const row = props.editData
+        const row = props.editData as AppRouteRecord & { parentName?: string; sort?: number }
         form.id = row.id || 0
         form.name = formatMenuTitle(row.meta?.title || '')
         form.path = row.path || ''
@@ -306,14 +331,13 @@ const loadFormData = (): void => {
         form.showTextBadge = row.meta?.showTextBadge || ''
         form.fixedTab = row.meta?.fixedTab ?? false
         form.activePath = row.meta?.activePath || ''
-        form.roles = row.meta?.roles || []
+        form.parentName = row.parentName || ''
         form.isFullPage = row.meta?.isFullPage ?? false
     } else {
         const row = props.editData
         form.authName = row.title || ''
         form.authLabel = row.authMark || ''
         form.authIcon = row.icon || ''
-        form.authSort = row.sort || 1
     }
 }
 
