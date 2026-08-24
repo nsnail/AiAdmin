@@ -288,6 +288,7 @@ declare namespace Api {
             dataScope: 'all' | 'department' | 'department_and_children' | 'self'
             enabled: boolean
             createTime: string
+            updateTime: string | null
         }
 
         type SaveRoleParams = Pick<RoleListItem, 'roleName' | 'roleCode' | 'description' | 'dataScope' | 'enabled'>
@@ -432,14 +433,5 @@ declare namespace Api {
             deleted: number
             total: number
         }
-
-        /** 角色搜索参数 */
-        type RoleSearchParams = Partial<
-            Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &
-                Api.Common.CommonSearchParams & {
-                    startTime: string | null
-                    endTime: string | null
-                }
-        > & { dynamicFilter?: import('@/api/system-manage').DynamicFilter }
     }
 }

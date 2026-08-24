@@ -23,13 +23,14 @@ public sealed class Role : EntityBase
         [
             "all:listFilter.option.allData", "department:listFilter.option.departmentData"
             , "department_and_children:listFilter.option.departmentAndChildren", "self:listFilter.option.ownData"
-        ], Span = 4
+        ], Span = 4, GroupCount = true
     )]
     public string DataScope { get; set; } = RoleDataScope.SELF;
 
     /// <summary>
     ///     角色描述
     /// </summary>
+    [ListFilter("listFilter.role.description", Placeholder = "listFilter.placeholder.description", Span = 3)]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
@@ -40,7 +41,10 @@ public sealed class Role : EntityBase
     /// <summary>
     ///     是否启用角色
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], Span = 2)]
+    [ListFilter(
+        "listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], Span = 2
+        , GroupCount = true
+    )]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>

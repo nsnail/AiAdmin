@@ -405,6 +405,16 @@ export function fetchGetRoleList(params: DynamicTableQuery) {
     })
 }
 
+export interface RoleExportResult {
+    records: Api.SystemManage.RoleListItem[]
+    limit: number
+    total: number
+}
+
+export function fetchExportRoles(data: Omit<DynamicTableQuery, 'current' | 'size'>) {
+    return request.post<RoleExportResult>({ url: '/api/role/export', data })
+}
+
 export function fetchCreateRole(data: Api.SystemManage.SaveRoleParams) {
     return request.post<Api.SystemManage.RoleListItem>({ url: '/api/role', data })
 }
@@ -415,6 +425,10 @@ export function fetchUpdateRole(id: string, data: Api.SystemManage.SaveRoleParam
 
 export function fetchDeleteRole(id: string) {
     return request.post<void>({ url: `/api/role/${id}/delete`, showSuccessMessage: true })
+}
+
+export function fetchCopyRole(id: string) {
+    return request.post<Api.SystemManage.RoleListItem>({ url: `/api/role/${id}/copy` })
 }
 
 export function fetchGetRoleMenus(id: string) {

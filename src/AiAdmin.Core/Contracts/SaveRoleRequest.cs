@@ -30,6 +30,7 @@ public sealed class SaveRoleRequest
     /// </summary>
     [Required]
     [StringLength(50, MinimumLength = 2)]
+    [RegularExpression("^[A-Z][A-Z0-9_]*$", ErrorMessage = "Role code must use uppercase English letters, digits, or underscores")]
     public string RoleCode { get; init; } = string.Empty;
 
     /// <summary>

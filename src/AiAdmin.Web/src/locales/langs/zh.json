@@ -826,7 +826,7 @@
     },
     "listFilter": {
         "group": { "all": "全部" },
-        "common": { "status": "是否启用" },
+        "common": { "createdAt": "创建时间", "status": "是否启用" },
         "user": { "userName": "用户名", "email": "邮箱", "phone": "手机号", "gender": "性别" },
         "role": {
             "name": "角色名称",
@@ -891,17 +891,50 @@
     "roleManagement": {
         "actions": {
             "add": "新增角色",
+            "exportData": "导出数据",
+            "exportExcel": "Excel",
+            "exportJson": "JSON",
+            "expandAll": "全部展开",
+            "collapseAll": "全部收起",
+            "selectAll": "全部选择",
+            "deselectAll": "取消全选",
             "menuPermission": "菜单权限",
             "apiPermission": "接口权限",
             "edit": "编辑角色",
+            "copy": "复制角色",
             "delete": "删除角色"
         },
-        "fields": { "operation": "操作" },
+        "fields": { "operation": "操作", "createdAt": "创建时间", "updatedAt": "更新时间" },
+        "dialog": {
+            "addTitle": "新增角色",
+            "editTitle": "编辑角色",
+            "basicInfo": "基本信息",
+            "rawData": "原始数据"
+        },
+        "validation": {
+            "nameRequired": "请输入角色名称",
+            "nameLength": "角色名称长度为 2 到 50 个字符",
+            "codeRequired": "请输入角色编码",
+            "codeLength": "角色编码长度为 2 到 50 个字符",
+            "codeFormat": "角色编码必须使用大写英文字母、数字或下划线，且以大写英文字母开头",
+            "descriptionRequired": "请输入角色描述",
+            "dataScopeRequired": "请选择数据权限"
+        },
+        "export": { "sheetName": "角色数据" },
         "confirm": {
             "deleteTitle": "删除确认",
             "deleteMessage": "确定删除角色“{name}”吗？此操作不可恢复！"
         },
-        "message": { "deleteCancelled": "已取消删除" }
+        "message": {
+            "created": "角色新增成功",
+            "updated": "角色修改成功",
+            "copied": "角色复制成功",
+            "deleteCancelled": "已取消删除",
+            "exported": "已导出 {count} 条数据",
+            "exportEmpty": "没有可导出的数据",
+            "exportFailed": "导出失败",
+            "exportTruncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
+        }
     },
     "wallet": {
         "title": "我的钱包",

@@ -166,13 +166,17 @@ const flattenAndFilterMenuItems = (items: AppRouteRecord[], val: string): AppRou
         if (item.meta?.isHide) return
 
         const lowerItemTitle = formatMenuTitle(item.meta.title).toLowerCase()
+        const lowerItemPath = (item.path || String(item.meta.link || '')).toLowerCase()
 
         if (item.children && item.children.length > 0) {
             item.children.forEach(flattenAndMatch)
             return
         }
 
-        if (lowerItemTitle.includes(lowerVal) && ((item.path && item.path.trim()) || item.meta.link || item.meta.isIframe)) {
+        if (
+            (lowerItemTitle.includes(lowerVal) || lowerItemPath.includes(lowerVal)) &&
+            ((item.path && item.path.trim()) || item.meta.link || item.meta.isIframe)
+        ) {
             result.push({ ...item, children: undefined })
         }
     }

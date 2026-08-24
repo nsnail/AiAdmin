@@ -71,6 +71,7 @@ builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<ApiDocumentationService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DictionarySnapshotService>();
+builder.Services.AddScoped<ExportLimitService>();
 builder.Services.AddSingleton<MinioStorageService>();
 builder.Services.AddHttpClient();
 builder.Services.AddTransient<ExternalHttpRequestService>();

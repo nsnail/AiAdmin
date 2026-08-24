@@ -21,19 +21,13 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">数据库上下文</param>
 /// <param name="storage">对象存储服务</param>
-/// <param name="dictionarySnapshotService">字典快照服务</param>
+/// <param name="exportLimitService">列表导出上限服务</param>
 [ApiController]
 [ApiDescription("User management")]
 [Authorize]
 [Route("api/user")]
-public sealed class UsersController(AppDbContext db, MinioStorageService storage, DictionarySnapshotService dictionarySnapshotService)
-    : ControllerBase
+public sealed class UsersController(AppDbContext db, MinioStorageService storage, ExportLimitService exportLimitService) : ControllerBase
 {
-    private const int _DEFAULT_EXPORT_LIMIT = 10000;
-    private const string _MAXIMUM_EXPORT_ROWS_LABEL = "Maximum export rows";
-
-    private const int _MAX_EXPORT_LIMIT = 100000;
-
     // 对外使用稳定查询字段名，实体路径仅由后端维护
     private static readonly IReadOnlyDictionary<string, string> _filterAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -169,7 +163,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     public async Task<ActionResult<ApiResponse<UserExportResult>>> ExportAsync([FromBody] UserExportRequest request) {
         var query = BuildListQuery(request.DynamicFilter);
         var total = await query.CountAsync().ConfigureAwait(false);
-        var limit = await GetExportLimitAsync().ConfigureAwait(false);
+        var limit = await exportLimitService.GetLimitAsync().ConfigureAwait(false);
         var users = await ApplyListSort(query, request.SortField, request.SortOrder).Take(limit).ToListAsync().ConfigureAwait(false);
         var records = users.ConvertAll(ToListItem);
         return Ok(ApiResponse<UserExportResult>.Ok(new UserExportResult(records, limit, total)));
@@ -559,24 +553,6 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             .Include(x => x.UserDepartments)
             .ThenInclude(x => x.Department)
             .ApplyDynamicFilter(dynamicFilter, _filterAliases);
-    }
-
-    /// <summary>
-    ///     从系统设置读取单次导出上限
-    /// </summary>
-    /// <returns>经过安全范围限制的导出条数</returns>
-    private async Task<int> GetExportLimitAsync() {
-        var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SYSTEM_SETTINGS_CODE).ConfigureAwait(false);
-        var configuredValue = settings.FirstOrDefault(x => x.IsEnabled && x.Label == _MAXIMUM_EXPORT_ROWS_LABEL)?.Value;
-        configuredValue ??= await db
-            .DictionaryItems.AsNoTracking()
-            .Where(x => x.IsEnabled && x.Label == _MAXIMUM_EXPORT_ROWS_LABEL && x.Category.Code == DictionarySnapshotService.SYSTEM_SETTINGS_CODE)
-            .Select(x => x.Value)
-            .SingleOrDefaultAsync()
-            .ConfigureAwait(false);
-        return int.TryParse(configuredValue, NumberStyles.Integer, CultureInfo.InvariantCulture, out var limit)
-            ? Math.Clamp(limit, 1, _MAX_EXPORT_LIMIT)
-            : _DEFAULT_EXPORT_LIMIT;
     }
 
     /// <summary>

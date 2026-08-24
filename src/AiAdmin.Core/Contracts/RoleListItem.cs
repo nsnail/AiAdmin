@@ -10,4 +10,5 @@ public sealed record RoleListItem(
     , string Description
     , string DataScope
     , bool Enabled
-    , DateTimeOffset CreateTime);
+    , DateTimeOffset CreateTime
+    , DateTimeOffset? UpdateTime);

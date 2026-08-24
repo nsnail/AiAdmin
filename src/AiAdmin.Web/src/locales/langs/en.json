@@ -835,7 +835,7 @@
     },
     "listFilter": {
         "group": { "all": "All" },
-        "common": { "status": "Enabled" },
+        "common": { "createdAt": "Created at", "status": "Enabled" },
         "user": { "userName": "Username", "email": "Email", "phone": "Phone", "gender": "Gender" },
         "role": {
             "name": "Role name",
@@ -900,17 +900,50 @@
     "roleManagement": {
         "actions": {
             "add": "Add role",
+            "exportData": "Export data",
+            "exportExcel": "Excel",
+            "exportJson": "JSON",
+            "expandAll": "Expand all",
+            "collapseAll": "Collapse all",
+            "selectAll": "Select all",
+            "deselectAll": "Deselect all",
             "menuPermission": "Menu permissions",
             "apiPermission": "API permissions",
             "edit": "Edit role",
+            "copy": "Copy role",
             "delete": "Delete role"
         },
-        "fields": { "operation": "Actions" },
+        "fields": { "operation": "Actions", "createdAt": "Created at", "updatedAt": "Updated at" },
+        "dialog": {
+            "addTitle": "Add role",
+            "editTitle": "Edit role",
+            "basicInfo": "Basic information",
+            "rawData": "Raw data"
+        },
+        "validation": {
+            "nameRequired": "Enter a role name",
+            "nameLength": "Role name must be between 2 and 50 characters",
+            "codeRequired": "Enter a role code",
+            "codeLength": "Role code must be between 2 and 50 characters",
+            "codeFormat": "Use uppercase English letters, digits, or underscores; start with an uppercase letter",
+            "descriptionRequired": "Enter a role description",
+            "dataScopeRequired": "Select a data scope"
+        },
+        "export": { "sheetName": "Roles" },
         "confirm": {
             "deleteTitle": "Delete role",
             "deleteMessage": "Delete role \"{name}\"? This action cannot be undone."
         },
-        "message": { "deleteCancelled": "Deletion cancelled" }
+        "message": {
+            "created": "Role created",
+            "updated": "Role updated",
+            "copied": "Role copied",
+            "deleteCancelled": "Deletion cancelled",
+            "exported": "Exported {count} records",
+            "exportEmpty": "There is no data to export",
+            "exportFailed": "Export failed",
+            "exportTruncated": "{total} records matched; this export is limited to {limit} by system settings"
+        }
     },
     "wallet": {
         "title": "My Wallet",
