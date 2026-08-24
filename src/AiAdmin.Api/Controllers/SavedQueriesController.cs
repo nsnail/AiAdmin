@@ -28,7 +28,7 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     /// </summary>
     /// <param name="id">查询条件主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete saved query condition")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var userId = GetCurrentUserId();

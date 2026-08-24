@@ -72,7 +72,7 @@ export function fetchGetUserInfo() {
  * @returns 更新后的用户信息
  */
 export function fetchUpdateUserProfile(data: Api.Auth.UpdateProfileParams) {
-    return request.put<Api.Auth.UserInfo>({
+    return request.post<Api.Auth.UserInfo>({
         url: '/api/user/profile',
         data,
     })
@@ -84,7 +84,7 @@ export function fetchUpdateUserProfile(data: Api.Auth.UpdateProfileParams) {
  * @returns 修改结果
  */
 export function fetchChangeUserPassword(data: Api.Auth.ChangePasswordParams) {
-    return request.put<Record<string, never>>({
+    return request.post<Record<string, never>>({
         url: '/api/user/password',
         data,
     })

@@ -85,7 +85,7 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     /// </summary>
     /// <param name="id">菜单主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete menu")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var menu = await db.Menus.FindAsync(id).ConfigureAwait(false);
@@ -144,7 +144,7 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     /// <param name="id">菜单主键</param>
     /// <param name="request">菜单保存请求</param>
     /// <returns>更新后的菜单</returns>
-    [HttpPut("{id:long}")]
+    [HttpPost("{id:long}")]
     [ApiDescription("Update menu")]
     public async Task<ActionResult<ApiResponse<MenuItemResult>>> UpdateAsync(
         long id

@@ -25,7 +25,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
     /// </summary>
     /// <param name="key">缓存键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("value")]
+    [HttpPost("value/delete")]
     [ApiDescription("Delete Redis cache value")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromQuery] string key) {
         var deleted = await connectionMultiplexer.GetDatabase().KeyDeleteAsync(key).ConfigureAwait(false);
@@ -73,7 +73,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
     /// </summary>
     /// <param name="request">缓存保存请求</param>
     /// <returns>保存后的缓存内容</returns>
-    [HttpPut("value")]
+    [HttpPost("value")]
     [ApiDescription("Save Redis cache value")]
     public async Task<ActionResult<ApiResponse<RedisCacheValueResult>>> SaveAsync(SaveRedisCacheRequest request) {
         var key = request.Key.Trim();
@@ -83,7 +83,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
 
         var database = connectionMultiplexer.GetDatabase();
         TimeSpan? expiry = request.ExpireSeconds > 0 ? TimeSpan.FromSeconds(request.ExpireSeconds) : null;
-        _ = await database.StringSetAsync(key, request.Value, expiry).ConfigureAwait(false);
+        _ = await database.StringSetAsync(key, request.Value, expiry, When.Always).ConfigureAwait(false);
         var ttl = expiry?.TotalMilliseconds is { } milliseconds ? (long)milliseconds : -1;
         var memoryBytes = await TryGetMemoryBytesAsync(database, key).ConfigureAwait(false);
         return Ok(

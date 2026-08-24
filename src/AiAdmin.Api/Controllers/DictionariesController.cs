@@ -95,7 +95,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="id">目录主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("categories/{id:long}")]
+    [HttpPost("categories/{id:long}/delete")]
     [ApiDescription("Delete dictionary category")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteCategoryAsync(long id) {
         var category = await db.DictionaryCategories.FindAsync(id).ConfigureAwait(false);
@@ -120,7 +120,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="id">内容主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("items/{id:long}")]
+    [HttpPost("items/{id:long}/delete")]
     [ApiDescription("Delete dictionary item")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteItemAsync(long id) {
         var item = await db.DictionaryItems.FindAsync(id).ConfigureAwait(false);
@@ -169,7 +169,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <param name="id">目录主键</param>
     /// <param name="request">目录保存请求</param>
     /// <returns>修改后的目录</returns>
-    [HttpPut("categories/{id:long}")]
+    [HttpPost("categories/{id:long}")]
     [ApiDescription("Update dictionary category")]
     public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> UpdateCategoryAsync(
         long id
@@ -209,7 +209,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <param name="id">内容主键</param>
     /// <param name="request">内容保存请求</param>
     /// <returns>修改后的内容</returns>
-    [HttpPut("items/{id:long}")]
+    [HttpPost("items/{id:long}")]
     [ApiDescription("Update dictionary item")]
     public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> UpdateItemAsync(
         long id

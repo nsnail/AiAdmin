@@ -30,7 +30,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// </summary>
     /// <param name="request">密码修改请求</param>
     /// <returns>密码修改结果</returns>
-    [HttpPut("password")]
+    [HttpPost("password")]
     [ApiDescription("Change current user password")]
     public async Task<ActionResult<ApiResponse<object>>> ChangePasswordAsync(ChangePasswordRequest request) {
         var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
@@ -119,7 +119,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// </summary>
     /// <param name="id">用户主键</param>
     /// <returns>更新后的用户列表项</returns>
-    [HttpDelete("{id:long}/avatar")]
+    [HttpPost("{id:long}/avatar/delete")]
     [ApiDescription("Delete user avatar")]
     public async Task<ActionResult<ApiResponse<UserListItem>>> DeleteAvatarAsync(long id) {
         var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
@@ -313,7 +313,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// <param name="id">用户主键</param>
     /// <param name="request">用户修改请求</param>
     /// <returns>更新后的用户</returns>
-    [HttpPut("{id:long}")]
+    [HttpPost("{id:long}")]
     [ApiDescription("Update user")]
     public async Task<ActionResult<ApiResponse<UserListItem>>> UpdateAsync(
         long id
@@ -380,7 +380,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// </summary>
     /// <param name="request">个人资料更新请求</param>
     /// <returns>更新后的当前用户信息</returns>
-    [HttpPut("profile")]
+    [HttpPost("profile")]
     [ApiDescription("Update current user profile")]
     public async Task<ActionResult<ApiResponse<CurrentUserResult>>> UpdateProfileAsync(UpdateCurrentUserProfileRequest request) {
         var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);

@@ -29,7 +29,7 @@ public sealed class WalletController(AppDbContext db) : ControllerBase
     public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
         return Ok(
             ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(
-                ListFilterMetadataService.GetFields<Wallet>().Where(x => x.Field == nameof(Wallet.CreatedAt)).ToArray()
+                [.. ListFilterMetadataService.GetFields<Wallet>().Where(x => x.Field == nameof(Wallet.CreatedAt))]
             )
         );
     }

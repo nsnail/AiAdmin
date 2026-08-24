@@ -142,15 +142,15 @@ export function fetchGetRedisValue(key: string) {
 }
 
 export function fetchSaveRedisValue(data: SaveRedisCacheParams) {
-    return request.put<RedisCacheValue>({ url: '/api/redis-cache/value', data })
+    return request.post<RedisCacheValue>({ url: '/api/redis-cache/value', data })
 }
 
 export function fetchDeleteRedisValue(key: string) {
-    return request.del<void>({ url: '/api/redis-cache/value', params: { key } })
+    return request.post<void>({ url: '/api/redis-cache/value/delete', params: { key } })
 }
 
 export function fetchUpdateEnabledState(resource: EnabledStateResource, id: string, isEnabled: boolean) {
-    return request.put<void>({ url: `/api/enabled-state/${resource}/${id}`, data: { isEnabled } })
+    return request.post<void>({ url: `/api/enabled-state/${resource}/${id}`, data: { isEnabled } })
 }
 
 export function fetchGetListFilterFields(
@@ -192,7 +192,7 @@ export function fetchSaveQuery(data: { name: string; route: string; dynamicFilte
 }
 
 export function fetchDeleteSavedQuery(id: string) {
-    return request.del<void>({ url: `/api/saved-query/${id}` })
+    return request.post<void>({ url: `/api/saved-query/${id}/delete` })
 }
 
 export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
@@ -305,7 +305,7 @@ export function fetchCreateUser(data: Api.SystemManage.SaveUserParams) {
 }
 
 export function fetchUpdateUser(id: string, data: Api.SystemManage.UpdateUserParams) {
-    return request.put<Api.SystemManage.UserListItem>({ url: `/api/user/${id}`, data })
+    return request.post<Api.SystemManage.UserListItem>({ url: `/api/user/${id}`, data })
 }
 
 export function fetchUploadUserAvatar(id: string, file: File) {
@@ -315,7 +315,7 @@ export function fetchUploadUserAvatar(id: string, file: File) {
 }
 
 export function fetchDeleteUserAvatar(id: string) {
-    return request.del<Api.SystemManage.UserListItem>({ url: `/api/user/${id}/avatar` })
+    return request.post<Api.SystemManage.UserListItem>({ url: `/api/user/${id}/avatar/delete` })
 }
 
 export function fetchGetUserRoles() {
@@ -349,15 +349,15 @@ export function fetchSendSystemMessage(data: Api.SystemManage.SendSystemMessageP
 }
 
 export function fetchUpdateSystemMessage(id: number, data: { title: string; content: string }) {
-    return request.put<void>({ url: `/api/message/${id}`, data, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/message/${id}`, data, showSuccessMessage: true })
 }
 
 export function fetchDeleteSystemMessage(id: number) {
-    return request.del<void>({ url: `/api/message/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/message/${id}/delete`, showSuccessMessage: true })
 }
 
 export function fetchBatchDeleteSystemMessages(ids: number[]) {
-    return request.del<void>({ url: '/api/message', data: ids, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/message/delete', data: ids, showSuccessMessage: true })
 }
 
 export function fetchGetSystemMessageRecipients(id: number) {
@@ -369,19 +369,19 @@ export function fetchGetNotifications(current = 1, size = 20) {
 }
 
 export function fetchMarkNotificationRead(id: number) {
-    return request.put<void>({ url: `/api/notifications/${id}/read`, data: {} })
+    return request.post<void>({ url: `/api/notifications/${id}/read`, data: {} })
 }
 
 export function fetchMarkAllNotificationsRead() {
-    return request.put<void>({ url: '/api/notifications/read-all', data: {} })
+    return request.post<void>({ url: '/api/notifications/read-all', data: {} })
 }
 
 export function fetchDeleteNotification(id: number) {
-    return request.del<void>({ url: `/api/notifications/${id}` })
+    return request.post<void>({ url: `/api/notifications/${id}/delete` })
 }
 
 export function fetchClearNotifications() {
-    return request.del<void>({ url: '/api/notifications' })
+    return request.post<void>({ url: '/api/notifications/clear' })
 }
 
 export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParams) {
@@ -389,11 +389,11 @@ export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParam
 }
 
 export function fetchUpdateDepartment(id: string, data: Api.SystemManage.SaveDepartmentParams) {
-    return request.put<Api.SystemManage.DepartmentTreeItem>({ url: `/api/department/${id}`, data })
+    return request.post<Api.SystemManage.DepartmentTreeItem>({ url: `/api/department/${id}`, data })
 }
 
 export function fetchDeleteDepartment(id: string) {
-    return request.del<void>({ url: `/api/department/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/department/${id}/delete`, showSuccessMessage: true })
 }
 
 // 获取角色列表
@@ -437,11 +437,11 @@ export function fetchCreateRole(data: Api.SystemManage.SaveRoleParams) {
 }
 
 export function fetchUpdateRole(id: string, data: Api.SystemManage.SaveRoleParams) {
-    return request.put<Api.SystemManage.RoleListItem>({ url: `/api/role/${id}`, data })
+    return request.post<Api.SystemManage.RoleListItem>({ url: `/api/role/${id}`, data })
 }
 
 export function fetchDeleteRole(id: string) {
-    return request.del<void>({ url: `/api/role/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/role/${id}/delete`, showSuccessMessage: true })
 }
 
 export function fetchGetRoleMenus(id: string) {
@@ -449,7 +449,7 @@ export function fetchGetRoleMenus(id: string) {
 }
 
 export function fetchSaveRoleMenus(id: string, menuIds: string[]) {
-    return request.put<void>({ url: `/api/role/${id}/menus`, data: { menuIds } })
+    return request.post<void>({ url: `/api/role/${id}/menus`, data: { menuIds } })
 }
 
 export function fetchGetRoleApis(id: string) {
@@ -457,7 +457,7 @@ export function fetchGetRoleApis(id: string) {
 }
 
 export function fetchSaveRoleApis(id: string, apiIds: string[]) {
-    return request.put<void>({ url: `/api/role/${id}/apis`, data: { apiIds } })
+    return request.post<void>({ url: `/api/role/${id}/apis`, data: { apiIds } })
 }
 
 export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter, sortField?: string, sortOrder?: 'asc' | 'desc') {
@@ -492,11 +492,11 @@ export function fetchCreateMenu(data: Record<string, any>) {
 }
 
 export function fetchUpdateMenu(id: string, data: Record<string, any>) {
-    return request.put<AppRouteRecord>({ url: `/api/menu/${id}`, data })
+    return request.post<AppRouteRecord>({ url: `/api/menu/${id}`, data })
 }
 
 export function fetchDeleteMenu(id: string) {
-    return request.del<void>({ url: `/api/menu/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/menu/${id}/delete`, showSuccessMessage: true })
 }
 
 export function fetchGetDictionaryCategories() {
@@ -515,14 +515,14 @@ export function fetchCreateDictionaryCategory(data: Api.SystemManage.SaveDiction
 }
 
 export function fetchUpdateDictionaryCategory(id: string, data: Api.SystemManage.SaveDictionaryCategoryParams) {
-    return request.put<Api.SystemManage.DictionaryCategory>({
+    return request.post<Api.SystemManage.DictionaryCategory>({
         url: `/api/dictionary/categories/${id}`,
         data,
     })
 }
 
 export function fetchDeleteDictionaryCategory(id: string) {
-    return request.del<void>({ url: `/api/dictionary/categories/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/dictionary/categories/${id}/delete`, showSuccessMessage: true })
 }
 
 export function fetchGetDictionaryItems(categoryId: string) {
@@ -539,11 +539,11 @@ export function fetchCreateDictionaryItem(categoryId: string, data: Api.SystemMa
 }
 
 export function fetchUpdateDictionaryItem(id: string, data: Api.SystemManage.SaveDictionaryItemParams) {
-    return request.put<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/items/${id}`, data })
+    return request.post<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/items/${id}`, data })
 }
 
 export function fetchDeleteDictionaryItem(id: string) {
-    return request.del<void>({ url: `/api/dictionary/items/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/dictionary/items/${id}/delete`, showSuccessMessage: true })
 }
 
 export interface ScheduledJob {
@@ -623,11 +623,11 @@ export function fetchCreateScheduledJob(data: SaveScheduledJob) {
 }
 
 export function fetchUpdateScheduledJob(id: string, data: SaveScheduledJob) {
-    return request.put<ScheduledJob>({ url: `/api/scheduled-job/${id}`, data })
+    return request.post<ScheduledJob>({ url: `/api/scheduled-job/${id}`, data })
 }
 
 export function fetchDeleteScheduledJob(id: string) {
-    return request.del<void>({ url: `/api/scheduled-job/${id}`, showSuccessMessage: true })
+    return request.post<void>({ url: `/api/scheduled-job/${id}/delete`, showSuccessMessage: true })
 }
 
 export function fetchRunScheduledJob(id: string) {

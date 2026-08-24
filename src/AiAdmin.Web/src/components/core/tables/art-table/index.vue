@@ -712,7 +712,7 @@ defineExpose({
     }
 
     &.opens-left .cell-query-submenu-panel {
-        right: calc(100% + 4px);
+        right: calc(100% - 1px);
         left: auto;
     }
 }
@@ -723,8 +723,9 @@ defineExpose({
 
 .cell-query-submenu-panel {
     position: absolute;
+    z-index: 1;
     top: -5px;
-    left: calc(100% + 4px);
+    left: calc(100% - 1px);
     display: none;
     width: 132px;
     padding: 6px;

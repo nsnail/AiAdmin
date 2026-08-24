@@ -73,7 +73,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// </summary>
     /// <param name="id">角色主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete role")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var role = await db.Roles.Include(x => x.UserRoles).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
@@ -161,7 +161,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <param name="id">角色主键</param>
     /// <param name="request">接口授权请求</param>
     /// <returns>保存结果</returns>
-    [HttpPut("{id:long}/apis")]
+    [HttpPost("{id:long}/apis")]
     [ApiDescription("Save role API permissions")]
     public async Task<ActionResult<ApiResponse<object>>> SaveApisAsync(
         long id
@@ -192,7 +192,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <param name="id">角色主键</param>
     /// <param name="request">菜单授权请求</param>
     /// <returns>保存结果</returns>
-    [HttpPut("{id:long}/menus")]
+    [HttpPost("{id:long}/menus")]
     [ApiDescription("Save role menu permissions")]
     public async Task<ActionResult<ApiResponse<object>>> SaveMenusAsync(
         long id
@@ -216,7 +216,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <param name="id">角色主键</param>
     /// <param name="request">角色保存请求</param>
     /// <returns>更新后的角色</returns>
-    [HttpPut("{id:long}")]
+    [HttpPost("{id:long}")]
     [ApiDescription("Update role")]
     public async Task<ActionResult<ApiResponse<RoleListItem>>> UpdateAsync(
         long id

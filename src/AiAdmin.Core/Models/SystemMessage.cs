@@ -15,13 +15,13 @@ public sealed class SystemMessage : EntityBase
     public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>是否在用户端自动弹出提醒</summary>
-    public bool IsPopup { get; set; }
+    public bool IsPopup { get; init; }
 
     /// <summary>用户收件关联集合</summary>
     public ICollection<UserMessage> Recipients { get; init; } = [];
 
     /// <summary>发送人主键</summary>
-    public long SenderId { get; set; }
+    public long SenderId { get; init; }
 
     /// <summary>消息标题</summary>
     [ListFilter("messageManagement.title")]

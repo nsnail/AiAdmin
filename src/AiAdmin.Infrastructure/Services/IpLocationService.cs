@@ -20,15 +20,21 @@ public sealed class IpLocationService(HttpClient httpClient, ILogger<IpLocationS
     /// <param name="ipAddress">待查询的 IP 地址</param>
     /// <param name="cancellationToken">取消操作令牌</param>
     /// <returns>IP 归属地区</returns>
-    public async Task<string> GetRegionAsync(string ipAddress, CancellationToken cancellationToken = default) {
+    public async Task<string> GetRegionAsync(
+        string ipAddress
+        , CancellationToken cancellationToken = default
+    ) {
         if (!IPAddress.TryParse(ipAddress, out var address) || IPAddress.IsLoopback(address)) {
             return string.Empty;
         }
 
         try {
-            await using var stream = await httpClient.GetStreamAsync($"?ip={Uri.EscapeDataString(ipAddress)}", cancellationToken).ConfigureAwait(false);
-            var result = await JsonSerializer.DeserializeAsync<IpLocationResponse[]>(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            return result?.FirstOrDefault(x => x.Code == 0)?.Region?.Trim() ?? string.Empty;
+            await using var stream
+                = await httpClient.GetStreamAsync($"?ip={Uri.EscapeDataString(ipAddress)}", cancellationToken).ConfigureAwait(false);
+            var result = await JsonSerializer
+                .DeserializeAsync<IpLocationResponse[]>(stream, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+            return result?.FirstOrDefault(x => x.Code == 0)?.Region.Trim() ?? string.Empty;
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or TaskCanceledException) {
             _lookupFailed(logger, ipAddress, exception);

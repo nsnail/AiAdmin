@@ -24,7 +24,7 @@ public sealed class EnabledStatesController(AppDbContext db, ApiPermissionCache 
     /// <param name="id">记录主键</param>
     /// <param name="request">启用状态请求</param>
     /// <returns>状态更新结果</returns>
-    [HttpPut("{resource}/{id:long}")]
+    [HttpPost("{resource}/{id:long}")]
     [ApiDescription("Update resource enabled state")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateAsync(
         string resource

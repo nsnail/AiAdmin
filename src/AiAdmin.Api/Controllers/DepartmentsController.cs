@@ -46,7 +46,7 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// </summary>
     /// <param name="id">部门主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete department")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
@@ -94,7 +94,7 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// <param name="id">部门主键</param>
     /// <param name="request">部门保存请求</param>
     /// <returns>更新后的部门节点</returns>
-    [HttpPut("{id:long}")]
+    [HttpPost("{id:long}")]
     [ApiDescription("Update department")]
     public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> UpdateAsync(
         long id

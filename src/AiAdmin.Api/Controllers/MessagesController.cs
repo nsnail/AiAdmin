@@ -23,7 +23,7 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     /// <summary>批量删除系统消息</summary>
     /// <param name="ids">消息主键集合</param>
     /// <returns>操作结果</returns>
-    [HttpDelete]
+    [HttpPost("delete")]
     [ApiDescription("Batch delete system messages")]
     public async Task<ActionResult<ApiResponse<object>>> BatchDeleteAsync([FromBody] long[] ids) {
         if (ids.Length == 0) {
@@ -39,7 +39,7 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     /// <summary>删除一条系统消息</summary>
     /// <param name="id">消息主键</param>
     /// <returns>操作结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete system message")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var message = await db.SystemMessages.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
@@ -179,7 +179,7 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
     /// <param name="id">消息主键</param>
     /// <param name="request">修改内容</param>
     /// <returns>操作结果</returns>
-    [HttpPut("{id:long}")]
+    [HttpPost("{id:long}")]
     [ApiDescription("Update system message")]
     public async Task<ActionResult<ApiResponse<object>>> UpdateAsync(
         long id
@@ -205,22 +205,21 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         , long[] departmentIds
         , long[] userIds
     ) {
-        if (targetType == "all") {
-            return await db
-                .Users.AsNoTracking()
-                .Where(x => x.IsEnabled)
-                .Select(x => x.Id)
-                .ToHashSetAsync(HttpContext.RequestAborted)
-                .ConfigureAwait(false);
-        }
-
-        if (targetType == "user") {
-            return await db
-                .Users.AsNoTracking()
-                .Where(x => x.IsEnabled && userIds.Contains(x.Id))
-                .Select(x => x.Id)
-                .ToHashSetAsync(HttpContext.RequestAborted)
-                .ConfigureAwait(false);
+        switch (targetType) {
+            case "all":
+                return await db
+                    .Users.AsNoTracking()
+                    .Where(x => x.IsEnabled)
+                    .Select(x => x.Id)
+                    .ToHashSetAsync(HttpContext.RequestAborted)
+                    .ConfigureAwait(false);
+            case "user":
+                return await db
+                    .Users.AsNoTracking()
+                    .Where(x => x.IsEnabled && userIds.Contains(x.Id))
+                    .Select(x => x.Id)
+                    .ToHashSetAsync(HttpContext.RequestAborted)
+                    .ConfigureAwait(false);
         }
 
         var selected = departmentIds.Distinct().ToHashSet();
@@ -232,10 +231,14 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
                 .ConfigureAwait(false);
             var changed = true;
             while (changed) {
-                changed = false;
-                foreach (var item in departments.Where(x => x.ParentId.HasValue && selected.Contains(x.ParentId.Value))) {
-                    changed |= selected.Add(item.Id);
-                }
+                changed = departments
+                .Where(x => x.ParentId.HasValue && selected.Contains(x.ParentId.Value))
+                .Aggregate(
+                    false, (
+                        current
+                        , item
+                    ) => current || selected.Add(item.Id)
+                );
             }
         }
 

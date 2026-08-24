@@ -1,5 +1,3 @@
-#pragma warning disable SA1518
-
 using System.Text;
 
 namespace AiAdmin.Api.Data;
@@ -17,10 +15,14 @@ public static class Crc32
     /// <param name="value">待计算文本</param>
     /// <returns>有符号 CRC32 整数</returns>
     public static int Compute(string value) {
-        var crc = uint.MaxValue;
-        foreach (var item in Encoding.UTF8.GetBytes(value)) {
-            crc = _table[(crc ^ item) & byte.MaxValue] ^ (crc >> 8);
-        }
+        var crc = Encoding
+        .UTF8.GetBytes(value)
+        .Aggregate(
+            uint.MaxValue, (
+                current
+                , item
+            ) => _table[(current ^ item) & byte.MaxValue] ^ (current >> 8)
+        );
 
         return unchecked((int)~crc);
     }

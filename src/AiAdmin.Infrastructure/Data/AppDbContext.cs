@@ -520,21 +520,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     private void UpdateAuditTimes() {
         var now = ServerTime.Now;
 
-        static void EnsureInitialVersion(EntityBase entity) {
-            if (entity is IVersion versionedEntity && versionedEntity.Version <= 0) {
-                versionedEntity.Version = 1;
-            }
-        }
-
-        static void IncrementVersion(EntityEntry<EntityBase> entry) {
-            if (entry.Entity is not IVersion versionedEntity) {
-                return;
-            }
-
-            var originalVersion = Convert.ToInt32(entry.Property(nameof(IVersion.Version)).OriginalValue, CultureInfo.InvariantCulture);
-            versionedEntity.Version = originalVersion + 1;
-        }
-
         foreach (var entry in ChangeTracker.Entries<EntityBase>()) {
             switch (entry.State) {
                 case EntityState.Added:
@@ -548,6 +533,21 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                     IncrementVersion(entry);
                     break;
             }
+        }
+
+        static void EnsureInitialVersion(EntityBase entity) {
+            if (entity is IVersion { Version: <= 0 } versionedEntity) {
+                versionedEntity.Version = 1;
+            }
+        }
+
+        static void IncrementVersion(EntityEntry<EntityBase> entry) {
+            if (entry.Entity is not IVersion versionedEntity) {
+                return;
+            }
+
+            var originalVersion = Convert.ToInt32(entry.Property(nameof(IVersion.Version)).OriginalValue, CultureInfo.InvariantCulture);
+            versionedEntity.Version = originalVersion + 1;
         }
     }
 }

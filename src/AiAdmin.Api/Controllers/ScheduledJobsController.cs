@@ -36,7 +36,7 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
     /// </summary>
     /// <param name="id">作业主键</param>
     /// <returns>删除结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete scheduled job")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var job = await db.ScheduledJobs.FindAsync(id).ConfigureAwait(false);
@@ -193,7 +193,7 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
     /// <param name="id">作业主键</param>
     /// <param name="request">作业保存请求</param>
     /// <returns>修改后的作业</returns>
-    [HttpPut("{id:long}")]
+    [HttpPost("{id:long}")]
     [ApiDescription("Update scheduled job")]
     public Task<ActionResult<ApiResponse<ScheduledJobResult>>> UpdateAsync(
         long id

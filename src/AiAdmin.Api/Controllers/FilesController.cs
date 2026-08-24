@@ -42,7 +42,7 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
     /// <param name="name">对象名称</param>
     /// <param name="directory">是否递归删除目录</param>
     /// <returns>删除结果</returns>
-    [HttpDelete]
+    [HttpPost("delete-file")]
     [ApiDescription("Delete file")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(
         [FromQuery] string name

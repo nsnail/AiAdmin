@@ -10,17 +10,17 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     可用余额
     /// </summary>
-    public decimal AvailableBalance { get; set; }
+    public decimal AvailableBalance { get; init; }
 
     /// <summary>
     ///     冻结金额
     /// </summary>
-    public decimal FrozenBalance { get; set; }
+    public decimal FrozenBalance { get; init; }
 
     /// <summary>
     ///     最后交易时间
     /// </summary>
-    public DateTime? LastTransactionAt { get; set; }
+    public DateTime? LastTransactionAt { get; init; }
 
     /// <summary>
     ///     所有者部门主键
@@ -39,17 +39,17 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     总支出
     /// </summary>
-    public decimal TotalExpense { get; set; }
+    public decimal TotalExpense { get; init; }
 
     /// <summary>
     ///     总收入
     /// </summary>
-    public decimal TotalIncome { get; set; }
+    public decimal TotalIncome { get; init; }
 
     /// <summary>
     ///     关联用户
     /// </summary>
-    public User User { get; set; } = null!;
+    public User User { get; init; } = null!;
 
     /// <summary>
     ///     钱包用户主键，同时作为钱包主键

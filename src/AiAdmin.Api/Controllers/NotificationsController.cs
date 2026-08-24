@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace AiAdmin.Api.Controllers;
-#pragma warning disable IDE0031
 
 /// <summary>
 ///     当前用户消息通知控制器
@@ -23,7 +22,7 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
 {
     /// <summary>清空当前用户全部通知</summary>
     /// <returns>操作结果</returns>
-    [HttpDelete]
+    [HttpPost("clear")]
     [ApiDescription("Clear all notifications")]
     public async Task<ActionResult<ApiResponse<object>>> ClearAsync() {
         _ = await db
@@ -36,13 +35,11 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
     /// <summary>删除单条通知</summary>
     /// <param name="id">消息主键</param>
     /// <returns>操作结果</returns>
-    [HttpDelete("{id:long}")]
+    [HttpPost("{id:long}/delete")]
     [ApiDescription("Delete notification")]
     public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
         var item = await FindAsync(id).ConfigureAwait(false);
-        if (item is not null) {
-            item.IsDeleted = true;
-        }
+        _ = item?.IsDeleted = true;
 
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
@@ -84,7 +81,7 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
 
     /// <summary>标记当前用户全部通知为已读</summary>
     /// <returns>操作结果</returns>
-    [HttpPut("read-all")]
+    [HttpPost("read-all")]
     [ApiDescription("Mark all notifications as read")]
     public async Task<ActionResult<ApiResponse<object>>> ReadAllAsync() {
         _ = await db
@@ -97,13 +94,11 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
     /// <summary>标记单条通知为已读</summary>
     /// <param name="id">消息主键</param>
     /// <returns>操作结果</returns>
-    [HttpPut("{id:long}/read")]
+    [HttpPost("{id:long}/read")]
     [ApiDescription("Mark notification as read")]
     public async Task<ActionResult<ApiResponse<object>>> ReadAsync(long id) {
         var item = await FindAsync(id).ConfigureAwait(false);
-        if (item is not null) {
-            item.IsRead = true;
-        }
+        _ = item?.IsRead = true;
 
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
