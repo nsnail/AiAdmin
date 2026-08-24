@@ -19,6 +19,12 @@
                     :span="width > 640 ? 12 : 24"
                     label-width="100px"
                     ref="formRef">
+                    <template #menuType>
+                        <ElRadioGroup v-model="form.menuType" :disabled="disableMenuType">
+                            <ElRadioButton label="menu" value="menu">菜单</ElRadioButton>
+                            <ElRadioButton label="button" value="button">按钮</ElRadioButton>
+                        </ElRadioGroup>
+                    </template>
                 </ArtForm>
             </ElTabPane>
             <ElTabPane v-if="props.editData?.id" label="原始数据" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
@@ -100,7 +106,9 @@ interface Props {
     editData?: AppRouteRecord | any
     type?: 'menu' | 'button'
     saving?: boolean
+    lockType?: boolean
     menus?: AppRouteRecord[]
+    parentName?: string
 }
 
 interface Emits {
@@ -111,6 +119,7 @@ interface Emits {
 const props = withDefaults(defineProps<Props>(), {
     visible: false,
     type: 'menu',
+    lockType: false,
 })
 
 const emit = defineEmits<Emits>()
@@ -205,11 +214,13 @@ watch(
  * 表单项配置
  */
 const formItems = computed<FormItem[]>(() => {
+    const baseItems: FormItem[] = [{ label: '菜单类型', key: 'menuType', span: 24 }]
     // Switch 组件的 span：小屏幕 12，大屏幕 6
     const switchSpan = width.value < 640 ? 12 : 6
 
     if (form.menuType === 'menu') {
         return [
+            ...baseItems,
             { label: '菜单名称', key: 'name', type: 'input', props: { placeholder: '菜单名称' } },
             {
                 label: t('menuManagement.fields.parent'),
@@ -274,6 +285,7 @@ const formItems = computed<FormItem[]>(() => {
         ]
     } else {
         return [
+            ...baseItems,
             {
                 label: '权限名称',
                 key: 'authName',
@@ -294,6 +306,8 @@ const dialogTitle = computed(() => {
     const type = form.menuType === 'menu' ? '菜单' : '按钮'
     return isEdit.value ? `编辑${type}` : `新建${type}`
 })
+
+const disableMenuType = computed(() => isEdit.value || props.lockType)
 
 /**
  * 重置表单数据
@@ -378,7 +392,10 @@ watch(
     (newVal) => {
         if (newVal) {
             activeTab.value = 'form'
+            // 每次打开都显式同步编辑状态，避免上一次编辑弹窗的状态残留
+            isEdit.value = Boolean(props.editData)
             form.menuType = props.type
+            form.parentName = props.parentName || ''
             nextTick(() => {
                 if (props.editData) {
                     loadFormData()
@@ -397,6 +414,13 @@ watch(
         if (props.visible) {
             form.menuType = newType
         }
+    },
+)
+
+watch(
+    () => props.parentName,
+    (parentName) => {
+        if (props.visible && !isEdit.value && parentName) form.parentName = parentName
     },
 )
 </script>

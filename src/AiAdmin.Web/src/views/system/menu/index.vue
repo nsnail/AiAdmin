@@ -27,7 +27,9 @@
         <MenuDialog
             v-model:visible="dialogVisible"
             :editData="editData"
+            :lockType="lockMenuType"
             :menus="tableData"
+            :parentName="authParent?.name || ''"
             :saving="dialogSaving"
             :type="dialogType"
             @submit="handleSubmit" />
@@ -61,6 +63,7 @@ const dialogVisible = ref(false)
 const dialogSaving = ref(false)
 const dialogType = ref<'menu' | 'button'>('menu')
 const editData = ref<AppRouteRecord | any>(null)
+const lockMenuType = ref(false)
 const authParent = ref<AppRouteRecord | null>(null)
 
 /**
@@ -70,7 +73,7 @@ const authParent = ref<AppRouteRecord | null>(null)
  */
 const getMenuTypeTag = (row: AppRouteRecord): 'primary' | 'success' | 'warning' | 'info' | 'danger' => {
     if (row.meta?.isAuthButton) return 'danger'
-    if (row.children?.length) return 'info'
+    if (row.children?.some((child) => !child.meta?.isAuthButton)) return 'info'
     if (row.meta?.link && row.meta?.isIframe) return 'success'
     if (row.path) return 'primary'
     if (row.meta?.link) return 'warning'
@@ -84,7 +87,7 @@ const getMenuTypeTag = (row: AppRouteRecord): 'primary' | 'success' | 'warning' 
  */
 const getMenuTypeText = (row: AppRouteRecord): string => {
     if (row.meta?.isAuthButton) return '按钮'
-    if (row.children?.length) return '目录'
+    if (row.children?.some((child) => !child.meta?.isAuthButton)) return '目录'
     if (row.meta?.link && row.meta?.isIframe) return '内嵌'
     if (row.path) return '菜单'
     if (row.meta?.link) return '外链'
@@ -308,6 +311,41 @@ const findMenuByPath = (items: AppRouteRecord[], path: string): AppRouteRecord |
     }
     return null
 }
+const findMenuByName = (items: AppRouteRecord[], name: string): AppRouteRecord | null => {
+    for (const item of items) {
+        if (item.name === name) return item
+        const found = findMenuByName(item.children || [], name)
+        if (found) return found
+    }
+    return null
+}
+
+/**
+ * 从当前菜单树中定位真实菜单节点
+ * @param candidate 菜单行
+ * @returns 带主键的菜单节点
+ */
+const resolveParentMenu = (candidate?: AppRouteRecord | null): AppRouteRecord | null => {
+    if (!candidate) return null
+    const items = tableData.value as AppRouteRecord[]
+    if (candidate.id) {
+        const byId = items.length
+            ? (() => {
+                  const walk = (nodes: AppRouteRecord[]): AppRouteRecord | null => {
+                      for (const node of nodes) {
+                          if (String(node.id) === String(candidate.id)) return node
+                          const found = walk(node.children || [])
+                          if (found) return found
+                      }
+                      return null
+                  }
+                  return walk(items)
+              })()
+            : null
+        if (byId) return byId
+    }
+    return findMenuByPath(items, candidate.path || '') || findMenuByName(items, String(candidate.name || '')) || (candidate.id ? candidate : null)
+}
 
 /**
  * 添加菜单
@@ -315,6 +353,7 @@ const findMenuByPath = (items: AppRouteRecord[], path: string): AppRouteRecord |
 const handleAddMenu = (): void => {
     dialogType.value = 'menu'
     editData.value = null
+    lockMenuType.value = false
     dialogVisible.value = true
 }
 
@@ -323,8 +362,11 @@ const handleAddMenu = (): void => {
  */
 const handleAddAuth = (parent: AppRouteRecord): void => {
     dialogType.value = 'button'
+    // 默认打开权限表单，但允许在菜单和按钮之间切换
+    lockMenuType.value = false
+    const resolvedParent = resolveParentMenu(parent)
+    authParent.value = resolvedParent
     editData.value = null
-    authParent.value = parent
     dialogVisible.value = true
 }
 
@@ -335,6 +377,7 @@ const handleAddAuth = (parent: AppRouteRecord): void => {
 const handleEditMenu = (row: AppRouteRecord): void => {
     dialogType.value = 'menu'
     editData.value = row
+    lockMenuType.value = true
     dialogVisible.value = true
 }
 
@@ -348,7 +391,8 @@ const handleEditAuth = (row: AppRouteRecord): void => {
         title: row.meta?.title,
         authMark: row.meta?.authMark,
     }
-    authParent.value = findMenuByPath(tableData.value as AppRouteRecord[], row.meta?.parentPath || '')
+    authParent.value = resolveParentMenu({ path: row.meta?.parentPath } as AppRouteRecord)
+    lockMenuType.value = true
     dialogVisible.value = true
 }
 
@@ -375,7 +419,10 @@ const handleSubmit = async (formData: MenuFormData): Promise<void> => {
     try {
         if (formData.menuType === 'button') {
             const parent = authParent.value
-            if (!parent?.id) throw new Error('Parent menu not found')
+            if (!parent?.id) {
+                ElMessage.error('未找到父级菜单，无法保存权限')
+                return
+            }
             const authList = [...(parent.meta?.authList || [])] as Array<{ title: string; authMark: string }>
             const originalMark = editData.value?.authMark
             const duplicate = authList.some((item) => item.authMark === formData.authLabel && item.authMark !== originalMark)
@@ -459,9 +506,12 @@ const handleDeleteAuth = async (row: AppRouteRecord): Promise<void> => {
             cancelButtonText: '取消',
             type: 'warning',
         })
-        const parent = findMenuByPath(tableData.value as AppRouteRecord[], row.meta?.parentPath || '')
+        const parent = resolveParentMenu({ path: row.meta?.parentPath } as AppRouteRecord)
         const authMark = row.meta?.authMark
-        if (!parent?.id || !authMark) throw new Error('Parent menu or permission not found')
+        if (!parent?.id || !authMark) {
+            ElMessage.error('未找到父级菜单或权限，无法删除')
+            return
+        }
         const authList = (parent.meta?.authList || []).filter((item: { authMark: string }) => item.authMark !== authMark)
         await fetchUpdateMenu(parent.id, {
             name: parent.name,

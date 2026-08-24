@@ -62,7 +62,7 @@ export const useAuth = () => {
             return frontendAuthList.includes(auth)
         }
 
-        // 后端模式
+        // 后端模式：菜单树中存在权限标识时允许该操作
         return backendAuthList.some((item) => item?.authMark === auth)
     }
 

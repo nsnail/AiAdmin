@@ -2,7 +2,7 @@
  * v-auth 权限指令
  *
  * 适用于后端权限控制模式，基于权限标识控制 DOM 元素的显示和隐藏。
- * 如果用户没有对应权限，元素将从 DOM 中移除。
+ * 如果用户没有对应权限，元素将从 DOM 中移除
  *
  * ## 主要功能
  *
@@ -41,7 +41,7 @@ function checkAuthPermission(el: HTMLElement, binding: DirectiveBinding<string>)
     // 获取当前路由的权限列表
     const authList = (router.currentRoute.value.meta.authList as Array<{ authMark: string }>) || []
 
-    // 检查是否有对应的权限标识
+    // 正向规则：菜单树中存在权限标识时显示该操作
     const hasPermission = authList.some((item) => item.authMark === binding.value)
 
     // 如果没有权限，移除元素
