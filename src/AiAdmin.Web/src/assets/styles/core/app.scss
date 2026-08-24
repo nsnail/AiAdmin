@@ -1,4 +1,13 @@
 // 全局样式
+
+// 表格优先使用等宽字体，确保数字和标识符保持稳定对齐
+.el-table,
+.el-table th,
+.el-table td,
+.el-table .cell {
+    font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
+}
+
 // 顶部进度条颜色
 #nprogress .bar {
     z-index: 2400;
