@@ -19,19 +19,17 @@
                         <ElInput v-model.trim="formData.name" maxlength="100" placeholder="请输入部门名称" />
                     </ElFormItem>
                     <ElFormItem label="部门编码" prop="code">
-                        <ElInput v-model.trim="formData.code" maxlength="50" placeholder="请输入唯一部门编码" />
+                        <ElInput
+                            v-model="formData.code"
+                            @input="formData.code = formData.code.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()"
+                            maxlength="50"
+                            placeholder="请输入唯一部门编码" />
                     </ElFormItem>
                     <ElFormItem label="显示顺序" prop="sort">
                         <ElInputNumber v-model="formData.sort" :max="9999" :min="0" controls-position="right" />
                     </ElFormItem>
-                    <ElFormItem label="负责人" prop="leader">
-                        <ElInput v-model.trim="formData.leader" maxlength="50" placeholder="请输入负责人" />
-                    </ElFormItem>
-                    <ElFormItem label="联系电话" prop="phone">
-                        <ElInput v-model.trim="formData.phone" maxlength="20" placeholder="请输入联系电话" />
-                    </ElFormItem>
-                    <ElFormItem label="邮箱" prop="email">
-                        <ElInput v-model.trim="formData.email" maxlength="100" placeholder="请输入邮箱" />
+                    <ElFormItem label="描述" prop="description">
+                        <ElInput v-model.trim="formData.description" maxlength="500" placeholder="请输入部门描述" type="textarea" />
                     </ElFormItem>
                     <ElFormItem label="是否启用">
                         <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="停用" />
@@ -82,9 +80,7 @@ const formData = reactive<SaveDepartment>({
     code: '',
     parentId: null,
     sort: 0,
-    leader: '',
-    phone: '',
-    email: '',
+    description: '',
     isEnabled: true,
 })
 const rawData = computed(() => (props.type === 'edit' ? props.departmentData : formData))
@@ -96,8 +92,10 @@ const localizedTree = (items: Department[]): Department[] =>
     }))
 const rules: FormRules = {
     name: [{ required: true, message: '请输入部门名称', trigger: 'blur' }],
-    code: [{ required: true, message: '请输入部门编码', trigger: 'blur' }],
-    email: [{ type: 'email', message: '邮箱格式不正确', trigger: 'blur' }],
+    code: [
+        { required: true, message: '请输入部门编码', trigger: 'blur' },
+        { pattern: /^[A-Z0-9]+$/, message: '部门编码必须是大写英文字母或数字', trigger: 'blur' },
+    ],
 }
 
 const collectDescendantIds = (node: Department | undefined): Set<string> => {
@@ -138,9 +136,7 @@ watch(
             code: props.type === 'edit' ? (row?.code ?? '') : '',
             parentId: row?.parentId ?? null,
             sort: props.type === 'edit' ? (row?.sort ?? 0) : 0,
-            leader: props.type === 'edit' ? (row?.leader ?? '') : '',
-            phone: props.type === 'edit' ? (row?.phone ?? '') : '',
-            email: props.type === 'edit' ? (row?.email ?? '') : '',
+            description: props.type === 'edit' ? (row?.description ?? '') : '',
             isEnabled: props.type === 'edit' ? (row?.isEnabled ?? true) : true,
         })
         nextTick(() => formRef.value?.clearValidate())

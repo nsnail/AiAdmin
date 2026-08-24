@@ -844,7 +844,7 @@
             "dataScope": "Data scope"
         },
         "menu": { "name": "Menu name", "parentName": "Parent menu", "path": "Route path" },
-        "department": { "name": "Department name", "code": "Department code" },
+        "department": { "name": "Department name", "code": "Department code", "description": "Department description" },
         "dictionary": {
             "label": "Label",
             "value": "Value",
@@ -871,6 +871,7 @@
             "parentMenu": "Enter parent menu",
             "departmentName": "Enter department name",
             "departmentCode": "Enter department code",
+            "description": "Enter department description",
             "dictionaryLabel": "Enter label",
             "dictionaryValue": "Enter value",
             "dictionaryRemark": "Enter remark",
@@ -944,6 +945,12 @@
             "exportFailed": "Export failed",
             "exportTruncated": "{total} records matched; this export is limited to {limit} by system settings"
         }
+    },
+    "departmentManagement": {
+        "actions": { "add": "Add department" },
+        "fields": { "sort": "Sort", "description": "Description", "operation": "Actions" },
+        "confirm": { "deleteTitle": "Delete department", "deleteMessage": "Delete department \"{name}\"?" },
+        "message": { "created": "Department created", "updated": "Department updated" }
     },
     "wallet": {
         "title": "My Wallet",

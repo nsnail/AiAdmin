@@ -23,7 +23,11 @@ export function getDateTimeShortcuts(t: (key: string) => string) {
         { text: t('table.searchBar.previousHour'), value: () => range(new Date(now.getTime() - 7200000), new Date(now.getTime() - 3600000)) },
         {
             text: t('table.searchBar.yesterdayAtThisTime'),
-            value: () => range(new Date(yesterday.getTime() + (now.getTime() - today.getTime())), new Date()),
+            value: () => {
+                const end = new Date(now)
+                end.setDate(end.getDate() - 1)
+                return range(new Date(yesterday), end)
+            },
         },
         { text: t('table.searchBar.today'), value: () => range(new Date(today), new Date(tomorrow)) },
         { text: t('table.searchBar.yesterday'), value: () => range(new Date(yesterday), new Date(today)) },

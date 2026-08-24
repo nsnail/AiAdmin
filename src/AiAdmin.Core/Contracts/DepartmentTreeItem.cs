@@ -21,9 +21,9 @@ public sealed class DepartmentTreeItem
     public DateTime CreatedAt { get; init; }
 
     /// <summary>
-    ///     部门邮箱
+    ///     部门描述
     /// </summary>
-    public string Email { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
 
     /// <summary>
     ///     部门主键
@@ -36,11 +36,6 @@ public sealed class DepartmentTreeItem
     public bool IsEnabled { get; init; }
 
     /// <summary>
-    ///     部门负责人
-    /// </summary>
-    public string Leader { get; init; } = string.Empty;
-
-    /// <summary>
     ///     部门名称
     /// </summary>
     public required string Name { get; init; }
@@ -51,12 +46,12 @@ public sealed class DepartmentTreeItem
     public long? ParentId { get; init; }
 
     /// <summary>
-    ///     部门电话
-    /// </summary>
-    public string Phone { get; init; } = string.Empty;
-
-    /// <summary>
     ///     同级显示顺序
     /// </summary>
     public int Sort { get; init; }
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; init; }
 }

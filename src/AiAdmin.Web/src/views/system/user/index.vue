@@ -123,6 +123,7 @@ const {
                 queryValueType: 'number',
                 label: 'ID',
                 width: 150,
+                align: 'left',
                 formatter: (row) => h(ArtListIdCell, { id: row.id, createdAt: row.createTime }),
             },
             {
@@ -166,6 +167,7 @@ const {
                 prop: 'userGender',
                 queryField: 'Gender',
                 queryValueType: 'number',
+                align: 'right',
                 label: t('userManagement.fields.gender'),
                 width: 100,
                 sortable: true,

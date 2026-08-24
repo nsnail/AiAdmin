@@ -56,6 +56,7 @@ const {
                 queryValueType: 'number',
                 label: 'ID',
                 width: 170,
+                align: 'left',
                 sortable: true,
                 formatter: (row: WalletInfo) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
             },

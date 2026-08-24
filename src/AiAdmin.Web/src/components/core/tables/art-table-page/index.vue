@@ -26,11 +26,14 @@
                 :data="data"
                 :loading="loading"
                 :pagination="pagination"
+                :row-key="rowKey"
+                :tree-props="treeProps"
                 @cell-query="handleCellQuery"
                 @pagination:current-change="emit('page-change', $event)"
                 @pagination:size-change="emit('size-change', $event)"
                 @selection-change="emit('selection-change', $event)"
-                @sort-change="emit('sort-change', $event)" />
+                @sort-change="emit('sort-change', $event)"
+                ref="tableRef" />
 
             <slot />
         </ElCard>
@@ -66,6 +69,8 @@ interface Props {
     loading?: boolean
     pagination?: PaginationState
     defaultFilter?: DynamicFilter
+    treeProps?: Record<string, unknown>
+    rowKey?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -74,6 +79,8 @@ const props = withDefaults(defineProps<Props>(), {
     data: () => [],
     loading: false,
     pagination: () => ({ current: 1, size: 20, total: 0 }),
+    treeProps: undefined,
+    rowKey: undefined,
 })
 
 const emit = defineEmits<{
@@ -89,6 +96,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const searchBarRef = ref<{ setDynamicFilter?: (filter: DynamicFilter | undefined) => void }>()
+const tableRef = ref()
 const formModel = ref<Record<string, unknown>>({})
 const filterFields = ref<ListFilterField[]>([])
 const filterGroups = ref<ListFilterGroup[]>([])
@@ -237,4 +245,6 @@ onMounted(async () => {
     await nextTick()
     synchronizeFilter(props.defaultFilter)
 })
+
+defineExpose({ tableRef })
 </script>

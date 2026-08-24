@@ -159,6 +159,7 @@ const {
                 queryValueType: 'number',
                 label: 'ID',
                 width: 150,
+                align: 'left',
                 sortable: true,
                 formatter: (row) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
             },
@@ -195,7 +196,7 @@ const {
                 label: '超时（秒）',
                 width: 120,
                 sortable: true,
-                align: 'center',
+                align: 'right',
             },
             {
                 prop: 'isEnabled',
@@ -329,6 +330,7 @@ const executionTable = useTable({
                 label: '响应状态',
                 width: 130,
                 sortable: true,
+                align: 'right',
                 formatter: (row) => row.responseStatusCode ?? '-',
             },
             {

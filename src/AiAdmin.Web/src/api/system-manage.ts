@@ -332,6 +332,10 @@ export function fetchGetDepartmentTree() {
     return request.get<Api.SystemManage.DepartmentTreeItem[]>({ url: '/api/department/tree' })
 }
 
+export function fetchGetDepartmentList(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<Api.SystemManage.DepartmentTreeItem>>({ url: '/api/department/list', data: params })
+}
+
 export function fetchGetSystemMessages(params: {
     current: number
     size: number

@@ -835,7 +835,7 @@
             "dataScope": "数据权限"
         },
         "menu": { "name": "菜单名称", "parentName": "上级菜单", "path": "路由地址" },
-        "department": { "name": "部门名称", "code": "部门编码" },
+        "department": { "name": "部门名称", "code": "部门编码", "description": "部门描述" },
         "dictionary": {
             "label": "标签",
             "value": "键值",
@@ -862,6 +862,7 @@
             "parentMenu": "请输入上级菜单",
             "departmentName": "请输入部门名称",
             "departmentCode": "请输入部门编码",
+            "description": "请输入部门描述",
             "dictionaryLabel": "请输入标签",
             "dictionaryValue": "请输入键值",
             "dictionaryRemark": "请输入备注",
@@ -935,6 +936,12 @@
             "exportFailed": "导出失败",
             "exportTruncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
         }
+    },
+    "departmentManagement": {
+        "actions": { "add": "新增部门" },
+        "fields": { "sort": "排序", "description": "描述", "operation": "操作" },
+        "confirm": { "deleteTitle": "删除部门", "deleteMessage": "确定删除部门“{name}”吗？" },
+        "message": { "created": "部门创建成功", "updated": "部门更新成功" }
     },
     "wallet": {
         "title": "我的钱包",

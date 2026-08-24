@@ -226,9 +226,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.HasIndex(x => x.ParentId);
                 _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
-                _ = entity.Property(x => x.Leader).HasMaxLength(50);
-                _ = entity.Property(x => x.Phone).HasMaxLength(20);
-                _ = entity.Property(x => x.Email).HasMaxLength(100).IsRequired(false);
+                _ = entity.Property(x => x.Description).HasMaxLength(500);
                 _ = entity.Property(x => x.IsEnabled).HasDefaultValue(true);
                 _ = entity.HasOne(x => x.Parent).WithMany(x => x.Children).HasForeignKey(x => x.ParentId).OnDelete(DeleteBehavior.Restrict);
             }

@@ -26,13 +26,14 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     部门编码
     /// </summary>
-    [ListFilter("listFilter.department.code", Placeholder = "listFilter.placeholder.departmentCode")]
+    [ListFilter("listFilter.department.code", Placeholder = "listFilter.placeholder.departmentCode", Span = 3)]
     public required string Code { get; set; }
 
     /// <summary>
-    ///     部门邮箱
+    ///     部门描述
     /// </summary>
-    public string Email { get; set; } = string.Empty;
+    [ListFilter("listFilter.department.description", Placeholder = "listFilter.placeholder.description", Span = 3)]
+    public string Description { get; set; } = string.Empty;
 
     /// <summary>
     ///     部门主键
@@ -42,18 +43,16 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     是否启用部门
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
+    [ListFilter(
+        "listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], GroupCount = true
+        , Span = 2
+    )]
     public bool IsEnabled { get; set; } = true;
-
-    /// <summary>
-    ///     部门负责人
-    /// </summary>
-    public string Leader { get; set; } = string.Empty;
 
     /// <summary>
     ///     部门名称
     /// </summary>
-    [ListFilter("listFilter.department.name", Placeholder = "listFilter.placeholder.departmentName")]
+    [ListFilter("listFilter.department.name", Placeholder = "listFilter.placeholder.departmentName", Span = 3, Sort = 0)]
     public required string Name { get; set; }
 
     /// <summary>
@@ -65,11 +64,6 @@ public sealed class Department : EntityBase
     ///     父部门主键
     /// </summary>
     public long? ParentId { get; set; }
-
-    /// <summary>
-    ///     部门电话
-    /// </summary>
-    public string Phone { get; set; } = string.Empty;
 
     /// <summary>
     ///     同级显示顺序

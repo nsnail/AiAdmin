@@ -800,7 +800,11 @@ const createDateShortcuts = (fieldKey: string) => {
         },
         {
             text: t('table.searchBar.yesterdayAtThisTime'),
-            value: () => [new Date(yesterday), new Date()],
+            value: () => {
+                const end = new Date(now)
+                end.setDate(end.getDate() - 1)
+                return [new Date(yesterday), end]
+            },
         },
         { text: t('table.searchBar.today'), value: () => [new Date(today), new Date(tomorrow)] },
         { text: t('table.searchBar.yesterday'), value: () => [new Date(yesterday), new Date(today)] },

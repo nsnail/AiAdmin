@@ -111,6 +111,7 @@ const {
                 queryValueType: 'number',
                 label: 'ID',
                 width: 150,
+                align: 'left',
                 formatter: (row) => h(ArtListIdCell, { id: row.roleId, createdAt: row.createTime }),
             },
             {

@@ -262,6 +262,7 @@ const { columnChecks, columns } = useTableColumns(() => [
         queryField: 'IsEnabled',
         queryValueField: 'isEnabled',
         queryValueType: 'boolean',
+        align: 'center',
         formatter: (row: AppRouteRecord) =>
             row.meta?.isAuthButton
                 ? ''

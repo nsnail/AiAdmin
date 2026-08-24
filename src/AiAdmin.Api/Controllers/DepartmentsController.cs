@@ -18,6 +18,17 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/department")]
 public sealed class DepartmentsController(AppDbContext db) : ControllerBase
 {
+    private static readonly IReadOnlyDictionary<string, string> _sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["id"] = nameof(Department.Id)
+        , ["name"] = nameof(Department.Name)
+        , ["code"] = nameof(Department.Code)
+        , ["sort"] = nameof(Department.Sort)
+        , ["isEnabled"] = nameof(Department.IsEnabled)
+        , ["createdAt"] = nameof(Department.CreatedAt)
+        , ["updatedAt"] = nameof(Department.UpdatedAt)
+    };
+
     /// <summary>
     ///     创建部门
     /// </summary>
@@ -75,6 +86,40 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     [ApiDescription("Query department filter fields")]
     public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
         return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<Department>()));
+    }
+
+    /// <summary>
+    ///     查询当前部门筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>部门筛选分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query department filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService.GetGroupsAsync(db.Departments.AsNoTracking(), request.DynamicFilter).ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
+    ///     按动态条件分页查询部门
+    /// </summary>
+    /// <param name="request">包含动态筛选、排序和分页信息的请求体</param>
+    /// <returns>部门分页结果</returns>
+    [HttpPost("list")]
+    [ApiDescription("Query department list")]
+    public async Task<ActionResult<ApiResponse<PagedResponse<DepartmentTreeItem>>>> ListAsync([FromBody] DynamicQueryRequest request) {
+        var query = db.Departments.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter);
+        var total = await query.CountAsync().ConfigureAwait(false);
+
+        // 树形列表需要同时保留父子节点关系，因此先完成筛选和排序，再构建树节点
+        var rows = await query
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Department.Sort), true, _sortAliases)
+            .ToListAsync()
+            .ConfigureAwait(false);
+        var treeRows = BuildTree(rows);
+        return Ok(
+            ApiResponse<PagedResponse<DepartmentTreeItem>>.Ok(new PagedResponse<DepartmentTreeItem>(treeRows, request.Current, request.Size, total))
+        );
     }
 
     /// <summary>
@@ -136,9 +181,7 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
         department.Code = request.Code.Trim();
         department.ParentId = request.ParentId;
         department.Sort = request.Sort;
-        department.Leader = request.Leader.Trim();
-        department.Phone = request.Phone.Trim();
-        department.Email = request.Email?.Trim() ?? string.Empty;
+        department.Description = request.Description.Trim();
         department.IsEnabled = request.IsEnabled;
     }
 
@@ -190,11 +233,10 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
             , Code = department.Code
             , ParentId = department.ParentId
             , Sort = department.Sort
-            , Leader = department.Leader
-            , Phone = department.Phone
-            , Email = department.Email
+            , Description = department.Description
             , IsEnabled = department.IsEnabled
             , CreatedAt = department.CreatedAt
+            , UpdatedAt = department.UpdatedAt
             , Children = children ?? []
         };
     }

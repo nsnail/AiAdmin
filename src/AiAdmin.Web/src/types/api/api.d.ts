@@ -92,7 +92,7 @@ declare namespace Api {
         interface RegisterParams {
             userName: string
             password: string
-            email: string
+            description: string
             verificationCode: string
             invitationCode?: string
         }
@@ -263,18 +263,17 @@ declare namespace Api {
             id: string
             name: string
             code: string
+            description: string
             parentId: string | null
             sort: number
-            leader: string
-            phone: string
-            email: string
             isEnabled: boolean
             createdAt: string
+            updatedAt: string | null
             children: DepartmentTreeItem[]
         }
 
         /** 部门保存参数 */
-        type SaveDepartmentParams = Pick<DepartmentTreeItem, 'name' | 'code' | 'parentId' | 'sort' | 'leader' | 'phone' | 'email' | 'isEnabled'>
+        type SaveDepartmentParams = Pick<DepartmentTreeItem, 'name' | 'code' | 'parentId' | 'sort' | 'description' | 'isEnabled'>
 
         /** 角色列表 */
         type RoleList = Api.Common.PaginatedResponse<RoleListItem>

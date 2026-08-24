@@ -108,6 +108,7 @@ const {
                 queryValueType: 'number',
                 label: 'ID',
                 width: 150,
+                align: 'left',
                 formatter: (row: LoginLogRecord) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
             },
             {
