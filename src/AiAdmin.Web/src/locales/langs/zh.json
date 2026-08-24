@@ -824,6 +824,14 @@
             "custom": "按 Cron 规则执行（{value}）"
         }
     },
+    "apiManagement": {
+        "statistics": {
+            "total": "接口总数",
+            "controllers": "控制器数",
+            "anonymous": "匿名接口",
+            "methods": "HTTP 方法数"
+        }
+    },
     "listFilter": {
         "group": { "all": "全部" },
         "common": { "createdAt": "创建时间", "status": "是否启用" },

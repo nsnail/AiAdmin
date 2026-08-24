@@ -1,15 +1,29 @@
 <template>
     <div class="art-full-height">
+        <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <ElCard shadow="never">
+                <ElStatistic :title="t('apiManagement.statistics.total')" :value="statistics.total" />
+            </ElCard>
+            <ElCard shadow="never">
+                <ElStatistic :title="t('apiManagement.statistics.controllers')" :value="statistics.controllers" />
+            </ElCard>
+            <ElCard shadow="never">
+                <ElStatistic :title="t('apiManagement.statistics.anonymous')" :value="statistics.anonymous" />
+            </ElCard>
+            <ElCard shadow="never">
+                <ElStatistic :title="t('apiManagement.statistics.methods')" :value="statistics.methods" />
+            </ElCard>
+        </div>
         <ElCard class="art-table-card">
-            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <ElInput v-model="keyword" class="w-full sm:w-80" clearable placeholder="搜索接口名称、方法或路径">
+            <div class="mb-4 flex flex-wrap items-center gap-3">
+                <ElInput v-model="keyword" class="min-w-0 basis-full flex-1 sm:basis-auto" clearable placeholder="搜索接口名称、方法或路径">
                     <template #prefix><ArtSvgIcon icon="ri:search-line" /></template>
                 </ElInput>
-                <ElButton :loading="syncing" @click="syncEndpoints" type="primary">
+                <ElButton @click="advancedQueryVisible = true" class="w-24 shrink-0 justify-center">高级查询</ElButton>
+                <ElButton :loading="syncing" @click="syncEndpoints" class="w-28 shrink-0 justify-center" type="primary">
                     <ArtSvgIcon class="mr-1" icon="ri:refresh-line" />
                     同步接口
                 </ElButton>
-                <ElButton @click="advancedQueryVisible = true">高级查询</ElButton>
             </div>
 
             <ArtTable
@@ -86,7 +100,6 @@ const advancedQueryFields = computed<DynamicQueryField[]>(() =>
         type: field.valueType,
     })),
 )
-
 const groupedEndpoints = computed<ApiTableRow[]>(() => {
     const value = keyword.value.trim().toLowerCase()
     const groups = new Map<string, ApiEndpointItem[]>()
@@ -124,6 +137,13 @@ const groupedEndpoints = computed<ApiTableRow[]>(() => {
         ]
     })
 })
+const visibleEndpoints = computed(() => groupedEndpoints.value.flatMap((group) => group.children ?? []))
+const statistics = computed(() => ({
+    total: visibleEndpoints.value.length,
+    controllers: new Set(visibleEndpoints.value.map((item) => item.controller || item.controllerName)).size,
+    anonymous: visibleEndpoints.value.filter((item) => item.allowAnonymous).length,
+    methods: new Set(visibleEndpoints.value.map((item) => item.method)).size,
+}))
 
 const loadEndpoints = async () => {
     loading.value = true

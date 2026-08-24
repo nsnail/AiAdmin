@@ -833,6 +833,14 @@
             "custom": "Run according to Cron rule ({value})"
         }
     },
+    "apiManagement": {
+        "statistics": {
+            "total": "Total APIs",
+            "controllers": "Controllers",
+            "anonymous": "Anonymous APIs",
+            "methods": "HTTP methods"
+        }
+    },
     "listFilter": {
         "group": { "all": "All" },
         "common": { "createdAt": "Created at", "status": "Enabled" },
