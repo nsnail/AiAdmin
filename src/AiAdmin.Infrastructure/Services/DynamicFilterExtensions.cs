@@ -430,9 +430,10 @@ public static class DynamicFilterExtensions
                 , _ when targetType == typeof(DateTimeOffset) => DateTimeOffset.Parse(
                     value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
                 )
-                , _ when targetType == typeof(DateTime) => DateTime.Parse(
-                    value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
-                )
+                , _ when targetType == typeof(DateTime) => DateTimeOffset.Parse(
+                        value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
+                    )
+                    .UtcDateTime
                 , _ when targetType.IsEnum && value.ValueKind == JsonValueKind.String => ParseEnumValue(targetType, value.GetString() ?? string.Empty)
                 , _ when IsNumericType(targetType) && value.ValueKind == JsonValueKind.String => Convert.ChangeType(
                     value.GetString() ?? string.Empty, targetType, CultureInfo.InvariantCulture

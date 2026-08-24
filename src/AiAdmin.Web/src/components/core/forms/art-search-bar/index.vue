@@ -834,7 +834,7 @@ const backendFormItems = computed<SearchFormItem[]>(() =>
             field.control === 'date'
                 ? {
                       type: 'datetimerange',
-                      valueFormat: 'YYYY-MM-DDTHH:mm:ss',
+                      valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
                       rangeSeparator: t('table.searchBar.to'),
                       startPlaceholder: t('table.searchBar.startDate'),
                       endPlaceholder: t('table.searchBar.endDate'),

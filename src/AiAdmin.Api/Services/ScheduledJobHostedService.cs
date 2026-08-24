@@ -91,7 +91,7 @@ public sealed class ScheduledJobHostedService(
         var execution = new ScheduledJobExecution
         {
             ScheduledJobId = job.Id
-            , StartedAt = DateTime.Now
+            , StartedAt = DateTime.UtcNow
             , RequestUrl = url
             , RequestMethod = job.RequestMethod
             , RequestHeaders = headers
@@ -130,7 +130,7 @@ public sealed class ScheduledJobHostedService(
             execution.ErrorMessage = exception.Message;
         }
 
-        execution.FinishedAt = DateTime.Now;
+        execution.FinishedAt = DateTime.UtcNow;
         await using var jobLock = await lockService.TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None).ConfigureAwait(false)
                                   ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
 
@@ -152,7 +152,7 @@ public sealed class ScheduledJobHostedService(
     private async Task TickAsync(CancellationToken cancellationToken) {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var jobs = await db
             .ScheduledJobs.Where(x => x.IsEnabled && x.Status != ScheduledJobStatus.Running)
             .ToListAsync(cancellationToken)
@@ -167,7 +167,7 @@ public sealed class ScheduledJobHostedService(
                 }
 
                 await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
-                now = DateTime.Now;
+                now = DateTime.UtcNow;
                 if (!job.IsEnabled
                     || job.Status == ScheduledJobStatus.Running
                     || !CronMatcher.IsDue(job.CronExpression, now)

@@ -105,7 +105,7 @@
                         end-placeholder="结束时间"
                         start-placeholder="开始时间"
                         type="datetimerange"
-                        value-format="YYYY-MM-DDTHH:mm:ss" />
+                        value-format="YYYY-MM-DDTHH:mm:ss.SSSZ" />
                     <div v-else-if="queryOperator === 'Range'" class="query-range-inputs">
                         <ElInput v-model="queryRangeValue[0]" inputmode="decimal" placeholder="最小值" />
                         <span>至</span>
@@ -129,7 +129,7 @@
                         v-model="queryValue"
                         class="w-full"
                         type="datetime"
-                        value-format="YYYY-MM-DDTHH:mm:ss" />
+                        value-format="YYYY-MM-DDTHH:mm:ss.SSSZ" />
                     <ElInput v-else v-model="queryValue" :rows="4" clearable resize="vertical" type="textarea" />
                 </ElFormItem>
             </ElForm>

@@ -1,31 +1,31 @@
 namespace AiAdmin.Api.Services;
 
 /// <summary>
-///     服务器时间辅助类
+///     UTC 时间辅助类
 /// </summary>
 public static class ServerTime
 {
     /// <summary>
-    ///     获取服务器所在时区的当前本地时间
+    ///     获取当前 UTC 时间
     /// </summary>
-    public static DateTime Now => DateTime.Now;
+    public static DateTime UtcNow => DateTime.UtcNow;
 
     /// <summary>
-    ///     将客户端带偏移量的时间转换为服务器本地时间
+    ///     将数据库中的 UTC 时间转换为零偏移时间
     /// </summary>
-    /// <param name="value">客户端时间</param>
-    /// <returns>服务器本地时间</returns>
-    public static DateTime ToLocal(DateTimeOffset value) {
-        return TimeZoneInfo.ConvertTime(value, TimeZoneInfo.Local).DateTime;
+    /// <param name="value">UTC 时间</param>
+    /// <returns>零偏移时间</returns>
+    public static DateTimeOffset ToOffset(DateTime value) {
+        var utc = DateTime.SpecifyKind(value, DateTimeKind.Utc);
+        return new DateTimeOffset(utc);
     }
 
     /// <summary>
-    ///     将数据库中的服务器本地时间转换为带服务器偏移量的时间
+    ///     将带偏移量的时间转换为 UTC 时间
     /// </summary>
-    /// <param name="value">服务器本地时间</param>
-    /// <returns>带服务器时区偏移量的时间</returns>
-    public static DateTimeOffset ToOffset(DateTime value) {
-        var local = DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
-        return new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local));
+    /// <param name="value">客户端时间</param>
+    /// <returns>UTC 时间</returns>
+    public static DateTime ToUtc(DateTimeOffset value) {
+        return value.UtcDateTime;
     }
 }

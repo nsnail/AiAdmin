@@ -49,7 +49,7 @@ public sealed class ScheduledJobReleaseHostedService(
     private async Task ReleaseTimedOutJobsAsync(CancellationToken cancellationToken) {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var jobs = await db
             .ScheduledJobs.Where(x => x.Status == ScheduledJobStatus.Running && x.LastTriggeredAt.HasValue)
             .ToListAsync(cancellationToken)
@@ -61,7 +61,7 @@ public sealed class ScheduledJobReleaseHostedService(
             }
 
             await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
-            now = DateTime.Now;
+            now = DateTime.UtcNow;
             if (job.Status != ScheduledJobStatus.Running
                 || !job.LastTriggeredAt.HasValue
                 || job.LastTriggeredAt.Value.AddSeconds(job.TimeoutSeconds) > now) {

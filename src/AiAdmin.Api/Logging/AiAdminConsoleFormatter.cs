@@ -36,7 +36,7 @@ internal sealed class AiAdminConsoleFormatter() : ConsoleFormatter("aiadmin")
         var message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception) ?? string.Empty;
         var lines = new List<string>
         {
-            FormatField("Timestamp", DateTimeOffset.Now)
+            FormatField("Timestamp", DateTimeOffset.UtcNow)
             , FormatField("Level", logEntry.LogLevel)
             , FormatField("Message", message)
             , FormatField("Source", fields.GetValueOrDefault("Source") ?? logEntry.Category)

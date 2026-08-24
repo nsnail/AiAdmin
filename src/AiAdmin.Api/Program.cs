@@ -24,7 +24,15 @@ builder.Logging.AddConsole(options => options.FormatterName = "aiadmin");
 builder.Logging.AddFilter("AiAdmin.Api.Middleware.ApiHttpLoggingMiddleware", LogLevel.Information);
 builder.Logging.AddFilter("AiAdmin.Api.Services.ExternalHttpRequestService", LogLevel.Information);
 
-builder.Services.AddControllers().AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new LongJsonConverter()));
+builder
+    .Services.AddControllers()
+    .AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+            options.JsonSerializerOptions.Converters.Add(new UtcDateTimeOffsetJsonConverter());
+            options.JsonSerializerOptions.Converters.Add(new LongJsonConverter());
+        }
+    );
 builder.Services.AddProblemDetails();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto

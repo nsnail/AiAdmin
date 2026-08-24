@@ -306,7 +306,7 @@ public sealed class AuthController(
         }
 
         var sender = string.IsNullOrWhiteSpace(smtp.User) ? smtp.From : smtp.User;
-        var mail = new MimeMessage { Date = DateTimeOffset.Now, MessageId = MimeUtils.GenerateMessageId() };
+        var mail = new MimeMessage { Date = DateTimeOffset.UtcNow, MessageId = MimeUtils.GenerateMessageId() };
         mail.From.Add(MailboxAddress.Parse(sender));
         mail.To.Add(MailboxAddress.Parse(request.Email.Trim()));
         mail.Subject = "Registration verification code";
@@ -537,7 +537,7 @@ public sealed class AuthController(
         , string body
     ) {
         var sender = string.IsNullOrWhiteSpace(smtp.User) ? smtp.From : smtp.User;
-        var mail = new MimeMessage { Date = DateTimeOffset.Now, MessageId = MimeUtils.GenerateMessageId(), Subject = subject };
+        var mail = new MimeMessage { Date = DateTimeOffset.UtcNow, MessageId = MimeUtils.GenerateMessageId(), Subject = subject };
         mail.From.Add(MailboxAddress.Parse(sender));
         mail.To.Add(MailboxAddress.Parse(recipient));
         mail.Body = new TextPart("plain") { Text = body };

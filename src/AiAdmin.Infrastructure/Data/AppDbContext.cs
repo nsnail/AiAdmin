@@ -518,7 +518,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     ///     根据实体状态维护创建时间和最后更新时间
     /// </summary>
     private void UpdateAuditTimes() {
-        var now = ServerTime.Now;
+        var now = ServerTime.UtcNow;
 
         foreach (var entry in ChangeTracker.Entries<EntityBase>()) {
             switch (entry.State) {

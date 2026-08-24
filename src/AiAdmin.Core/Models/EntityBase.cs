@@ -11,7 +11,7 @@ public abstract class EntityBase
     ///     创建时间
     /// </summary>
     [ListFilter("listFilter.common.createdAt", "date", Span = 7, Sort = int.MinValue)]
-    public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     ///     最后更新时间
