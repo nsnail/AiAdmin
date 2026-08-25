@@ -29,6 +29,18 @@ public sealed class LoginLogsController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     查询当前登录日志筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>可用于进一步筛选的字段分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query login log filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService.GetGroupsAsync(db.LoginLogs.AsNoTracking(), request.DynamicFilter).ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
     ///     分页查询登录日志
     /// </summary>
     /// <param name="request">包含动态筛选、排序和分页信息的请求体</param>
@@ -59,9 +71,8 @@ public sealed class LoginLogsController(AppDbContext db) : ControllerBase
     private static LoginLogResult ToResult(LoginLog entity) {
         return new LoginLogResult(
             entity.Id, entity.UserId, entity.UserName, entity.OwnerId, entity.OwnerDepartmentId, entity.ClientIp, entity.Region, entity.UserAgent
-            , entity.OperatingSystem, entity.Browser
-            , entity.DeviceType, entity.Platform, entity.Language, entity.TimeZone, entity.ScreenResolution, entity.ViewportSize, entity.ColorDepth
-            , entity.PixelRatio, entity.TouchPoints, entity.ClientHints, ServerTime.ToOffset(entity.CreatedAt)
+            , entity.OperatingSystem, entity.Browser, entity.DeviceType, entity.Platform, entity.Language, entity.TimeZone, entity.ScreenResolution
+            , entity.ViewportSize, entity.ColorDepth, entity.PixelRatio, entity.TouchPoints, entity.ClientHints, ServerTime.ToOffset(entity.CreatedAt)
         );
     }
 }

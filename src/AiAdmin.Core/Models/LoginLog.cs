@@ -15,15 +15,15 @@ public sealed class LoginLog : EntityBase, IOwner
     public string Browser { get; init; } = string.Empty;
 
     /// <summary>
+    ///     浏览器客户端提示原始 JSON
+    /// </summary>
+    public string ClientHints { get; init; } = string.Empty;
+
+    /// <summary>
     ///     客户端 IP 地址
     /// </summary>
     [ListFilter("loginLog.fields.clientIp", Sort = 1)]
     public string ClientIp { get; init; } = string.Empty;
-
-    /// <summary>
-    ///     浏览器客户端提示原始 JSON
-    /// </summary>
-    public string ClientHints { get; init; } = string.Empty;
 
     /// <summary>
     ///     屏幕色深
@@ -33,7 +33,14 @@ public sealed class LoginLog : EntityBase, IOwner
     /// <summary>
     ///     设备类型
     /// </summary>
-    [ListFilter("loginLog.fields.deviceType", "select", Options = ["Desktop:loginLog.devices.desktop", "Mobile:loginLog.devices.mobile", "Tablet:loginLog.devices.tablet", "Unknown:loginLog.devices.unknown"], Sort = 5)]
+    [ListFilter(
+        "loginLog.fields.deviceType", "select"
+        , Options =
+        [
+            "Desktop:loginLog.devices.desktop", "Mobile:loginLog.devices.mobile", "Tablet:loginLog.devices.tablet"
+            , "Unknown:loginLog.devices.unknown"
+        ], Sort = 5, GroupCount = true
+    )]
     public string DeviceType { get; init; } = string.Empty;
 
     /// <summary>
@@ -63,14 +70,14 @@ public sealed class LoginLog : EntityBase, IOwner
     public long OwnerId { get; set; }
 
     /// <summary>
-    ///     设备平台
-    /// </summary>
-    public string Platform { get; init; } = string.Empty;
-
-    /// <summary>
     ///     设备像素比
     /// </summary>
     public double? PixelRatio { get; init; }
+
+    /// <summary>
+    ///     设备平台
+    /// </summary>
+    public string Platform { get; init; } = string.Empty;
 
     /// <summary>
     ///     IP 归属地区

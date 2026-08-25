@@ -191,28 +191,8 @@ export function fetchGetDictionaryFilterGroups(categoryId: string, dynamicFilter
     return request.post<ListFilterGroup[]>({ url: '/api/dictionary/filter-groups', params: { categoryId }, data: { dynamicFilter } })
 }
 
-export function fetchGetLoginLogList(data: {
-    current: number
-    size: number
-    dynamicFilter?: DynamicFilter
-    sortField?: string
-    sortOrder?: 'asc' | 'desc'
-    [field: string]: unknown
-}) {
-    // 筛选栏字段名由元数据返回，不应依赖 PascalCase 命名约定，否则字段被序列化为 camelCase 时会被忽略。
-    const queryFields = new Set(['current', 'size', 'dynamicFilter', 'sortField', 'sortOrder'])
-    const filters: DynamicFilter[] = Object.entries(data)
-        .filter(([field, value]) => !queryFields.has(field) && value !== undefined && value !== null && value !== '')
-        .map(([field, value]) => ({
-            field,
-            operator: Array.isArray(value) ? (field === 'CreatedAt' ? 'DateRange' : 'Any') : getGeneratedFilterOperator(value),
-            value: normalizeDateRange(value === 'true' ? true : value === 'false' ? false : value),
-        }))
-    if (data.dynamicFilter) filters.push(data.dynamicFilter)
-    return request.post<Api.Common.PaginatedResponse<LoginLogRecord>>({
-        url: '/api/login-log/list',
-        data: createDynamicQuery(data.current, data.size, filters, data.sortField, data.sortOrder),
-    })
+export function fetchGetLoginLogList(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<LoginLogRecord>>({ url: '/api/login-log/list', data: params })
 }
 
 export function fetchGetSavedQueries(route: string) {

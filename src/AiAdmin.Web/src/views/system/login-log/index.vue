@@ -1,23 +1,18 @@
 <template>
     <div class="login-log-page art-full-height">
-        <ArtSearchBar
-            v-model="searchForm"
-            :advanced-query-fields="advancedQueryFields"
-            :filter-fields="filterFields"
-            @reset="handleReset"
-            @search="handleSearch" />
-        <ElCard class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData" />
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                @cell-query="applyCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @sort-change="handleSortChange" />
-        </ElCard>
+        <ArtTablePage
+            v-model:column-checks="columnChecks"
+            :columns="columns"
+            :data="data"
+            :loading="loading"
+            :pagination="pagination"
+            @filter-change="handleFilterChange"
+            @page-change="handleCurrentChange"
+            @refresh="refreshData"
+            @reset="resetSearchParams"
+            @size-change="handleSizeChange"
+            @sort-change="handleSortChange"
+            resource="login-log" />
         <ElDialog v-model="detailVisible" :title="t('loginLog.detail.title')" destroy-on-close width="850px">
             <ElTabs v-if="selectedLog" v-model="activeDetailTab" type="card">
                 <ElTabPane :label="t('loginLog.detail.tabs.details')" name="details">
@@ -42,17 +37,16 @@
 import { ElButton, ElDescriptions, ElDescriptionsItem, ElDialog } from 'element-plus'
 import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { fetchGetListFilterFields, fetchGetLoginLogList, type ListFilterField, type LoginLogRecord } from '@/api/system-manage'
-import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+import { fetchGetLoginLogList, type LoginLogRecord } from '@/api/system-manage'
+import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import { useTable } from '@/hooks/core/useTable'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 
 defineOptions({ name: 'LoginLog' })
 const { t } = useI18n()
-const filterFields = ref<ListFilterField[]>([])
-const searchForm = ref<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
 const detailVisible = ref(false)
 const selectedLog = ref<LoginLogRecord>()
 const activeDetailTab = ref('details')
@@ -77,14 +71,6 @@ const detailFields = [
     'clientHints',
     'createdAt',
 ] as const
-const advancedQueryFields = computed<DynamicQueryField[]>(() =>
-    filterFields.value.map((field) => ({
-        field: field.field,
-        label: t(field.label),
-        type: field.valueType,
-    })),
-)
-
 const {
     columns,
     columnChecks,
@@ -92,6 +78,7 @@ const {
     loading,
     pagination,
     replaceSearchParams,
+    resetSearchParams,
     handleSizeChange,
     handleCurrentChange,
     handleSortChange,
@@ -114,18 +101,24 @@ const {
             {
                 prop: 'userName',
                 queryField: 'UserName',
+                queryValueField: 'userName',
+                queryValueType: 'string',
                 label: t('loginLog.fields.userName'),
                 width: 130,
             },
             {
                 prop: 'clientIp',
                 queryField: 'ClientIp',
+                queryValueField: 'clientIp',
+                queryValueType: 'string',
                 label: t('loginLog.fields.clientIp'),
                 width: 150,
             },
             {
                 prop: 'region',
                 queryField: 'Region',
+                queryValueField: 'region',
+                queryValueType: 'string',
                 label: t('loginLog.fields.region'),
                 minWidth: 180,
                 showOverflowTooltip: true,
@@ -133,25 +126,40 @@ const {
             {
                 prop: 'operatingSystem',
                 queryField: 'OperatingSystem',
+                queryValueField: 'operatingSystem',
+                queryValueType: 'string',
                 label: t('loginLog.fields.operatingSystem'),
                 width: 150,
             },
-            { prop: 'browser', queryField: 'Browser', label: t('loginLog.fields.browser'), width: 150 },
+            {
+                prop: 'browser',
+                queryField: 'Browser',
+                queryValueField: 'browser',
+                queryValueType: 'string',
+                label: t('loginLog.fields.browser'),
+                width: 150,
+            },
             {
                 prop: 'deviceType',
                 queryField: 'DeviceType',
+                queryValueField: 'deviceType',
+                queryValueType: 'string',
                 label: t('loginLog.fields.deviceType'),
                 width: 110,
             },
             {
                 prop: 'language',
                 queryField: 'Language',
+                queryValueField: 'language',
+                queryValueType: 'string',
                 label: t('loginLog.fields.language'),
                 width: 110,
             },
             {
                 prop: 'timeZone',
                 queryField: 'TimeZone',
+                queryValueField: 'timeZone',
+                queryValueType: 'string',
                 label: t('loginLog.fields.timeZone'),
                 width: 170,
             },
@@ -171,20 +179,8 @@ const {
     },
 })
 
-const handleSearch = (params: Record<string, unknown>) => {
-    searchForm.value = params
-    replaceSearchParams(params)
-    void getData()
-}
-const handleReset = () => {
-    searchForm.value = {}
-    replaceSearchParams({})
-    void getData()
-}
-const applyCellQuery = async (condition: DynamicFilter) => {
-    const current = searchForm.value.dynamicFilter
-    searchForm.value.dynamicFilter = current ? { logic: 'And', filters: [current, condition] } : condition
-    replaceSearchParams(searchForm.value)
+const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    replaceSearchParams({ dynamicFilter })
     await getData()
 }
 const openDetail = (row: LoginLogRecord) => {
@@ -194,10 +190,6 @@ const openDetail = (row: LoginLogRecord) => {
 }
 const formatValue = (value: unknown) =>
     value === undefined || value === null || value === '' ? '-' : typeof value === 'string' ? value : JSON.stringify(value)
-
-onMounted(async () => {
-    filterFields.value = await fetchGetListFilterFields('login-log')
-})
 </script>
 
 <style scoped>
