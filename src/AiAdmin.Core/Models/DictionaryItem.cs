@@ -28,7 +28,7 @@ public sealed class DictionaryItem : EntityBase
     /// </summary>
     [ListFilter(
         "listFilter.dictionary.isEnabled", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], Sort = 2
-        , Span = 2
+        , Span = 2, GroupCount = true
     )]
     public bool IsEnabled { get; set; } = true;
 

@@ -10,16 +10,19 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     可用余额
     /// </summary>
+    [ListFilter("wallet.availableBalance", "number", Span = 3)]
     public decimal AvailableBalance { get; init; }
 
     /// <summary>
     ///     冻结金额
     /// </summary>
+    [ListFilter("wallet.frozenBalance", "number", Span = 3)]
     public decimal FrozenBalance { get; init; }
 
     /// <summary>
     ///     最后交易时间
     /// </summary>
+    [ListFilter("wallet.lastTransactionAt", "date", Span = 4)]
     public DateTime? LastTransactionAt { get; init; }
 
     /// <summary>
@@ -39,11 +42,13 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     总支出
     /// </summary>
+    [ListFilter("wallet.totalExpense", "number", Span = 3)]
     public decimal TotalExpense { get; init; }
 
     /// <summary>
     ///     总收入
     /// </summary>
+    [ListFilter("wallet.totalIncome", "number", Span = 3)]
     public decimal TotalIncome { get; init; }
 
     /// <summary>
@@ -54,7 +59,7 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     钱包用户主键，同时作为钱包主键
     /// </summary>
-    [ListFilter("wallet.user", "user-select", Span = 6)]
+    [ListFilter("wallet.user", "user-select", Span = 6, GroupCount = true)]
     public long UserId { get; set; }
 
     /// <summary>

@@ -146,6 +146,23 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     }
 
     /// <summary>
+    ///     查询字典内容分组统计
+    /// </summary>
+    /// <param name="categoryId">目录主键</param>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>字典内容分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query dictionary filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync(
+        [FromQuery] long categoryId
+        , [FromBody] ListFilterGroupRequest request
+    ) {
+        var query = db.DictionaryItems.AsNoTracking().Where(x => x.CategoryId == categoryId);
+        var groups = await ListFilterGroupingService.GetGroupsAsync(query, request.DynamicFilter).ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
     ///     查询指定目录的字典内容
     /// </summary>
     /// <param name="categoryId">目录主键</param>
@@ -161,6 +178,37 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
             .ToListAsync()
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<DictionaryItemResult>>.Ok(rows.ConvertAll(ToItem)));
+    }
+
+    /// <summary>
+    ///     分页查询指定目录的字典内容
+    /// </summary>
+    /// <param name="categoryId">目录主键</param>
+    /// <param name="request">包含动态筛选、排序和分页信息的请求体</param>
+    /// <returns>字典内容分页结果</returns>
+    [HttpPost("categories/{categoryId:long}/items/list")]
+    [ApiDescription("Query dictionary items page")]
+    public async Task<ActionResult<ApiResponse<PagedResponse<DictionaryItemResult>>>> ItemsListAsync(
+        long categoryId
+        , [FromBody] DynamicQueryRequest request
+    ) {
+        if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false)) {
+            return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
+        }
+
+        var query = db.DictionaryItems.AsNoTracking().Where(x => x.CategoryId == categoryId).ApplyDynamicFilter(request.DynamicFilter);
+        var total = await query.CountAsync().ConfigureAwait(false);
+        var rows = await query
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(DictionaryItem.Sort))
+            .Skip((request.Current - 1) * request.Size)
+            .Take(request.Size)
+            .ToListAsync()
+            .ConfigureAwait(false);
+        return Ok(
+            ApiResponse<PagedResponse<DictionaryItemResult>>.Ok(
+                new PagedResponse<DictionaryItemResult>(rows.ConvertAll(ToItem), request.Current, request.Size, total)
+            )
+        );
     }
 
     /// <summary>

@@ -1,6 +1,11 @@
 <template>
     <div class="art-full-height">
-        <ArtFilterGroups :groups="filterGroups" :loading="groupLoading" :selections="groupSelections" @select="handleGroupSelect" />
+        <ArtFilterGroups
+            :groups="filterGroups"
+            :loading="groupLoading"
+            :reserve-space="reserveFilterGroups || groupedFields.size > 0"
+            :selections="groupSelections"
+            @select="handleGroupSelect" />
 
         <ArtSearchBar
             v-model="formModel"
@@ -73,6 +78,8 @@ interface Props {
     filterGroupsFn?: (dynamicFilter?: DynamicFilter) => Promise<ListFilterGroup[]>
     treeProps?: Record<string, unknown>
     rowKey?: string
+    filterGroupsLoader?: (dynamicFilter?: DynamicFilter) => Promise<ListFilterGroup[]>
+    reserveFilterGroups?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -83,6 +90,7 @@ const props = withDefaults(defineProps<Props>(), {
     pagination: () => ({ current: 1, size: 20, total: 0 }),
     treeProps: undefined,
     rowKey: undefined,
+    reserveFilterGroups: false,
 })
 
 const emit = defineEmits<{
@@ -170,9 +178,11 @@ const refreshFilterGroups = async (filter: DynamicFilter | undefined): Promise<v
     const requestId = ++groupRequestId
     groupLoading.value = true
     try {
-        const groups = await (props.filterGroupsFn
-            ? props.filterGroupsFn(cloneFilter(filter))
-            : fetchGetListFilterGroups(props.resource, cloneFilter(filter)))
+        const groups = props.filterGroupsLoader
+            ? await props.filterGroupsLoader(cloneFilter(filter))
+            : props.filterGroupsFn
+              ? await props.filterGroupsFn(cloneFilter(filter))
+              : await fetchGetListFilterGroups(props.resource, cloneFilter(filter))
         if (requestId === groupRequestId) filterGroups.value = groups
     } finally {
         if (requestId === groupRequestId) groupLoading.value = false

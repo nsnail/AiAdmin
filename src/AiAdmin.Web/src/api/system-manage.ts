@@ -187,6 +187,10 @@ export function fetchGetListFilterGroups(resource: ListFilterResource, dynamicFi
     return request.post<ListFilterGroup[]>({ url: `/api/${resource}/filter-groups`, data: { dynamicFilter } })
 }
 
+export function fetchGetDictionaryFilterGroups(categoryId: string, dynamicFilter?: DynamicFilter) {
+    return request.post<ListFilterGroup[]>({ url: '/api/dictionary/filter-groups', params: { categoryId }, data: { dynamicFilter } })
+}
+
 export function fetchGetLoginLogList(data: {
     current: number
     size: number
@@ -510,6 +514,16 @@ export function fetchDeleteDictionaryCategory(id: string) {
 export function fetchGetDictionaryItems(categoryId: string) {
     return request.get<Api.SystemManage.DictionaryItem[]>({
         url: `/api/dictionary/categories/${categoryId}/items`,
+    })
+}
+
+export function fetchGetDictionaryItemList(
+    categoryId: string,
+    data: { current: number; size: number; dynamicFilter?: DynamicFilter; sortField?: string; sortOrder?: 'asc' | 'desc' },
+) {
+    return request.post<Api.Common.PaginatedResponse<Api.SystemManage.DictionaryItem>>({
+        url: `/api/dictionary/categories/${categoryId}/items/list`,
+        data,
     })
 }
 

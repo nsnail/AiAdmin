@@ -1,5 +1,5 @@
 <template>
-    <section v-if="groups.length" v-loading="loading" class="art-filter-groups">
+    <section v-if="groups.length || reserveSpace" v-loading="loading" :class="{ 'is-empty': !groups.length }" class="art-filter-groups">
         <div v-for="group in groups" :key="group.field" class="filter-group-row">
             <div class="filter-group-label">{{ t(group.label) }}（{{ group.total }}）</div>
             <div class="filter-group-options">
@@ -39,12 +39,14 @@ interface Props {
     groups?: ListFilterGroup[]
     loading?: boolean
     selections?: Record<string, unknown>
+    reserveSpace?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
     groups: () => [],
     loading: false,
     selections: () => ({}),
+    reserveSpace: false,
 })
 const emit = defineEmits<{ select: [field: string, value: unknown] }>()
 const { t } = useI18n()
@@ -66,8 +68,13 @@ const select = (field: string, value: unknown): void => emit('select', field, va
     grid-template-columns: repeat(2, minmax(0, 1fr));
     margin-bottom: 8px;
     padding: 10px 16px;
+    min-height: 48px;
     background: var(--el-bg-color);
     border: 1px solid var(--el-border-color-lighter);
+}
+
+.art-filter-groups.is-empty {
+    visibility: hidden;
 }
 
 .filter-group-row {

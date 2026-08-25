@@ -1,11 +1,5 @@
 <template>
     <div class="art-full-height">
-        <ArtSearchBar
-            v-model="searchForm"
-            :advanced-query-fields="advancedQueryFields"
-            :filter-fields="filterFields"
-            @reset="resetSearch"
-            @search="handleSearch" />
         <div class="dictionary-layout">
             <ElCard class="directory-panel art-card-xs">
                 <template #header>
@@ -51,43 +45,33 @@
                 </ElScrollbar>
             </ElCard>
 
-            <ElCard class="content-panel art-table-card">
-                <ArtTableHeader :loading="loading" @refresh="loadItems">
-                    <template #left>
-                        <div class="flex items-center gap-3">
-                            <ElButton v-auth="'add'" :disabled="!selectedCategory" @click="openItemDialog()">
-                                <ArtSvgIcon class="mr-1" icon="ri:add-line" />新增字典内容
-                            </ElButton>
-                            <span class="text-g-500">{{ selectedCategory ? getCategoryName(selectedCategory) : '请选择字典目录' }}</span>
-                        </div>
-                    </template>
-                </ArtTableHeader>
-
-                <ArtTable :data="filteredItems" :loading="loading" @cell-query="handleCellQuery" height="calc(100vh - 220px)">
-                    <ElTableColumn label="标签" min-width="160" prop="label" query-field="Label" sortable />
-                    <ElTableColumn label="键值" min-width="160" prop="value" query-field="Value" sortable />
-                    <ElTableColumn align="right" label="排序" prop="sort" query-field="Sort" query-value-type="number" sortable width="90" />
-                    <ElTableColumn
-                        align="center"
-                        label="是否启用"
-                        prop="isEnabled"
-                        query-field="IsEnabled"
-                        query-value-type="boolean"
-                        sortable
-                        width="120">
-                        <template #default="{ row }"><ArtEnabledSwitch v-model="row.isEnabled" :id="row.id" resource="dictionary-item" /></template>
-                    </ElTableColumn>
-                    <ElTableColumn label="备注" min-width="180" prop="remark" query-field="Remark" show-overflow-tooltip sortable />
-                    <ElTableColumn align="center" fixed="right" label="操作" width="110">
-                        <template #default="{ row }">
-                            <ElButton @click="openItemDialog(row)" circle text title="编辑"><ArtSvgIcon icon="ri:edit-2-line" /></ElButton>
-                            <ElButton @click="deleteItem(row)" circle text title="删除"
-                                ><ArtSvgIcon class="text-danger" icon="ri:delete-bin-4-line"
-                            /></ElButton>
-                        </template>
-                    </ElTableColumn>
-                </ArtTable>
-            </ElCard>
+            <ArtTablePage
+                v-model:column-checks="columnChecks"
+                :columns="columns"
+                :data="items"
+                :default-filter="defaultFilter"
+                :filter-groups-loader="loadDictionaryFilterGroups"
+                :key="selectedCategory?.id || 'empty'"
+                :loading="loading"
+                :pagination="pagination"
+                @filter-change="handleFilterChange"
+                @page-change="handleCurrentChange"
+                @refresh="refreshData"
+                @reset="resetSearchParams"
+                @size-change="handleSizeChange"
+                @sort-change="handleSortChange"
+                class="content-panel"
+                reserve-filter-groups
+                resource="dictionary">
+                <template #header-left>
+                    <div class="flex items-center gap-3">
+                        <ElButton v-auth="'add'" :disabled="!selectedCategory" @click="openItemDialog()">
+                            <ArtSvgIcon class="mr-1" icon="ri:add-line" />新增字典内容
+                        </ElButton>
+                        <span class="text-g-500">{{ selectedCategory ? getCategoryName(selectedCategory) : '请选择字典目录' }}</span>
+                    </div>
+                </template>
+            </ArtTablePage>
         </div>
 
         <ElDialog v-model="categoryDialogVisible" :title="categoryForm.id ? '编辑字典目录' : '新增字典目录'" destroy-on-close width="520px">
@@ -141,18 +125,23 @@
 
 <script lang="ts" setup>
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
+import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
+import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import { useTable } from '@/hooks/core/useTable'
+import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import {
     fetchCreateDictionaryCategory,
     fetchCreateDictionaryItem,
     fetchDeleteDictionaryCategory,
     fetchDeleteDictionaryItem,
     fetchGetDictionaryCategories,
-    fetchGetDictionaryFilterFields,
-    fetchGetDictionaryItems,
+    fetchGetDictionaryFilterGroups,
+    fetchGetDictionaryItemList,
     fetchUpdateDictionaryCategory,
     fetchUpdateDictionaryItem,
 } from '@/api/system-manage'
@@ -161,14 +150,9 @@ defineOptions({ name: 'DictionaryManagement' })
 type Category = Api.SystemManage.DictionaryCategory
 type Item = Api.SystemManage.DictionaryItem
 const categories = ref<Category[]>([])
-const items = ref<Item[]>([])
 const selectedCategory = ref<Category>()
 const treeRef = ref()
-const loading = ref(false)
 const saving = ref(false)
-const filterFields = ref<import('@/api/system-manage').ListFilterField[]>([])
-const searchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
-const appliedSearchForm = reactive<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
 const categoryDialogVisible = ref(false)
 const itemDialogVisible = ref(false)
 const categoryDialogTab = ref('form')
@@ -184,6 +168,7 @@ const categoryForm = reactive({
 })
 const itemForm = reactive({ id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' })
 const { t } = useI18n()
+const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
 const getCategoryName = (category: Category) =>
     category.code === 'system_settings'
         ? t('menus.dictionaryCategories.systemSettings')
@@ -194,65 +179,69 @@ const getCategoryName = (category: Category) =>
 const flattenCategories = (nodes: Category[], depth = 0): Array<Category & { label: string }> =>
     nodes.flatMap((node) => [{ ...node, label: `${'　'.repeat(depth)}${getCategoryName(node)}` }, ...flattenCategories(node.children, depth + 1)])
 const categoryOptions = computed(() => flattenCategories(categories.value))
-const translate = (key: string) => {
-    const value = t(key)
-    return value === key ? key : value
-}
-const advancedQueryFields = computed<DynamicQueryField[]>(() =>
-    filterFields.value.map((field) => ({
-        field: field.field,
-        label: translate(field.label),
-        type: field.valueType,
-    })),
-)
-const getItemFieldValue = (item: Item, field: string) => {
-    const property = field.charAt(0).toLowerCase() + field.slice(1)
-    return item[property as keyof Item]
-}
-const matchesFilter = (item: Item, filter?: DynamicFilter): boolean => {
-    if (!filter) return true
-    if (filter.filters?.length) {
-        const results = filter.filters.map((child) => matchesFilter(item, child))
-        return filter.logic === 'Or' ? results.some(Boolean) : results.every(Boolean)
-    }
-    if (!filter.field || !filter.operator) return true
-    const actual = getItemFieldValue(item, filter.field)
-    const expected = filter.value
-    if (filter.operator === 'Equal') return actual === expected
-    if (filter.operator === 'NotEqual') return actual !== expected
-    if (filter.operator === 'Contains')
-        return String(actual ?? '')
-            .toLowerCase()
-            .includes(String(expected ?? '').toLowerCase())
-    if (filter.operator === 'StartsWith')
-        return String(actual ?? '')
-            .toLowerCase()
-            .startsWith(String(expected ?? '').toLowerCase())
-    if (filter.operator === 'EndsWith')
-        return String(actual ?? '')
-            .toLowerCase()
-            .endsWith(String(expected ?? '').toLowerCase())
-    if (filter.operator === 'GreaterThan') return Number(actual) > Number(expected)
-    if (filter.operator === 'GreaterThanOrEqual') return Number(actual) >= Number(expected)
-    if (filter.operator === 'LessThan') return Number(actual) < Number(expected)
-    if (filter.operator === 'LessThanOrEqual') return Number(actual) <= Number(expected)
-    return true
-}
-const filteredItems = computed(() => {
-    return items.value.filter((item) => {
-        const matchesFields = filterFields.value.every((field) => {
-            const expected = appliedSearchForm[field.field]
-            if (expected === undefined || expected === null || expected === '') return true
-            const actual = getItemFieldValue(item, field.field)
-            return field.control === 'select'
-                ? String(actual) === String(expected)
-                : String(actual ?? '')
-                      .toLowerCase()
-                      .includes(String(expected).toLowerCase())
-        })
-        return matchesFields && matchesFilter(item, appliedSearchForm.dynamicFilter)
-    })
+const columnsFactory = () => [
+    {
+        prop: 'id',
+        label: 'ID',
+        queryField: 'Id',
+        queryValueType: 'number',
+        width: 150,
+        align: 'left' as const,
+        formatter: (row: Item) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
+    },
+    { prop: 'label', label: '标签', queryField: 'Label', minWidth: 160, sortable: 'custom' as const },
+    { prop: 'value', label: '键值', queryField: 'Value', minWidth: 160, sortable: 'custom' as const },
+    { prop: 'sort', label: '排序', queryField: 'Sort', queryValueType: 'number', width: 90, align: 'right' as const, sortable: 'custom' as const },
+    {
+        prop: 'isEnabled',
+        label: '是否启用',
+        queryField: 'IsEnabled',
+        queryValueType: 'boolean',
+        width: 120,
+        align: 'center' as const,
+        formatter: (row: Item) =>
+            h(ArtEnabledSwitch, { id: row.id, resource: 'dictionary-item', modelValue: row.isEnabled, 'onUpdate:modelValue': () => refreshData() }),
+    },
+    { prop: 'remark', label: '备注', queryField: 'Remark', minWidth: 180, showOverflowTooltip: true, sortable: 'custom' as const },
+    {
+        prop: 'operation',
+        label: '操作',
+        width: 110,
+        align: 'center' as const,
+        queryField: false,
+        formatter: (row: Item) =>
+            h('div', [
+                h(ArtButtonTable, { type: 'edit', onClick: () => openItemDialog(row) }),
+                h(ArtButtonTable, { type: 'delete', onClick: () => deleteItem(row) }),
+            ]),
+    },
+]
+const tableState = useTable({
+    core: {
+        apiFn: (params: { current: number; size: number; dynamicFilter?: DynamicFilter; sortField?: string; sortOrder?: 'asc' | 'desc' }) =>
+            selectedCategory.value
+                ? fetchGetDictionaryItemList(selectedCategory.value.id, params)
+                : Promise.resolve({ data: { records: [], current: 1, size: 20, total: 0 } } as any),
+        apiParams: { current: 1, size: 20, dynamicFilter: defaultFilter },
+        columnsFactory,
+    },
 })
+const {
+    data: items,
+    loading,
+    pagination,
+    columnChecks,
+    columns,
+    handleSizeChange,
+    handleCurrentChange,
+    handleSortChange,
+    refreshData,
+    replaceSearchParams,
+    resetSearchParams,
+} = tableState
+const handleFilterChange = (filter?: DynamicFilter) => replaceSearchParams({ dynamicFilter: filter })
+const loadDictionaryFilterGroups = (filter?: DynamicFilter) =>
+    selectedCategory.value ? fetchGetDictionaryFilterGroups(selectedCategory.value.id, filter) : Promise.resolve([])
 
 const loadCategories = async (preferredId?: string) => {
     categories.value = await fetchGetDictionaryCategories()
@@ -262,41 +251,14 @@ const loadCategories = async (preferredId?: string) => {
     if (selected) {
         await nextTick()
         treeRef.value?.setCurrentKey(selected.id)
-        await loadItems()
-    } else items.value = []
-}
-const loadItems = async () => {
-    if (!selectedCategory.value) {
-        items.value = []
-        return
+        await refreshData()
     }
-    loading.value = true
-    try {
-        items.value = await fetchGetDictionaryItems(selectedCategory.value.id)
-    } finally {
-        loading.value = false
-    }
-}
-const handleSearch = (params: typeof searchForm) => {
-    Object.keys(appliedSearchForm).forEach((key) => delete appliedSearchForm[key])
-    Object.assign(appliedSearchForm, {
-        ...params,
-        dynamicFilter: params.dynamicFilter ? structuredClone(params.dynamicFilter) : undefined,
-    })
-}
-const resetSearch = () => {
-    Object.keys(searchForm).forEach((key) => delete searchForm[key])
-    Object.keys(appliedSearchForm).forEach((key) => delete appliedSearchForm[key])
-}
-const handleCellQuery = (condition: DynamicFilter) => {
-    const currentFilter = appliedSearchForm.dynamicFilter
-    const dynamicFilter = currentFilter ? { logic: 'And', filters: [currentFilter, condition] } : condition
-    appliedSearchForm.dynamicFilter = dynamicFilter
-    searchForm.dynamicFilter = structuredClone(dynamicFilter)
 }
 const selectCategory = async (category: Category) => {
     selectedCategory.value = category
-    await loadItems()
+    resetSearchParams()
+    await nextTick()
+    await refreshData()
 }
 const openCategoryDialog = (category?: Category, parentId: string | null = null) => {
     Object.assign(categoryForm, category ? { ...category } : { id: '', code: '', name: '', parentId, sort: 0 })
@@ -359,7 +321,7 @@ const saveItem = async () => {
         else await fetchCreateDictionaryItem(selectedCategory.value.id, data)
         itemDialogVisible.value = false
         ElMessage.success('字典内容已保存')
-        await loadItems()
+        await refreshData()
     } finally {
         saving.value = false
     }
@@ -369,10 +331,9 @@ const deleteItem = async (item: Pick<Item, 'id' | 'label'>) => {
         type: 'warning',
     })
     await fetchDeleteDictionaryItem(item.id)
-    await loadItems()
+    await refreshData()
 }
 onMounted(async () => {
-    filterFields.value = await fetchGetDictionaryFilterFields()
     await loadCategories()
 })
 </script>

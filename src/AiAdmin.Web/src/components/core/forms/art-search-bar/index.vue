@@ -973,10 +973,13 @@ const handleReset = () => {
  */
 const handleSearch = () => {
     activeAdvancedFilter.value = undefined
-    delete modelValue.value.dynamicFilter
     trimModelStrings(modelValue.value)
-    // 对外只抛出清洗后的查询参数，避免接口收到空数组/空字符串。
-    emit('search', getSanitizedOutput())
+    const sanitized = getSanitizedOutput()
+    delete sanitized.dynamicFilter
+    const dynamicFilter = queryPreviewToFilter(sanitized)
+    // 基础筛选也统一包装到 dynamicFilter，避免请求同时存在两套筛选协议。
+    modelValue.value.dynamicFilter = dynamicFilter
+    emit('search', dynamicFilter ? { dynamicFilter } : {})
 }
 
 // 每次展开菜单时刷新数据，使高级查询层中新保存的条件立即可用。

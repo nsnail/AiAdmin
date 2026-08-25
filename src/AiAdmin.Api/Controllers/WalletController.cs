@@ -27,11 +27,7 @@ public sealed class WalletController(AppDbContext db) : ControllerBase
     [HttpGet("filter-fields")]
     [ApiDescription("Query wallet filter fields")]
     public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
-        return Ok(
-            ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(
-                [.. ListFilterMetadataService.GetFields<Wallet>().Where(x => x.Field == nameof(Wallet.CreatedAt))]
-            )
-        );
+        return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<Wallet>()));
     }
 
     /// <summary>
