@@ -106,7 +106,9 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         }
 
         var value = filter.Value.Value;
-        if (filter.Operator.Equals("DateRange", StringComparison.OrdinalIgnoreCase) && value.ValueKind == JsonValueKind.Array) {
+        if ((filter.Operator.Equals("DateRange", StringComparison.OrdinalIgnoreCase)
+             || (filter.Operator.Equals("Any", StringComparison.OrdinalIgnoreCase) && field == "timestamp"))
+            && value.ValueKind == JsonValueKind.Array) {
             // 兼容前端日期范围在部分查询路径中多包一层数组的请求格式
             var rangeValue = value.GetArrayLength() == 1 && value[0].ValueKind == JsonValueKind.Array ? value[0] : value;
             if (rangeValue.GetArrayLength() < 2) {
@@ -131,7 +133,11 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         var normalizedOperator = filter.Operator.Replace("_", string.Empty, StringComparison.Ordinal).ToUpperInvariant();
         return normalizedOperator switch
         {
-            "EQUAL" or "EQUALS" => new { match = new Dictionary<string, object> { [field] = text } }
+            "ANY" when value.ValueKind == JsonValueKind.Array => new
+            {
+                terms = new Dictionary<string, object> { [field] = value.EnumerateArray().Select(GetScalarValue).ToArray() }
+            }
+            , "EQUAL" or "EQUALS" => new { match = new Dictionary<string, object> { [field] = text } }
             , "NOTEQUAL" or "NOTEQUALS" => new
             {
                 @bool = new { must_not = new[] { new { match = new Dictionary<string, object> { [field] = text } } } }
