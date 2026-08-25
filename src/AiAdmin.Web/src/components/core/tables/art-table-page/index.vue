@@ -69,6 +69,8 @@ interface Props {
     loading?: boolean
     pagination?: PaginationState
     defaultFilter?: DynamicFilter
+    filterFields?: ListFilterField[]
+    filterGroupsFn?: (dynamicFilter?: DynamicFilter) => Promise<ListFilterGroup[]>
     treeProps?: Record<string, unknown>
     rowKey?: string
 }
@@ -168,7 +170,9 @@ const refreshFilterGroups = async (filter: DynamicFilter | undefined): Promise<v
     const requestId = ++groupRequestId
     groupLoading.value = true
     try {
-        const groups = await fetchGetListFilterGroups(props.resource, cloneFilter(filter))
+        const groups = await (props.filterGroupsFn
+            ? props.filterGroupsFn(cloneFilter(filter))
+            : fetchGetListFilterGroups(props.resource, cloneFilter(filter)))
         if (requestId === groupRequestId) filterGroups.value = groups
     } finally {
         if (requestId === groupRequestId) groupLoading.value = false
@@ -241,10 +245,20 @@ const handleReset = (): void => {
 }
 
 onMounted(async () => {
-    filterFields.value = await fetchGetListFilterFields(props.resource)
+    filterFields.value = props.filterFields || (await fetchGetListFilterFields(props.resource))
     await nextTick()
     synchronizeFilter(props.defaultFilter)
 })
+
+watch(
+    () => props.filterFields,
+    (fields) => {
+        if (fields) {
+            filterFields.value = fields
+            synchronizeFilter(currentFilter.value || props.defaultFilter)
+        }
+    },
+)
 
 defineExpose({ tableRef })
 </script>

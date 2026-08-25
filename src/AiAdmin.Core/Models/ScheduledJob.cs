@@ -27,7 +27,9 @@ public sealed class ScheduledJob : EntityBase
     /// <summary>
     ///     是否启用
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
+    [ListFilter(
+        "listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], GroupCount = true
+    )]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
@@ -67,7 +69,10 @@ public sealed class ScheduledJob : EntityBase
     /// <summary>
     ///     请求方法
     /// </summary>
-    [ListFilter("scheduledJob.fields.requestMethod", "select", Options = ["GET:GET", "POST:POST", "PUT:PUT", "PATCH:PATCH", "DELETE:DELETE"])]
+    [ListFilter(
+        "scheduledJob.fields.requestMethod", "select", Options = ["GET:GET", "POST:POST", "PUT:PUT", "PATCH:PATCH", "DELETE:DELETE"]
+        , GroupCount = true
+    )]
     public string RequestMethod { get; set; } = "GET";
 
     /// <summary>
@@ -85,7 +90,7 @@ public sealed class ScheduledJob : EntityBase
         [
             "0:scheduledJob.status.waiting", "1:scheduledJob.status.running", "2:scheduledJob.status.success", "3:scheduledJob.status.failed"
             , "4:scheduledJob.status.timeout"
-        ]
+        ], GroupCount = true
     )]
     public ScheduledJobStatus Status { get; set; } = ScheduledJobStatus.Waiting;
 

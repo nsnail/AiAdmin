@@ -724,6 +724,17 @@
         }
     },
     "scheduledJob": {
+        "actions": {
+            "create": "Add job",
+            "run": "Run now",
+            "executions": "Execution records",
+            "edit": "Edit job",
+            "delete": "Delete job",
+            "close": "Close",
+            "operation": "Actions"
+        },
+        "executionTitle": "{name} execution records",
+        "unknown": "Unknown",
         "fields": {
             "name": "Job name",
             "cronExpression": "Cron expression",
@@ -744,6 +755,7 @@
             "startedAt": "Started at",
             "status": "Execution status"
         },
+        "detail": { "operation": "Details" },
         "placeholder": {
             "name": "Enter job name",
             "cronExpression": "Enter Cron expression",
@@ -754,7 +766,8 @@
             "running": "Running",
             "success": "Succeeded",
             "failed": "Failed",
-            "timeout": "Timed out"
+            "timeout": "Timed out",
+            "unknown": "Unknown"
         },
         "executionDetail": {
             "title": "Execution Details",
@@ -817,6 +830,7 @@
             "weekly": "Every Sunday at midnight"
         },
         "description": {
+            "invalid": "Waiting for a complete Cron expression",
             "everySecond": "Every second",
             "everyMinute": "Every minute",
             "hourly": "Every hour at the start",

@@ -576,28 +576,8 @@ export type SaveScheduledJob = Pick<
     'name' | 'cronExpression' | 'requestUrl' | 'requestMethod' | 'requestHeadersJson' | 'requestBody' | 'timeoutSeconds' | 'isEnabled'
 >
 
-export type ScheduledJobSearchParams = DynamicQuery & {
-    Name?: string
-    CronExpression?: string
-    RequestUrl?: string
-    RequestMethod?: string
-    IsEnabled?: boolean
-    Status?: number
-}
-
-export function fetchGetScheduledJobs(params: ScheduledJobSearchParams) {
-    const filters: DynamicFilter[] = Object.entries(params)
-        .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
-        .map(([field, value]) => ({
-            field,
-            operator: typeof value === 'string' && !['RequestMethod'].includes(field) ? 'Contains' : 'Equal',
-            value,
-        }))
-    if (params.dynamicFilter) filters.push(params.dynamicFilter)
-    return request.post<Api.Common.PaginatedResponse<ScheduledJob>>({
-        url: '/api/scheduled-job/list',
-        data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder),
-    })
+export function fetchGetScheduledJobs(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<ScheduledJob>>({ url: '/api/scheduled-job/list', data: params })
 }
 
 export function fetchCreateScheduledJob(data: SaveScheduledJob) {
@@ -632,4 +612,8 @@ export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExec
 
 export function fetchScheduledJobExecutionFilterFields(id: string) {
     return request.get<ListFilterField[]>({ url: `/api/scheduled-job/${id}/executions/filter-fields` })
+}
+
+export function fetchScheduledJobExecutionFilterGroups(id: string, dynamicFilter?: DynamicFilter) {
+    return request.post<ListFilterGroup[]>({ url: `/api/scheduled-job/${id}/executions/filter-groups`, data: { dynamicFilter } })
 }

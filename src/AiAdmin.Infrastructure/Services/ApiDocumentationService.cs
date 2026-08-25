@@ -53,7 +53,11 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
 
                 var item = BuildItem(action, method.ToUpperInvariant(), path, xml);
                 if (!groups.TryGetValue(action.ControllerName, out var group)) {
-                    group = (ReadSummary(xml, "T:" + action.ControllerTypeInfo.FullName) ?? action.ControllerName, []);
+                    var controllerMember = "T:" + action.ControllerTypeInfo.FullName;
+                    var controllerDescription = ReadSummary(xml, controllerMember)
+                                                ?? action.ControllerTypeInfo.GetCustomAttribute<ApiDescriptionAttribute>()?.Description
+                                                ?? action.ControllerName;
+                    group = (controllerDescription, []);
                     groups[action.ControllerName] = group;
                 }
 
@@ -80,6 +84,10 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         , Dictionary<string, string> xml
     ) {
         var member = "M:" + action.MethodInfo.DeclaringType?.FullName + "." + action.MethodInfo.Name;
+        var attributeDescription = action.MethodInfo.GetCustomAttribute<ApiDescriptionAttribute>()?.Description;
+        var xmlSummary = ReadMethodSummary(xml, member);
+        var displayName = xmlSummary ?? attributeDescription ?? action.ActionName;
+        var itemDescription = attributeDescription ?? xmlSummary ?? action.ActionName;
         var parameters = new List<ApiDocumentationParameter>();
         ApiDocumentationType? body = null;
         foreach (var parameter in action.Parameters) {
@@ -117,8 +125,7 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
 
         var response = BuildType(UnwrapResponse(action.MethodInfo.ReturnType), string.Empty, xml);
         return new ApiDocumentationItem(
-            method, $"/{path.TrimStart('/')}", ReadSummary(xml, member) ?? action.ActionName, ReadSummary(xml, member) ?? string.Empty
-            , action.ControllerName, action.MethodInfo.Name, parameters, body, response
+            method, $"/{path.TrimStart('/')}", displayName, itemDescription, action.ControllerName, action.MethodInfo.Name, parameters, body, response
         );
     }
 
@@ -147,6 +154,24 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
 
     private static string Clean(string? value) {
         return string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    /// <summary>
+    ///     根据方法名称前缀读取包含参数签名的方法 XML 注释
+    /// </summary>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <param name="memberPrefix">不含参数签名的方法成员前缀</param>
+    /// <returns>方法摘要文本</returns>
+    private static string? ReadMethodSummary(
+        Dictionary<string, string> xml
+        , string memberPrefix
+    ) {
+        var entry = xml.FirstOrDefault(x => x.Key.Equals(memberPrefix, StringComparison.Ordinal));
+        if (string.IsNullOrWhiteSpace(entry.Value)) {
+            entry = xml.FirstOrDefault(x => x.Key.StartsWith(memberPrefix + "(", StringComparison.Ordinal));
+        }
+
+        return string.IsNullOrWhiteSpace(entry.Value) ? null : entry.Value;
     }
 
     private static string? ReadParam(

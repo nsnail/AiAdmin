@@ -62,6 +62,24 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
     }
 
     /// <summary>
+    ///     查询当前作业执行记录筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="id">作业主键</param>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>可用于进一步筛选的字段分组统计</returns>
+    [HttpPost("{id:long}/executions/filter-groups")]
+    [ApiDescription("Query scheduled job execution filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> ExecutionFilterGroupsAsync(
+        long id
+        , [FromBody] ListFilterGroupRequest request
+    ) {
+        var groups = await ListFilterGroupingService
+            .GetGroupsAsync(db.ScheduledJobExecutions.AsNoTracking().Where(x => x.ScheduledJobId == id), request.DynamicFilter)
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
     ///     分页查询作业执行记录
     /// </summary>
     /// <param name="id">作业主键</param>
@@ -134,6 +152,18 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
     [ApiDescription("Query scheduled job filter fields")]
     public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
         return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<ScheduledJob>()));
+    }
+
+    /// <summary>
+    ///     查询当前作业筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>可用于进一步筛选的字段分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query scheduled job filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService.GetGroupsAsync(db.ScheduledJobs.AsNoTracking(), request.DynamicFilter).ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
     }
 
     /// <summary>

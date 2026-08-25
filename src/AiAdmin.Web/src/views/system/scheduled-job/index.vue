@@ -1,56 +1,54 @@
 <template>
     <div class="art-full-height">
-        <ScheduledJobSearch v-model="searchForm" v-show="showSearchBar" @reset="resetSearchParams" @search="handleSearch" />
-        <ElCard :style="{ 'margin-top': showSearchBar ? '12px' : '0' }" class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData" column-storage-key="scheduled-job">
-                <template #left><ElButton v-ripple @click="openDialog()">新增作业</ElButton></template>
-            </ArtTableHeader>
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                @cell-query="handleCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @sort-change="handleSortChange">
-                <template #cronExpression="{ row }">
-                    <div class="cron-cell">
-                        <code>{{ row.cronExpression }}</code>
-                        <span class="cron-description">{{ describeCron(row.cronExpression) }}</span>
-                    </div>
-                </template>
-            </ArtTable>
-        </ElCard>
+        <ArtTablePage
+            v-model:column-checks="columnChecks"
+            :columns="columns"
+            :data="data"
+            :default-filter="defaultFilter"
+            :loading="loading"
+            :pagination="pagination"
+            @filter-change="handleFilterChange"
+            @page-change="handleCurrentChange"
+            @refresh="refreshData"
+            @reset="resetSearchParams"
+            @size-change="handleSizeChange"
+            @sort-change="handleSortChange"
+            resource="scheduled-job">
+            <template #header-left>
+                <ElButton v-ripple @click="openDialog()">{{ t('scheduledJob.actions.create') }}</ElButton>
+            </template>
+            <template #cronExpression="{ row }">
+                <div class="cron-cell">
+                    <code>{{ row.cronExpression }}</code>
+                    <span class="cron-description">{{ describeCron(row.cronExpression) }}</span>
+                </div>
+            </template>
+        </ArtTablePage>
         <ScheduledJobDialog v-model:visible="dialogVisible" :job-data="currentJob" :saving="saving" @submit="saveJob" />
-        <ElDialog v-model="executionVisible" :title="`${executionJob?.name || '作业'}执行记录`" class="execution-dialog" destroy-on-close fullscreen>
-            <div class="execution-page">
-                <ArtSearchBar
-                    v-model="executionSearchForm"
-                    v-show="executionShowSearchBar"
-                    :advanced-query-fields="executionAdvancedQueryFields"
-                    :filter-fields="executionFilterFields"
-                    @reset="resetExecutionSearch"
-                    @search="handleExecutionSearch" />
-                <ElCard :style="{ 'margin-top': executionShowSearchBar ? '12px' : '0' }" class="art-table-card">
-                    <ArtTableHeader
-                        v-model:columns="executionColumnChecks"
-                        :loading="executionLoading"
-                        @refresh="executionRefreshData"
-                        column-storage-key="scheduled-job-execution" />
-                    <ArtTable
-                        :columns="executionColumns"
-                        :data="executionData"
-                        :loading="executionLoading"
-                        :pagination="executionPagination"
-                        @cell-query="executionHandleCellQuery"
-                        @pagination:current-change="executionHandleCurrentChange"
-                        @pagination:size-change="executionHandleSizeChange"
-                        @sort-change="executionHandleSortChange"
-                        class="execution-table" />
-                </ElCard>
-            </div>
-            <template #footer><ElButton @click="executionVisible = false">关闭</ElButton></template>
+        <ElDialog
+            v-model="executionVisible"
+            :title="t('scheduledJob.executionTitle', { name: executionJob?.name || t('scheduledJob.unknown') })"
+            class="execution-dialog"
+            destroy-on-close
+            fullscreen>
+            <ArtTablePage
+                v-model:column-checks="executionColumnChecks"
+                :columns="executionColumns"
+                :data="executionData"
+                :filter-fields="executionFilterFields"
+                :filter-groups-fn="executionFilterGroups"
+                :loading="executionLoading"
+                :pagination="executionPagination"
+                @filter-change="executionHandleFilterChange"
+                @page-change="executionHandleCurrentChange"
+                @refresh="executionRefreshData"
+                @reset="executionResetSearchParams"
+                @size-change="executionHandleSizeChange"
+                @sort-change="executionHandleSortChange"
+                resource="scheduled-job" />
+            <template #footer
+                ><ElButton @click="executionVisible = false">{{ t('scheduledJob.actions.close') }}</ElButton></template
+            >
         </ElDialog>
         <ScheduledJobExecutionDialog v-model:visible="detailVisible" :execution="selectedExecution" />
     </div>
@@ -60,16 +58,18 @@
 import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import ArtButtonMore, { type ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
+import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
-import type { DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import {
     fetchCreateScheduledJob,
     fetchDeleteScheduledJob,
     fetchGetScheduledJobs,
     fetchRunScheduledJob,
     fetchScheduledJobExecutionFilterFields,
+    fetchScheduledJobExecutionFilterGroups,
     fetchScheduledJobExecutions,
     fetchUpdateScheduledJob,
     type SaveScheduledJob,
@@ -77,40 +77,37 @@ import {
     type ScheduledJobExecution,
     type ScheduledJobExecutionSearchParams,
     type ListFilterField,
-    type ScheduledJobSearchParams,
+    type DynamicFilter,
 } from '@/api/system-manage'
 import ScheduledJobDialog from './modules/scheduled-job-dialog.vue'
 import ScheduledJobExecutionDialog from './modules/scheduled-job-execution-dialog.vue'
-import ScheduledJobSearch from './modules/scheduled-job-search.vue'
 import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'ScheduledJobManagement' })
 const { t, locale } = useI18n()
-const showSearchBar = ref(true)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const currentJob = ref<ScheduledJob>()
 const executionJob = ref<ScheduledJob>()
 const executionVisible = ref(false)
-const executionSearchForm = ref<ScheduledJobExecutionSearchParams>({})
 const executionFilterFields = ref<ListFilterField[]>([])
-const executionShowSearchBar = ref(true)
 const selectedExecution = ref<ScheduledJobExecution>()
 const detailVisible = ref(false)
-const searchForm = ref<ScheduledJobSearchParams>({})
-const statusMap: Record<number, { label: string; type: 'info' | 'primary' | 'success' | 'danger' | 'warning' }> = {
-    0: { label: '等待执行', type: 'info' },
-    1: { label: '执行中', type: 'primary' },
-    2: { label: '执行成功', type: 'success' },
-    3: { label: '执行失败', type: 'danger' },
-    4: { label: '超时', type: 'warning' },
+const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
+const statusMap: Record<number, { key: string; type: 'info' | 'primary' | 'success' | 'danger' | 'warning' }> = {
+    0: { key: 'waiting', type: 'info' },
+    1: { key: 'running', type: 'primary' },
+    2: { key: 'success', type: 'success' },
+    3: { key: 'failed', type: 'danger' },
+    4: { key: 'timeout', type: 'warning' },
 }
+const statusLabel = (status: number): string => t(`scheduledJob.status.${statusMap[status]?.key || 'unknown'}`)
 const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')
 const describeCron = (value?: string): string => {
     if (!value?.trim()) return '-'
     const parts = value.trim().split(/\s+/)
     if (parts.length === 5) parts.unshift('0')
-    if (parts.length !== 6 || parts.some((part) => !/^[\d*/,-]+$/.test(part))) return '等待完整的 Cron 表达式'
+    if (parts.length !== 6 || parts.some((part) => !/^[\d*/,-]+$/.test(part))) return t('cronEditor.description.invalid')
     const [second, minute, hour, day, month, week] = parts
     if (second === '*' && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*')
         return t('cronEditor.description.everySecond')
@@ -143,7 +140,6 @@ const {
     handleSizeChange,
     handleCurrentChange,
     handleSortChange,
-    handleCellQuery,
     refreshData,
     refreshCreate,
     refreshUpdate,
@@ -151,7 +147,7 @@ const {
 } = useTable({
     core: {
         apiFn: fetchGetScheduledJobs,
-        apiParams: { current: 1, size: 20 },
+        apiParams: { current: 1, size: 20, dynamicFilter: defaultFilter },
         columnsFactory: () => [
             {
                 prop: 'id',
@@ -163,11 +159,19 @@ const {
                 sortable: true,
                 formatter: (row) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
             },
-            { prop: 'name', queryField: 'Name', label: '名称', minWidth: 150, sortable: true },
+            {
+                prop: 'name',
+                queryField: 'Name',
+                queryValueField: 'name',
+                queryValueType: 'string',
+                label: t('scheduledJob.fields.name'),
+                minWidth: 150,
+                sortable: true,
+            },
             {
                 prop: 'cronExpression',
                 queryField: 'CronExpression',
-                label: 'Cron 表达式',
+                label: t('scheduledJob.fields.cronExpression'),
                 minWidth: 180,
                 sortable: true,
                 useSlot: true,
@@ -175,7 +179,7 @@ const {
             {
                 prop: 'requestMethod',
                 queryField: 'RequestMethod',
-                label: '请求方法',
+                label: t('scheduledJob.fields.requestMethod'),
                 width: 110,
                 sortable: true,
                 align: 'center',
@@ -184,7 +188,7 @@ const {
             {
                 prop: 'requestUrl',
                 queryField: 'RequestUrl',
-                label: '请求地址',
+                label: t('scheduledJob.fields.requestUrl'),
                 minWidth: 260,
                 sortable: true,
                 showOverflowTooltip: true,
@@ -193,7 +197,7 @@ const {
                 prop: 'timeoutSeconds',
                 queryField: 'TimeoutSeconds',
                 queryValueType: 'number',
-                label: '超时（秒）',
+                label: t('scheduledJob.fields.timeoutSeconds'),
                 width: 120,
                 sortable: true,
                 align: 'right',
@@ -202,30 +206,30 @@ const {
                 prop: 'isEnabled',
                 queryField: 'IsEnabled',
                 queryValueType: 'boolean',
-                label: '是否启用',
+                label: t('listFilter.common.status'),
                 width: 110,
                 sortable: true,
                 align: 'center',
-                formatter: (row) => h(ElTag, { size: 'small', type: row.isEnabled ? 'success' : 'info' }, () => (row.isEnabled ? '启用' : '禁用')),
+                formatter: (row) => h(ArtEnabledSwitch, { modelValue: row.isEnabled, disabled: true }),
             },
             {
                 prop: 'status',
                 queryField: 'Status',
                 queryValueType: 'number',
-                label: '执行状态',
+                label: t('scheduledJob.fields.status'),
                 width: 120,
                 sortable: true,
                 align: 'center',
                 formatter: (row) => {
-                    const status = statusMap[row.status] || { label: '未知', type: 'info' as const }
-                    return h(ElTag, { size: 'small', type: status.type }, () => status.label)
+                    const status = statusMap[row.status] || { key: 'unknown', type: 'info' as const }
+                    return h(ElTag, { size: 'small', type: status.type }, () => statusLabel(row.status))
                 },
             },
             {
                 prop: 'lastTriggeredAt',
                 queryField: 'LastTriggeredAt',
                 queryValueType: 'date',
-                label: '最近触发时间',
+                label: t('scheduledJob.fields.lastTriggeredAt'),
                 width: 180,
                 sortable: true,
                 formatter: (row) => formatTime(row.lastTriggeredAt),
@@ -234,7 +238,7 @@ const {
                 prop: 'lastFinishedAt',
                 queryField: 'LastFinishedAt',
                 queryValueType: 'date',
-                label: '最近完成时间',
+                label: t('scheduledJob.fields.lastFinishedAt'),
                 width: 180,
                 sortable: true,
                 formatter: (row) => formatTime(row.lastFinishedAt),
@@ -242,7 +246,7 @@ const {
             {
                 prop: 'lastError',
                 queryField: 'LastError',
-                label: '最近错误',
+                label: t('scheduledJob.fields.lastError'),
                 minWidth: 180,
                 sortable: true,
                 showOverflowTooltip: true,
@@ -252,7 +256,7 @@ const {
                 prop: 'createdAt',
                 queryField: 'CreatedAt',
                 queryValueType: 'date',
-                label: '创建时间',
+                label: t('listFilter.common.createdAt'),
                 width: 180,
                 sortable: true,
                 formatter: (row) => formatTime(row.createdAt),
@@ -260,7 +264,7 @@ const {
             {
                 prop: 'operation',
                 queryField: false,
-                label: '操作',
+                label: t('scheduledJob.actions.operation'),
                 width: 70,
                 fixed: 'right',
                 formatter: (row) =>
@@ -268,13 +272,13 @@ const {
                         list: [
                             {
                                 key: 'run',
-                                label: '立即执行',
+                                label: t('scheduledJob.actions.run'),
                                 icon: 'ri:play-circle-line',
                                 disabled: row.status === 1,
                             },
-                            { key: 'executions', label: '执行记录', icon: 'ri:history-line' },
-                            { key: 'edit', label: '编辑作业', icon: 'ri:edit-2-line' },
-                            { key: 'delete', label: '删除作业', icon: 'ri:delete-bin-4-line', color: '#f56c6c' },
+                            { key: 'executions', label: t('scheduledJob.actions.executions'), icon: 'ri:history-line' },
+                            { key: 'edit', label: t('scheduledJob.actions.edit'), icon: 'ri:edit-2-line' },
+                            { key: 'delete', label: t('scheduledJob.actions.delete'), icon: 'ri:delete-bin-4-line', color: '#f56c6c' },
                         ],
                         onClick: (item: ButtonMoreItem) => handleAction(item, row),
                     }),
@@ -283,9 +287,6 @@ const {
     },
 })
 
-const executionAdvancedQueryFields = computed<DynamicQueryField[]>(() =>
-    executionFilterFields.value.map((field) => ({ field: field.field, label: t(field.label), type: field.valueType })),
-)
 const executionTable = useTable({
     core: {
         apiFn: (params: ScheduledJobExecutionSearchParams) => fetchScheduledJobExecutions(executionJob.value?.id || '0', params),
@@ -295,7 +296,7 @@ const executionTable = useTable({
             {
                 prop: 'startedAt',
                 queryField: 'StartedAt',
-                label: '开始时间',
+                label: t('scheduledJob.executionFields.startedAt'),
                 width: 190,
                 sortable: true,
                 formatter: (row) => formatTime(row.startedAt),
@@ -303,7 +304,7 @@ const executionTable = useTable({
             {
                 prop: 'finishedAt',
                 queryField: 'FinishedAt',
-                label: '完成时间',
+                label: t('scheduledJob.executionFields.finishedAt'),
                 width: 190,
                 sortable: true,
                 formatter: (row) => formatTime(row.finishedAt),
@@ -311,14 +312,14 @@ const executionTable = useTable({
             {
                 prop: 'requestMethod',
                 queryField: 'RequestMethod',
-                label: '方法',
+                label: t('scheduledJob.executionFields.requestMethod'),
                 width: 90,
                 sortable: true,
             },
             {
                 prop: 'requestUrl',
                 queryField: 'RequestUrl',
-                label: '请求地址',
+                label: t('scheduledJob.executionFields.requestUrl'),
                 minWidth: 240,
                 sortable: true,
                 showOverflowTooltip: true,
@@ -327,7 +328,7 @@ const executionTable = useTable({
                 prop: 'responseStatusCode',
                 queryField: 'ResponseStatusCode',
                 queryValueType: 'number',
-                label: '响应状态',
+                label: t('scheduledJob.executionFields.responseStatusCode'),
                 width: 130,
                 sortable: true,
                 align: 'right',
@@ -337,16 +338,15 @@ const executionTable = useTable({
                 prop: 'status',
                 queryField: 'Status',
                 queryValueType: 'number',
-                label: '执行状态',
+                label: t('scheduledJob.executionFields.status'),
                 width: 130,
                 sortable: true,
-                formatter: (row) =>
-                    h(ElTag, { size: 'small', type: statusMap[row.status]?.type || 'info' }, () => statusMap[row.status]?.label || '未知'),
+                formatter: (row) => h(ElTag, { size: 'small', type: statusMap[row.status]?.type || 'info' }, () => statusLabel(row.status)),
             },
             {
                 prop: 'errorMessage',
                 queryField: 'ErrorMessage',
-                label: '错误信息',
+                label: t('scheduledJob.executionFields.errorMessage'),
                 minWidth: 180,
                 sortable: true,
                 showOverflowTooltip: true,
@@ -355,7 +355,7 @@ const executionTable = useTable({
             {
                 prop: 'operation',
                 queryField: false,
-                label: '详情',
+                label: t('scheduledJob.detail.operation'),
                 width: 70,
                 fixed: 'right',
                 formatter: (row) =>
@@ -380,13 +380,12 @@ const {
     handleSizeChange: executionHandleSizeChange,
     handleCurrentChange: executionHandleCurrentChange,
     handleSortChange: executionHandleSortChange,
-    handleCellQuery: executionHandleCellQuery,
     refreshData: executionRefreshData,
 } = executionTable
 
-const handleSearch = (params: ScheduledJobSearchParams): void => {
-    replaceSearchParams(params)
-    void getData()
+const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    replaceSearchParams({ dynamicFilter })
+    await getData()
 }
 const openDialog = (job?: ScheduledJob): void => {
     currentJob.value = job
@@ -409,14 +408,10 @@ const saveJob = async (form: SaveScheduledJob): Promise<void> => {
         saving.value = false
     }
 }
-const handleExecutionSearch = (params: ScheduledJobExecutionSearchParams): void => {
-    executionReplaceSearchParams(params)
-    void executionGetData()
-}
-const resetExecutionSearch = (): void => {
-    executionResetSearchParams()
-    executionSearchForm.value = {}
-    void executionGetData()
+const executionFilterGroups = (dynamicFilter?: DynamicFilter) => fetchScheduledJobExecutionFilterGroups(executionJob.value?.id || '0', dynamicFilter)
+const executionHandleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
+    executionReplaceSearchParams({ dynamicFilter })
+    await executionGetData()
 }
 const handleAction = async (item: ButtonMoreItem, job: ScheduledJob): Promise<void> => {
     if (item.key === 'edit') {
@@ -431,10 +426,9 @@ const handleAction = async (item: ButtonMoreItem, job: ScheduledJob): Promise<vo
     }
     if (item.key === 'executions') {
         executionJob.value = job
-        executionReplaceSearchParams({ current: 1, size: 20 })
-        executionSearchForm.value = {}
-        executionVisible.value = true
         executionFilterFields.value = await fetchScheduledJobExecutionFilterFields(job.id)
+        executionReplaceSearchParams({ current: 1, size: 20, dynamicFilter: undefined })
+        executionVisible.value = true
         await executionGetData()
         return
     }

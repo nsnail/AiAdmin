@@ -62,7 +62,7 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     响应状态码
     /// </summary>
-    [ListFilter("scheduledJob.executionFields.responseStatusCode", "number")]
+    [ListFilter("scheduledJob.executionFields.responseStatusCode", "number", GroupCount = true)]
     public int? ResponseStatusCode { get; set; }
 
     /// <summary>
@@ -90,7 +90,7 @@ public sealed class ScheduledJobExecution : EntityBase
         [
             "0:scheduledJob.status.waiting", "1:scheduledJob.status.running", "2:scheduledJob.status.success", "3:scheduledJob.status.failed"
             , "4:scheduledJob.status.timeout"
-        ]
+        ], GroupCount = true
     )]
     public ScheduledJobStatus Status { get; set; } = ScheduledJobStatus.Running;
 }
