@@ -59,7 +59,7 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// <summary>
     ///     钱包用户主键，同时作为钱包主键
     /// </summary>
-    [ListFilter("wallet.user", "user-select", Span = 6, GroupCount = true)]
+    [ListFilter("wallet.user", "user-select", Span = 6)]
     public long UserId { get; set; }
 
     /// <summary>

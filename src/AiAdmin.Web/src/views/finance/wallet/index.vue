@@ -1,25 +1,17 @@
 <template>
-    <div class="wallet-page art-full-height">
-        <ArtFilterGroups
-            :groups="filterGroups"
-            :loading="groupLoading"
-            :reserve-space="filterFields.some((field) => field.groupCount)"
-            :selections="groupSelections"
-            @select="handleGroupSelect" />
-        <WalletSearch v-model="searchForm" @reset="handleReset" @search="handleSearch" />
-        <ElCard class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData" />
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                @cell-query="applyCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @sort-change="handleSortChange" />
-        </ElCard>
-    </div>
+    <ArtTablePage
+        v-model:column-checks="columnChecks"
+        :columns="columns"
+        :data="data"
+        :loading="loading"
+        :pagination="pagination"
+        @filter-change="handleFilterChange"
+        @page-change="handleCurrentChange"
+        @refresh="refreshData"
+        @reset="handleReset"
+        @size-change="handleSizeChange"
+        @sort-change="handleSortChange"
+        resource="wallet" />
 </template>
 
 <script lang="ts" setup>
@@ -28,37 +20,13 @@ import { useI18n } from 'vue-i18n'
 import { ElTag } from 'element-plus'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
-import ArtFilterGroups from '@/components/core/forms/art-filter-groups/index.vue'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
-import {
-    fetchGetListFilterGroups,
-    fetchGetListFilterFields,
-    fetchGetWalletList,
-    type DynamicFilter,
-    type ListFilterField,
-    type ListFilterGroup,
-    type WalletInfo,
-} from '@/api/system-manage'
-import WalletSearch from './modules/wallet-search.vue'
+import { fetchGetWalletList, type DynamicFilter, type WalletInfo } from '@/api/system-manage'
 import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'MyWallet' })
 const { t, locale } = useI18n()
-const searchForm = ref<Record<string, unknown> & { dynamicFilter?: DynamicFilter }>({})
-const filterFields = ref<ListFilterField[]>([])
-const filterGroups = ref<ListFilterGroup[]>([])
-const groupLoading = ref(false)
-const groupSelections = computed<Record<string, unknown>>(() => {
-    const result: Record<string, unknown> = {}
-    const filter = searchForm.value.dynamicFilter
-    const collect = (item?: DynamicFilter): void => {
-        if (!item) return
-        if (item.field && item.operator === 'Equal') result[item.field] = item.value
-        item.filters?.forEach(collect)
-    }
-    collect(filter)
-    return result
-})
 const money = (value: number) => value.toLocaleString(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const time = (value: string | null) => (value ? formatDateTime(value, locale.value) : '-')
 const {
@@ -68,11 +36,11 @@ const {
     loading,
     pagination,
     replaceSearchParams,
+    getData,
     handleSizeChange,
     handleCurrentChange,
     handleSortChange,
     refreshData,
-    getData,
     resetColumns,
 } = useTable({
     core: {
@@ -163,47 +131,12 @@ const {
     },
 })
 watch(locale, () => resetColumns?.())
-const handleSearch = (params: Record<string, unknown> & { dynamicFilter?: DynamicFilter }) => {
-    searchForm.value = params
-    replaceSearchParams(params)
+const handleFilterChange = (filter: DynamicFilter | undefined) => {
+    replaceSearchParams({ dynamicFilter: filter })
     void getData()
-    void loadFilterGroups()
 }
 const handleReset = () => {
-    searchForm.value = {}
     replaceSearchParams({})
     void getData()
-    void loadFilterGroups()
 }
-const applyCellQuery = async (condition: DynamicFilter) => {
-    const current = searchForm.value.dynamicFilter
-    searchForm.value.dynamicFilter = current ? { logic: 'And', filters: [current, condition] } : condition
-    replaceSearchParams(searchForm.value)
-    await getData()
-    await loadFilterGroups()
-}
-
-const loadFilterGroups = async () => {
-    if (!filterFields.value.some((field) => field.groupCount)) return
-    groupLoading.value = true
-    try {
-        filterGroups.value = await fetchGetListFilterGroups('wallet', searchForm.value.dynamicFilter)
-    } finally {
-        groupLoading.value = false
-    }
-}
-
-const handleGroupSelect = (field: string, value: unknown) => {
-    const current = searchForm.value.dynamicFilter
-    const condition = value === undefined ? undefined : { field, operator: 'Equal', value }
-    searchForm.value.dynamicFilter = condition ? (current ? { logic: 'And', filters: [current, condition] } : condition) : undefined
-    replaceSearchParams(searchForm.value)
-    void getData()
-    void loadFilterGroups()
-}
-
-onMounted(async () => {
-    filterFields.value = await fetchGetListFilterFields('wallet')
-    await loadFilterGroups()
-})
 </script>
