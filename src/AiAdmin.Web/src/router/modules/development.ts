@@ -1,27 +1,4 @@
 import type { AppRouteRecord } from '@/types/router'
-import { articleRoutes } from './article'
-import { examplesRoutes } from './examples'
-import { exceptionRoutes } from './exception'
-import { helpRoutes } from './help'
-import { resultRoutes } from './result'
-import { safeguardRoutes } from './safeguard'
-import { templateRoutes } from './template'
-import { widgetsRoutes } from './widgets'
-
-const exampleRoutes = [
-    templateRoutes,
-    widgetsRoutes,
-    examplesRoutes,
-    articleRoutes,
-    resultRoutes,
-    exceptionRoutes,
-    safeguardRoutes,
-    ...helpRoutes,
-].map((route) => ({
-    ...route,
-    path: route.path.replace(/^\//, ''),
-}))
-
 export const developmentRoutes: AppRouteRecord = {
     path: '/development',
     name: 'Development',
@@ -38,14 +15,10 @@ export const developmentRoutes: AppRouteRecord = {
             meta: { title: 'menus.development.apiDocs', icon: 'ri:file-text-line', keepAlive: true },
         },
         {
-            path: 'examples',
-            name: 'ExampleCenter',
-            component: '',
-            meta: {
-                title: 'menus.development.exampleCenter',
-                icon: 'ri:apps-2-line',
-            },
-            children: exampleRoutes,
+            path: 'change-log',
+            name: 'ChangeLog',
+            component: '/change/log',
+            meta: { title: 'menus.plan.log', icon: 'ri:gamepad-line', keepAlive: false },
         },
     ],
 }

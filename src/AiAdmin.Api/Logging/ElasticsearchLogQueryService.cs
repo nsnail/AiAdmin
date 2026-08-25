@@ -106,10 +106,14 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
         }
 
         var value = filter.Value.Value;
-        if (filter.Operator.Equals("DateRange", StringComparison.OrdinalIgnoreCase)
-            && value.ValueKind == JsonValueKind.Array
-            && value.GetArrayLength() >= 2) {
-            var rangeValues = value.EnumerateArray().Take(2).ToArray();
+        if (filter.Operator.Equals("DateRange", StringComparison.OrdinalIgnoreCase) && value.ValueKind == JsonValueKind.Array) {
+            // 兼容前端日期范围在部分查询路径中多包一层数组的请求格式
+            var rangeValue = value.GetArrayLength() == 1 && value[0].ValueKind == JsonValueKind.Array ? value[0] : value;
+            if (rangeValue.GetArrayLength() < 2) {
+                return null;
+            }
+
+            var rangeValues = rangeValue.EnumerateArray().Take(2).ToArray();
             return new
             {
                 range = new Dictionary<string, object>

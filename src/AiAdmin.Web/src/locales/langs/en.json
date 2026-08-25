@@ -296,69 +296,14 @@
             "analysis": "Analysis",
             "ecommerce": "Ecommerce"
         },
-        "widgets": {
-            "title": "Components",
-            "icon": "Icon",
-            "imageCrop": "Image Crop",
-            "excel": "Excel Import Export",
-            "video": "Video Player",
-            "countTo": "Count To",
-            "wangEditor": "Wang Editor",
-            "watermark": "Watermark",
-            "contextMenu": "Context Menu",
-            "qrcode": "QR Code",
-            "drag": "Drag",
-            "textScroll": "Text Scroll",
-            "fireworks": "Fireworks",
-            "elementUI": "Component Overview"
-        },
-        "template": {
-            "title": "Template Center",
-            "chat": "Chat",
-            "cards": "Cards",
-            "banners": "Banners",
-            "charts": "Charts",
-            "map": "Map",
-            "calendar": "Calendar",
-            "pricing": "Pricing"
-        },
-        "article": {
-            "title": "Article",
-            "articleList": "Article List",
-            "articleDetail": "Article Detail",
-            "comment": "Comment",
-            "articlePublish": "Article Publish"
-        },
-        "result": {
-            "title": "Result Page",
-            "success": "Success",
-            "fail": "Fail"
-        },
         "exception": {
             "title": "Exception",
             "forbidden": "403",
             "notFound": "404",
             "serverError": "500"
         },
-        "examples": {
-            "title": "Feature Examples",
-            "tabs": "Tabs",
-            "tablesBasic": "Basic Tables",
-            "tables": "Advanced Tables",
-            "tablesTree": "Tree Table Layout",
-            "forms": "Forms",
-            "searchBar": "Search Form",
-            "socketChat": "Socket Connection",
-            "permission": {
-                "title": "Frontend Permission",
-                "switchRole": "Toggle Auth",
-                "buttonAuth": "Button Authority",
-                "pageVisibility": "Super Admin Visibility"
-            }
-        },
         "development": {
             "title": "Development",
-            "exampleCenter": "Example Center",
             "apiDocs": "API Documentation"
         },
         "system": {
@@ -395,19 +340,9 @@
             "systemSettings": "System Settings",
             "scheduledJobPlaceholders": "Scheduled Job Placeholders"
         },
-        "safeguard": {
-            "title": "Safeguard",
-            "server": "Server"
-        },
         "plan": {
             "title": "Version Plan",
             "log": "Change Log"
-        },
-        "help": {
-            "title": "Help Center",
-            "document": "Document",
-            "liteVersion": "Lite Version",
-            "oldVersion": "v2.6.1 Version"
         }
     },
     "messageManagement": {
