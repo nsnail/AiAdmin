@@ -31,6 +31,18 @@ public sealed class WalletController(AppDbContext db) : ControllerBase
     }
 
     /// <summary>
+    ///     查询钱包列表分组统计
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>钱包列表分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query wallet filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService.GetGroupsAsync(db.Wallets.AsNoTracking(), request.DynamicFilter).ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
     ///     查询当前用户钱包
     /// </summary>
     /// <returns>当前用户钱包信息</returns>
