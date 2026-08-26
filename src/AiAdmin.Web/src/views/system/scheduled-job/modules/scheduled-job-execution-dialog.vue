@@ -49,55 +49,25 @@
             <ElTabPane :label="t('scheduledJob.executionDetail.tabs.request')" name="request">
                 <div class="editor-section">
                     <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.requestHeaders') }}</div>
-                    <VAceEditor
-                        :options="editorOptions"
-                        :value="requestHeaders"
-                        class="execution-editor execution-header-editor"
-                        lang="json"
-                        readonly
-                        theme="tomorrow" />
+                    <ArtJsonEditor :model-value="requestHeaders" class="execution-editor execution-header-editor" height="180px" readonly />
                 </div>
                 <div class="editor-section">
                     <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.requestBody') }}</div>
-                    <VAceEditor
-                        :lang="requestBodyLanguage"
-                        :options="editorOptions"
-                        :value="requestBody"
-                        class="execution-editor"
-                        readonly
-                        theme="tomorrow" />
+                    <ArtJsonEditor :model-value="requestBody" class="execution-editor" height="260px" readonly />
                 </div>
             </ElTabPane>
             <ElTabPane :label="t('scheduledJob.executionDetail.tabs.response')" name="response">
                 <div class="editor-section">
                     <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.responseHeaders') }}</div>
-                    <VAceEditor
-                        :options="editorOptions"
-                        :value="responseHeaders"
-                        class="execution-editor execution-header-editor"
-                        lang="json"
-                        readonly
-                        theme="tomorrow" />
+                    <ArtJsonEditor :model-value="responseHeaders" class="execution-editor execution-header-editor" height="180px" readonly />
                 </div>
                 <div class="editor-section">
                     <div class="editor-label">{{ t('scheduledJob.executionDetail.fields.responseBody') }}</div>
-                    <VAceEditor
-                        :lang="responseBodyLanguage"
-                        :options="editorOptions"
-                        :value="responseBody"
-                        class="execution-editor"
-                        readonly
-                        theme="tomorrow" />
+                    <ArtJsonEditor :model-value="responseBody" class="execution-editor" height="260px" readonly />
                 </div>
             </ElTabPane>
             <ElTabPane :label="t('rawData')" name="raw-data">
-                <VAceEditor
-                    :options="editorOptions"
-                    :value="rawData"
-                    class="execution-editor raw-data-editor"
-                    lang="json"
-                    readonly
-                    theme="tomorrow" />
+                <ArtJsonEditor :model-value="rawData" class="execution-editor raw-data-editor" height="500px" readonly />
             </ElTabPane>
         </ElTabs>
         <template #footer>
@@ -107,13 +77,10 @@
 </template>
 
 <script lang="ts" setup>
-import { VAceEditor } from 'vue3-ace-editor'
-import 'ace-builds/src-noconflict/mode-json'
-import 'ace-builds/src-noconflict/mode-text'
-import 'ace-builds/src-noconflict/theme-tomorrow'
 import { useI18n } from 'vue-i18n'
 import type { ScheduledJobExecution } from '@/api/system-manage'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 import { formatDateTime } from '@/utils/date'
 
 const props = defineProps<{
@@ -125,16 +92,6 @@ const emit = defineEmits<{
 }>()
 const { t, locale } = useI18n()
 const activeTab = ref('overview')
-const editorOptions = {
-    useWorker: false,
-    tabSize: 2,
-    useSoftTabs: true,
-    showPrintMargin: false,
-    showGutter: true,
-    highlightActiveLine: false,
-    wrap: true,
-    fontSize: 13,
-}
 const dialogVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
@@ -167,21 +124,10 @@ const tryFormatJson = (value: string, fallback: string): string => {
         return value
     }
 }
-const isJson = (value: string): boolean => {
-    if (!value?.trim()) return false
-    try {
-        JSON.parse(value)
-        return true
-    } catch {
-        return false
-    }
-}
 const requestHeaders = computed(() => tryFormatJson(props.execution?.requestHeaders || '', '{}'))
 const requestBody = computed(() => tryFormatJson(props.execution?.requestBody || '', ''))
 const responseHeaders = computed(() => tryFormatJson(props.execution?.responseHeaders || '', '{}'))
 const responseBody = computed(() => tryFormatJson(props.execution?.responseBody || '', ''))
-const requestBodyLanguage = computed(() => (isJson(props.execution?.requestBody || '') ? 'json' : 'text'))
-const responseBodyLanguage = computed(() => (isJson(props.execution?.responseBody || '') ? 'json' : 'text'))
 const rawData = computed(() => JSON.stringify(props.execution ?? null, null, 2))
 
 watch(dialogVisible, (visible) => {

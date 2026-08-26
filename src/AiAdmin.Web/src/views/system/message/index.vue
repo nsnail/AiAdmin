@@ -58,7 +58,12 @@
                             :label="`${item.userName} (${item.userEmail})`"
                             :value="Number(item.id)" /></ElSelect
                 ></ElFormItem>
-                <ElFormItem><div class="editor-host" ref="editorElement" /></ElFormItem>
+                <ElFormItem>
+                    <ArtWangEditor
+                        v-model="form.content"
+                        :placeholder="t('messageManagement.contentPlaceholder')"
+                        height="min(520px, max(220px, calc(100vh - 470px)))" />
+                </ElFormItem>
             </ElForm>
             <template #footer
                 ><ElButton @click="preview">{{ t('messageManagement.preview') }}</ElButton
@@ -75,10 +80,9 @@
 <script lang="ts" setup>
 import { h } from 'vue'
 import { ElMessageBox, ElTag } from 'element-plus'
-import { AiEditor } from 'aieditor'
-import 'aieditor/dist/style.css'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtWangEditor from '@/components/core/forms/art-wang-editor/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import {
@@ -104,8 +108,6 @@ const recipientsTitle = ref('')
 const recipients = ref<Api.SystemManage.SystemMessageRecipientItem[]>([])
 const users = ref<Api.SystemManage.UserListItem[]>([])
 const departmentOptions = ref<{ id: string; name: string }[]>([])
-const editorElement = ref<HTMLElement>()
-let editor: AiEditor | undefined
 const previewHtml = ref('')
 const selectedRows = ref<Api.SystemManage.SystemMessageListItem[]>([])
 const editingId = ref<string>()
@@ -240,82 +242,22 @@ const searchUsers = async (query: string) => {
 const openCreate = async () => {
     editingId.value = undefined
     Object.assign(form, { title: '', content: '', targetType: 'all', departmentIds: [], userIds: [] })
-    await openEditor()
+    editorVisible.value = true
 }
 const openEdit = async (row: Api.SystemManage.SystemMessageListItem) => {
     editingId.value = row.id
     form.title = row.title
     form.content = row.content
-    await openEditor()
-}
-const openEditor = async () => {
     editorVisible.value = true
-    await nextTick()
-    editor?.destroy()
-    editor = new AiEditor({
-        element: editorElement.value!,
-        placeholder: t('messageManagement.contentPlaceholder'),
-        toolbarKeys: [
-            'undo',
-            'redo',
-            'brush',
-            'eraser',
-            'divider',
-            'heading',
-            'font-family',
-            'font-size',
-            'divider',
-            'bold',
-            'italic',
-            'underline',
-            'strike',
-            'link',
-            'code',
-            'subscript',
-            'superscript',
-            'hr',
-            'todo',
-            'emoji',
-            'divider',
-            'highlight',
-            'font-color',
-            'divider',
-            'align',
-            'line-height',
-            'divider',
-            'bullet-list',
-            'ordered-list',
-            'indent-decrease',
-            'indent-increase',
-            'break',
-            'divider',
-            'image',
-            'video',
-            'attachment',
-            'quote',
-            'container',
-            'code-block',
-            'table',
-            'divider',
-            'source-code',
-            'printer',
-            'fullscreen',
-        ],
-        content: form.content,
-    })
 }
 const preview = () => {
-    if (editor) {
-        previewHtml.value = editor.getHtml()
-        form.content = previewHtml.value
-    }
+    previewHtml.value = form.content
     previewVisible.value = true
 }
 const send = async () => {
-    if (!form.title.trim() || !editor) return
+    if (!form.title.trim()) return
     sending.value = true
     try {
-        form.content = editor.getHtml()
         if (editingId.value) await fetchUpdateSystemMessage(editingId.value, { title: form.title, content: form.content })
         else await fetchSendSystemMessage(form)
         editorVisible.value = false
@@ -359,7 +301,6 @@ const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Pro
 }
 watch(useI18n().locale, () => resetColumns?.())
 onMounted(load)
-onBeforeUnmount(() => editor?.destroy())
 </script>
 <style scoped>
 .editor-form {
@@ -382,19 +323,10 @@ onBeforeUnmount(() => editor?.destroy())
     justify-content: flex-end;
     gap: 8px;
 }
-.editor-host {
+.editor-form :deep(.editor-wrapper) {
     width: 100%;
-    height: min(520px, max(220px, calc(100vh - 420px)));
     min-height: 220px;
-    border: 1px solid var(--el-border-color);
     overflow: hidden;
-}
-.editor-host :deep(.aie-container) {
-    height: 100%;
-}
-.editor-host :deep(.aie-content) {
-    min-height: 0;
-    height: calc(100% - 42px);
 }
 .message-content {
     max-height: 70vh;

@@ -29,13 +29,11 @@
                         </ElTooltip>
                     </span>
                 </template>
-                <VAceEditor
-                    v-model:value="formData.requestHeadersJson"
-                    :options="editorOptions"
+                <ArtJsonEditor
+                    v-model="formData.requestHeadersJson"
                     @blur="formRef?.validateField('requestHeadersJson')"
                     class="scheduled-job-editor"
-                    lang="json"
-                    theme="tomorrow" />
+                    height="160px" />
             </ElFormItem>
             <ElFormItem prop="requestBody">
                 <template #label>
@@ -53,12 +51,7 @@
                         </ElTooltip>
                     </span>
                 </template>
-                <VAceEditor
-                    v-model:value="formData.requestBody"
-                    :options="editorOptions"
-                    class="scheduled-job-editor scheduled-job-body-editor"
-                    lang="json"
-                    theme="tomorrow" />
+                <ArtJsonEditor v-model="formData.requestBody" class="scheduled-job-editor scheduled-job-body-editor" height="220px" />
             </ElFormItem>
             <ElFormItem label="超时（秒）" prop="timeoutSeconds">
                 <ElInputNumber v-model="formData.timeoutSeconds" :max="86400" :min="1" controls-position="right" />
@@ -76,12 +69,9 @@
 
 <script lang="ts" setup>
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { VAceEditor } from 'vue3-ace-editor'
-import 'ace-builds/src-noconflict/mode-json'
-import 'ace-builds/src-noconflict/mode-text'
-import 'ace-builds/src-noconflict/theme-tomorrow'
 import type { SaveScheduledJob, ScheduledJob } from '@/api/system-manage'
 import ScCron from '@/components/business/sc-cron/index.vue'
+import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
@@ -96,7 +86,6 @@ const emit = defineEmits<{
 }>()
 
 const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
-const editorOptions = { useWorker: false, tabSize: 2, useSoftTabs: true, showPrintMargin: false }
 const formRef = ref<FormInstance>()
 const dialogVisible = computed({
     get: () => props.visible,

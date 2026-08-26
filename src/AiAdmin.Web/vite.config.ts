@@ -2,7 +2,6 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import vueDevTools from 'vite-plugin-vue-devtools'
 import viteCompression from 'vite-plugin-compression'
 import Components from 'unplugin-vue-components/vite'
 import AutoImport from 'unplugin-auto-import/vite'
@@ -96,7 +95,6 @@ export default ({ mode }: { mode: string }) => {
                 threshold: 10240, // 只有大小大于该值的资源会被处理 10240B = 10KB
                 deleteOriginFile: false, // 压缩后是否删除原文件
             }),
-            vueDevTools(),
         ],
         // 依赖预构建：避免运行时重复请求与转换，提升首次加载速度
         optimizeDeps: {
@@ -106,10 +104,8 @@ export default ({ mode }: { mode: string }) => {
                 'echarts/components',
                 'echarts/renderers',
                 'xlsx',
-                'xgplayer',
                 'crypto-js',
                 'file-saver',
-                'vue-img-cutter',
                 'element-plus/es',
                 'element-plus/es/components/*/style/css',
                 'element-plus/es/components/*/style/index',
@@ -120,7 +116,7 @@ export default ({ mode }: { mode: string }) => {
                 // sass variable and mixin
                 scss: {
                     additionalData: `
-            @use "@styles/core/el-light.scss" as *; 
+            @use "@styles/core/el-light.scss" as *;
             @use "@styles/core/mixin.scss" as *;
           `,
                 },

@@ -1,47 +1,47 @@
 <template>
-    <div class="art-full-height">
-        <ArtFilterGroups
-            :groups="filterGroups"
-            :loading="groupLoading"
-            :reserve-space="reserveFilterGroups || groupedFields.size > 0"
-            :selections="groupSelections"
-            @select="handleGroupSelect" />
+    <div class="art-full-height art-table-page">
+        <template v-if="pageReady">
+            <ArtSearchBar
+                v-model="formModel"
+                :advanced-query-fields="advancedQueryFields"
+                :filter-fields="filterFields"
+                :filter-groups="filterGroups"
+                :group-selections="groupSelections"
+                :items="[]"
+                :reserve-filter-groups="reserveFilterGroups || groupedFields.size > 0"
+                @group-select="handleGroupSelect"
+                @reset="handleReset"
+                @search="handleSearch"
+                ref="searchBarRef" />
 
-        <ArtSearchBar
-            v-model="formModel"
-            :advanced-query-fields="advancedQueryFields"
-            :filter-fields="filterFields"
-            :items="[]"
-            @reset="handleReset"
-            @search="handleSearch"
-            ref="searchBarRef" />
+            <ElCard class="art-table-card">
+                <ArtTableHeader
+                    v-model:columns="columnChecksModel"
+                    :column-storage-key="`resource-${resource}`"
+                    :loading="loading"
+                    @refresh="emit('refresh')">
+                    <template #left><slot name="header-left" /></template>
+                    <template #right><slot name="header-right" /></template>
+                </ArtTableHeader>
 
-        <ElCard class="art-table-card">
-            <ArtTableHeader
-                v-model:columns="columnChecksModel"
-                :column-storage-key="`resource-${resource}`"
-                :loading="loading"
-                @refresh="emit('refresh')">
-                <template #left><slot name="header-left" /></template>
-                <template #right><slot name="header-right" /></template>
-            </ArtTableHeader>
+                <ArtTable
+                    :columns="columns"
+                    :data="data"
+                    :loading="loading"
+                    :pagination="pagination"
+                    :row-key="rowKey"
+                    :tree-props="treeProps"
+                    @cell-query="handleCellQuery"
+                    @pagination:current-change="emit('page-change', $event)"
+                    @pagination:size-change="emit('size-change', $event)"
+                    @selection-change="emit('selection-change', $event)"
+                    @sort-change="emit('sort-change', $event)"
+                    ref="tableRef" />
 
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                :row-key="rowKey"
-                :tree-props="treeProps"
-                @cell-query="handleCellQuery"
-                @pagination:current-change="emit('page-change', $event)"
-                @pagination:size-change="emit('size-change', $event)"
-                @selection-change="emit('selection-change', $event)"
-                @sort-change="emit('sort-change', $event)"
-                ref="tableRef" />
-
-            <slot />
-        </ElCard>
+                <slot />
+            </ElCard>
+        </template>
+        <div v-else v-loading="true" class="art-table-page-placeholder" />
     </div>
 </template>
 
@@ -56,7 +56,6 @@ import {
 import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import type { ColumnOption } from '@/types/component'
 import { useI18n } from 'vue-i18n'
-import ArtFilterGroups from '@/components/core/forms/art-filter-groups/index.vue'
 
 defineOptions({ name: 'ArtTablePage' })
 
@@ -111,6 +110,7 @@ const formModel = ref<Record<string, unknown>>({})
 const filterFields = ref<ListFilterField[]>([])
 const filterGroups = ref<ListFilterGroup[]>([])
 const groupLoading = ref(false)
+const pageReady = ref(false)
 const currentFilter = ref<DynamicFilter>()
 const residualFilter = ref<DynamicFilter>()
 let groupRequestId = 0
@@ -255,9 +255,16 @@ const handleReset = (): void => {
 }
 
 onMounted(async () => {
-    filterFields.value = props.filterFields || (await fetchGetListFilterFields(props.resource))
-    await nextTick()
-    synchronizeFilter(props.defaultFilter)
+    try {
+        filterFields.value = props.filterFields || (await fetchGetListFilterFields(props.resource))
+        await nextTick()
+        synchronizeFilter(props.defaultFilter)
+        await refreshFilterGroups(currentFilter.value)
+    } catch (error) {
+        console.error('[ArtTablePage] 筛选元数据加载失败:', error)
+    } finally {
+        pageReady.value = true
+    }
 })
 
 watch(
@@ -272,3 +279,11 @@ watch(
 
 defineExpose({ tableRef })
 </script>
+
+<style scoped>
+.art-table-page-placeholder {
+    position: relative;
+    height: 100%;
+    min-height: 420px;
+}
+</style>

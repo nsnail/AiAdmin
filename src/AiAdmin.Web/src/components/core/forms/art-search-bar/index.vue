@@ -3,6 +3,45 @@
 <!-- 写法同 ElementPlus 官方文档组件，把属性写在 props 里面就可以了 -->
 <template>
     <section :class="{ 'is-expanded': isExpanded }" class="art-search-bar art-card-xs">
+        <section v-if="filterGroups.length || reserveFilterGroups" :class="{ 'is-empty': !filterGroups.length }" class="filter-groups">
+            <div v-for="group in filterGroups" :key="group.field" class="filter-group-row">
+                <button :aria-expanded="isGroupExpanded(group.field)" @click="toggleGroup(group.field)" class="filter-group-label" type="button">
+                    <span>{{ t(group.label) }}（{{ group.options.length }}）</span>
+                    <ArtSvgIcon
+                        v-if="hasGroupOverflow(group.field)"
+                        :icon="isGroupExpanded(group.field) ? 'ri:arrow-up-s-line' : 'ri:arrow-down-s-line'" />
+                </button>
+                <div
+                    :class="{ expanded: isGroupExpanded(group.field) }"
+                    :ref="(element) => setGroupOptionsRef(group.field, element)"
+                    class="filter-group-options">
+                    <ElBadge :hidden="group.total === 0" :max="Number.MAX_SAFE_INTEGER" :value="group.total" class="filter-group-badge">
+                        <button
+                            :class="{ active: !hasGroupSelection(group.field) }"
+                            @click="selectGroup(group.field, undefined)"
+                            class="filter-group-option"
+                            type="button">
+                            {{ t('listFilter.group.all') }}
+                        </button>
+                    </ElBadge>
+                    <ElBadge
+                        v-for="option in group.options"
+                        :hidden="option.count === 0"
+                        :key="groupOptionKey(option.value)"
+                        :max="Number.MAX_SAFE_INTEGER"
+                        :value="option.count"
+                        class="filter-group-badge">
+                        <button
+                            :class="{ active: isGroupSelected(group.field, option.value) }"
+                            @click="selectGroup(group.field, option.value)"
+                            class="filter-group-option"
+                            type="button">
+                            {{ translateGroupOption(option.label) }}
+                        </button>
+                    </ElBadge>
+                </div>
+            </div>
+        </section>
         <ElForm v-bind="{ ...$attrs }" :label-position="labelPosition" :model="modelValue" @submit.prevent="handleSearch" ref="formRef">
             <ElRow :gutter="gutter">
                 <ElCol
@@ -224,7 +263,14 @@ import { calculateResponsiveSpan, type ResponsiveBreakpoint } from '@/utils/form
 import ArtDynamicQueryDrawer from '../art-dynamic-query-drawer/index.vue'
 import ArtJsonEditor from '../art-json-editor/index.vue'
 import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
-import { fetchGetSavedQueries, fetchDeleteSavedQuery, fetchSaveQuery, type ListFilterField, type SavedQuery } from '@/api/system-manage'
+import {
+    fetchGetSavedQueries,
+    fetchDeleteSavedQuery,
+    fetchSaveQuery,
+    type ListFilterField,
+    type ListFilterGroup,
+    type SavedQuery,
+} from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
 import ArtUserSelect from '../art-user-select/index.vue'
 
@@ -318,6 +364,9 @@ interface SearchBarProps {
     advancedQueryFields?: DynamicQueryField[]
     /** 由后端模型筛选特性反射得到的基础筛选字段 */
     filterFields?: ListFilterField[]
+    filterGroups?: ListFilterGroup[]
+    groupSelections?: Record<string, unknown>
+    reserveFilterGroups?: boolean
 }
 
 interface SanitizeOutputOptions {
@@ -349,14 +398,54 @@ const props = withDefaults(defineProps<SearchBarProps>(), {
     showSearch: true,
     disabledSearch: false,
     sanitizeOutput: () => ({}),
+    filterGroups: () => [],
+    groupSelections: () => ({}),
+    reserveFilterGroups: false,
 })
 
 interface SearchBarEmits {
     reset: []
     search: [Record<string, any>]
+    'group-select': [field: string, value: unknown]
 }
 
 const emit = defineEmits<SearchBarEmits>()
+
+const expandedGroups = ref<Record<string, boolean>>({})
+const overflowGroups = ref<Record<string, boolean>>({})
+const groupOptionsRefs = new Map<string, HTMLElement>()
+const groupOptionKey = (value: unknown): string => JSON.stringify(value) ?? 'undefined'
+const hasGroupSelection = (field: string): boolean => Object.prototype.hasOwnProperty.call(props.groupSelections, field)
+const isGroupSelected = (field: string, value: unknown): boolean =>
+    hasGroupSelection(field) && JSON.stringify(props.groupSelections[field]) === JSON.stringify(value)
+const translateGroupOption = (label: string): string => {
+    const translated = t(label)
+    return translated === label ? label : translated
+}
+const selectGroup = (field: string, value: unknown): void => emit('group-select', field, value)
+const isGroupExpanded = (field: string): boolean => expandedGroups.value[field] === true
+const hasGroupOverflow = (field: string): boolean => overflowGroups.value[field] === true
+const toggleGroup = (field: string): void => {
+    if (!hasGroupOverflow(field)) return
+    expandedGroups.value[field] = !isGroupExpanded(field)
+}
+const setGroupOptionsRef = (field: string, element: Element | null): void => {
+    if (element instanceof HTMLElement) groupOptionsRefs.set(field, element)
+    else groupOptionsRefs.delete(field)
+}
+const measureGroupOverflow = async (): Promise<void> => {
+    await nextTick()
+    const result: Record<string, boolean> = {}
+    props.filterGroups.forEach((group) => {
+        const element = groupOptionsRefs.get(group.field)
+        result[group.field] = element ? element.scrollHeight > 28 : false
+        if (!result[group.field]) delete expandedGroups.value[group.field]
+    })
+    overflowGroups.value = result
+}
+watch(() => props.filterGroups, measureGroupOverflow, { deep: true, immediate: true })
+onMounted(() => window.addEventListener('resize', measureGroupOverflow))
+onBeforeUnmount(() => window.removeEventListener('resize', measureGroupOverflow))
 
 const modelValue = defineModel<Record<string, any>>({ default: {} })
 const advancedQueryVisible = ref(false)
@@ -1040,6 +1129,112 @@ const { span, gutter, labelPosition, labelWidth } = toRefs(props)
 </script>
 
 <style lang="scss" scoped>
+.filter-groups {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: -16px -16px 12px;
+    padding: 10px 16px;
+    min-height: 48px;
+    background: var(--el-bg-color);
+    border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+.filter-groups.is-empty {
+    visibility: hidden;
+}
+
+.filter-group-row {
+    display: grid;
+    grid-template-columns: minmax(110px, 180px) minmax(0, 1fr);
+    gap: 10px;
+    min-height: 50px;
+    align-items: center;
+    padding: 5px 12px 5px 0;
+}
+
+.filter-group-label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    width: 100%;
+    padding: 0;
+    overflow: hidden;
+    color: var(--el-text-color-secondary);
+    font-size: 13px;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.filter-group-label:hover {
+    color: var(--el-color-primary);
+}
+
+.filter-group-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    align-items: center;
+    min-width: 0;
+    max-height: 28px;
+    overflow: hidden;
+    transition: max-height 0.2s ease;
+}
+
+.filter-group-options.expanded {
+    max-height: 1000px;
+}
+
+.filter-group-option {
+    min-height: 28px;
+    padding: 4px 13px;
+    color: var(--el-text-color-primary);
+    font-size: 13px;
+    line-height: 20px;
+    background: var(--el-fill-color-light);
+    border: 0;
+    border-radius: 14px;
+    cursor: pointer;
+}
+
+.filter-group-option.active {
+    color: var(--el-color-white);
+    background: var(--el-color-primary);
+}
+
+.filter-group-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding-right: 4px;
+}
+
+.filter-group-badge :deep(.el-badge__content) {
+    position: absolute;
+    top: 0;
+    right: 4px;
+    margin: 0;
+    transform: translate(50%, 0);
+    font-size: 11px;
+    pointer-events: none;
+}
+
+@media (max-width: 1100px) {
+    .filter-groups {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .filter-group-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}
+
 .art-search-bar {
     padding: 15px 20px 0;
 
