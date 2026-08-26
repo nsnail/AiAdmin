@@ -1,0 +1,11 @@
+.git
+.drone
+.vs
+.idea
+**/bin
+**/obj
+**/node_modules
+**/dist
+build-int
+src/AiAdmin.Web/.env.local
+src/AiAdmin.Api/appsettings.Local.json

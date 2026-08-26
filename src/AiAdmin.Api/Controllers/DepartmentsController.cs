@@ -257,11 +257,8 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
                 return true;
             }
 
-            currentParentId = await db
-                .Departments.Where(x => x.Id == currentParentId.Value)
-                .Select(x => x.ParentId)
-                .SingleOrDefaultAsync()
-                .ConfigureAwait(false);
+            var id1 = currentParentId;
+            currentParentId = await db.Departments.Where(x => x.Id == id1.Value).Select(x => x.ParentId).SingleOrDefaultAsync().ConfigureAwait(false);
         }
 
         return false;

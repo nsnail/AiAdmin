@@ -27,11 +27,71 @@ public static class DatabaseInitializer
     private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     /// <summary>
-    ///     初始化数据库结构、基础角色和菜单数据
+    ///     删除当前应用数据库，供开发和测试环境启动时重置数据
+    /// </summary>
+    /// <param name="services">应用服务提供器</param>
+    /// <returns>异步删除任务</returns>
+    public static async Task DeleteAllTablesAsync(IServiceProvider services) {
+        await using var scope = services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        _ = await db.Database.EnsureDeletedAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     初始化系统数据和业务数据
     /// </summary>
     /// <param name="services">应用服务提供器</param>
     /// <returns>异步初始化任务</returns>
     public static async Task InitializeAsync(IServiceProvider services) {
+        await InitializeSystemDataAsync(services).ConfigureAwait(false);
+        await InitializeBusinessDataAsync(services).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     初始化业务数据种子
+    /// </summary>
+    /// <param name="services">应用服务提供器</param>
+    /// <returns>异步初始化任务</returns>
+    public static Task InitializeBusinessDataAsync(IServiceProvider services) {
+        return BusinessDataSeeder.InitializeAsync(services);
+    }
+
+    /// <summary>
+    ///     为非超级管理员角色补充进入后台所需的基础接口权限
+    /// </summary>
+    /// <param name="services">应用服务提供器</param>
+    /// <returns>异步初始化任务</returns>
+    public static async Task InitializeRoleApisAsync(IServiceProvider services) {
+        await using var scope = services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var permissionCache = scope.ServiceProvider.GetRequiredService<ApiPermissionCache>();
+        var roles = await db.Roles.Include(x => x.RoleApis).Where(x => x.Code == "R_ADMIN" || x.Code == "R_USER").ToListAsync().ConfigureAwait(false);
+        var endpoints = (await db.ApiEndpoints.ToListAsync().ConfigureAwait(false))
+            .Where(x => _basicApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path), StringComparer.Ordinal))
+            .ToList();
+
+        // 接口同步完成后，幂等补齐普通管理员和普通用户登录后台必需的权限
+        foreach (var role in roles) {
+            var assignedEndpointIds = role.RoleApis.Select(x => x.ApiEndpointId).ToHashSet();
+            foreach (var endpoint in endpoints.Where(x => !assignedEndpointIds.Contains(x.Id))) {
+                role.RoleApis.Add(new RoleApi { Role = role, ApiEndpoint = endpoint });
+            }
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        permissionCache.Invalidate();
+    }
+
+    /// <summary>
+    ///     初始化数据库结构和系统数据
+    /// </summary>
+    /// <param name="services">应用服务提供器</param>
+    /// <returns>异步初始化任务</returns>
+    public static Task InitializeSystemDataAsync(IServiceProvider services) {
+        return SystemDataSeeder.InitializeAsync(services);
+    }
+
+    internal static async Task InitializeSystemCoreAsync(IServiceProvider services) {
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
@@ -53,50 +113,6 @@ public static class DatabaseInitializer
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
 
-        var defaultDepartment = await EnsureDefaultDepartmentAsync(db).ConfigureAwait(false);
-
-        if (!await db.Users.AnyAsync().ConfigureAwait(false)) {
-            var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER").ConfigureAwait(false);
-            var adminRole = await db.Roles.SingleAsync(x => x.Code == "R_ADMIN").ConfigureAwait(false);
-            var userRole = await db.Roles.SingleAsync(x => x.Code == "R_USER").ConfigureAwait(false);
-
-            // 初始化三个基础账号，分别覆盖超级管理员、普通管理员和普通用户权限
-            var root = new User
-            {
-                UserName = "root"
-                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
-                , Email = "root@aiadmin.local"
-                , Phone = "13800000000"
-                , Gender = UserGender.Male
-            };
-            root.UserRoles.Add(new UserRole { User = root, Role = superRole });
-
-            var admin = new User
-            {
-                UserName = "admin"
-                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
-                , Email = "admin@aiadmin.local"
-                , Phone = "13800000001"
-                , Gender = UserGender.Male
-            };
-            admin.UserRoles.Add(new UserRole { User = admin, Role = adminRole });
-
-            var user = new User
-            {
-                UserName = "user"
-                , PasswordHash = BCrypt.Net.BCrypt.HashPassword("1234qwer")
-                , Email = "user@aiadmin.local"
-                , Phone = "13800000002"
-                , Gender = UserGender.Male
-            };
-            user.UserRoles.Add(new UserRole { User = user, Role = userRole });
-
-            await db.Users.AddRangeAsync(root, admin, user).ConfigureAwait(false);
-            _ = await db.SaveChangesAsync().ConfigureAwait(false);
-
-            await AddSeedUserDepartmentsAsync(db, defaultDepartment, root, admin, user).ConfigureAwait(false);
-        }
-
         if (!await db.Menus.AnyAsync().ConfigureAwait(false)) {
             await SeedMenusAsync(db).ConfigureAwait(false);
         }
@@ -105,7 +121,7 @@ public static class DatabaseInitializer
         await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
         await EnsureLoginLogMenuAsync(db).ConfigureAwait(false);
         await EnsureMessageMenuAsync(db).ConfigureAwait(false);
-        await EnsureWelcomeMessageAsync(db).ConfigureAwait(false);
+
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
         }
@@ -162,76 +178,6 @@ public static class DatabaseInitializer
         }
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        await EnsureScheduledJobSeedAsync(db).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     为非超级管理员角色补充进入后台所需的基础接口权限
-    /// </summary>
-    /// <param name="services">应用服务提供器</param>
-    /// <returns>异步初始化任务</returns>
-    public static async Task InitializeRoleApisAsync(IServiceProvider services) {
-        await using var scope = services.CreateAsyncScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var permissionCache = scope.ServiceProvider.GetRequiredService<ApiPermissionCache>();
-        var roles = await db.Roles.Include(x => x.RoleApis).Where(x => x.Code == "R_ADMIN" || x.Code == "R_USER").ToListAsync().ConfigureAwait(false);
-        var endpoints = (await db.ApiEndpoints.ToListAsync().ConfigureAwait(false))
-            .Where(x => _basicApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path), StringComparer.Ordinal))
-            .ToList();
-
-        // 接口同步完成后，幂等补齐普通管理员和普通用户登录后台必需的权限
-        foreach (var role in roles) {
-            var assignedEndpointIds = role.RoleApis.Select(x => x.ApiEndpointId).ToHashSet();
-            foreach (var endpoint in endpoints.Where(x => !assignedEndpointIds.Contains(x.Id))) {
-                role.RoleApis.Add(new RoleApi { Role = role, ApiEndpoint = endpoint });
-            }
-        }
-
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        permissionCache.Invalidate();
-    }
-
-    /// <summary>
-    ///     为种子用户创建默认部门下的个人子部门并建立关联
-    /// </summary>
-    /// <param name="db">数据库上下文</param>
-    /// <param name="defaultDepartment">默认部门</param>
-    /// <param name="users">种子用户集合</param>
-    /// <returns>异步处理任务</returns>
-    private static async Task AddSeedUserDepartmentsAsync(
-        AppDbContext db
-        , Department defaultDepartment
-        , params User[] users
-    ) {
-        foreach (var user in users) {
-            var department = new Department { Name = user.UserName, Code = $"USER_{user.Id}", ParentId = defaultDepartment.Id, Sort = 0 };
-            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
-            _ = await db.Wallets.AddAsync(new Wallet { UserId = user.Id, OwnerDepartmentId = department.Id }).ConfigureAwait(false);
-        }
-
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     确保默认部门种子存在
-    /// </summary>
-    /// <param name="db">数据库上下文</param>
-    /// <returns>默认部门实体</returns>
-    private static async Task<Department> EnsureDefaultDepartmentAsync(AppDbContext db) {
-        var department = await db.Departments.SingleOrDefaultAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
-        if (department is not null) {
-            if (department.Name != Department.DEFAULT_NAME) {
-                department.Name = Department.DEFAULT_NAME;
-                _ = await db.SaveChangesAsync().ConfigureAwait(false);
-            }
-
-            return department;
-        }
-
-        department = new Department { Name = Department.DEFAULT_NAME, Code = Department.DEFAULT_CODE, Sort = 0 };
-        _ = await db.Departments.AddAsync(department).ConfigureAwait(false);
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return department;
     }
 
     /// <summary>
@@ -365,66 +311,6 @@ public static class DatabaseInitializer
                 }
             )
             .ConfigureAwait(false);
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     初始化计划作业占位符目录和公共 IP 示例作业
-    /// </summary>
-    /// <param name="db">应用数据库上下文</param>
-    /// <returns>异步初始化任务</returns>
-    private static async Task EnsureScheduledJobSeedAsync(AppDbContext db) {
-        var catalog = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders").ConfigureAwait(false);
-        if (catalog is null) {
-            catalog = new DictionaryCategory { Code = "scheduled_job_placeholders", Name = "Scheduled Job Placeholders", Sort = 10 };
-            _ = await db.DictionaryCategories.AddAsync(catalog).ConfigureAwait(false);
-        }
-
-        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == "Get Public IP").ConfigureAwait(false)) {
-            _ = await db
-                .ScheduledJobs.AddAsync(
-                    new ScheduledJob
-                    {
-                        Name = "Get Public IP"
-                        , CronExpression = "*/10 * * * * *"
-                        , RequestUrl = "https://httpbin.org/ip"
-                        , RequestMethod = "GET"
-                        , IsEnabled = true
-                        , TimeoutSeconds = 30
-                    }
-                )
-                .ConfigureAwait(false);
-        }
-
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-    }
-
-    /// <summary>
-    ///     确保系统为全体用户生成欢迎通知
-    /// </summary>
-    /// <param name="db">数据库上下文</param>
-    /// <returns>异步初始化任务</returns>
-    private static async Task EnsureWelcomeMessageAsync(AppDbContext db) {
-        const string title = "Welcome to AiAdmin";
-        if (await db.SystemMessages.AnyAsync(x => x.Title == title).ConfigureAwait(false)) {
-            return;
-        }
-
-        var sender = await db.Users.OrderBy(x => x.Id).FirstOrDefaultAsync().ConfigureAwait(false);
-        if (sender is null) {
-            return;
-        }
-
-        var message = new SystemMessage
-        {
-            SenderId = sender.Id, Title = title, Content = "<p>Welcome to AiAdmin. We hope you enjoy using the system.</p>"
-        };
-        var users = await db.Users.Where(x => x.IsEnabled).Select(x => x.Id).ToListAsync().ConfigureAwait(false);
-        foreach (var userId in users) {
-            message.Recipients.Add(new UserMessage { UserId = userId, Message = message });
-        }
-
-        _ = await db.SystemMessages.AddAsync(message).ConfigureAwait(false);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

@@ -13,7 +13,7 @@
             ref="elTableRef">
             <template v-for="col in columns" :key="col.prop || col.type">
                 <!-- 渲染全局序号列 -->
-                <ElTableColumn v-bind="{ ...col }" v-if="col.type === 'globalIndex'">
+                <ElTableColumn v-bind="cleanColumnProps(col)" v-if="col.type === 'globalIndex'">
                     <template #default="{ $index }">
                         <span>{{ getGlobalIndex($index) }}</span>
                     </template>
@@ -415,7 +415,8 @@ const shouldRenderSlotScope = (slotScope: { $index?: number }) => {
 
 // 清理列属性，移除插槽相关的自定义属性，确保它们不会被 ElTableColumn 错误解释
 const cleanColumnProps = (col: ColumnOption) => {
-    const columnProps = { ...col }
+    // 所有表格列默认启用溢出提示，单列可显式设置为 false
+    const columnProps = { showOverflowTooltip: true, ...col }
     // 删除自定义的插槽控制属性
     delete columnProps.useHeaderSlot
     delete columnProps.headerSlotName

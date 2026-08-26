@@ -183,7 +183,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         , string key
         , string fallback = ""
     ) {
-        return info.TryGetValue(key, out var value) ? value : fallback;
+        return info.GetValueOrDefault(key, fallback);
     }
 
     private static async Task<long> GetLengthAsync(

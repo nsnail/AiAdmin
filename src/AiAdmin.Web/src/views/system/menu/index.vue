@@ -9,6 +9,7 @@
         :pagination="pagination"
         :row-key="'path'"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
+        @filter-change="handleFilterChange"
         @page-change="handleCurrentChange"
         @refresh="handleRefresh"
         @reset="handleReset"
@@ -228,6 +229,7 @@ const {
     loading,
     pagination,
     getData: getMenuList,
+    replaceSearchParams,
     resetSearchParams,
     handleSizeChange,
     handleCurrentChange,
@@ -243,6 +245,11 @@ const {
 })
 
 const handleReset = (): void => resetSearchParams()
+
+const handleFilterChange = async (dynamicFilter?: DynamicFilter): Promise<void> => {
+    replaceSearchParams({ dynamicFilter })
+    await getMenuList()
+}
 
 /**
  * 深度克隆对象

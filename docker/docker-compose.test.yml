@@ -1,0 +1,29 @@
+services:
+  api:
+    image: ${API_IMAGE:?API_IMAGE is required}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Test
+      ASPNETCORE_URLS: http://+:80
+    depends_on:
+      - redis
+    ports:
+      - "5678:80"
+
+  web:
+    image: ${WEB_IMAGE:?WEB_IMAGE is required}
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-5679}:80"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-test-data:/data
+    expose:
+      - "6379"
+
+volumes:
+  redis-test-data:

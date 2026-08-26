@@ -52,7 +52,7 @@ const {
                 queryField: 'UserId',
                 queryValueType: 'number',
                 label: 'ID',
-                width: 170,
+                width: 160,
                 align: 'left',
                 sortable: true,
                 formatter: (row: WalletInfo) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),

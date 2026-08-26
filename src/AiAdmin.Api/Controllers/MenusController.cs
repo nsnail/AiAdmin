@@ -173,7 +173,7 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     private static IReadOnlyList<MenuItemResult> BuildTree(IReadOnlyList<Menu> rows) {
         var nodes = rows.ToDictionary(x => x.Name, ToResult, StringComparer.Ordinal);
 
-        return BuildChildren(string.Empty, new HashSet<string>(StringComparer.Ordinal));
+        return BuildChildren(string.Empty, [with(StringComparer.Ordinal)]);
 
         IReadOnlyList<MenuItemResult> BuildChildren(
             string parentName

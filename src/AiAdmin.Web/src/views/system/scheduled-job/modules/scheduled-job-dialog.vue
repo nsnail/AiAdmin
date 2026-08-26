@@ -1,6 +1,6 @@
 <template>
     <ElDialog v-model="dialogVisible" :title="jobData?.id ? '编辑作业' : '新增作业'" align-center destroy-on-close width="680px">
-        <ElForm :model="formData" :rules="rules" label-width="110px" ref="formRef">
+        <ElForm :model="formData" :rules="rules" label-width="140px" ref="formRef">
             <ElFormItem label="名称" prop="name">
                 <ElInput v-model.trim="formData.name" maxlength="100" show-word-limit />
             </ElFormItem>
@@ -13,7 +13,22 @@
             <ElFormItem label="请求方法" prop="requestMethod">
                 <ElSegmented v-model="formData.requestMethod" :options="methods" />
             </ElFormItem>
-            <ElFormItem label="请求头 JSON" prop="requestHeadersJson">
+            <ElFormItem prop="requestHeadersJson">
+                <template #label>
+                    <span class="editor-label">
+                        <span>请求头 JSON</span>
+                        <ElTooltip :content="t('scheduledJob.actions.formatJson')">
+                            <ElButton
+                                :aria-label="t('scheduledJob.actions.formatJson')"
+                                @click="formatJson('requestHeadersJson')"
+                                circle
+                                text
+                                type="primary">
+                                <ArtSvgIcon icon="ri:code-s-slash-line" />
+                            </ElButton>
+                        </ElTooltip>
+                    </span>
+                </template>
                 <VAceEditor
                     v-model:value="formData.requestHeadersJson"
                     :options="editorOptions"
@@ -22,12 +37,27 @@
                     lang="json"
                     theme="tomorrow" />
             </ElFormItem>
-            <ElFormItem label="请求体" prop="requestBody">
+            <ElFormItem prop="requestBody">
+                <template #label>
+                    <span class="editor-label">
+                        <span>请求体</span>
+                        <ElTooltip :content="t('scheduledJob.actions.formatJson')">
+                            <ElButton
+                                :aria-label="t('scheduledJob.actions.formatJson')"
+                                @click="formatJson('requestBody')"
+                                circle
+                                text
+                                type="primary">
+                                <ArtSvgIcon icon="ri:code-s-slash-line" />
+                            </ElButton>
+                        </ElTooltip>
+                    </span>
+                </template>
                 <VAceEditor
                     v-model:value="formData.requestBody"
                     :options="editorOptions"
                     class="scheduled-job-editor scheduled-job-body-editor"
-                    lang="text"
+                    lang="json"
                     theme="tomorrow" />
             </ElFormItem>
             <ElFormItem label="超时（秒）" prop="timeoutSeconds">
@@ -45,19 +75,21 @@
 </template>
 
 <script lang="ts" setup>
-import type { FormInstance, FormRules } from 'element-plus'
+import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { VAceEditor } from 'vue3-ace-editor'
 import 'ace-builds/src-noconflict/mode-json'
 import 'ace-builds/src-noconflict/mode-text'
 import 'ace-builds/src-noconflict/theme-tomorrow'
 import type { SaveScheduledJob, ScheduledJob } from '@/api/system-manage'
 import ScCron from '@/components/business/sc-cron/index.vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
     visible: boolean
     jobData?: ScheduledJob
     saving?: boolean
 }>()
+const { t } = useI18n()
 const emit = defineEmits<{
     (event: 'update:visible', value: boolean): void
     (event: 'submit', value: SaveScheduledJob): void
@@ -81,6 +113,28 @@ const defaults = (): SaveScheduledJob => ({
     isEnabled: true,
 })
 const formData = reactive<SaveScheduledJob>(defaults())
+
+type JsonField = 'requestHeadersJson' | 'requestBody'
+
+const formatJson = (field: JsonField): void => {
+    const value = formData[field].trim()
+    if (!value) {
+        ElMessage.error(t('scheduledJob.messages.invalidJson'))
+        return
+    }
+
+    try {
+        const parsed = JSON.parse(value) as unknown
+        if (field === 'requestHeadersJson' && (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object')) {
+            ElMessage.error(t('scheduledJob.messages.invalidHeadersJson'))
+            return
+        }
+        formData[field] = JSON.stringify(parsed, null, 2)
+        void formRef.value?.validateField(field)
+    } catch {
+        ElMessage.error(t('scheduledJob.messages.invalidJson'))
+    }
+}
 
 const validateCron = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
     const fields = value.trim().split(/\s+/)
@@ -153,6 +207,11 @@ const submit = async (): Promise<void> => {
 .scheduled-job-editor {
     width: 100%;
     height: 160px;
+}
+.editor-label {
+    align-items: center;
+    display: inline-flex;
+    gap: 2px;
 }
 .scheduled-job-body-editor {
     height: 220px;

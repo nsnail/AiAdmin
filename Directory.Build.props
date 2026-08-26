@@ -8,6 +8,7 @@
         <Authors>nsnail</Authors>
         <BaseIntermediateOutputPath>$(SolutionDir)/dist/$(MSBuildProjectName)/obj</BaseIntermediateOutputPath>
         <BaseOutputPath>$(SolutionDir)/dist/$(MSBuildProjectName)/bin</BaseOutputPath>
+        <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)/dist/**</DefaultItemExcludes>
         <Copyright>© 2006-2026 nsnail</Copyright>
         <Description>通用后台权限管理系统、快速开发框架（基于C#13/.NET10、Vue3/Vite、ElementPlus等现代技术构建，具有十分整洁、优雅的编码规范）</Description>
         <EnableBaseIntermediateOutputPathMismatchWarning>false</EnableBaseIntermediateOutputPathMismatchWarning>

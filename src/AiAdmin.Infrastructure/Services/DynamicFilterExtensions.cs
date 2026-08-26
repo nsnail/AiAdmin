@@ -235,28 +235,28 @@ public static class DynamicFilterExtensions
         }
 
         var member = Expression.Property(current, property);
-        if (IsCollection(property.PropertyType)) {
-            if (index == segments.Count - 1) {
-                throw new DynamicFilterValidationException($"Dynamic filter field '{string.Join('.', segments)}' is not available.");
-            }
-
-            if (index == segments.Count - 2 && string.Equals(segments[index + 1], nameof(ICollection.Count), StringComparison.OrdinalIgnoreCase)) {
-                var countProperty = property.PropertyType.GetProperty(nameof(ICollection.Count), BindingFlags.Instance | BindingFlags.Public)
-                                    ?? throw new DynamicFilterValidationException(
-                                        $"Dynamic filter field '{string.Join('.', segments)}' is not available."
-                                    );
-                return BuildMemberCondition(Expression.Property(member, countProperty), filter);
-            }
-
-            var elementType = GetCollectionElementType(property.PropertyType);
-            var element = Expression.Parameter(elementType, "item");
-            var (predicateFilter, negate) = NormalizeCollectionFilter(filter);
-            var predicate = BuildPathCondition(element, segments, index + 1, predicateFilter);
-            var any = Expression.Call(typeof(Enumerable), nameof(Enumerable.Any), [elementType], member, Expression.Lambda(predicate, element));
-            return negate ? Expression.Not(any) : any;
+        if (!IsCollection(property.PropertyType)) {
+            return index < segments.Count - 1 ? BuildPathCondition(member, segments, index + 1, filter) : BuildMemberCondition(member, filter);
         }
 
-        return index < segments.Count - 1 ? BuildPathCondition(member, segments, index + 1, filter) : BuildMemberCondition(member, filter);
+        if (index == segments.Count - 1) {
+            throw new DynamicFilterValidationException($"Dynamic filter field '{string.Join('.', segments)}' is not available.");
+        }
+
+        if (index == segments.Count - 2 && string.Equals(segments[index + 1], nameof(ICollection.Count), StringComparison.OrdinalIgnoreCase)) {
+            var countProperty = property.PropertyType.GetProperty(nameof(ICollection.Count), BindingFlags.Instance | BindingFlags.Public)
+                                ?? throw new DynamicFilterValidationException(
+                                    $"Dynamic filter field '{string.Join('.', segments)}' is not available."
+                                );
+            return BuildMemberCondition(Expression.Property(member, countProperty), filter);
+        }
+
+        var elementType = GetCollectionElementType(property.PropertyType);
+        var element = Expression.Parameter(elementType, "item");
+        var (predicateFilter, negate) = NormalizeCollectionFilter(filter);
+        var predicate = BuildPathCondition(element, segments, index + 1, predicateFilter);
+        var any = Expression.Call(typeof(Enumerable), nameof(Enumerable.Any), [elementType], member, Expression.Lambda(predicate, element));
+        return negate ? Expression.Not(any) : any;
     }
 
     private static BinaryExpression BuildRange(

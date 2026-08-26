@@ -335,7 +335,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
                 , x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
             ), StringComparer.Ordinal
         );
-        return BuildChildren(string.Empty, new HashSet<string>(StringComparer.Ordinal));
+        return BuildChildren(string.Empty, [with(StringComparer.Ordinal)]);
 
         IReadOnlyList<MenuItemResult> BuildChildren(
             string parentName

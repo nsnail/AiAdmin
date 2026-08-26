@@ -14,7 +14,10 @@ export class ComponentLoader {
 
     constructor() {
         // 动态导入 views 目录下所有 .vue 组件
-        this.modules = import.meta.glob('../../views/**/*.vue')
+        this.modules = {
+            ...import.meta.glob('../../views/**/*.vue'),
+            ...import.meta.glob('../../modules/*/views/**/*.vue'),
+        }
     }
 
     /**
@@ -26,8 +29,9 @@ export class ComponentLoader {
         }
 
         // 构建可能的路径
-        const fullPath = `../../views${componentPath}.vue`
-        const fullPathWithIndex = `../../views${componentPath}/index.vue`
+        const root = componentPath.startsWith('/modules/') ? '../..' : '../../views'
+        const fullPath = `${root}${componentPath}.vue`
+        const fullPathWithIndex = `${root}${componentPath}/index.vue`
 
         // 先尝试直接路径，再尝试添加/index的路径
         const module = this.modules[fullPath] || this.modules[fullPathWithIndex]

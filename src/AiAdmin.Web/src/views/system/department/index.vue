@@ -96,7 +96,7 @@ const {
                 queryField: 'Id',
                 queryValueType: 'number',
                 label: 'ID',
-                width: 150,
+                width: 160,
                 align: 'left',
                 formatter: (row: Department) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
             },

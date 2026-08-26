@@ -665,11 +665,16 @@
             "executions": "Execution records",
             "edit": "Edit job",
             "delete": "Delete job",
+            "formatJson": "Format JSON",
             "close": "Close",
             "operation": "Actions"
         },
         "executionTitle": "{name} execution records",
         "unknown": "Unknown",
+        "messages": {
+            "invalidJson": "Enter valid JSON",
+            "invalidHeadersJson": "Request headers must be a JSON object"
+        },
         "fields": {
             "name": "Job name",
             "cronExpression": "Cron expression",

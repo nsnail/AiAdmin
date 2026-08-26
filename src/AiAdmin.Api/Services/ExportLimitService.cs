@@ -21,7 +21,7 @@ public sealed class ExportLimitService(AppDbContext db, DictionarySnapshotServic
     /// <returns>经过安全范围限制的导出条数</returns>
     public async Task<int> GetLimitAsync() {
         var settings = await dictionarySnapshotService.GetItemsAsync(DictionarySnapshotService.SYSTEM_SETTINGS_CODE).ConfigureAwait(false);
-        var configuredValue = settings.FirstOrDefault(x => x.IsEnabled && x.Label == _MAXIMUM_EXPORT_ROWS_LABEL)?.Value;
+        var configuredValue = settings.FirstOrDefault(x => x is { IsEnabled: true, Label: _MAXIMUM_EXPORT_ROWS_LABEL })?.Value;
         configuredValue ??= await db
             .DictionaryItems.AsNoTracking()
             .Where(x => x.IsEnabled && x.Label == _MAXIMUM_EXPORT_ROWS_LABEL && x.Category.Code == DictionarySnapshotService.SYSTEM_SETTINGS_CODE)

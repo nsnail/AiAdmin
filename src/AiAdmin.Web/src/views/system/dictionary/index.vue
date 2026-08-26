@@ -185,7 +185,7 @@ const columnsFactory = () => [
         label: 'ID',
         queryField: 'Id',
         queryValueType: 'number',
-        width: 150,
+        width: 160,
         align: 'left' as const,
         formatter: (row: Item) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
     },

@@ -4,6 +4,20 @@
         <Project Path="src/AiAdmin.Core/AiAdmin.Core.csproj"/>
         <Project Path="src/AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
     </Folder>
+    <Folder Name="/.drone/workflows/">
+        <File Path=".drone/workflows/README.md"/>
+    </Folder>
+    <Folder Name="/.github/workflows/">
+        <File Path=".github/workflows/README.md"/>
+    </Folder>
+    <Folder Name="/docker/">
+        <File Path="docker/api.Dockerfile"/>
+        <File Path="docker/docker-compose.prod.yml"/>
+        <File Path="docker/docker-compose.test.yml"/>
+        <File Path="docker/nginx.conf"/>
+        <File Path="docker/README.md"/>
+        <File Path="docker/web.Dockerfile"/>
+    </Folder>
     <Folder Name="/build/">
         <File Path="build/code.clean.dot.ps1"/>
         <File Path="build/code.clean.full.ps1"/>
@@ -14,6 +28,7 @@
         <File Path="build/sync.slnx.files.csx"/>
     </Folder>
     <Folder Name="/root/">
+        <File Path=".dockerignore"/>
         <File Path=".editorconfig"/>
         <File Path=".gitattributes"/>
         <File Path=".gitignore"/>
@@ -22,6 +37,7 @@
         <File Path="Directory.Build.props"/>
         <File Path="global.json"/>
         <File Path="LICENSE"/>
+        <File Path="package.json"/>
         <File Path="README.md"/>
     </Folder>
 </Solution>
