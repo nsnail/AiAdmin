@@ -32,21 +32,26 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             return ([], 0);
         }
 
+        var current = request.Current;
+        var size = request.Size;
+
+        // Art 筛选器会将分页字段一并包装进 dynamicFilter，ES 查询前拆出分页参数。
+        var logFilter = SplitPaginationFilters(request.DynamicFilter, ref current, ref size);
         var must = new List<object>();
-        var dynamicQuery = BuildDynamicQuery(request.DynamicFilter);
+        var dynamicQuery = BuildDynamicQuery(logFilter);
         if (dynamicQuery is not null) {
             must.Add(dynamicQuery);
         }
 
-        var from = (long)(Math.Max(request.Current, 1) - 1) * Math.Max(request.Size, 1);
+        var from = (long)(Math.Max(current, 1) - 1) * Math.Max(size, 1);
         var isDeepPage = from >= _MAX_RESULT_WINDOW;
-        var size = isDeepPage ? 0 : Math.Min(Math.Max(request.Size, 1), _MAX_RESULT_WINDOW - (int)from);
+        var resultSize = isDeepPage ? 0 : Math.Min(Math.Max(size, 1), _MAX_RESULT_WINDOW - (int)from);
         object query = must.Count == 0 ? new { match_all = new { } } : new { @bool = new { must } };
         var payload = JsonSerializer.Serialize(
             new
             {
                 from = isDeepPage ? 0 : (int)from
-                , size
+                , size = resultSize
                 , track_total_hits = true
                 , query
                 , sort = new[]
@@ -142,6 +147,7 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             {
                 @bool = new { must_not = new[] { new { match = new Dictionary<string, object> { [field] = text } } } }
             }
+            , "CONTAINS" when field == "level" => new { match = new Dictionary<string, object> { [field] = text } }
             , "CONTAINS" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}*" } }
             , "STARTSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"{EscapeWildcard(text)}*" } }
             , "ENDSWITH" => new { wildcard = new Dictionary<string, object> { [field] = $"*{EscapeWildcard(text)}" } }
@@ -159,6 +165,16 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
 
     private static object GetScalarValue(JsonElement value) {
         return value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : value;
+    }
+
+    /// <summary>
+    ///     判断字段是否为分页参数
+    /// </summary>
+    /// <param name="field">字段名称</param>
+    /// <returns>是否为分页参数</returns>
+    private static bool IsPaginationField(string? field) {
+        return field?.Equals("current", StringComparison.OrdinalIgnoreCase) == true
+               || field?.Equals("size", StringComparison.OrdinalIgnoreCase) == true;
     }
 
     private static string? ResolveSearchField(string? searchField) {
@@ -211,6 +227,117 @@ public sealed class ElasticsearchLogQueryService(HttpClient httpClient, IOptions
             , "username" => "userName"
             , _ => "timestamp"
         };
+    }
+
+    /// <summary>
+    ///     处理动态筛选树节点并提取其中的分页条件
+    /// </summary>
+    /// <param name="filter">筛选节点</param>
+    /// <param name="current">当前页码</param>
+    /// <param name="size">每页记录数</param>
+    /// <returns>清理后的筛选节点</returns>
+    private static DynamicFilter? SplitPaginationFilterNode(
+        DynamicFilter filter
+        , ref int current
+        , ref int size
+    ) {
+        if (TryReadPagination(filter, ref current, ref size)) {
+            return null;
+        }
+
+        if (filter.Filters.Count > 0 || filter.NestedDynamicFilter is not null) {
+            return SplitPaginationFilters(filter, ref current, ref size);
+        }
+
+        return filter;
+    }
+
+    /// <summary>
+    ///     从动态筛选树中拆出分页条件
+    /// </summary>
+    /// <param name="filter">原始动态筛选条件</param>
+    /// <param name="current">当前页码</param>
+    /// <param name="size">每页记录数</param>
+    /// <returns>仅包含 Elasticsearch 日志字段的筛选条件</returns>
+    private static DynamicFilter? SplitPaginationFilters(
+        DynamicFilter? filter
+        , ref int current
+        , ref int size
+    ) {
+        if (filter is null) {
+            return null;
+        }
+
+        if (filter.NestedDynamicFilter is not null) {
+            return SplitPaginationFilters(filter.NestedDynamicFilter, ref current, ref size);
+        }
+
+        if (filter.Filters.Count == 0) {
+            return TryReadPagination(filter, ref current, ref size) ? null : filter;
+        }
+
+        var filters = new List<DynamicFilter>();
+        foreach (var child in filter.Filters) {
+            var cleaned = SplitPaginationFilterNode(child, ref current, ref size);
+            if (cleaned is not null) {
+                filters.Add(cleaned);
+            }
+        }
+
+        return filters.Count switch
+        {
+            0 => null
+            , 1 => filters[0]
+            , _ => new DynamicFilter { Logic = filter.Logic, Filters = filters }
+        };
+    }
+
+    /// <summary>
+    ///     将 JSON 值转换为整数
+    /// </summary>
+    /// <param name="value">JSON 值</param>
+    /// <param name="result">转换结果</param>
+    /// <returns>是否转换成功</returns>
+    private static bool TryGetInt(
+        JsonElement value
+        , out int result
+    ) {
+        if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out result)) {
+            return true;
+        }
+
+        if (value.ValueKind == JsonValueKind.String) {
+            return int.TryParse(value.GetString(), out result);
+        }
+
+        result = 0;
+        return false;
+    }
+
+    /// <summary>
+    ///     尝试读取当前节点中的分页条件
+    /// </summary>
+    /// <param name="filter">筛选节点</param>
+    /// <param name="current">当前页码</param>
+    /// <param name="size">每页记录数</param>
+    /// <returns>节点是否为有效分页条件</returns>
+    private static bool TryReadPagination(
+        DynamicFilter filter
+        , ref int current
+        , ref int size
+    ) {
+        if (!IsPaginationField(filter.Field) || filter.Value is not { } value || !TryGetInt(value, out var parsed)) {
+            return false;
+        }
+
+        if (filter.Field!.Equals("current", StringComparison.OrdinalIgnoreCase)) {
+            current = parsed;
+        }
+        else {
+            size = parsed;
+        }
+
+        return true;
     }
 
     private void AddAuthentication(HttpRequestMessage request) {

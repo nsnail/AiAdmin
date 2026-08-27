@@ -60,4 +60,10 @@ public sealed class UpdateUserRequest
     /// </summary>
     [MinLength(1)]
     public string[] Roles { get; init; } = [];
+
+    /// <summary>
+    ///     客户端读取到的并发版本号
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int Version { get; init; }
 }

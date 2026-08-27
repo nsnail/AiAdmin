@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using StackExchange.Redis;
 
@@ -9,9 +8,6 @@ namespace AiAdmin.Api.Logging;
 /// </summary>
 /// <param name="connectionMultiplexer">Redis 连接复用器</param>
 /// <param name="options">日志输出配置</param>
-[SuppressMessage(
-    "Design", "CA1711:Identifiers should not have incorrect suffix", Justification = "Queue is the established name for this Redis-backed component."
-)]
 public sealed class ElasticsearchLogQueue(IConnectionMultiplexer connectionMultiplexer, ElasticsearchLogOptions options)
 {
     private const string _ENQUEUE_SCRIPT = "redis.call('rpush', KEYS[1], ARGV[1]); redis.call('ltrim', KEYS[1], -tonumber(ARGV[2]), -1); return 1";

@@ -8,6 +8,8 @@ namespace AiAdmin.Api.Services;
 /// <summary>
 ///     缓存接口匿名配置和角色接口授权关系
 /// </summary>
+/// <param name="cache">分布式缓存</param>
+/// <param name="scopeFactory">服务作用域工厂</param>
 public sealed class ApiPermissionCache(IDistributedCache cache, IServiceScopeFactory scopeFactory)
 {
     private const string _CACHE_KEY = "api-permission-snapshot";

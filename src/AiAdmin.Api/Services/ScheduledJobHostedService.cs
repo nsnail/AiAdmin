@@ -130,14 +130,13 @@ public sealed class ScheduledJobHostedService(
             execution.ErrorMessage = exception.Message;
         }
 
-        execution.FinishedAt = DateTime.UtcNow;
         await using var jobLock = await lockService.TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None).ConfigureAwait(false)
                                   ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
 
         await db.Entry(job).ReloadAsync(CancellationToken.None).ConfigureAwait(false);
         if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt) {
             job.Status = execution.Status;
-            job.LastFinishedAt = execution.FinishedAt;
+            job.LastFinishedAt = DateTime.UtcNow;
             job.LastError = execution.ErrorMessage;
         }
 

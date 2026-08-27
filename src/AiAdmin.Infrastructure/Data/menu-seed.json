@@ -7,8 +7,7 @@
       "title": "menus.dashboard.title",
       "icon": "ri:pie-chart-line",
       "roles": [
-        "R_SUPER",
-        "R_ADMIN"
+        "R_USER"
       ]
     },
     "children": [
@@ -20,7 +19,10 @@
           "title": "menus.dashboard.console",
           "icon": "ri:home-smile-2-line",
           "keepAlive": false,
-          "fixedTab": true
+          "fixedTab": true,
+          "roles": [
+            "R_USER"
+          ]
         }
       },
       {
@@ -51,11 +53,7 @@
     "component": "/index/index",
     "meta": {
       "title": "menus.system.permission",
-      "icon": "ri:shield-user-line",
-      "roles": [
-        "R_SUPER",
-        "R_ADMIN"
-      ]
+      "icon": "ri:shield-user-line"
     },
     "children": [
       {
@@ -65,10 +63,7 @@
         "meta": {
           "title": "menus.system.user",
           "icon": "ri:user-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       },
       {
@@ -78,10 +73,7 @@
         "meta": {
           "title": "menus.system.role",
           "icon": "ri:user-settings-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       },
       {
@@ -92,9 +84,6 @@
           "title": "menus.system.department",
           "icon": "ri:organization-chart",
           "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ],
           "authList": [
             {
               "title": "Create",
@@ -119,9 +108,6 @@
           "title": "menus.system.menu",
           "icon": "ri:menu-line",
           "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ],
           "authList": [
             {
               "title": "Create",
@@ -145,10 +131,7 @@
         "meta": {
           "title": "menus.system.api",
           "icon": "ri:route-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       }
     ]
@@ -159,12 +142,7 @@
     "component": "/index/index",
     "meta": {
       "title": "menus.marketing.title",
-      "icon": "ri:megaphone-line",
-      "roles": [
-        "R_SUPER",
-        "R_ADMIN",
-        "R_USER"
-      ]
+      "icon": "ri:megaphone-line"
     },
     "children": [
       {
@@ -174,12 +152,7 @@
         "meta": {
           "title": "menus.marketing.referrals",
           "icon": "ri:node-tree",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER",
-            "R_ADMIN",
-            "R_USER"
-          ]
+          "keepAlive": true
         }
       }
     ]
@@ -190,13 +163,21 @@
     "component": "/index/index",
     "meta": {
       "title": "menus.system.title",
-      "icon": "ri:settings-3-line",
-      "roles": [
-        "R_SUPER",
-        "R_ADMIN"
-      ]
+      "icon": "ri:settings-3-line"
     },
     "children": [
+      {
+        "path": "user-center",
+        "name": "UserCenter",
+        "component": "/system/user-center",
+        "meta": {
+          "title": "menus.system.userCenter",
+          "icon": "ri:user-line",
+          "isHide": true,
+          "keepAlive": true,
+          "isHideTab": true
+        }
+      },
       {
         "path": "message",
         "name": "MessageManagement",
@@ -204,11 +185,7 @@
         "meta": {
           "title": "menus.system.message",
           "icon": "ri:mail-send-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER",
-            "R_ADMIN"
-          ]
+          "keepAlive": true
         }
       },
       {
@@ -218,10 +195,7 @@
         "meta": {
           "title": "menus.system.settings",
           "icon": "ri:settings-3-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       },
       {
@@ -232,9 +206,6 @@
           "title": "menus.system.dictionary",
           "icon": "ri:book-shelf-line",
           "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ],
           "authList": [
             {
               "title": "Create",
@@ -258,10 +229,7 @@
         "meta": {
           "title": "menus.system.files",
           "icon": "ri:file-list-3-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       },
       {
@@ -271,10 +239,7 @@
         "meta": {
           "title": "menus.system.cache",
           "icon": "ri:database-2-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       }
     ]
@@ -285,8 +250,7 @@
     "component": "/index/index",
     "meta": {
       "title": "menus.finance.title",
-      "icon": "ri:wallet-3-line",
-      "roles": ["R_SUPER", "R_ADMIN", "R_USER"]
+      "icon": "ri:wallet-3-line"
     },
     "children": [
       {
@@ -296,8 +260,7 @@
         "meta": {
           "title": "menus.finance.wallet",
           "icon": "ri:wallet-3-line",
-          "keepAlive": true,
-          "roles": ["R_SUPER", "R_ADMIN", "R_USER"]
+          "keepAlive": true
         }
       }
     ]
@@ -308,10 +271,7 @@
     "component": "/index/index",
     "meta": {
       "title": "menus.log.title",
-      "icon": "ri:file-search-line",
-      "roles": [
-        "R_SUPER"
-      ]
+      "icon": "ri:file-search-line"
     },
     "children": [
       {
@@ -321,10 +281,7 @@
         "meta": {
           "title": "menus.log.systemLog",
           "icon": "ri:file-search-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER"
-          ]
+          "keepAlive": true
         }
       },
       {
@@ -334,35 +291,7 @@
         "meta": {
           "title": "menus.log.loginLog",
           "icon": "ri:login-box-line",
-          "keepAlive": true,
-          "roles": [
-            "R_SUPER",
-            "R_ADMIN"
-          ]
-        }
-      }
-    ]
-  },
-  {
-    "path": "/system",
-    "name": "System",
-    "component": "/index/index",
-    "meta": {
-      "title": "menus.system.title",
-      "icon": "ri:user-3-line",
-      "isHide": true
-    },
-    "children": [
-      {
-        "path": "user-center",
-        "name": "UserCenter",
-        "component": "/system/user-center",
-        "meta": {
-          "title": "menus.system.userCenter",
-          "icon": "ri:user-line",
-          "isHide": true,
-          "keepAlive": true,
-          "isHideTab": true
+          "keepAlive": true
         }
       }
     ]

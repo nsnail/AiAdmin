@@ -96,7 +96,7 @@ interface MenuNode {
 
 const processedMenuList = computed(() => {
     const processNode = (node: MenuNode): MenuNode | null => {
-        if (node.meta?.isHide || typeof node.name !== 'string') return null
+        if (typeof node.name !== 'string') return null
         const children = node.children?.map(processNode).filter((item): item is MenuNode => !!item)
         return { ...node, children }
     }
@@ -124,10 +124,12 @@ watch(
                 menuList.value = (await fetchGetMenuList()) as unknown as MenuNode[]
                 const menuNames = await fetchGetRoleMenus(props.roleData.roleId)
                 await nextTick()
+                // 只回显已授权叶子节点，避免半选父节点触发级联全选其余子菜单
+                const leafKeys = new Set(getLeafNodeKeys(processedMenuList.value))
                 treeRef.value?.setCheckedKeys(
                     flattenMenuItems(menuNames as unknown as MenuNode[])
                         .map((item) => item.id)
-                        .filter(Boolean),
+                        .filter((id): id is string => Boolean(id) && leafKeys.has(String(id))),
                 )
                 handleTreeCheck()
             } finally {
@@ -153,13 +155,7 @@ const savePermission = async () => {
     saving.value = true
     try {
         const selectedKeys = new Set([...(treeRef.value.getCheckedKeys() as string[]), ...(treeRef.value.getHalfCheckedKeys() as string[])])
-        const allMenus = flattenMenuItems(menuList.value)
-        const selectedNames = new Set(allMenus.filter((item) => selectedKeys.has(String(item.id))).map((item) => item.name))
-        const hiddenIds = allMenus
-            .filter((item) => item.meta?.isHide === true && selectedNames.has(item.parentName))
-            .map((item) => item.id)
-            .filter((id): id is string => Boolean(id))
-        const menuIds = [...new Set([...selectedKeys].filter(Boolean).concat(hiddenIds))]
+        const menuIds = [...selectedKeys].filter(Boolean)
         await fetchSaveRoleMenus(props.roleData.roleId, menuIds)
         ElMessage.success('权限保存成功，相关用户下次登录后生效')
         emit('success')

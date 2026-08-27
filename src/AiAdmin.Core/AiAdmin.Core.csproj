@@ -1,9 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <Import Project="$(SolutionDir)/build/code.quality.props"/>
-
     <PropertyGroup>
         <RootNamespace>AiAdmin.Api</RootNamespace>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <NoWarn>$(NoWarn);1591</NoWarn>
     </PropertyGroup>
 </Project>

@@ -6,7 +6,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统接口实体
 /// </summary>
-public sealed class ApiEndpoint : EntityBase
+public sealed class ApiEndpoint : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     操作方法名称
@@ -65,4 +65,9 @@ public sealed class ApiEndpoint : EntityBase
     ///     角色接口关联集合
     /// </summary>
     public ICollection<RoleApi> RoleApis { get; init; } = [];
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 }

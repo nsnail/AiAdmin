@@ -6,7 +6,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     计划作业实体，描述一个按 Cron 表达式执行的 HTTP 请求
 /// </summary>
-public sealed class ScheduledJob : EntityBase
+public sealed class ScheduledJob : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     Cron 触发表达式
@@ -99,4 +99,9 @@ public sealed class ScheduledJob : EntityBase
     /// </summary>
     [ListFilter("scheduledJob.fields.timeoutSeconds", "number")]
     public int TimeoutSeconds { get; set; } = 30;
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 }

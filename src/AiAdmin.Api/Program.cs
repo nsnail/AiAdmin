@@ -82,6 +82,8 @@ builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
 builder.Services.Configure<ElasticsearchLogOptions>(builder.Configuration.GetSection("Elasticsearch"));
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ElasticsearchLogOptions>>().Value);
 builder.Services.AddSingleton<ILoggerProvider, ElasticsearchLoggerProvider>();
+builder.Services.Configure<FileLogOptions>(builder.Configuration.GetSection("FileLogging"));
+builder.Services.AddSingleton<ILoggerProvider, FileLoggerProvider>();
 builder.Services.AddHttpClient<ElasticsearchLogWriter>();
 builder.Services.AddHttpClient<ElasticsearchLogQueryService>();
 builder.Services.AddHttpClient<IpLocationService>(client =>

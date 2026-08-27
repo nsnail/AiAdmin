@@ -6,12 +6,12 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统角色实体
 /// </summary>
-public sealed class Role : EntityBase
+public sealed class Role : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     角色编码
     /// </summary>
-    [ListFilter("listFilter.role.code", Placeholder = "listFilter.placeholder.roleCode", Span = 3)]
+    [ListFilter("listFilter.role.code", Placeholder = "listFilter.placeholder.roleCode", Span = 4)]
     public required string Code { get; set; }
 
     /// <summary>
@@ -21,16 +21,16 @@ public sealed class Role : EntityBase
         "listFilter.role.dataScope", "select"
         , Options =
         [
-            "all:listFilter.option.allData", "department:listFilter.option.departmentData"
-            , "department_and_children:listFilter.option.departmentAndChildren", "self:listFilter.option.ownData"
+            "0:listFilter.option.allData", "1:listFilter.option.departmentData", "2:listFilter.option.departmentAndChildren"
+            , "3:listFilter.option.ownData"
         ], Span = 4, GroupCount = true
     )]
-    public string DataScope { get; set; } = RoleDataScope.SELF;
+    public RoleDataScope DataScope { get; set; } = RoleDataScope.Self;
 
     /// <summary>
     ///     角色描述
     /// </summary>
-    [ListFilter("listFilter.role.description", Placeholder = "listFilter.placeholder.description", Span = 3)]
+    [ListFilter("listFilter.role.description", Placeholder = "listFilter.placeholder.description", Span = 4)]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
@@ -50,7 +50,7 @@ public sealed class Role : EntityBase
     /// <summary>
     ///     角色名称
     /// </summary>
-    [ListFilter("listFilter.role.name", Placeholder = "listFilter.placeholder.roleName", Span = 3, Sort = 0)]
+    [ListFilter("listFilter.role.name", Placeholder = "listFilter.placeholder.roleName", Span = 4, Sort = 0)]
     public required string Name { get; set; }
 
     /// <summary>
@@ -62,6 +62,11 @@ public sealed class Role : EntityBase
     ///     角色菜单关联集合
     /// </summary>
     public ICollection<RoleMenu> RoleMenus { get; set; } = [];
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     ///     用户角色关联集合

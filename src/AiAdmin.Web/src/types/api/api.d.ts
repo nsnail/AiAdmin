@@ -142,6 +142,7 @@ declare namespace Api {
         /** 用户信息 */
         interface UserInfo {
             buttons: string[]
+            version: number
             roles: string[]
             userId: string
             userName: string
@@ -156,6 +157,7 @@ declare namespace Api {
             email: string
             phone: string
             gender: 1 | 2
+            version: number
         }
 
         /** 当前用户密码修改参数 */
@@ -219,6 +221,7 @@ declare namespace Api {
             createTime: string
             updateBy: string
             updateTime: string | null
+            version: number
         }
 
         /** 用户搜索参数 */
@@ -238,6 +241,7 @@ declare namespace Api {
             avatarFile?: File
             avatar?: string
             removeAvatar?: boolean
+            version?: number
         }
 
         type UpdateUserParams = Omit<SaveUserParams, 'userName'>
@@ -284,7 +288,7 @@ declare namespace Api {
             roleName: string
             roleCode: string
             description: string
-            dataScope: 'all' | 'department' | 'department_and_children' | 'self'
+            dataScope: 0 | 1 | 2 | 3
             enabled: boolean
             createTime: string
             updateTime: string | null

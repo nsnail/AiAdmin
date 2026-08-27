@@ -8,9 +8,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="Id">执行记录编号</param>
 /// <param name="ScheduledJobId">计划作业编号</param>
 /// <param name="CreatedAt">创建时间</param>
-/// <param name="UpdatedAt">最后更新时间</param>
 /// <param name="StartedAt">开始时间</param>
-/// <param name="FinishedAt">完成时间</param>
 /// <param name="RequestUrl">请求地址</param>
 /// <param name="RequestMethod">请求方法</param>
 /// <param name="RequestHeaders">请求头</param>
@@ -24,9 +22,7 @@ public sealed record ScheduledJobExecutionResult(
     long Id
     , long ScheduledJobId
     , DateTimeOffset CreatedAt
-    , DateTimeOffset? UpdatedAt
     , DateTimeOffset StartedAt
-    , DateTimeOffset? FinishedAt
     , string RequestUrl
     , string RequestMethod
     , string RequestHeaders

@@ -3,6 +3,7 @@ namespace AiAdmin.Api.Attributes;
 /// <summary>
 ///     标记控制器或操作的接口描述键
 /// </summary>
+/// <param name="description">接口描述键</param>
 [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, Inherited = false)]
 public sealed class ApiDescriptionAttribute(string description) : Attribute
 {

@@ -28,4 +28,10 @@ public sealed class UpdateCurrentUserProfileRequest
     /// </summary>
     [StringLength(20)]
     public string Phone { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     客户端读取到的并发版本号
+    /// </summary>
+    [Range(1, int.MaxValue)]
+    public int Version { get; init; }
 }

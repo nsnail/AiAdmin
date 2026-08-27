@@ -3,7 +3,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     用户消息收件和阅读状态
 /// </summary>
-public sealed class UserMessage
+public sealed class UserMessage : EntityBase
 {
     /// <summary>是否已删除</summary>
     public bool IsDeleted { get; set; }

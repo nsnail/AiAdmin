@@ -1,6 +1,7 @@
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace AiAdmin.Api.Middleware;
 
@@ -21,12 +22,19 @@ public sealed class DataAccessExceptionHandler : IExceptionHandler
         , Exception exception
         , CancellationToken cancellationToken
     ) {
-        if (exception is DynamicFilterValidationException dynamicFilterException) {
-            httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
-            await httpContext
-                .Response.WriteAsJsonAsync(new ApiResponse<object>(400, dynamicFilterException.Message, null), cancellationToken)
-                .ConfigureAwait(false);
-            return true;
+        switch (exception) {
+            case DynamicFilterValidationException dynamicFilterException:
+                httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
+                await httpContext
+                    .Response.WriteAsJsonAsync(new ApiResponse<object>(400, dynamicFilterException.Message, null), cancellationToken)
+                    .ConfigureAwait(false);
+                return true;
+            case DbUpdateConcurrencyException:
+                httpContext.Response.StatusCode = StatusCodes.Status409Conflict;
+                await httpContext
+                    .Response.WriteAsJsonAsync(new ApiResponse<object>(409, "The record was modified by another request", null), cancellationToken)
+                    .ConfigureAwait(false);
+                return true;
         }
 
         if (exception is not DataAccessDeniedException) {

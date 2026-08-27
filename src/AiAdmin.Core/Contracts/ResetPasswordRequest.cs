@@ -11,4 +11,5 @@ namespace AiAdmin.Api.Contracts;
 public sealed record ResetPasswordRequest(
     string Email
     , string VerificationCode
-    , [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).{8,}$")] string Password);
+    , [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).{8,}$")]
+    string Password);

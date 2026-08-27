@@ -21,6 +21,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="CreateTime">创建时间</param>
 /// <param name="UpdateBy">更新人</param>
 /// <param name="UpdateTime">更新时间</param>
+/// <param name="Version">并发版本号</param>
 public sealed record UserListItem(
     long Id
     , string Avatar
@@ -37,4 +38,5 @@ public sealed record UserListItem(
     , string CreateBy
     , DateTimeOffset CreateTime
     , string UpdateBy
-    , DateTimeOffset? UpdateTime);
+    , DateTimeOffset? UpdateTime
+    , int Version);

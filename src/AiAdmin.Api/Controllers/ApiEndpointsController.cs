@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
@@ -13,14 +12,13 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     管理系统接口及其授权配置
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
+/// <param name="syncService">接口权限同步服务</param>
+/// <param name="documentationService">接口文档服务</param>
 [ApiController]
 [ApiDescription("API management")]
 [Authorize]
 [Route("api/api-endpoint")]
-[SuppressMessage(
-    "Design", "S6960:Controllers should not have too many responsibilities"
-    , Justification = "Endpoint querying and synchronization share the endpoint management boundary."
-)]
 public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncService syncService, ApiDocumentationService documentationService)
     : ControllerBase
 {

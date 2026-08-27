@@ -10,6 +10,7 @@ namespace AiAdmin.Api.Services;
 /// <summary>
 ///     JWT 访问令牌服务
 /// </summary>
+/// <param name="configuration">应用配置</param>
 public sealed class TokenService(IConfiguration configuration)
 {
     /// <summary>

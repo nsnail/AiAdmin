@@ -12,7 +12,7 @@ public sealed class SaveRoleRequest
     ///     数据权限范围代码
     /// </summary>
     [Required]
-    public string DataScope { get; init; } = RoleDataScope.SELF;
+    public RoleDataScope DataScope { get; init; } = RoleDataScope.Self;
 
     /// <summary>
     ///     角色描述

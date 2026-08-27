@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace AiAdmin.Api.Data;
@@ -7,10 +6,7 @@ namespace AiAdmin.Api.Data;
 /// <summary>
 ///     记录数据库读取和写入命令审计信息
 /// </summary>
-[SuppressMessage(
-    "StyleCop.CSharp.DocumentationRules", "SA1625:Element documentation should not be copied and pasted"
-    , Justification = "Interceptor overloads intentionally document the same database command parameters."
-)]
+/// <param name="logger">日志记录器</param>
 public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAuditInterceptor> logger) : DbCommandInterceptor
 {
     private static readonly Action<ILogger, string, string, string, long, Exception?> _logCommand
@@ -25,7 +21,7 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
     /// <param name="command">数据库命令</param>
     /// <param name="eventData">命令事件数据</param>
     /// <param name="result">命令执行结果</param>
-    /// <returns>命令执行结果</returns>
+    /// <returns>返回命令执行结果</returns>
     public override int NonQueryExecuted(
         DbCommand command
         , CommandExecutedEventData eventData

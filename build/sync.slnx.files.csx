@@ -44,17 +44,16 @@ content = Regex.Replace(
 
 content = Regex.Replace(
     content,
-    "<Folder Name=\"/.drone/workflows/\">(?:.|\n)*?</Folder>",
+    "<Folder Name=\"/.gitea/workflows/\">(?:.|\n)*?</Folder>",
     $$"""
-<Folder Name="/.drone/workflows/">
+<Folder Name="/.gitea/workflows/">
 {{string.Join('\n',
-             Directory.GetFiles(@"../.drone/workflows", "*")
-                      .Select(x=>$"        <File Path=\".drone/workflows/{Path.GetFileName(x)}\"/>")
+             Directory.GetFiles(@"../.gitea/workflows", "*")
+                      .Select(x=>$"        <File Path=\".gitea/workflows/{Path.GetFileName(x)}\"/>")
                       )}}
     </Folder>
 """
 );
-
 
 
 content = Regex.Replace(

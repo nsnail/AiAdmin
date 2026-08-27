@@ -14,6 +14,8 @@ namespace AiAdmin.Api.Services;
 /// <summary>
 ///     从 MVC 元数据和 XML 注释生成当前用户可访问的接口文档
 /// </summary>
+/// <param name="actions">操作描述符提供器</param>
+/// <param name="permissionCache">接口权限缓存</param>
 public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider actions, ApiPermissionCache permissionCache)
 {
     /// <summary>
@@ -93,15 +95,13 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         foreach (var parameter in action.Parameters) {
             var info = action.MethodInfo.GetParameters().FirstOrDefault(x => string.Equals(x.Name, parameter.Name, StringComparison.Ordinal));
             string source;
-            if (info?.GetCustomAttribute<FromBodyAttribute>() is not null) {
+            if (info?.GetCustomAttribute<FromBodyAttribute>() is not null || IsBodyParameter(parameter.ParameterType, info)) {
                 source = "body";
             }
             else if (info?.GetCustomAttribute<FromHeaderAttribute>() is not null) {
                 source = "header";
             }
-            #pragma warning disable IDE0045
             else if (info?.GetCustomAttribute<FromRouteAttribute>() is not null
-                     #pragma warning restore IDE0045
                      || path.Contains("{" + parameter.Name + "}", StringComparison.OrdinalIgnoreCase)) {
                 source = "path";
             }
@@ -154,6 +154,32 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
 
     private static string Clean(string? value) {
         return string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    /// <summary>
+    ///     判断参数是否由 ASP.NET Core 默认绑定到请求体
+    /// </summary>
+    /// <param name="type">参数类型</param>
+    /// <param name="parameter">方法参数信息</param>
+    /// <returns>参数为复杂请求体时返回 true</returns>
+    private static bool IsBodyParameter(
+        Type type
+        , ParameterInfo? parameter
+    ) {
+        if (parameter?.GetCustomAttribute<FromQueryAttribute>() is not null
+            || parameter?.GetCustomAttribute<FromRouteAttribute>() is not null
+            || parameter?.GetCustomAttribute<FromHeaderAttribute>() is not null) {
+            return false;
+        }
+
+        var actualType = Nullable.GetUnderlyingType(type) ?? type;
+        return !actualType.IsPrimitive
+               && actualType != typeof(string)
+               && actualType != typeof(decimal)
+               && actualType != typeof(DateTime)
+               && actualType != typeof(DateTimeOffset)
+               && actualType != typeof(Guid)
+               && !actualType.IsEnum;
     }
 
     /// <summary>
@@ -236,9 +262,7 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
             return "boolean";
         }
 
-        #pragma warning disable IDE0046
         if (type == typeof(int)
-            #pragma warning restore IDE0046
             || type == typeof(long)
             || type == typeof(short)
             || type == typeof(decimal)

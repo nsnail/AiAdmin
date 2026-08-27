@@ -275,6 +275,10 @@ export function fetchGetUserList(params: DynamicTableQuery) {
     })
 }
 
+export function fetchGetUser(id: string) {
+    return request.get<Api.SystemManage.UserListItem>({ url: `/api/user/${id}` })
+}
+
 export interface UserExportResult {
     records: Api.SystemManage.UserListItem[]
     limit: number
@@ -543,9 +547,7 @@ export interface ScheduledJobExecution {
     id: string
     scheduledJobId: string
     createdAt: string
-    updatedAt: string | null
     startedAt: string
-    finishedAt: string | null
     requestUrl: string
     requestMethod: string
     requestHeaders: string

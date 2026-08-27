@@ -15,6 +15,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     菜单管理控制器
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Menu management")]
 [Authorize]
@@ -111,6 +112,18 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     [ApiDescription("Query menu filter fields")]
     public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
         return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(ListFilterMetadataService.GetFields<Menu>()));
+    }
+
+    /// <summary>
+    ///     查询当前菜单筛选条件下的字段分组计数
+    /// </summary>
+    /// <param name="request">当前动态筛选条件</param>
+    /// <returns>菜单筛选分组统计</returns>
+    [HttpPost("filter-groups")]
+    [ApiDescription("Query menu filter groups")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterGroupResult>>>> FilterGroupsAsync([FromBody] ListFilterGroupRequest request) {
+        var groups = await ListFilterGroupingService.GetGroupsAsync(db.Menus.AsNoTracking(), request.DynamicFilter).ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
     }
 
     /// <summary>

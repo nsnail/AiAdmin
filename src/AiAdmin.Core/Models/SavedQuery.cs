@@ -5,7 +5,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     用户保存的查询条件实体
 /// </summary>
-public sealed class SavedQuery : EntityBase
+public sealed class SavedQuery : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     查询条件序列化文本
@@ -31,6 +31,11 @@ public sealed class SavedQuery : EntityBase
     ///     页面路由
     /// </summary>
     public required string Route { get; init; }
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     ///     所属用户

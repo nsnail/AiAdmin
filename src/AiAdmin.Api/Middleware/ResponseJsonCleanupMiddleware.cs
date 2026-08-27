@@ -6,13 +6,11 @@ namespace AiAdmin.Api.Middleware;
 /// <summary>
 ///     递归移除 JSON 对象中值为 null 或空字符串的属性
 /// </summary>
+/// <param name="next">后续请求处理委托</param>
 public sealed class ResponseJsonCleanupMiddleware(RequestDelegate next)
 {
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
-    /// <summary>
-    ///     Initializes a new instance of the response JSON cleanup middleware
-    /// </summary>
     /// <summary>
     ///     执行请求并清理 JSON 响应中的空字段
     /// </summary>

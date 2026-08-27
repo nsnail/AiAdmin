@@ -92,11 +92,6 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     [ApiDescription("Create role")]
     public async Task<ActionResult<ApiResponse<RoleListItem>>> CreateAsync(SaveRoleRequest request) {
         var code = request.RoleCode.Trim();
-        var dataScope = request.DataScope.Trim();
-        if (!RoleDataScope.IsValid(dataScope)) {
-            return BadRequest(new ApiResponse<object>(400, "Invalid data scope", null));
-        }
-
         if (await db.Roles.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Role code already exists", null));
         }
@@ -106,7 +101,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
             Name = request.RoleName.Trim()
             , Code = code
             , Description = request.Description.Trim()
-            , DataScope = dataScope
+            , DataScope = request.DataScope
             , IsEnabled = request.Enabled
         };
         _ = await db.Roles.AddAsync(role).ConfigureAwait(false);
@@ -293,11 +288,6 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         }
 
         var code = request.RoleCode.Trim();
-        var dataScope = request.DataScope.Trim();
-        if (!RoleDataScope.IsValid(dataScope)) {
-            return BadRequest(new ApiResponse<object>(400, "Invalid data scope", null));
-        }
-
         if (await db.Roles.AnyAsync(x => x.Code == code && x.Id != id).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Role code already exists", null));
         }
@@ -305,7 +295,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         role.Name = request.RoleName.Trim();
         role.Code = code;
         role.Description = request.Description.Trim();
-        role.DataScope = dataScope;
+        role.DataScope = request.DataScope;
         role.IsEnabled = request.Enabled;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         permissionCache.Invalidate();

@@ -11,6 +11,7 @@ namespace AiAdmin.Api.Middleware;
 /// <summary>
 ///     执行基于角色接口映射的请求鉴权
 /// </summary>
+/// <param name="next">后续请求处理委托</param>
 public sealed class ApiPermissionMiddleware(RequestDelegate next)
 {
     /// <summary>

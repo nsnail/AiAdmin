@@ -6,7 +6,7 @@ namespace AiAdmin.Api.Attributes;
 /// <param name="label">字段显示名称的客户端多语言键</param>
 /// <param name="control">前端控件类型</param>
 [AttributeUsage(AttributeTargets.Property)]
-public sealed class ListFilterAttribute(string label, string control = "input") : Attribute
+public sealed class ListFilterAttribute(string label = "", string control = "input") : Attribute
 {
     /// <summary>
     ///     前端控件类型
@@ -22,6 +22,11 @@ public sealed class ListFilterAttribute(string label, string control = "input") 
     ///     是否在列表顶部启用分组计数筛选
     /// </summary>
     public bool GroupCount { get; init; }
+
+    /// <summary>
+    ///     是否在列表筛选栏中显示
+    /// </summary>
+    public bool IsVisible { get; init; } = true;
 
     /// <summary>
     ///     下拉或单选选项，格式为值:客户端多语言键

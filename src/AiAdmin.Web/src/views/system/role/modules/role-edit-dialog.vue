@@ -19,10 +19,10 @@
                     </ElFormItem>
                     <ElFormItem :label="t('listFilter.role.dataScope')" prop="dataScope">
                         <ElSelect v-model="form.dataScope" class="w-full" filterable>
-                            <ElOption :label="t('listFilter.option.allData')" value="all" />
-                            <ElOption :label="t('listFilter.option.departmentData')" value="department" />
-                            <ElOption :label="t('listFilter.option.departmentAndChildren')" value="department_and_children" />
-                            <ElOption :label="t('listFilter.option.ownData')" value="self" />
+                            <ElOption :label="t('listFilter.option.allData')" :value="0" />
+                            <ElOption :label="t('listFilter.option.departmentData')" :value="1" />
+                            <ElOption :label="t('listFilter.option.departmentAndChildren')" :value="2" />
+                            <ElOption :label="t('listFilter.option.ownData')" :value="3" />
                         </ElSelect>
                     </ElFormItem>
                     <ElFormItem :label="t('listFilter.common.status')">
@@ -105,7 +105,7 @@ const form = reactive<RoleListItem>({
     roleName: '',
     roleCode: '',
     description: '',
-    dataScope: 'self',
+    dataScope: 3,
     createTime: '',
     updateTime: null,
     enabled: true,
@@ -149,7 +149,7 @@ const initForm = () => {
             roleName: '',
             roleCode: '',
             description: '',
-            dataScope: 'self',
+            dataScope: 3,
             createTime: '',
             updateTime: null,
             enabled: true,
@@ -190,6 +190,7 @@ const handleSubmit = async () => {
         }
         ElMessage.success(t(props.dialogType === 'add' ? 'roleManagement.message.created' : 'roleManagement.message.updated'))
         emit('success')
+        saving.value = false
         handleClose()
     } catch (error) {
         console.error('Role form validation failed:', error)

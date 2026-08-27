@@ -24,7 +24,7 @@ public static class ListFilterMetadataService
                         , index
                     ) => (Property: property, Attribute: property.GetCustomAttribute<ListFilterAttribute>(), DeclarationIndex: index)
                 )
-                .Where(item => item.Attribute is not null)
+                .Where(item => item.Attribute?.IsVisible == true)
                 .OrderBy(item => item.Attribute!.Sort)
                 .ThenBy(item => item.DeclarationIndex)
                 .Select(item => new ListFilterFieldResult(

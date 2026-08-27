@@ -5,7 +5,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     用户钱包实体，每个用户仅允许拥有一个钱包
 /// </summary>
-public sealed class Wallet : EntityBase, IOwner, IVersion
+public sealed class Wallet : EntityBase, IOwner, IUpdatedAt, IVersion
 {
     /// <summary>
     ///     可用余额
@@ -50,6 +50,11 @@ public sealed class Wallet : EntityBase, IOwner, IVersion
     /// </summary>
     [ListFilter("wallet.totalIncome", "number", Span = 3)]
     public decimal TotalIncome { get; init; }
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     ///     关联用户

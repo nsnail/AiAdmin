@@ -271,6 +271,7 @@ const edit = async () => {
         email: form.email,
         phone: form.phone,
         gender: form.gender,
+        version: userInfo.value.version ?? 0,
     })
     userStore.setUserInfo(data)
     isEdit.value = false

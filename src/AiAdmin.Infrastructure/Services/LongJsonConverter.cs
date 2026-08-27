@@ -28,6 +28,18 @@ public sealed class LongJsonConverter : JsonConverter<long>
             , JsonTokenType.String when long.TryParse(
                 reader.GetString(), NumberStyles.None, CultureInfo.InvariantCulture, out var textNumber
             ) => textNumber
+            , JsonTokenType.None
+                or JsonTokenType.StartObject
+                or JsonTokenType.EndObject
+                or JsonTokenType.StartArray
+                or JsonTokenType.EndArray
+                or JsonTokenType.PropertyName
+                or JsonTokenType.Comment
+                or JsonTokenType.True
+                or JsonTokenType.False
+                or JsonTokenType.Null
+                or JsonTokenType.Number
+                or JsonTokenType.String => throw new JsonException("Expected an Int64 value encoded as a JSON string or number")
             , _ => throw new JsonException("Expected an Int64 value encoded as a JSON string or number")
         };
     }

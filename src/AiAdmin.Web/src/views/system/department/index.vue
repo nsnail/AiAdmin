@@ -91,15 +91,6 @@ const {
                 label: t('listFilter.department.name'),
                 minWidth: 180,
             },
-            {
-                prop: 'id',
-                queryField: 'Id',
-                queryValueType: 'number',
-                label: 'ID',
-                width: 160,
-                align: 'left',
-                formatter: (row: Department) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
-            },
             { prop: 'code', queryField: 'Code', queryValueType: 'string', label: t('listFilter.department.code'), minWidth: 140 },
             { prop: 'sort', queryField: 'Sort', queryValueType: 'number', label: t('departmentManagement.fields.sort'), width: 90, align: 'right' },
             {

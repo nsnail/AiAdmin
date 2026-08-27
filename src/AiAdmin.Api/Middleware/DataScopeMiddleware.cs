@@ -10,6 +10,7 @@ namespace AiAdmin.Api.Middleware;
 /// <summary>
 ///     初始化当前请求的数据权限范围
 /// </summary>
+/// <param name="next">后续请求处理委托</param>
 public sealed class DataScopeMiddleware(RequestDelegate next)
 {
     /// <summary>
@@ -42,13 +43,13 @@ public sealed class DataScopeMiddleware(RequestDelegate next)
             .Select(x => x.DepartmentId)
             .ToListAsync(context.RequestAborted)
             .ConfigureAwait(false);
-        var hasAllData = scopes.Contains(RoleDataScope.ALL);
+        var hasAllData = scopes.Contains(RoleDataScope.All);
         var allowedDepartments = new HashSet<long>();
-        if (scopes.Contains(RoleDataScope.DEPARTMENT)) {
+        if (scopes.Contains(RoleDataScope.Department)) {
             allowedDepartments.UnionWith(directDepartmentIds);
         }
 
-        if (scopes.Contains(RoleDataScope.DEPARTMENT_AND_CHILDREN)) {
+        if (scopes.Contains(RoleDataScope.DepartmentAndChildren)) {
             var departments = await db
                 .Departments.IgnoreQueryFilters()
                 .AsNoTracking()
@@ -75,7 +76,7 @@ public sealed class DataScopeMiddleware(RequestDelegate next)
             .SingleOrDefaultAsync(context.RequestAborted)
             .ConfigureAwait(false);
 
-        dataScope.Initialize(userId, hasAllData, scopes.Contains(RoleDataScope.SELF), allowedDepartments, personalDepartmentId ?? 0);
+        dataScope.Initialize(userId, hasAllData, scopes.Contains(RoleDataScope.Self), allowedDepartments, personalDepartmentId ?? 0);
         await next(context).ConfigureAwait(false);
     }
 }

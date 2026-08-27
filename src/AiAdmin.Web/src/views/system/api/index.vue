@@ -1,6 +1,6 @@
 <template>
     <div class="art-full-height">
-        <div class="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <ElCard shadow="never">
                 <ElStatistic :title="t('apiManagement.statistics.total')" :value="statistics.total" />
             </ElCard>

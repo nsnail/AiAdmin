@@ -36,14 +36,14 @@ public sealed class LoginClientInfo
     public string? OperatingSystem { get; init; }
 
     /// <summary>
-    ///     设备平台
-    /// </summary>
-    public string? Platform { get; init; }
-
-    /// <summary>
     ///     设备像素比
     /// </summary>
     public double? PixelRatio { get; init; }
+
+    /// <summary>
+    ///     设备平台
+    /// </summary>
+    public string? Platform { get; init; }
 
     /// <summary>
     ///     屏幕分辨率
@@ -65,5 +65,3 @@ public sealed class LoginClientInfo
     /// </summary>
     public string? ViewportSize { get; init; }
 }
-
-// End of client information contract

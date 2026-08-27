@@ -10,6 +10,9 @@ namespace AiAdmin.Api.Data;
 /// <summary>
 ///     应用数据库上下文
 /// </summary>
+/// <param name="options">数据库上下文配置</param>
+/// <param name="dataScope">数据权限上下文</param>
+/// <param name="httpContextAccessor">HTTP 上下文访问器</param>
 public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataScopeContext dataScope, IHttpContextAccessor httpContextAccessor)
     : DbContext(options)
 {
@@ -162,6 +165,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Phone).HasMaxLength(20);
                 _ = entity.Property(x => x.Gender).HasConversion<int>();
                 _ = entity.Property(x => x.Avatar).HasMaxLength(500);
+                _ = entity.Property(x => x.Version).IsConcurrencyToken().IsRequired();
             }
         );
 
@@ -290,7 +294,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Name).HasMaxLength(50).IsRequired();
                 _ = entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
                 _ = entity.Property(x => x.Description).HasMaxLength(200);
-                _ = entity.Property(x => x.DataScope).HasMaxLength(50).HasDefaultValue(RoleDataScope.SELF);
+                _ = entity.Property(x => x.DataScope).HasConversion<int>();
                 _ = entity.Property(x => x.IsEnabled).HasDefaultValue(true);
             }
         );
@@ -522,12 +526,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
             switch (entry.State) {
                 case EntityState.Added:
                     entry.Entity.CreatedAt = now;
-                    entry.Entity.UpdatedAt = null;
+                    if (entry.Entity is IUpdatedAt addedEntity) {
+                        addedEntity.UpdatedAt = null;
+                    }
+
                     EnsureInitialVersion(entry.Entity);
                     break;
                 case EntityState.Modified:
                     entry.Property(x => x.CreatedAt).IsModified = false;
-                    entry.Entity.UpdatedAt = now;
+                    if (entry.Entity is IUpdatedAt modifiedEntity) {
+                        modifiedEntity.UpdatedAt = now;
+                    }
+
                     IncrementVersion(entry);
                     break;
             }

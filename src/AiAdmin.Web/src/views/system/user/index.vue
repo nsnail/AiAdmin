@@ -52,7 +52,7 @@ import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.v
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
-import { fetchCreateUser, fetchExportUsers, fetchGetUserList, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
+import { fetchCreateUser, fetchExportUsers, fetchGetUser, fetchGetUserList, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
 import UserDialog from './modules/user-dialog.vue'
 import { ElMessage, ElTag } from 'element-plus'
 import { DialogType } from '@/types'
@@ -364,9 +364,18 @@ const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Pro
 /**
  * 显示用户弹窗
  */
-const showDialog = (type: DialogType, row?: UserListItem): void => {
+const showDialog = async (type: DialogType, row?: UserListItem): Promise<void> => {
     dialogType.value = type
-    currentUserData.value = row || {}
+    if (type === 'edit' && row?.id) {
+        try {
+            currentUserData.value = await fetchGetUser(row.id)
+        } catch (error) {
+            console.error(error)
+            return
+        }
+    } else {
+        currentUserData.value = row || {}
+    }
     nextTick(() => {
         dialogVisible.value = true
     })

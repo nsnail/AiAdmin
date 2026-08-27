@@ -11,6 +11,8 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     管理系统资源的启用状态
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
+/// <param name="permissionCache">接口权限缓存</param>
 [ApiController]
 [ApiDescription("Enabled state management")]
 [Authorize]

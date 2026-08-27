@@ -20,14 +20,8 @@
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.createdAt')">
                         {{ formatTime(execution.createdAt) }}
                     </ElDescriptionsItem>
-                    <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.updatedAt')">
-                        {{ formatTime(execution.updatedAt) }}
-                    </ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.startedAt')">
                         {{ formatTime(execution.startedAt) }}
-                    </ElDescriptionsItem>
-                    <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.finishedAt')">
-                        {{ formatTime(execution.finishedAt) }}
                     </ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.duration')">
                         {{ duration }}
@@ -111,8 +105,8 @@ const currentStatus = computed(
         },
 )
 const duration = computed(() => {
-    if (!props.execution?.finishedAt) return '-'
-    const milliseconds = Math.max(0, new Date(props.execution.finishedAt).getTime() - new Date(props.execution.startedAt).getTime())
+    if (!props.execution?.createdAt) return '-'
+    const milliseconds = Math.max(0, new Date(props.execution.createdAt).getTime() - new Date(props.execution.startedAt).getTime())
     return t('scheduledJob.executionDetail.durationValue', { value: milliseconds })
 })
 const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')

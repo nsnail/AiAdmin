@@ -48,12 +48,7 @@
                                         :placeholder="$t('apiDocs.paramsJson')"
                                         :rows="3"
                                         type="textarea" />
-                                    <el-input
-                                        v-if="item.requestBody"
-                                        v-model="debug[item.path].body"
-                                        :placeholder="$t('apiDocs.bodyJson')"
-                                        :rows="6"
-                                        type="textarea" />
+                                    <ArtJsonEditor v-if="item.requestBody" v-model="debug[item.path].body" height="220px" />
                                     <el-button :loading="debug[item.path].loading" @click="send(item)" type="primary"
                                         ><el-icon><Promotion /></el-icon>{{ $t('apiDocs.send') }}</el-button
                                     >
@@ -73,6 +68,7 @@ import { ArrowDown, ArrowRight, Promotion, Refresh } from '@element-plus/icons-v
 import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
 import { ElTable, ElTableColumn } from 'element-plus'
 import { fetchGetApiDocumentation } from '@/api/system-manage'
+import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 import request from '@/utils/http'
 
 const TypePreview = defineComponent({
@@ -129,12 +125,21 @@ const toggle = (item: Api.SystemManage.ApiDocumentationItem) => {
 }
 const isOpen = (item: Api.SystemManage.ApiDocumentationItem) => open.value === item.method + item.path
 const methodType = (method: string) => ({ GET: 'success', POST: '', PUT: 'warning', DELETE: 'danger', PATCH: 'info' })[method] as any
+
+const parseJson = (value: string, field: string): unknown => {
+    try {
+        return JSON.parse(value || '{}')
+    } catch {
+        throw new Error(`${field} JSON is invalid`)
+    }
+}
+
 const send = async (item: Api.SystemManage.ApiDocumentationItem) => {
     const state = debug[item.path]
     state.loading = true
     try {
-        const params = JSON.parse(state.params || '{}')
-        const body = JSON.parse(state.body || '{}')
+        const params = parseJson(state.params, 'Parameters')
+        const body = parseJson(state.body, 'Request body')
         const res = await request.request({
             url: state.url,
             method: item.method,

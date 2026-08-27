@@ -9,6 +9,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     系统日志管理控制器
 /// </summary>
+/// <param name="queryService">Elasticsearch 日志查询服务</param>
 [ApiController]
 [Authorize]
 [Route("api/system-log")]

@@ -12,6 +12,8 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     字典管理控制器
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
+/// <param name="dictionarySnapshotService">字典快照服务</param>
 [ApiController]
 [Authorize]
 [ApiDescription("Dictionary management")]

@@ -14,6 +14,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     当前用户钱包控制器
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Wallet management")]
 [Authorize]

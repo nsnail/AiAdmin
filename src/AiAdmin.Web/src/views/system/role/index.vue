@@ -117,7 +117,7 @@ const {
             {
                 prop: 'roleName',
                 queryField: 'Name',
-                queryValueType: 'string',
+                queryValueType: 'number',
                 label: t('listFilter.role.name'),
                 minWidth: 120,
             },
@@ -144,10 +144,10 @@ const {
                 minWidth: 150,
                 formatter: (row) => {
                     const label = {
-                        all: t('listFilter.option.allData'),
-                        department: t('listFilter.option.departmentData'),
-                        department_and_children: t('listFilter.option.departmentAndChildren'),
-                        self: t('listFilter.option.ownData'),
+                        0: t('listFilter.option.allData'),
+                        1: t('listFilter.option.departmentData'),
+                        2: t('listFilter.option.departmentAndChildren'),
+                        3: t('listFilter.option.ownData'),
                     }[row.dataScope]
                     return h(
                         ElTag,
@@ -156,7 +156,7 @@ const {
                             'data-query-field': 'DataScope',
                             'data-query-label': t('listFilter.role.dataScope'),
                             'data-query-value': row.dataScope,
-                            'data-query-value-type': 'string',
+                            'data-query-value-type': 'number',
                         },
                         () => label || row.dataScope,
                     )
@@ -236,10 +236,10 @@ const exportFileName = (extension: ExportFormat): string => {
 
 const dataScopeLabel = (scope: RoleListItem['dataScope']): string =>
     ({
-        all: t('listFilter.option.allData'),
-        department: t('listFilter.option.departmentData'),
-        department_and_children: t('listFilter.option.departmentAndChildren'),
-        self: t('listFilter.option.ownData'),
+        0: t('listFilter.option.allData'),
+        1: t('listFilter.option.departmentData'),
+        2: t('listFilter.option.departmentAndChildren'),
+        3: t('listFilter.option.ownData'),
     })[scope]
 
 const downloadExcel = (rows: RoleListItem[]): void => {

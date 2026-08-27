@@ -20,6 +20,12 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     提供用户登录接口
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
+/// <param name="tokenService">令牌服务</param>
+/// <param name="cache">分布式缓存</param>
+/// <param name="dictionarySnapshotService">字典快照服务</param>
+/// <param name="ipLocationService">IP 地理位置服务</param>
+/// <param name="logger">认证日志记录器</param>
 [ApiController]
 [ApiDescription("Authentication")]
 [Route("api/auth")]

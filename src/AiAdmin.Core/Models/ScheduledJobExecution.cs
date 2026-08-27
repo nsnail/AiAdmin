@@ -15,12 +15,6 @@ public sealed class ScheduledJobExecution : EntityBase
     public string ErrorMessage { get; set; } = string.Empty;
 
     /// <summary>
-    ///     结束执行时间
-    /// </summary>
-    [ListFilter("scheduledJob.executionFields.finishedAt", "date")]
-    public DateTime? FinishedAt { get; set; }
-
-    /// <summary>
     ///     执行记录主键
     /// </summary>
     public long Id { get; init; } = SnowflakeIdGenerator.Next();

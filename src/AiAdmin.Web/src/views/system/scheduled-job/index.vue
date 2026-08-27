@@ -302,14 +302,6 @@ const executionTable = useTable({
                 formatter: (row) => formatTime(row.startedAt),
             },
             {
-                prop: 'finishedAt',
-                queryField: 'FinishedAt',
-                label: t('scheduledJob.executionFields.finishedAt'),
-                width: 190,
-                sortable: true,
-                formatter: (row) => formatTime(row.finishedAt),
-            },
-            {
                 prop: 'requestMethod',
                 queryField: 'RequestMethod',
                 label: t('scheduledJob.executionFields.requestMethod'),

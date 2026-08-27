@@ -1,1 +1,1 @@
-drone workflows
+github workflows

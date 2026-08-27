@@ -921,50 +921,53 @@ const createDateShortcuts = (fieldKey: string) => {
 }
 
 const backendFormItems = computed<SearchFormItem[]>(() =>
-    (props.filterFields || []).map((field) => {
-        const fieldPlaceholder = t(field.label)
-        const controlProps =
-            field.control === 'date'
-                ? {
-                      type: 'datetimerange',
-                      valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
-                      rangeSeparator: t('table.searchBar.to'),
-                      startPlaceholder: t('table.searchBar.startDate'),
-                      endPlaceholder: t('table.searchBar.endDate'),
-                      shortcuts: createDateShortcuts(field.field),
-                      clearable: true,
-                  }
-                : field.control === 'select'
-                  ? {
-                        placeholder: fieldPlaceholder,
-                        options: field.options.map((option) => ({
-                            ...option,
-                            label: t(option.label),
-                            value: convertFilterOptionValue(option.value, field.valueType),
-                        })),
-                        clearable: true,
-                    }
-                  : { placeholder: fieldPlaceholder, clearable: true }
-
-        return {
-            key: field.field,
-            label: undefined,
-            type:
-                field.control === 'user-select'
-                    ? 'user-select'
+    // 分组计数字段由顶部选项负责筛选，仅从基础筛选控件中隐藏，完整元数据仍供高级查询使用。
+    (props.filterFields || [])
+        .filter((field) => !field.groupCount)
+        .map((field) => {
+            const fieldPlaceholder = t(field.label)
+            const controlProps =
+                field.control === 'date'
+                    ? {
+                          type: 'datetimerange',
+                          valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
+                          rangeSeparator: t('table.searchBar.to'),
+                          startPlaceholder: t('table.searchBar.startDate'),
+                          endPlaceholder: t('table.searchBar.endDate'),
+                          shortcuts: createDateShortcuts(field.field),
+                          clearable: true,
+                      }
                     : field.control === 'select'
-                      ? 'select'
-                      : field.control === 'date'
-                        ? 'date'
-                        : field.control === 'number'
-                          ? 'number'
-                          : 'input',
-            render: field.control === 'user-select' ? ArtUserSelect : undefined,
-            span: field.span,
-            placeholder: fieldPlaceholder,
-            props: controlProps,
-        }
-    }),
+                      ? {
+                            placeholder: fieldPlaceholder,
+                            options: field.options.map((option) => ({
+                                ...option,
+                                label: t(option.label),
+                                value: convertFilterOptionValue(option.value, field.valueType),
+                            })),
+                            clearable: true,
+                        }
+                      : { placeholder: fieldPlaceholder, clearable: true }
+
+            return {
+                key: field.field,
+                label: undefined,
+                type:
+                    field.control === 'user-select'
+                        ? 'user-select'
+                        : field.control === 'select'
+                          ? 'select'
+                          : field.control === 'date'
+                            ? 'date'
+                            : field.control === 'number'
+                              ? 'number'
+                              : 'input',
+                render: field.control === 'user-select' ? ArtUserSelect : undefined,
+                span: field.span,
+                placeholder: fieldPlaceholder,
+                props: controlProps,
+            }
+        }),
 )
 const activeItems = computed(() => (props.filterFields?.length ? backendFormItems.value : props.items))
 const currentBreakpoint = computed<ResponsiveBreakpoint>(() => {

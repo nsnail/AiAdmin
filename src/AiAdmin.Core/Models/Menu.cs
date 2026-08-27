@@ -6,13 +6,18 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统菜单实体
 /// </summary>
-public sealed class Menu : EntityBase
+public sealed class Menu : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     前端组件路径
     /// </summary>
-    [ListFilter("menuManagement.fields.component", Placeholder = "listFilter.placeholder.path", Span = 3)]
     public string Component { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     创建时间
+    /// </summary>
+    [ListFilter(IsVisible = false)]
+    public override DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     /// <summary>
     ///     菜单主键
@@ -22,7 +27,9 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     是否启用菜单
     /// </summary>
-    [ListFilter("listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"])]
+    [ListFilter(
+        "listFilter.common.status", "select", Options = ["true:listFilter.option.enabled", "false:listFilter.option.disabled"], GroupCount = true
+    )]
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
@@ -39,13 +46,11 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     父级菜单名称
     /// </summary>
-    [ListFilter("listFilter.menu.parentName", Placeholder = "listFilter.placeholder.parentMenu")]
     public string ParentName { get; set; } = string.Empty;
 
     /// <summary>
     ///     菜单路由路径
     /// </summary>
-    [ListFilter("listFilter.menu.path", Placeholder = "listFilter.placeholder.path")]
     public string Path { get; set; } = string.Empty;
 
     /// <summary>
@@ -56,6 +61,10 @@ public sealed class Menu : EntityBase
     /// <summary>
     ///     菜单排序值
     /// </summary>
-    [ListFilter("menuManagement.fields.sort", "number", Span = 2)]
     public int Sort { get; set; }
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 }

@@ -28,7 +28,9 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/user")]
 public sealed class UsersController(AppDbContext db, MinioStorageService storage, ExportLimitService exportLimitService) : ControllerBase
 {
-    // 对外使用稳定查询字段名，实体路径仅由后端维护
+    /// <summary>
+    ///     对外使用稳定查询字段名，实体路径仅由后端维护
+    /// </summary>
     private static readonly IReadOnlyDictionary<string, string> _filterAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["DepartmentName"] = $"{nameof(Models.User.UserDepartments)}.{nameof(UserDepartment.Department)}.{nameof(Department.Name)}"
@@ -175,14 +177,23 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// <returns>用户筛选字段定义</returns>
     [HttpGet("filter-fields")]
     [ApiDescription("Query user filter fields")]
-    public ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>> FilterFields() {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<ListFilterFieldResult>>>> FilterFieldsAsync() {
+        var roleOptions
+            = (await db.Roles.AsNoTracking().OrderBy(x => x.Name).Select(x => x.Name).ToListAsync().ConfigureAwait(false)).ConvertAll(name =>
+                new ListFilterOptionResult(name, name)
+            );
+        var departmentOptions = (await db.Departments.AsNoTracking().OrderBy(x => x.Name).Select(x => x.Name).ToListAsync().ConfigureAwait(false))
+            .ConvertAll(name => new ListFilterOptionResult(name, name));
         IReadOnlyList<ListFilterFieldResult> fields =
         [
             .. ListFilterMetadataService.GetFields<User>()
-            , new("RoleName", "userManagement.fields.roles", "input", 3, int.MaxValue, "listFilter.placeholder.roleName", [], "string", false)
             , new(
-                "DepartmentName", "userManagement.fields.departments", "input", 3, int.MaxValue, "listFilter.placeholder.departmentName", []
-                , "string", false
+                "RoleName", "userManagement.fields.roles", "select", 3, int.MaxValue, "listFilter.placeholder.roleName", roleOptions, "string"
+                , false
+            )
+            , new(
+                "DepartmentName", "userManagement.fields.departments", "select", 3, int.MaxValue, "listFilter.placeholder.departmentName"
+                , departmentOptions, "string", false
             )
         ];
         return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(fields));
@@ -200,6 +211,24 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             .GetGroupsAsync(db.Users.AsNoTracking(), request.DynamicFilter, _filterAliases)
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
+    }
+
+    /// <summary>
+    ///     查询用户最新实体
+    /// </summary>
+    /// <param name="id">用户主键</param>
+    /// <returns>用户最新信息</returns>
+    [HttpGet("{id:long}")]
+    [ApiDescription("Get user detail")]
+    public async Task<ActionResult<ApiResponse<UserListItem>>> GetAsync(long id) {
+        var user = await db
+            .Users.Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .Include(x => x.UserDepartments)
+            .ThenInclude(x => x.Department)
+            .SingleOrDefaultAsync(x => x.Id == id)
+            .ConfigureAwait(false);
+        return user is null ? NotFound(new ApiResponse<object>(404, "User not found", null)) : Ok(ApiResponse<UserListItem>.Ok(ToListItem(user)));
     }
 
     /// <summary>
@@ -342,6 +371,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             return NotFound(new ApiResponse<object>(404, "User not found", null));
         }
 
+        db.Entry(user).Property(x => x.Version).OriginalValue = request.Version;
         var roles = await ResolveRolesAsync(request.Roles).ConfigureAwait(false);
         if (roles is null) {
             return BadRequest(new ApiResponse<object>(400, "One or more roles are invalid", null));
@@ -401,6 +431,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             return Unauthorized(new ApiResponse<object>(401, "Login session has expired, please log in again", null));
         }
 
+        db.Entry(user).Property(x => x.Version).OriginalValue = request.Version;
         user.Email = request.Email.Trim();
         user.Phone = request.Phone.Trim();
         user.Gender = request.Gender;
@@ -522,7 +553,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     private static CurrentUserResult ToCurrentUserResult(User user) {
         return new CurrentUserResult(
             user.Id, user.UserName, user.Email, user.Phone, user.Gender, user.Avatar, [.. user.UserRoles.Select(x => x.Role.Code)]
-            , ["add", "edit", "delete"]
+            , ["add", "edit", "delete"], user.Version
         );
     }
 
@@ -536,7 +567,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             user.Id, user.Avatar ?? string.Empty, user.IsEnabled ? "1" : "2", user.UserName, user.Gender, user.Phone, user.Email, user.IsEnabled
             , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserRoles.Select(x => x.Role.Name)]
             , [.. user.UserDepartments.Select(x => x.DepartmentId)], [.. user.UserDepartments.Select(x => x.Department.Name)], "system"
-            , ServerTime.ToOffset(user.CreatedAt), "system", user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null
+            , ServerTime.ToOffset(user.CreatedAt), "system", user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null, user.Version
         );
     }
 

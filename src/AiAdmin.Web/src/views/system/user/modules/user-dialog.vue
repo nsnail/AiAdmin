@@ -211,6 +211,7 @@ watch(
             roles: props.type === 'edit' ? [...(row?.userRoles ?? [])] : ['R_USER'],
             departmentIds: props.type === 'edit' ? [...(row?.departmentIds ?? [])] : [],
             isEnabled: props.type === 'edit' ? (row?.isEnabled ?? true) : true,
+            version: props.type === 'edit' ? (row?.version ?? 0) : undefined,
         })
         nextTick(() => formRef.value?.clearValidate())
     },

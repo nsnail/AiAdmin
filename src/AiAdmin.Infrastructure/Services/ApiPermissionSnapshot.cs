@@ -3,6 +3,9 @@ namespace AiAdmin.Api.Services;
 /// <summary>
 ///     内存中的接口权限快照
 /// </summary>
+/// <param name="HasApis">是否存在接口数据</param>
+/// <param name="AnonymousKeys">匿名接口键集合</param>
+/// <param name="ByRole">角色接口权限映射</param>
 public sealed record ApiPermissionSnapshot(bool HasApis, IReadOnlySet<string> AnonymousKeys, IReadOnlyDictionary<string, HashSet<string>> ByRole)
 {
     /// <summary>

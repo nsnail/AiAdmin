@@ -65,7 +65,7 @@ public static class DatabaseInitializer
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var permissionCache = scope.ServiceProvider.GetRequiredService<ApiPermissionCache>();
-        var roles = await db.Roles.Include(x => x.RoleApis).Where(x => x.Code == "R_ADMIN" || x.Code == "R_USER").ToListAsync().ConfigureAwait(false);
+        var roles = await db.Roles.Include(x => x.RoleApis).Where(x => x.Code != "R_SUPER").ToListAsync().ConfigureAwait(false);
         var endpoints = (await db.ApiEndpoints.ToListAsync().ConfigureAwait(false))
             .Where(x => _basicApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path), StringComparer.Ordinal))
             .ToList();
@@ -100,14 +100,14 @@ public static class DatabaseInitializer
         if (!await db.Roles.AnyAsync().ConfigureAwait(false)) {
             await db
                 .Roles.AddRangeAsync(
-                    new Role { Name = "Super administrator", Code = "R_SUPER", Description = "Full system access", DataScope = RoleDataScope.ALL }
+                    new Role { Name = "Super administrator", Code = "R_SUPER", Description = "Full system access", DataScope = RoleDataScope.All }
                     , new Role
                     {
                         Name = "Administrator"
                         , Code = "R_ADMIN"
                         , Description = "User administration"
-                        , DataScope = RoleDataScope.DEPARTMENT_AND_CHILDREN
-                    }, new Role { Name = "User", Code = "R_USER", Description = "Basic access", DataScope = RoleDataScope.SELF }
+                        , DataScope = RoleDataScope.DepartmentAndChildren
+                    }, new Role { Name = "User", Code = "R_USER", Description = "Basic access", DataScope = RoleDataScope.Self }
                 )
                 .ConfigureAwait(false);
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
@@ -364,10 +364,10 @@ public static class DatabaseInitializer
         JsonElement meta
         , string roleCode
     ) {
-        return meta.ValueKind != JsonValueKind.Object
-               || !meta.TryGetProperty("roles", out var roles)
-               || roles.ValueKind != JsonValueKind.Array
-               || roles.EnumerateArray().Any(x => x.GetString() == roleCode);
+        return meta.ValueKind == JsonValueKind.Object
+               && meta.TryGetProperty("roles", out var roles)
+               && roles.ValueKind == JsonValueKind.Array
+               && roles.EnumerateArray().Any(x => x.GetString() == roleCode);
     }
 
     private static async Task SeedMenusAsync(AppDbContext db) {

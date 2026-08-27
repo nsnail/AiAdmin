@@ -15,6 +15,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     管理员系统消息管理控制器
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("System message management")]
 [Authorize(Roles = "R_SUPER,R_ADMIN")]

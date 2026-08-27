@@ -7,13 +7,12 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     管理员发布的系统消息
 /// </summary>
-public sealed class SystemMessage : EntityBase
+public sealed class SystemMessage : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     消息收件人数
     /// </summary>
     [NotMapped]
-    [ListFilter("messageManagement.recipientCount", "number", Span = 3)]
     public int RecipientCount => Recipients.Count;
 
     /// <summary>消息正文 HTML</summary>
@@ -41,4 +40,9 @@ public sealed class SystemMessage : EntityBase
     /// </summary>
     [ListFilter("messageManagement.title", Span = 4, Placeholder = "messageManagement.searchTitle")]
     public string Title { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 }

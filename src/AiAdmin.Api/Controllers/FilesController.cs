@@ -10,6 +10,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     文件管理控制器
 /// </summary>
+/// <param name="storage">对象存储服务</param>
 [ApiController]
 [ApiDescription("File management")]
 [Authorize]
@@ -157,8 +158,11 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
         return string.Join(string.Empty, value.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch) && ch != '/' && ch != '\\')).Trim();
     }
 
-    // MinIO 对象键不使用开头斜杠，控制台 URL 会将该键显示为 /users/{userid}/...
-    // 超级管理员使用桶根目录，其他用户固定使用自己的 users/{userid}/ 目录
+    /// <summary>
+    ///     MinIO 对象键不使用开头斜杠，控制台 URL 会将该键显示为 /users/{userid}/...
+    ///     超级管理员使用桶根目录，其他用户固定使用自己的 users/{userid}/ 目录
+    /// </summary>
+    /// <exception cref="InvalidOperationException">User identity is missing</exception>
     private string UserPrefix() {
         return User.IsInRole("R_SUPER")
             ? string.Empty

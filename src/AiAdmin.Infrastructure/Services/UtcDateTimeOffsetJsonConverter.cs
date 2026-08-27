@@ -17,7 +17,11 @@ public sealed class UtcDateTimeOffsetJsonConverter : JsonConverter<DateTimeOffse
     /// <param name="options">序列化选项</param>
     /// <returns>UTC 偏移时间</returns>
     /// <exception cref="JsonException">输入不是有效时间时抛出</exception>
-    public override DateTimeOffset Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) {
+    public override DateTimeOffset Read(
+        ref Utf8JsonReader reader
+        , Type typeToConvert
+        , JsonSerializerOptions options
+    ) {
         var value = reader.GetString() ?? throw new JsonException("UTC date time value is required.");
         return DateTimeOffset.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result)
             ? result.ToUniversalTime()
@@ -30,7 +34,11 @@ public sealed class UtcDateTimeOffsetJsonConverter : JsonConverter<DateTimeOffse
     /// <param name="writer">JSON 写入器</param>
     /// <param name="value">待写入时间</param>
     /// <param name="options">序列化选项</param>
-    public override void Write(Utf8JsonWriter writer, DateTimeOffset value, JsonSerializerOptions options) {
+    public override void Write(
+        Utf8JsonWriter writer
+        , DateTimeOffset value
+        , JsonSerializerOptions options
+    ) {
         writer.WriteStringValue(value.ToUniversalTime());
     }
 }

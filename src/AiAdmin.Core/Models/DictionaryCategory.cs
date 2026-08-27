@@ -5,7 +5,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     字典目录实体
 /// </summary>
-public sealed class DictionaryCategory : EntityBase
+public sealed class DictionaryCategory : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     子目录集合
@@ -41,4 +41,9 @@ public sealed class DictionaryCategory : EntityBase
     ///     排序值
     /// </summary>
     public int Sort { get; set; }
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 }

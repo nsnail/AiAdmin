@@ -12,6 +12,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     部门管理控制器
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Department management")]
 [Authorize]

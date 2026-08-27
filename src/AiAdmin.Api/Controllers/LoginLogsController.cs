@@ -12,6 +12,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     登录日志管理控制器
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
 [ApiController]
 [Authorize]
 [Route("api/login-log")]

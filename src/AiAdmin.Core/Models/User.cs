@@ -7,7 +7,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统用户实体
 /// </summary>
-public sealed class User : EntityBase
+public sealed class User : EntityBase, IUpdatedAt, IVersion
 {
     /// <summary>
     ///     头像地址
@@ -59,6 +59,11 @@ public sealed class User : EntityBase
     public string Phone { get; set; } = string.Empty;
 
     /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
+
+    /// <summary>
     ///     用户部门关联集合
     /// </summary>
     public ICollection<UserDepartment> UserDepartments { get; init; } = [];
@@ -73,4 +78,9 @@ public sealed class User : EntityBase
     ///     用户角色关联集合
     /// </summary>
     public ICollection<UserRole> UserRoles { get; set; } = [];
+
+    /// <summary>
+    ///     并发版本号
+    /// </summary>
+    public int Version { get; set; } = 1;
 }

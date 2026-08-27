@@ -1,7 +1,7 @@
 FROM node:22-alpine AS build
 
 WORKDIR /app
-COPY src/AiAdmin.Web/package.json src/AiAdmin.Web/pnpm-lock.yaml ./
+COPY src/AiAdmin.Web/package.json ./
 RUN npm install --global cnpm \
     && cnpm install --ignore-scripts
 

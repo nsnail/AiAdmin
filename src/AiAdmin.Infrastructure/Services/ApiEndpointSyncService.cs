@@ -14,6 +14,9 @@ namespace AiAdmin.Api.Services;
 /// <summary>
 ///     反射并同步系统 Web API 到接口权限表
 /// </summary>
+/// <param name="db">数据库上下文</param>
+/// <param name="actionDescriptorProvider">操作描述符提供器</param>
+/// <param name="permissionCache">接口权限缓存</param>
 public sealed class ApiEndpointSyncService(
     AppDbContext db
     , IActionDescriptorCollectionProvider actionDescriptorProvider

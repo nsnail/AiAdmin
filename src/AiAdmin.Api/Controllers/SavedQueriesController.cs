@@ -15,6 +15,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     管理当前用户按页面保存的查询条件
 /// </summary>
+/// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Saved query management")]
 [Authorize]

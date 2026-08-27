@@ -10,6 +10,7 @@ namespace AiAdmin.Api.Controllers;
 /// <summary>
 ///     管理 Redis 服务器和缓存键
 /// </summary>
+/// <param name="connectionMultiplexer">Redis 连接复用器</param>
 [ApiController]
 [Authorize(Roles = "R_SUPER")]
 [ApiDescription("Redis cache management")]

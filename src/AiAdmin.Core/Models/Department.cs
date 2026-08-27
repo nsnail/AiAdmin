@@ -6,7 +6,7 @@ namespace AiAdmin.Api.Models;
 /// <summary>
 ///     系统部门实体
 /// </summary>
-public sealed class Department : EntityBase
+public sealed class Department : EntityBase, IUpdatedAt
 {
     /// <summary>
     ///     默认部门编码
@@ -26,13 +26,19 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     部门编码
     /// </summary>
-    [ListFilter("listFilter.department.code", Placeholder = "listFilter.placeholder.departmentCode", Span = 3)]
+    [ListFilter("listFilter.department.code", Placeholder = "listFilter.placeholder.departmentCode", Span = 4)]
     public required string Code { get; set; }
+
+    /// <summary>
+    ///     创建时间
+    /// </summary>
+    [ListFilter(IsVisible = false)]
+    public override DateTime CreatedAt { get; set; }
 
     /// <summary>
     ///     部门描述
     /// </summary>
-    [ListFilter("listFilter.department.description", Placeholder = "listFilter.placeholder.description", Span = 3)]
+    [ListFilter("listFilter.department.description", Placeholder = "listFilter.placeholder.description", Span = 4)]
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
@@ -52,7 +58,7 @@ public sealed class Department : EntityBase
     /// <summary>
     ///     部门名称
     /// </summary>
-    [ListFilter("listFilter.department.name", Placeholder = "listFilter.placeholder.departmentName", Span = 3, Sort = 0)]
+    [ListFilter("listFilter.department.name", Placeholder = "listFilter.placeholder.departmentName", Span = 4, Sort = 0)]
     public required string Name { get; set; }
 
     /// <summary>
@@ -69,6 +75,11 @@ public sealed class Department : EntityBase
     ///     同级显示顺序
     /// </summary>
     public int Sort { get; set; }
+
+    /// <summary>
+    ///     最后更新时间
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 
     /// <summary>
     ///     用户部门关联集合
