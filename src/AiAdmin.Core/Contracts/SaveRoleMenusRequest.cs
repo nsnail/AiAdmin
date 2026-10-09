@@ -6,6 +6,11 @@ namespace AiAdmin.Api.Contracts;
 public sealed class SaveRoleMenusRequest
 {
     /// <summary>
+    ///     角色主键
+    /// </summary>
+    public long Id { get; init; }
+
+    /// <summary>
     ///     菜单主键集合
     /// </summary>
     public long[] MenuIds { get; init; } = [];

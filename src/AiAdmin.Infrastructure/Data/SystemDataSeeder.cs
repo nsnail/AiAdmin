@@ -17,6 +17,7 @@ internal static class SystemDataSeeder
         await DatabaseInitializer.InitializeSystemCoreAsync(services).ConfigureAwait(false);
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await EnsureRobotCommandSeedAsync(db).ConfigureAwait(false);
         var defaultDepartment = await EnsureDefaultDepartmentAsync(db).ConfigureAwait(false);
         if (!await db.Users.AnyAsync().ConfigureAwait(false)) {
             var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER").ConfigureAwait(false);
@@ -34,6 +35,12 @@ internal static class SystemDataSeeder
         await EnsureWelcomeMessageAsync(db).ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     执行 AddSeedUserDepartmentsAsync 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <param name="defaultDepartment">方法参数 defaultDepartment</param>
+    /// <param name="users">方法参数 users</param>
     private static async Task AddSeedUserDepartmentsAsync(
         AppDbContext db
         , Department defaultDepartment
@@ -48,6 +55,14 @@ internal static class SystemDataSeeder
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     创建 CreateUser 方法对应的业务数据
+    /// </summary>
+    /// <param name="name">名称</param>
+    /// <param name="email">方法参数 email</param>
+    /// <param name="phone">方法参数 phone</param>
+    /// <param name="role">方法参数 role</param>
+    /// <returns>CreateUser 方法的执行结果</returns>
     private static User CreateUser(
         string name
         , string email
@@ -66,6 +81,11 @@ internal static class SystemDataSeeder
         return user;
     }
 
+    /// <summary>
+    ///     确保 EnsureDefaultDepartmentAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <returns>EnsureDefaultDepartmentAsync 方法的执行结果</returns>
     private static async Task<Department> EnsureDefaultDepartmentAsync(AppDbContext db) {
         var department = await db.Departments.SingleOrDefaultAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
         if (department is not null) {
@@ -83,6 +103,40 @@ internal static class SystemDataSeeder
         return department;
     }
 
+    /// <summary>
+    ///     确保机器人指令目录及默认指令存在
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureRobotCommandSeedAsync(AppDbContext db) {
+        var catalog = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "robot_commands").ConfigureAwait(false);
+        if (catalog is null) {
+            catalog = new DictionaryCategory { Code = "robot_commands", Name = "Robot Commands", Sort = 2 };
+            _ = await db.DictionaryCategories.AddAsync(catalog).ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        if (!await db.DictionaryItems.AnyAsync(x => x.CategoryId == catalog.Id && x.Label == "/help").ConfigureAwait(false)) {
+            _ = await db
+                .DictionaryItems.AddAsync(
+                    new DictionaryItem
+                    {
+                        CategoryId = catalog.Id
+                        , Label = "/help"
+                        , Value = "SELECT 'Available commands: /help'"
+                        , Remark = "Show available commands"
+                        , Sort = 0
+                    }
+                )
+                .ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     确保 EnsureWelcomeMessageAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
     private static async Task EnsureWelcomeMessageAsync(AppDbContext db) {
         const string title = "Welcome to AiAdmin";
         if (await db.SystemMessages.AnyAsync(x => x.Title == title).ConfigureAwait(false)) {

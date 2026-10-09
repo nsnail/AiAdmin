@@ -76,6 +76,12 @@ internal sealed class AiAdminConsoleFormatter() : ConsoleFormatter("aiadmin")
         textWriter.Write(_RESET_COLOR);
     }
 
+    /// <summary>
+    ///     执行 AddFields 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="lines">方法参数 lines</param>
+    /// <param name="fields">方法参数 fields</param>
+    /// <param name="names">方法参数 names</param>
     private static void AddFields(
         List<string> lines
         , IReadOnlyDictionary<string, object?> fields
@@ -84,6 +90,12 @@ internal sealed class AiAdminConsoleFormatter() : ConsoleFormatter("aiadmin")
         lines.AddRange(names.Select(name => FormatField(name, fields.GetValueOrDefault(name))));
     }
 
+    /// <summary>
+    ///     格式化 FormatField 方法对应的业务数据
+    /// </summary>
+    /// <param name="name">名称</param>
+    /// <param name="value">待处理的值</param>
+    /// <returns>FormatField 方法的执行结果</returns>
     private static string FormatField(
         string name
         , object? value

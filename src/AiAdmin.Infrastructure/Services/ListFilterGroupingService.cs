@@ -24,12 +24,14 @@ public static class ListFilterGroupingService
     /// <param name="source">未应用动态筛选的实体查询</param>
     /// <param name="dynamicFilter">当前动态筛选条件</param>
     /// <param name="aliases">对外筛选字段与实体路径的别名</param>
+    /// <param name="maxOptions">每个分组返回的最大选项数量</param>
     /// <returns>字段分组统计结果</returns>
     /// <exception cref="InvalidOperationException">分组字段不存在时引发</exception>
     public static async Task<IReadOnlyList<ListFilterGroupResult>> GetGroupsAsync<TEntity>(
         IQueryable<TEntity> source
         , DynamicFilter? dynamicFilter
         , IReadOnlyDictionary<string, string>? aliases = null
+        , int maxOptions = _MAX_GROUP_OPTIONS
     )
         where TEntity : class {
         var fields = ListFilterMetadataService.GetFields<TEntity>().Where(x => x.GroupCount).ToArray();
@@ -39,7 +41,9 @@ public static class ListFilterGroupingService
                            ?? throw new InvalidOperationException($"List filter group field '{field.Field}' does not exist");
             var query = source.ApplyDynamicFilter(RemoveField(dynamicFilter, field.Field), aliases);
             var method = _getOptionsMethod.MakeGenericMethod(typeof(TEntity), property.PropertyType);
-            var task = (Task<(int Total, IReadOnlyList<ListFilterGroupOptionResult> Options)>)method.Invoke(null, [query, property, field])!;
+            var task = (Task<(int Total, IReadOnlyList<ListFilterGroupOptionResult> Options)>)method.Invoke(
+                null, [query, property, field, maxOptions]
+            )!;
             var (total, options) = await task.ConfigureAwait(false);
             results.Add(new ListFilterGroupResult(field.Field, field.Label, field.ValueType, total, options));
         }
@@ -55,11 +59,13 @@ public static class ListFilterGroupingService
     /// <param name="source">已应用其他字段筛选的实体查询</param>
     /// <param name="property">分组属性</param>
     /// <param name="metadata">字段筛选元数据</param>
+    /// <param name="maxOptions">每个分组返回的最大选项数量</param>
     /// <returns>分组总量和选项集合</returns>
     public static async Task<(int Total, IReadOnlyList<ListFilterGroupOptionResult> Options)> GetOptionsAsync<TEntity, TValue>(
         IQueryable<TEntity> source
         , PropertyInfo property
         , ListFilterFieldResult metadata
+        , int maxOptions = _MAX_GROUP_OPTIONS
     )
         where TEntity : class {
         var parameter = Expression.Parameter(typeof(TEntity), "entity");
@@ -85,7 +91,7 @@ public static class ListFilterGroupingService
         var orderedOptions = options
             .OrderByDescending(option => option.Count)
             .ThenBy(option => option.Label, StringComparer.OrdinalIgnoreCase)
-            .Take(_MAX_GROUP_OPTIONS)
+            .Take(maxOptions > 0 ? maxOptions : _MAX_GROUP_OPTIONS)
             .ToArray();
         return (rows.Sum(row => row.Value), orderedOptions);
     }

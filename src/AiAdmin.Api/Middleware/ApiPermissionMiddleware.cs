@@ -26,10 +26,9 @@ public sealed class ApiPermissionMiddleware(RequestDelegate next)
         , ApiPermissionCache permissionCache
         , AppDbContext db
     ) {
-        // 仅处理标记 Authorize 的控制器动作，其他端点直接进入后续管道。
+        // 所有控制器 API 默认执行统一权限检查，仅显式标记 AllowAnonymous 的端点例外。
         var endpoint = context.GetEndpoint();
-        var requiresAuthorization = endpoint?.Metadata.GetOrderedMetadata<IAuthorizeData>().Count > 0;
-        if (!requiresAuthorization) {
+        if (endpoint?.Metadata.GetMetadata<AllowAnonymousAttribute>() is not null) {
             await next(context).ConfigureAwait(false);
             return;
         }
@@ -58,13 +57,41 @@ public sealed class ApiPermissionMiddleware(RequestDelegate next)
             return;
         }
 
-        // 每次授权请求都校验用户启用状态，使被禁用账号的现有令牌立即失效
+        // 每次授权请求都校验用户状态和身份指纹，使密码、角色及 JWT 身份内容变化后旧令牌立即失效
         var userIdClaim = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (!long.TryParse(userIdClaim, out var userId)
-            || !await db.Users.AnyAsync(x => x.Id == userId && x.IsEnabled, context.RequestAborted).ConfigureAwait(false)) {
+        if (!long.TryParse(userIdClaim, out var userId)) {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context
-                .Response.WriteAsJsonAsync(new ApiResponse<object>(401, "User account is disabled", null), context.RequestAborted)
+                .Response.WriteAsJsonAsync(new ApiResponse<object>(401, "Login session has expired", null), context.RequestAborted)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        var currentIdentity = await db
+            .Users.AsNoTracking()
+            .Where(x => x.Id == userId && x.IsEnabled)
+            .Select(x => new
+                {
+                    x.Id
+                    , x.UserName
+                    , x.PasswordHash
+                    , Roles = x.UserRoles.Where(userRole => userRole.Role.IsEnabled).Select(userRole => userRole.Role.Code).ToArray()
+                }
+            )
+            .SingleOrDefaultAsync(context.RequestAborted)
+            .ConfigureAwait(false);
+        var tokenFingerprint = context.User.FindFirstValue(TokenService.IDENTITY_FINGERPRINT_CLAIM);
+        if (currentIdentity is null
+            || string.IsNullOrWhiteSpace(tokenFingerprint)
+            || !string.Equals(
+                tokenFingerprint
+                , TokenService.CreateIdentityFingerprint(
+                    currentIdentity.Id, currentIdentity.UserName, currentIdentity.PasswordHash, currentIdentity.Roles
+                ), StringComparison.Ordinal
+            )) {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            await context
+                .Response.WriteAsJsonAsync(new ApiResponse<object>(401, "Login session has expired", null), context.RequestAborted)
                 .ConfigureAwait(false);
             return;
         }

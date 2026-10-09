@@ -93,13 +93,18 @@ public sealed class ApiPermissionCache(IDistributedCache cache, IServiceScopeFac
         _ = cache.RemoveAsync(_CACHE_KEY);
     }
 
+    /// <summary>
+    ///     读取 ReadAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>ReadAsync 方法的执行结果</returns>
     private async Task<ApiPermissionSnapshot?> ReadAsync(CancellationToken cancellationToken) {
         var json = await cache.GetStringAsync(_CACHE_KEY, cancellationToken).ConfigureAwait(false);
         if (string.IsNullOrWhiteSpace(json)) {
             return null;
         }
 
-        var model = JsonSerializer.Deserialize<PermissionCacheModel>(json);
+        var model = JsonSerializer.Deserialize<PermissionCacheModel>(json, JsonParsing.Options);
         return model is null
             ? null
             : new ApiPermissionSnapshot(

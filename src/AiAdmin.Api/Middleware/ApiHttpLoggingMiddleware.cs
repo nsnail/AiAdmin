@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Logging;
+using AiAdmin.Api.Services;
 
 namespace AiAdmin.Api.Middleware;
 
@@ -142,7 +143,7 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
 
         try {
             using var document = JsonDocument.Parse(responseBody);
-            if (!document.RootElement.TryGetProperty("code", out var code)) {
+            if (!document.RootElement.TryGetPropertyIgnoreCase("code", out var code)) {
                 return null;
             }
 

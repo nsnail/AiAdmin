@@ -16,6 +16,11 @@ public sealed class SaveDictionaryCategoryRequest
     public string Code { get; init; } = string.Empty;
 
     /// <summary>
+    ///     目录主键，修改时必填
+    /// </summary>
+    public long? Id { get; init; }
+
+    /// <summary>
     ///     目录名称
     /// </summary>
     [Required]

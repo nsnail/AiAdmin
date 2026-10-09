@@ -134,6 +134,43 @@ html.dark .el-card {
     position: relative; // 为了兼容 el-pagination 样式，需要设置 relative，不然会影响 el-pagination 的样式，比如 el-pagination__jump--small 会被影响，导致 el-pagination__jump--small 按钮无法点击，详见 URL_ADDRESS.com/element-plus/element-plus/issues/5684#issuecomment-1176299275;
 }
 
+// 原始数据详情统一传递可用高度，兼容 Teleport 后的抽屉和弹窗内容
+.el-dialog:has(> .el-dialog__body > .el-tabs .raw-data-editor) {
+    display: flex;
+    flex-direction: column;
+    height: 80dvh;
+    max-height: calc(100dvh - 32px);
+}
+
+:is(.el-drawer__body, .el-dialog__body):has(> .el-tabs .raw-data-editor) {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+
+    > .el-tabs {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+        min-height: 0;
+
+        > .el-tabs__header {
+            flex-shrink: 0;
+        }
+
+        > .el-tabs__content {
+            flex: 1;
+            min-height: 0;
+
+            > .el-tab-pane {
+                height: 100%;
+                overflow: auto;
+            }
+        }
+    }
+}
+
 // 对话框内的新增和编辑页签不显示底部装饰线
 .el-dialog .el-tabs__nav-wrap::after {
     display: none;

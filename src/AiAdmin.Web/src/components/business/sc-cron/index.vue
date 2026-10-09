@@ -16,7 +16,7 @@
     </ElInput>
     <div class="sc-cron-tip">{{ cronDescription }}</div>
 
-    <ElDialog v-model="editorVisible" :title="t('cronEditor.title')" append-to-body destroy-on-close width="760px">
+    <ElDrawer v-model="editorVisible" :title="t('cronEditor.title')" append-to-body destroy-on-close width="760px">
         <ElTabs v-model="activeField" class="sc-cron-editor">
             <ElTabPane v-for="field in fields" :key="field.key" :name="field.key">
                 <template #label>
@@ -61,7 +61,7 @@
             <ElButton @click="editorVisible = false">{{ t('common.cancel') }}</ElButton>
             <ElButton @click="apply" type="primary">{{ t('common.confirm') }}</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>

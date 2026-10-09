@@ -5,14 +5,11 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
+using ImageMagick;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using SixLabors.ImageSharp.Formats.Png;
-using SixLabors.ImageSharp.Processing;
-using Color = SixLabors.ImageSharp.Color;
-using ImageSharpImage = SixLabors.ImageSharp.Image;
-using Size = SixLabors.ImageSharp.Size;
+using Microsoft.Extensions.Caching.Distributed;
 
 namespace AiAdmin.Api.Controllers;
 
@@ -22,11 +19,13 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="db">数据库上下文</param>
 /// <param name="storage">对象存储服务</param>
 /// <param name="exportLimitService">列表导出上限服务</param>
+/// <param name="cache">分布式缓存</param>
 [ApiController]
 [ApiDescription("User management")]
 [Authorize]
 [Route("api/user")]
-public sealed class UsersController(AppDbContext db, MinioStorageService storage, ExportLimitService exportLimitService) : ControllerBase
+public sealed class UsersController(AppDbContext db, MinioStorageService storage, ExportLimitService exportLimitService, IDistributedCache cache)
+    : ControllerBase
 {
     /// <summary>
     ///     对外使用稳定查询字段名，实体路径仅由后端维护
@@ -127,18 +126,13 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     }
 
     /// <summary>
-    ///     清空用户头像地址
+    ///     清空当前登录用户的头像地址
     /// </summary>
-    /// <param name="id">用户主键</param>
-    /// <returns>更新后的用户列表项</returns>
-    [HttpPost("{id:long}/avatar/delete")]
-    [ApiDescription("Delete user avatar")]
-    public async Task<ActionResult<ApiResponse<UserListItem>>> DeleteAvatarAsync(long id) {
-        var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
-        if (id != currentUserId && !User.IsInRole("R_SUPER")) {
-            return StatusCode(403, new ApiResponse<object>(403, "You can only update your own avatar", null));
-        }
-
+    /// <returns>更新后的当前用户列表项</returns>
+    [HttpPost("profile/avatar/delete")]
+    [ApiDescription("Delete current user avatar")]
+    public async Task<ActionResult<ApiResponse<UserListItem>>> DeleteCurrentUserAvatarAsync() {
+        var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
         var user = await db
             .Users.Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
@@ -189,11 +183,11 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             .. ListFilterMetadataService.GetFields<User>()
             , new(
                 "RoleName", "userManagement.fields.roles", "select", 3, int.MaxValue, "listFilter.placeholder.roleName", roleOptions, "string"
-                , false
+                , false, true
             )
             , new(
                 "DepartmentName", "userManagement.fields.departments", "select", 3, int.MaxValue, "listFilter.placeholder.departmentName"
-                , departmentOptions, "string", false
+                , departmentOptions, "string", false, true
             )
         ];
         return Ok(ApiResponse<IReadOnlyList<ListFilterFieldResult>>.Ok(fields));
@@ -218,9 +212,9 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// </summary>
     /// <param name="id">用户主键</param>
     /// <returns>用户最新信息</returns>
-    [HttpGet("{id:long}")]
+    [HttpGet("detail")]
     [ApiDescription("Get user detail")]
-    public async Task<ActionResult<ApiResponse<UserListItem>>> GetAsync(long id) {
+    public async Task<ActionResult<ApiResponse<UserListItem>>> GetAsync([FromQuery] long id) {
         var user = await db
             .Users.Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
@@ -351,15 +345,12 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// <summary>
     ///     更新用户
     /// </summary>
-    /// <param name="id">用户主键</param>
     /// <param name="request">用户修改请求</param>
     /// <returns>更新后的用户</returns>
-    [HttpPost("{id:long}")]
+    [HttpPost("update")]
     [ApiDescription("Update user")]
-    public async Task<ActionResult<ApiResponse<UserListItem>>> UpdateAsync(
-        long id
-        , UpdateUserRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<UserListItem>>> UpdateAsync([FromBody] UpdateUserRequest request) {
+        var id = request.Id;
         var user = await db
             .Users.Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
@@ -431,11 +422,30 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             return Unauthorized(new ApiResponse<object>(401, "Login session has expired, please log in again", null));
         }
 
+        var email = request.Email.Trim().ToLowerInvariant();
+        var currentEmail = user.Email.Trim().ToLowerInvariant();
+        var emailChanged = !string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase);
+        if (emailChanged) {
+            var cachedCode = await cache.GetStringAsync($"profile-email-code:{id}:{currentEmail}", HttpContext.RequestAborted).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(request.EmailVerificationCode)
+                || !string.Equals(cachedCode, request.EmailVerificationCode.Trim(), StringComparison.Ordinal)) {
+                return BadRequest(new ApiResponse<object>(400, "Invalid or expired email verification code", null));
+            }
+
+            if (await db.Users.AnyAsync(x => x.Id != id && x.Email == email, HttpContext.RequestAborted).ConfigureAwait(false)) {
+                return Conflict(new ApiResponse<object>(409, "Email already exists", null));
+            }
+        }
+
         db.Entry(user).Property(x => x.Version).OriginalValue = request.Version;
-        user.Email = request.Email.Trim();
+        user.Email = email;
         user.Phone = request.Phone.Trim();
         user.Gender = request.Gender;
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        if (emailChanged) {
+            await cache.RemoveAsync($"profile-email-code:{id}:{currentEmail}", HttpContext.RequestAborted).ConfigureAwait(false);
+        }
+
         return Ok(ApiResponse<CurrentUserResult>.Ok(ToCurrentUserResult(user), "Profile updated"));
     }
 
@@ -445,18 +455,13 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// <param name="id">用户主键</param>
     /// <param name="file">头像图片文件</param>
     /// <returns>更新后的用户列表项</returns>
-    [HttpPost("{id:long}/avatar")]
+    [HttpPost("avatar")]
     [ApiDescription("Upload user avatar")]
     [RequestSizeLimit(512000)]
     public async Task<ActionResult<ApiResponse<UserListItem>>> UploadAvatarAsync(
-        long id
+        [FromForm] long id
         , IFormFile file
     ) {
-        var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
-        if (id != currentUserId && !User.IsInRole("R_SUPER")) {
-            return StatusCode(403, new ApiResponse<object>(403, "You can only update your own avatar", null));
-        }
-
         var user = await db
             .Users.Include(x => x.UserRoles)
             .ThenInclude(x => x.Role)
@@ -484,19 +489,36 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
 
         var objectName = $"avatars/{id}.png";
         await using var input = file.OpenReadStream();
-        using var image = await ImageSharpImage.LoadAsync(input).ConfigureAwait(false);
-        image.Mutate(context =>
-            context
-                .Resize(new ResizeOptions { Size = new Size(120, 120), Mode = ResizeMode.Crop, Position = AnchorPositionMode.Center })
-                .BackgroundColor(Color.White)
-        );
+        using var image = new MagickImage(input);
+
+        // 先从中心裁成正方形，再缩放，避免头像变形
+        var side = Math.Min(image.Width, image.Height);
+        image.Crop(side, side, Gravity.Center);
+        image.ResetPage();
+        image.Resize(120, 120);
+        image.BackgroundColor = MagickColors.White;
+        image.Alpha(AlphaOption.Remove);
+        image.Format = MagickFormat.Png;
         await using var output = new MemoryStream();
-        await image.SaveAsync(output, new PngEncoder()).ConfigureAwait(false);
+        await image.WriteAsync(output).ConfigureAwait(false);
         output.Position = 0;
         await storage.UploadAsync(objectName, output, output.Length, "image/png").ConfigureAwait(false);
         user.Avatar = storage.GetPreviewUrl(objectName);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "Avatar uploaded"));
+    }
+
+    /// <summary>
+    ///     上传并更新当前登录用户头像
+    /// </summary>
+    /// <param name="file">头像图片文件</param>
+    /// <returns>更新后的当前用户列表项</returns>
+    [HttpPost("profile/avatar")]
+    [ApiDescription("Upload current user avatar")]
+    [RequestSizeLimit(512000)]
+    public Task<ActionResult<ApiResponse<UserListItem>>> UploadCurrentUserAvatarAsync(IFormFile file) {
+        var currentUserId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        return UploadAvatarAsync(currentUserId, file);
     }
 
     /// <summary>
@@ -568,6 +590,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserRoles.Select(x => x.Role.Name)]
             , [.. user.UserDepartments.Select(x => x.DepartmentId)], [.. user.UserDepartments.Select(x => x.Department.Name)], "system"
             , ServerTime.ToOffset(user.CreatedAt), "system", user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null, user.Version
+            , user.LastLoginAt is { } lastLoginAt ? ServerTime.ToOffset(lastLoginAt) : null, user.LastLoginIp, user.LastLoginRegion
         );
     }
 
@@ -593,7 +616,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// <returns>有效部门集合，无效时返回空值</returns>
     private async Task<List<Department>?> ResolveDepartmentsAsync(long[] ids) {
         var distinct = ids.Distinct().ToArray();
-        var departments = await db.Departments.Where(x => distinct.Contains(x.Id)).ToListAsync().ConfigureAwait(false);
+        var departments = await db.Departments.Where(x => Enumerable.Contains(distinct, x.Id)).ToListAsync().ConfigureAwait(false);
         return departments.Count == distinct.Length ? departments : null;
     }
 
@@ -604,7 +627,7 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
     /// <returns>有效角色集合，无效时返回空值</returns>
     private async Task<List<Role>?> ResolveRolesAsync(string[] codes) {
         var distinct = codes.Distinct().ToArray();
-        var roles = await db.Roles.Where(x => distinct.Contains(x.Code)).ToListAsync().ConfigureAwait(false);
+        var roles = await db.Roles.Where(x => Enumerable.Contains(distinct, x.Code)).ToListAsync().ConfigureAwait(false);
         return roles.Count == distinct.Length ? roles : null;
     }
 }

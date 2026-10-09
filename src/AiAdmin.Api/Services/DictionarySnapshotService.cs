@@ -18,6 +18,11 @@ public sealed class DictionarySnapshotService(
     , ILogger<DictionarySnapshotService> logger)
 {
     /// <summary>
+    ///     业务设置目录编码
+    /// </summary>
+    public const string BUSINESS_SETTINGS_CODE = "business_settings";
+
+    /// <summary>
     ///     计划作业占位符目录编码
     /// </summary>
     public const string SCHEDULED_JOB_PLACEHOLDERS_CODE = "scheduled_job_placeholders";
@@ -130,7 +135,7 @@ public sealed class DictionarySnapshotService(
     /// <param name="categoryCode">字典目录编码</param>
     /// <returns>需要保存快照时返回 true</returns>
     private static bool IsSupported(string categoryCode) {
-        return categoryCode is SYSTEM_SETTINGS_CODE or SCHEDULED_JOB_PLACEHOLDERS_CODE;
+        return categoryCode is BUSINESS_SETTINGS_CODE or SYSTEM_SETTINGS_CODE or SCHEDULED_JOB_PLACEHOLDERS_CODE;
     }
 
     /// <summary>

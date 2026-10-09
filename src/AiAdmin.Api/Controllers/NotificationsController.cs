@@ -21,25 +21,30 @@ namespace AiAdmin.Api.Controllers;
 [Route("api/notifications")]
 public sealed class NotificationsController(AppDbContext db) : ControllerBase
 {
-    /// <summary>清空当前用户全部通知</summary>
+    /// <summary>
+    ///     清空当前用户全部通知
+    /// </summary>
     /// <returns>操作结果</returns>
     [HttpPost("clear")]
     [ApiDescription("Clear all notifications")]
     public async Task<ActionResult<ApiResponse<object>>> ClearAsync() {
+        var userId = GetUserId();
         _ = await db
-            .UserMessages.Where(x => x.UserId == GetUserId() && !x.IsDeleted)
+            .UserMessages.Where(x => x.UserId == userId && !x.IsDeleted)
             .ExecuteUpdateAsync(x => x.SetProperty(y => y.IsDeleted, true), HttpContext.RequestAborted)
             .ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
-    /// <summary>删除单条通知</summary>
-    /// <param name="id">消息主键</param>
+    /// <summary>
+    ///     删除单条通知
+    /// </summary>
+    /// <param name="request">通知标识请求</param>
     /// <returns>操作结果</returns>
-    [HttpPost("{id:long}/delete")]
+    [HttpPost("delete")]
     [ApiDescription("Delete notification")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
-        var item = await FindAsync(id).ConfigureAwait(false);
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] NotificationIdRequest request) {
+        var item = await FindAsync(request.Id).ConfigureAwait(false);
         _ = item?.IsDeleted = true;
 
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
@@ -80,35 +85,50 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<UserMessagePageResult>.Ok(new UserMessagePageResult(items, items.Count == size, unread)));
     }
 
-    /// <summary>标记当前用户全部通知为已读</summary>
+    /// <summary>
+    ///     标记当前用户全部通知为已读
+    /// </summary>
     /// <returns>操作结果</returns>
     [HttpPost("read-all")]
     [ApiDescription("Mark all notifications as read")]
     public async Task<ActionResult<ApiResponse<object>>> ReadAllAsync() {
+        var userId = GetUserId();
         _ = await db
-            .UserMessages.Where(x => x.UserId == GetUserId() && !x.IsDeleted && !x.IsRead)
+            .UserMessages.Where(x => x.UserId == userId && !x.IsDeleted && !x.IsRead)
             .ExecuteUpdateAsync(x => x.SetProperty(y => y.IsRead, true), HttpContext.RequestAborted)
             .ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
-    /// <summary>标记单条通知为已读</summary>
-    /// <param name="id">消息主键</param>
+    /// <summary>
+    ///     标记单条通知为已读
+    /// </summary>
+    /// <param name="request">通知标识请求</param>
     /// <returns>操作结果</returns>
-    [HttpPost("{id:long}/read")]
+    [HttpPost("read")]
     [ApiDescription("Mark notification as read")]
-    public async Task<ActionResult<ApiResponse<object>>> ReadAsync(long id) {
-        var item = await FindAsync(id).ConfigureAwait(false);
+    public async Task<ActionResult<ApiResponse<object>>> ReadAsync([FromBody] NotificationIdRequest request) {
+        var item = await FindAsync(request.Id).ConfigureAwait(false);
         _ = item?.IsRead = true;
 
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
+    /// <summary>
+    ///     查找 FindAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="id">消息主键</param>
+    /// <returns>FindAsync 方法的执行结果</returns>
     private Task<UserMessage?> FindAsync(long id) {
-        return db.UserMessages.SingleOrDefaultAsync(x => x.MessageId == id && x.UserId == GetUserId() && !x.IsDeleted, HttpContext.RequestAborted);
+        var userId = GetUserId();
+        return db.UserMessages.SingleOrDefaultAsync(x => x.MessageId == id && x.UserId == userId && !x.IsDeleted, HttpContext.RequestAborted);
     }
 
+    /// <summary>
+    ///     获取 GetUserId 方法对应的业务数据
+    /// </summary>
+    /// <returns>GetUserId 方法的执行结果</returns>
     private long GetUserId() {
         return long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
     }

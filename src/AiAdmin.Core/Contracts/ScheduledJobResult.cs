@@ -13,6 +13,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="RequestMethod">请求方法</param>
 /// <param name="RequestHeadersJson">请求头 JSON</param>
 /// <param name="RequestBody">请求体</param>
+/// <param name="Remark">备注</param>
 /// <param name="TimeoutSeconds">超时秒数</param>
 /// <param name="IsEnabled">是否启用</param>
 /// <param name="Status">作业状态</param>
@@ -28,6 +29,7 @@ public sealed record ScheduledJobResult(
     , string RequestMethod
     , string RequestHeadersJson
     , string RequestBody
+    , string Remark
     , int TimeoutSeconds
     , bool IsEnabled
     , ScheduledJobStatus Status

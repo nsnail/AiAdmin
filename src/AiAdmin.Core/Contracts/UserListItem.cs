@@ -22,6 +22,9 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="UpdateBy">更新人</param>
 /// <param name="UpdateTime">更新时间</param>
 /// <param name="Version">并发版本号</param>
+/// <param name="LastLoginAt">最后登录时间</param>
+/// <param name="LastLoginIp">最后登录 IP 地址</param>
+/// <param name="LastLoginRegion">最后登录 IP 归属地区</param>
 public sealed record UserListItem(
     long Id
     , string Avatar
@@ -39,4 +42,7 @@ public sealed record UserListItem(
     , DateTimeOffset CreateTime
     , string UpdateBy
     , DateTimeOffset? UpdateTime
-    , int Version);
+    , int Version
+    , DateTimeOffset? LastLoginAt = null
+    , string LastLoginIp = ""
+    , string LastLoginRegion = "");

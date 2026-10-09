@@ -71,6 +71,11 @@ public sealed class ApiEndpointSyncService(
         return new ApiSyncResult(added, updated, stale.Count, activeEndpoints.Count);
     }
 
+    /// <summary>
+    ///     反射获取 ReflectEndpoints 方法对应的业务数据
+    /// </summary>
+    /// <returns>ReflectEndpoints 方法的执行结果</returns>
+    /// <exception cref="InvalidOperationException">控制器或操作缺少接口说明特性时抛出</exception>
     private Dictionary<string, ApiEndpoint> ReflectEndpoints() {
         // 读取控制器和操作上的描述、HTTP 方法及 Action 标记的匿名特性。
         var result = new Dictionary<string, ApiEndpoint>(StringComparer.Ordinal);

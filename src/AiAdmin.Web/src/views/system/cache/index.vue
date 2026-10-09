@@ -57,7 +57,7 @@
                 ></ElTableColumn>
             </ArtTable>
         </ElCard>
-        <ElDialog
+        <ElDrawer
             v-model="dialogVisible"
             :title="dialogReadonly ? t('redisCache.dialog.view') : form.key ? t('redisCache.dialog.edit') : t('redisCache.dialog.add')"
             destroy-on-close
@@ -77,7 +77,7 @@
                     t('redisCache.actions.save')
                 }}</ElButton></template
             >
-        </ElDialog>
+        </ElDrawer>
     </div>
 </template>
 

@@ -172,6 +172,9 @@ public sealed class MinioStorageService
             .ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     确保 EnsureBucketAsync 方法对应的业务数据
+    /// </summary>
     private async Task EnsureBucketAsync() {
         var exists = await _client.BucketExistsAsync(new BucketExistsArgs().WithBucket(_options.Bucket)).ConfigureAwait(false);
         if (!exists) {

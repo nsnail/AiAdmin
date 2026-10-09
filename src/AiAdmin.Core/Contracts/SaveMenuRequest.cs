@@ -14,6 +14,11 @@ public sealed class SaveMenuRequest
     public string Component { get; init; } = string.Empty;
 
     /// <summary>
+    ///     菜单主键，修改时必填
+    /// </summary>
+    public long? Id { get; init; }
+
+    /// <summary>
     ///     是否启用菜单
     /// </summary>
     public bool IsEnabled { get; init; } = true;

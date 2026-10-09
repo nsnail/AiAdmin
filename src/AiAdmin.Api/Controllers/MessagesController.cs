@@ -32,7 +32,9 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         , ["recipientCount"] = $"{nameof(SystemMessage.Recipients)}.{nameof(ICollection.Count)}"
     };
 
-    /// <summary>批量删除系统消息</summary>
+    /// <summary>
+    ///     批量删除系统消息
+    /// </summary>
     /// <param name="ids">消息主键集合</param>
     /// <returns>操作结果</returns>
     [HttpPost("delete")]
@@ -42,18 +44,24 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
             return Ok(ApiResponse<object>.Ok(new { }));
         }
 
-        var messages = await db.SystemMessages.Where(x => ids.Contains(x.Id)).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        var messages = await db
+            .SystemMessages.Where(x => Enumerable.Contains(ids, x.Id))
+            .ToListAsync(HttpContext.RequestAborted)
+            .ConfigureAwait(false);
         db.SystemMessages.RemoveRange(messages);
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "System messages deleted"));
     }
 
-    /// <summary>删除一条系统消息</summary>
-    /// <param name="id">消息主键</param>
+    /// <summary>
+    ///     删除一条系统消息
+    /// </summary>
+    /// <param name="request">消息标识请求</param>
     /// <returns>操作结果</returns>
-    [HttpPost("{id:long}/delete")]
+    [HttpPost("delete-one")]
     [ApiDescription("Delete system message")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var message = await db.SystemMessages.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
         if (message is null) {
             return NotFound(new ApiResponse<object>(404, "Message not found", null));
@@ -64,7 +72,9 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }, "System message deleted"));
     }
 
-    /// <summary>查询消息列表筛选字段元数据</summary>
+    /// <summary>
+    ///     查询消息列表筛选字段元数据
+    /// </summary>
     /// <returns>筛选字段定义</returns>
     [HttpGet("filter-fields")]
     [ApiDescription("Query message filter fields")]
@@ -114,12 +124,14 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         );
     }
 
-    /// <summary>查询系统消息收件人状态明细</summary>
+    /// <summary>
+    ///     查询系统消息收件人状态明细
+    /// </summary>
     /// <param name="id">消息主键</param>
     /// <returns>收件人状态明细</returns>
-    [HttpGet("{id:long}/recipients")]
+    [HttpGet("recipients")]
     [ApiDescription("Query system message recipients")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<SystemMessageRecipientItem>>>> RecipientsAsync(long id) {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<SystemMessageRecipientItem>>>> RecipientsAsync([FromQuery] long id) {
         var exists = await db.SystemMessages.AsNoTracking().AnyAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
         if (!exists) {
             return NotFound(new ApiResponse<IReadOnlyList<SystemMessageRecipientItem>>(404, "Message not found", null));
@@ -168,16 +180,15 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }, "System message sent"));
     }
 
-    /// <summary>修改已发送消息的标题和正文</summary>
-    /// <param name="id">消息主键</param>
+    /// <summary>
+    ///     修改已发送消息的标题和正文
+    /// </summary>
     /// <param name="request">修改内容</param>
     /// <returns>操作结果</returns>
-    [HttpPost("{id:long}")]
+    [HttpPost("update")]
     [ApiDescription("Update system message")]
-    public async Task<ActionResult<ApiResponse<object>>> UpdateAsync(
-        long id
-        , UpdateSystemMessageRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<object>>> UpdateAsync([FromBody] UpdateSystemMessageRequest request) {
+        var id = request.Id;
         var message = await db.SystemMessages.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
         if (message is null) {
             return NotFound(new ApiResponse<object>(404, "Message not found", null));
@@ -193,6 +204,13 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<object>.Ok(new { }, "System message updated"));
     }
 
+    /// <summary>
+    ///     解析 ResolveUserIdsAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="targetType">方法参数 targetType</param>
+    /// <param name="departmentIds">目标部门标识集合</param>
+    /// <param name="userIds">目标用户标识集合</param>
+    /// <returns>ResolveUserIdsAsync 方法的执行结果</returns>
     private async Task<HashSet<long>> ResolveUserIdsAsync(
         string targetType
         , long[] departmentIds
@@ -209,7 +227,7 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
             case "user":
                 return await db
                     .Users.AsNoTracking()
-                    .Where(x => x.IsEnabled && userIds.Contains(x.Id))
+                    .Where(x => x.IsEnabled && Enumerable.Contains(userIds, x.Id))
                     .Select(x => x.Id)
                     .ToHashSetAsync(HttpContext.RequestAborted)
                     .ConfigureAwait(false);

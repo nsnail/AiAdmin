@@ -1,13 +1,25 @@
 # AiAdmin 工作区规则
 
 ## 整体规范
+
 - 每次git commit前必须运行 `./build/code.clean.full.ps1`
 - 每次运行$git-log-and-commit skill前必须运行 `./build/code.clean.full.ps1`
 
 ## 前端规范
+
+- 所有 `ElDrawer` 和 `ElDialog` 必须设置 `destroy-on-close`，关闭时销毁内容，避免状态和编辑器样式残留
+- 所有详情抽屉和弹窗中的原始数据、独立预览页签必须撑满内容区剩余高度；从容器、页签到编辑器或 iframe 必须建立完整的可伸缩高度链路，禁止使用固定像素高度或 `max-height` 导致大片留白。长内容在编辑器或预览内部滚动，页签栏和底部操作保持可见
+- 原始数据统一复用 `ArtRawData` 和公共详情页签布局；公共组件必须让内部编辑器同步撑满外框。表单内嵌的小型编辑器按表单布局设置高度，不强制占满整个弹窗。必须验证页签切换、窗口缩放及关闭后重新打开时的高度
+
+- 标签样式规范：除枚举类型或具有明确数量和语义的固定状态标签（如启用、禁用、是、否）外，数量不确定的动态业务标签统一使用基于显示文字 Hash
+  的同色系配色；背景使用浅色，边框使用对应的更饱和色，文字使用正常正文色
+- 详情弹窗包含结构化字段和原始数据时，页签名称统一使用“基本信息”和“原始数据”，不得使用含义模糊的“详情”作为基本信息页签名称
+- 新增、编辑对话框使用多页签组织表单时，承载主要表单字段的首个页签统一命名为“基本信息”，不得使用“详情”等含义模糊的名称
 - 依赖安装、脚本执行统一使用 `cnpm`，不要使用 `pnpm`。
 - 所有表格列表页统一使用 `ArtTable + useTable` 方案
 - 所有新增或修改的用户界面文案必须接入 i18n，支持中英文切换
+- 单条删除操作统一使用气泡确认，批量删除操作统一使用弹窗确认
+- `ArtTable` 操作栏按钮必须具备防抖机制；按钮触发 API 请求时，请求完成前必须禁用重复操作并将按钮图标替换为 loading 图标
 - 所有表格包含 `IsEnabled` 字段时，必须使用 `Switch` 开关列展示和操作
 - 表格中的 `Switch` 开关列必须居中对齐
 - `IsEnabled` 筛选列的栅格跨度统一为 `2`
@@ -15,37 +27,64 @@
 - 每次编译代码前必须运行 `./build/code.clean.prettier.ps1`
 
 ### 统一列表页规范（以用户管理为基准）
+
 - 用户管理页是系统表格列表页的标准模板；新增列表页或改造旧列表页时，页面结构、交互行为、查询协议和表格能力必须与用户管理保持一致
-- 必须优先维护和复用统一列表页组件或组合式函数（基于 `ArtSearchBar + ArtTable + useTable`）；页面层只允许配置资源标识、接口、列定义、默认条件和业务插槽，不得重复实现筛选拼装、保存查询、右键筛选、排序、分页等通用逻辑
-- `ArtTablePage` 的 `filter-change` 事件必须绑定页面查询处理函数；处理函数必须通过 `useTable.replaceSearchParams({ dynamicFilter })` 写入唯一筛选状态并调用 `getData`（或 `refreshData`），禁止遗漏事件绑定、解构不存在的 `useTable.handleFilterChange`，或只更新表单状态不发起查询
+- 必须优先维护和复用统一列表页组件或组合式函数（基于 `ArtSearchBar + ArtTable + useTable`
+  ）；页面层只允许配置资源标识、接口、列定义、默认条件和业务插槽，不得重复实现筛选拼装、保存查询、右键筛选、排序、分页等通用逻辑
+- `ArtTablePage` 的 `filter-change` 事件必须绑定页面查询处理函数；处理函数必须通过 `useTable.replaceSearchParams({ dynamicFilter })` 写入唯一筛选状态并调用
+  `getData`（或 `refreshData`），禁止遗漏事件绑定、解构不存在的 `useTable.handleFilterChange`，或只更新表单状态不发起查询
 - 筛选栏第一项必须是日期时间范围选择器，默认筛选 `CreatedAt`，并提供 `CreatedAt / UpdatedAt` 切换；切换时必须保留已选择的时间范围。没有更新时间字段的资源可禁用切换，但日期范围仍必须位于第一项
-- 基础筛选控件必须由后端实体属性上的 `ListFilterAttribute` 特性驱动，通过统一的 `filter-fields` 接口返回字段、i18n 标签、控件类型、值类型、顺序、栅格宽度、占位符和选项；前端不得为同一字段重复硬编码一套筛选控件元数据
-- 日期字段必须使用日期时间范围控件和 `DateRange` 操作符；范围语义统一为左闭右开。布尔、数值、枚举和字符串控件必须按后端元数据转换为正确的 JSON 值类型，禁止把布尔值和数值无条件转换成字符串
-- 基础筛选、高级查询、已保存查询、右键字段筛选和默认条件必须汇总到同一个 `dynamicFilter` JSON 树中，使用 `And / Or` 及嵌套 `filters` 表达；禁止在请求中同时维护零散筛选参数和另一套动态筛选条件
-- 动态查询 JSON 是筛选状态的唯一事实来源。控件修改时必须重建或更新该 JSON；应用已保存条件、右键条件或手工编辑 JSON 后，必须同步更新可映射的基础控件和高级查询界面，条件数量、重置状态和实际请求必须保持一致
-- 高级查询必须支持嵌套条件组、字段类型对应的操作符、JSON 预览/编辑，以及按当前路由保存、加载、删除自定义查询条件；保存和恢复时使用完整的 `dynamicFilter`，不得丢失条件分组或值类型
+- 基础筛选控件必须由后端实体属性上的 `ListFilterAttribute` 特性驱动，通过统一的 `filter-fields` 接口返回字段、i18n
+  标签、控件类型、值类型、顺序、栅格宽度、占位符和选项；前端不得为同一字段重复硬编码一套筛选控件元数据
+- 日期字段必须使用日期时间范围控件和 `DateRange` 操作符；范围语义统一为左闭右开。布尔、数值、枚举和字符串控件必须按后端元数据转换为正确的 JSON
+  值类型，禁止把布尔值和数值无条件转换成字符串
+- 基础筛选、高级查询、已保存查询、右键字段筛选和默认条件必须汇总到同一个 `dynamicFilter` JSON 树中，使用 `And / Or` 及嵌套 `filters`
+  表达；禁止在请求中同时维护零散筛选参数和另一套动态筛选条件
+- 动态查询 JSON 是筛选状态的唯一事实来源。控件修改时必须重建或更新该 JSON；应用已保存条件、右键条件或手工编辑 JSON
+  后，必须同步更新可映射的基础控件和高级查询界面，条件数量、重置状态和实际请求必须保持一致
+- 高级查询必须支持嵌套条件组、字段类型对应的操作符、JSON 预览/编辑，以及按当前路由保存、加载、删除自定义查询条件；保存和恢复时使用完整的 `dynamicFilter`
+  ，不得丢失条件分组或值类型
 - 表格必须使用 `ArtTable + useTable`，统一接入分页、刷新、列配置、服务端排序和 `cell-query`；不得直接使用 `ElTable` 另建一套列表行为
-- 可查询表格列必须声明准确的 `queryField`、`queryValueField`、`queryValueType` 和必要的 `queryOperators`；格式化列或一个单元格包含多个字段时，必须通过 `data-query-*` 明确每个可操作字段。纯展示列和操作列必须设置 `queryField: false`
-- 表格右键字段筛选必须根据字段类型展示并实际支持对应操作符：字符串包含/开头/结尾/等于/不等于/集合，数值和日期比较/范围/集合，布尔等于/不等于/集合；选择后必须合并进当前 `dynamicFilter` 并立即查询，不得仅修改界面状态
+- 可查询表格列必须声明准确的 `queryField`、`queryValueField`、`queryValueType` 和必要的 `queryOperators`；格式化列或一个单元格包含多个字段时，必须通过
+  `data-query-*` 明确每个可操作字段。纯展示列和操作列必须设置 `queryField: false`
+- 表格右键字段筛选必须根据字段类型展示并实际支持对应操作符：字符串包含/开头/结尾/等于/不等于/集合，数值和日期比较/范围/集合，布尔等于/不等于/集合；选择后必须合并进当前
+  `dynamicFilter` 并立即查询，不得仅修改界面状态
 - 表头排序和右键排序必须共用 `useTable` 的服务端排序状态，统一生成 `sortField` 与 `sortOrder`；前端列名与实体字段不一致时必须提供明确别名，禁止静默忽略无效排序字段
 - 重置操作必须恢复页面声明的默认条件、清空高级及右键追加条件、清空排序并回到第一页；筛选、排序或已保存查询发生变化后也必须回到第一页
 - 新增或修改列表页时，至少验证日期类型切换、基础控件与 JSON 双向联动、高级查询保存/恢复、右键所有可见操作符、表头及右键排序、分页后条件保持和重置行为
 - 分组筛选栏的按钮样式必须统一展示数量徽标，分组项按数量倒序排列，数量相同时按显示名称升序稳定排序
 
+### 列表导出规范
+
+- 列表页导出按钮统一使用带下载图标和下拉菜单的按钮样式，提供 Excel 和 JSON 两种导出格式
+- 未勾选任何行时，导出当前查询条件和排序下的全部结果，不受当前分页页大小限制
+- 勾选行后，仅导出勾选的数据
+- 导出字段必须与列表展示字段保持一致，字段名称使用 i18n 文案；日期字段使用列表相同的格式化方式
+- 导出过程必须具备 loading 或防重复操作机制，空结果需提示用户，不得生成空文件
+- 未勾选导出时，前端必须调用后端专用 `export` 接口并由后端应用最大导出条数，禁止通过循环调用 `list` 接口模拟导出
+
 ## 后端规范
-- 每个 Controller 类必须标注 `ApiDescriptionAttribute`，每个公开接口方法也必须标注 `ApiDescriptionAttribute`，否则启动时的接口同步会抛出 `Controller ... is missing ApiDescriptionAttribute` 或 `Action ... is missing ApiDescriptionAttribute`
+
+- 每个 Controller 类必须标注 `ApiDescriptionAttribute`，每个公开接口方法也必须标注 `ApiDescriptionAttribute`，否则启动时的接口同步会抛出
+  `Controller ... is missing ApiDescriptionAttribute` 或 `Action ... is missing ApiDescriptionAttribute`
+- 每当新增 Controller 或 Action 并填写 `ApiDescriptionAttribute` 后，必须同步补全对应的中文翻译文件
 - 系统所有 API 接口只允许使用 GET 或 POST 方法，不得使用 PUT、DELETE、PATCH 等其他 HTTP 方法
 - 正式版发布前（仓库没有 `v1` 及以上版本 tag）不考虑旧版本兼容、数据迁移或历史数据回填，按当前模型直接开发。
 - 新增或修改代码必须补充清晰的中文注释，说明文件职责以及关键类和方法的作用。
 - 每个类或record必须单独放在一个 `.cs` 文件中。
-- 类、方法和属性必须使用标准 .NET XML 文档注释；方法参数必须使用 `<param>` 说明，返回值必须使用 `<returns>` 说明。
+- 类、方法和属性必须使用标准 .NET XML 文档注释，所有方法（包括 private 方法）均不得例外；方法参数必须使用 `<param>` 说明，返回值必须使用 `<returns>` 说明。
 - XML 文档注释的中文说明结尾不写句号。
 - XML 文档注释中，`<summary>` 的内容必须独占一行；`<param>`、`<returns>`、`<typeparam>` 等其他节点的内容与标签写在同一行。
 - `.cs` 文件中的字符串字面量不得包含中文，统一使用英文
+- 系统中所有对外发起的 HTTP 请求必须经过 `ExternalHttpRequestService` 或统一等价的请求封装，以记录请求地址、请求体、响应、状态码和耗时；禁止直接使用
+  `HttpClient`、`IHttpClientFactory` 或其他 HTTP 调用方式绕过统一日志记录
 
 ### 动态列表接口规范
-- 所有表格列表查询统一使用 `POST {resource}/list`，请求体使用公共 `DynamicQueryRequest`，只包含 `current`、`size`、`dynamicFilter`、`sortField` 和 `sortOrder`；分页结果统一返回 `PagedResponse<T>`
-- 所有列表资源必须提供统一的 `GET {resource}/filter-fields` 元数据接口，返回 `ListFilterMetadataService.GetFields<TEntity>()`；实体的可筛选字段必须使用 `ListFilterAttribute` 声明，`EntityBase.CreatedAt` 作为默认第一项日期范围字段
+
+- 所有表格列表查询统一使用 `POST {resource}/list`，请求体使用公共 `DynamicQueryRequest`，只包含 `current`、`size`、`dynamicFilter`、`sortField` 和
+  `sortOrder`；分页结果统一返回 `PagedResponse<T>`
+- 所有列表资源必须提供统一的 `GET {resource}/filter-fields` 元数据接口，返回 `ListFilterMetadataService.GetFields<TEntity>()`；实体的可筛选字段必须使用
+  `ListFilterAttribute` 声明，`EntityBase.CreatedAt` 作为默认第一项日期范围字段
 - 列表查询必须先对同一个 `IQueryable` 调用 `ApplyDynamicFilter`，再统计总数，然后调用 `ApplyDynamicSort`，最后执行分页；默认排序字段和方向必须显式指定
 - `dynamicFilter` 必须支持 `And / Or` 嵌套组，并统一验证字段、操作符和值类型；无效字段、不支持的操作符或无法转换的值必须返回明确错误，禁止忽略条件后返回未筛选数据
 - 动态筛选操作符的前后端定义必须一致。新增操作符时必须同时更新前端操作符列表、动态查询编辑器、后端 `DynamicFilterExtensions` 和对应测试

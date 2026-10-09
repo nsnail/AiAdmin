@@ -13,46 +13,45 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
 /// <param name="permissionCache">接口权限缓存</param>
+/// <param name="dataScopeCache">数据权限缓存</param>
 [ApiController]
 [ApiDescription("Enabled state management")]
 [Authorize]
 [Route("api/enabled-state")]
-public sealed class EnabledStatesController(AppDbContext db, ApiPermissionCache permissionCache) : ControllerBase
+public sealed class EnabledStatesController(AppDbContext db, ApiPermissionCache permissionCache, DataScopeCache dataScopeCache) : ControllerBase
 {
     /// <summary>
     ///     更新指定资源的启用状态
     /// </summary>
-    /// <param name="resource">资源类型</param>
-    /// <param name="id">记录主键</param>
     /// <param name="request">启用状态请求</param>
     /// <returns>状态更新结果</returns>
-    [HttpPost("{resource}/{id:long}")]
+    [HttpPost]
     [ApiDescription("Update resource enabled state")]
-    public async Task<ActionResult<ApiResponse<object>>> UpdateAsync(
-        string resource
-        , long id
-        , UpdateEnabledRequest request
-    ) {
-        var affected = resource switch
+    public async Task<ActionResult<ApiResponse<object>>> UpdateAsync([FromBody] ResourceEnabledRequest request) {
+        var affected = request.Resource switch
         {
             "user" => await db
-                .Users.Where(x => x.Id == id)
+                .Users.Where(x => x.Id == request.Id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
                 .ConfigureAwait(false)
             , "role" => await db
-                .Roles.Where(x => x.Id == id)
+                .Roles.Where(x => x.Id == request.Id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
                 .ConfigureAwait(false)
             , "menu" => await db
-                .Menus.Where(x => x.Id == id)
+                .Menus.Where(x => x.Id == request.Id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
                 .ConfigureAwait(false)
             , "department" => await db
-                .Departments.Where(x => x.Id == id)
+                .Departments.Where(x => x.Id == request.Id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
                 .ConfigureAwait(false)
             , "dictionary-item" => await db
-                .DictionaryItems.Where(x => x.Id == id)
+                .DictionaryItems.Where(x => x.Id == request.Id)
+                .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+                .ConfigureAwait(false)
+            , "scheduled-job" => await db
+                .ScheduledJobs.Where(x => x.Id == request.Id)
                 .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
                 .ConfigureAwait(false)
             , _ => -1
@@ -64,8 +63,12 @@ public sealed class EnabledStatesController(AppDbContext db, ApiPermissionCache 
                 return NotFound(new ApiResponse<object>(404, "Resource not found", null));
         }
 
-        if (resource is "role" or "menu") {
+        if (request.Resource is "role" or "department" or "menu") {
             permissionCache.Invalidate();
+        }
+
+        if (request.Resource is "role" or "department") {
+            _ = dataScopeCache.InvalidateAsync();
         }
 
         return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));

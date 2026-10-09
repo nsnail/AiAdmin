@@ -1,5 +1,5 @@
 <template>
-    <ElDialog
+    <ElDrawer
         v-model="dialogVisible"
         :title="t(dialogType === 'add' ? 'userManagement.dialog.addTitle' : 'userManagement.dialog.editTitle')"
         align-center
@@ -87,7 +87,7 @@
             <ElButton :disabled="props.saving" @click="dialogVisible = false">{{ t('common.cancel') }}</ElButton>
             <ElButton :loading="props.saving" @click="handleSubmit" type="primary">{{ t('userManagement.actions.save') }}</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>

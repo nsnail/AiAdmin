@@ -34,6 +34,12 @@ public sealed class UpdateUserRequest
     public UserGender Gender { get; init; }
 
     /// <summary>
+    ///     用户主键
+    /// </summary>
+    [Range(1, long.MaxValue)]
+    public long Id { get; init; }
+
+    /// <summary>
     ///     是否启用用户
     /// </summary>
     public bool IsEnabled { get; init; } = true;

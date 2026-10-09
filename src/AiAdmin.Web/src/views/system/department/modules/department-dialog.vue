@@ -1,5 +1,5 @@
 <template>
-    <ElDialog v-model="dialogVisible" :title="dialogType === 'add' ? '新增部门' : '编辑部门'" align-center width="560px">
+    <ElDrawer v-model="dialogVisible" :title="dialogType === 'add' ? '新增部门' : '编辑部门'" align-center width="560px">
         <ElTabs v-model="activeTab">
             <ElTabPane label="基本信息" name="form">
                 <ElForm :model="formData" :rules="rules" label-width="90px" ref="formRef">
@@ -42,7 +42,7 @@
             <ElButton :disabled="props.saving" @click="dialogVisible = false">取消</ElButton>
             <ElButton :loading="props.saving" @click="handleSubmit" type="primary">保存</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>

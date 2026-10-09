@@ -155,6 +155,7 @@ declare namespace Api {
         /** 当前用户资料更新参数 */
         interface UpdateProfileParams {
             email: string
+            emailVerificationCode?: string
             phone: string
             gender: 1 | 2
             version: number
@@ -221,6 +222,9 @@ declare namespace Api {
             createTime: string
             updateBy: string
             updateTime: string | null
+            lastLoginAt: string | null
+            lastLoginIp: string | null
+            lastLoginRegion: string | null
             version: number
         }
 

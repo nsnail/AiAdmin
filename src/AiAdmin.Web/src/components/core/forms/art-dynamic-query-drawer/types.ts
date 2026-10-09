@@ -1,7 +1,7 @@
 export interface DynamicQueryField {
     field: string
     label: string
-    type?: 'string' | 'number' | 'boolean' | 'date'
+    type?: 'string' | 'number' | 'enum' | 'boolean' | 'date'
 }
 
 export interface DynamicFilter {

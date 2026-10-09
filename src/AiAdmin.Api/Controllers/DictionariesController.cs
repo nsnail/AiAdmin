@@ -58,15 +58,12 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <summary>
     ///     新增字典内容
     /// </summary>
-    /// <param name="categoryId">目录主键</param>
     /// <param name="request">内容保存请求</param>
     /// <returns>新增内容</returns>
-    [HttpPost("categories/{categoryId:long}/items")]
+    [HttpPost("items")]
     [ApiDescription("Create dictionary item")]
-    public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> CreateItemAsync(
-        long categoryId
-        , SaveDictionaryItemRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> CreateItemAsync([FromBody] SaveDictionaryItemRequest request) {
+        var categoryId = request.CategoryId;
         if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false)) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
         }
@@ -95,11 +92,12 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <summary>
     ///     删除字典目录
     /// </summary>
-    /// <param name="id">目录主键</param>
+    /// <param name="request">目录标识请求</param>
     /// <returns>删除结果</returns>
-    [HttpPost("categories/{id:long}/delete")]
+    [HttpPost("categories/delete")]
     [ApiDescription("Delete dictionary category")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteCategoryAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteCategoryAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var category = await db.DictionaryCategories.FindAsync(id).ConfigureAwait(false);
         if (category is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
@@ -120,11 +118,12 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <summary>
     ///     删除字典内容
     /// </summary>
-    /// <param name="id">内容主键</param>
+    /// <param name="request">内容标识请求</param>
     /// <returns>删除结果</returns>
-    [HttpPost("items/{id:long}/delete")]
+    [HttpPost("items/delete")]
     [ApiDescription("Delete dictionary item")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteItemAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteItemAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var item = await db.DictionaryItems.FindAsync(id).ConfigureAwait(false);
         if (item is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary item not found", null));
@@ -169,9 +168,9 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// </summary>
     /// <param name="categoryId">目录主键</param>
     /// <returns>字典内容列表</returns>
-    [HttpGet("categories/{categoryId:long}/items")]
+    [HttpGet("items")]
     [ApiDescription("Query dictionary items")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<DictionaryItemResult>>>> ItemsAsync(long categoryId) {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<DictionaryItemResult>>>> ItemsAsync([FromQuery] long categoryId) {
         var rows = await db
             .DictionaryItems.AsNoTracking()
             .Where(x => x.CategoryId == categoryId)
@@ -185,15 +184,12 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <summary>
     ///     分页查询指定目录的字典内容
     /// </summary>
-    /// <param name="categoryId">目录主键</param>
     /// <param name="request">包含动态筛选、排序和分页信息的请求体</param>
     /// <returns>字典内容分页结果</returns>
-    [HttpPost("categories/{categoryId:long}/items/list")]
+    [HttpPost("items/list")]
     [ApiDescription("Query dictionary items page")]
-    public async Task<ActionResult<ApiResponse<PagedResponse<DictionaryItemResult>>>> ItemsListAsync(
-        long categoryId
-        , [FromBody] DynamicQueryRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<PagedResponse<DictionaryItemResult>>>> ItemsListAsync([FromBody] DynamicQueryRequest request) {
+        var categoryId = request.ParentId.GetValueOrDefault();
         if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false)) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
         }
@@ -216,15 +212,12 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <summary>
     ///     修改字典目录
     /// </summary>
-    /// <param name="id">目录主键</param>
     /// <param name="request">目录保存请求</param>
     /// <returns>修改后的目录</returns>
-    [HttpPost("categories/{id:long}")]
+    [HttpPost("categories/update")]
     [ApiDescription("Update dictionary category")]
-    public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> UpdateCategoryAsync(
-        long id
-        , SaveDictionaryCategoryRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> UpdateCategoryAsync([FromBody] SaveDictionaryCategoryRequest request) {
+        var id = request.Id.GetValueOrDefault();
         var category = await db.DictionaryCategories.FindAsync(id).ConfigureAwait(false);
         if (category is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
@@ -256,15 +249,12 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <summary>
     ///     修改字典内容
     /// </summary>
-    /// <param name="id">内容主键</param>
     /// <param name="request">内容保存请求</param>
     /// <returns>修改后的内容</returns>
-    [HttpPost("items/{id:long}")]
+    [HttpPost("items/update")]
     [ApiDescription("Update dictionary item")]
-    public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> UpdateItemAsync(
-        long id
-        , SaveDictionaryItemRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> UpdateItemAsync([FromBody] SaveDictionaryItemRequest request) {
+        var id = request.Id.GetValueOrDefault();
         var item = await db.DictionaryItems.FindAsync(id).ConfigureAwait(false);
         if (item is null) {
             return NotFound(new ApiResponse<object>(404, "Dictionary item not found", null));

@@ -9,6 +9,16 @@ namespace AiAdmin.Api.Contracts;
 public sealed class SaveDictionaryItemRequest
 {
     /// <summary>
+    ///     所属目录主键，新增时必填
+    /// </summary>
+    public long CategoryId { get; init; }
+
+    /// <summary>
+    ///     内容主键，修改时必填
+    /// </summary>
+    public long? Id { get; init; }
+
+    /// <summary>
     ///     启用状态
     /// </summary>
     public bool IsEnabled { get; init; } = true;
@@ -36,6 +46,5 @@ public sealed class SaveDictionaryItemRequest
     ///     字典键
     /// </summary>
     [Required]
-    [StringLength(100)]
     public string Value { get; init; } = string.Empty;
 }

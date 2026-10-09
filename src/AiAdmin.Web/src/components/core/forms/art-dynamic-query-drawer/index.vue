@@ -23,15 +23,17 @@
                     <span>查询 JSON</span>
                     <div class="preview-actions">
                         <span v-if="jsonError" class="json-error">{{ jsonError }}</span>
-                        <ElTooltip content="格式化 JSON">
-                            <ElButton @click="formatJsonText" aria-label="格式化 JSON" circle text>
-                                <ArtSvgIcon icon="ri:code-s-slash-line" />
-                            </ElButton>
-                        </ElTooltip>
+                        <ElTooltip content="格式化 JSON"> </ElTooltip>
                     </div>
                 </div>
                 <div :class="{ 'is-invalid': jsonError }" class="json-editor">
-                    <ArtJsonEditor v-model="jsonText" @blur="syncDraftFromJson(true)" @input="validateJsonText" aria-label="查询 JSON" />
+                    <ArtJsonEditor
+                        v-model="jsonText"
+                        @blur="syncDraftFromJson(true)"
+                        @input="validateJsonText"
+                        aria-label="查询 JSON"
+                        class="query-json-editor"
+                        height="100%" />
                 </div>
             </section>
         </div>
@@ -49,6 +51,7 @@ import { useUserStore } from '@/store/modules/user'
 import DynamicQueryGroup from './dynamic-query-group.vue'
 import ArtJsonEditor from '../art-json-editor/index.vue'
 import type { DynamicFilter, DynamicQueryField, QueryGroup, QueryNode } from './types'
+import { convertDynamicQueryValue } from '@/utils/json/dynamic-query-value'
 
 const visible = defineModel<boolean>('visible', { default: false })
 const props = defineProps<{ fields: DynamicQueryField[]; modelValue?: DynamicFilter }>()
@@ -89,7 +92,7 @@ const convertValue = (value: unknown, field: DynamicQueryField | undefined, oper
                   .map((item) => item.trim())
                   .filter(Boolean)
         : undefined
-    const convert = (item: unknown) => (field?.type === 'number' ? Number(item) : field?.type === 'boolean' ? item === 'true' : item)
+    const convert = (item: unknown) => convertDynamicQueryValue(item, field?.type)
     return values ? values.map(convert) : convert(value)
 }
 const toFilter = (group: QueryGroup): DynamicFilter | undefined => {
@@ -405,5 +408,10 @@ onMounted(loadSavedQueries)
     :deep(.json-null) {
         color: var(--el-color-danger);
     }
+}
+
+.query-json-editor {
+    min-height: 0;
+    height: 100%;
 }
 </style>

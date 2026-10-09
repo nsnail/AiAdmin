@@ -74,7 +74,7 @@
             </ArtTablePage>
         </div>
 
-        <ElDialog v-model="categoryDialogVisible" :title="categoryForm.id ? '编辑字典目录' : '新增字典目录'" destroy-on-close width="520px">
+        <ElDrawer v-model="categoryDialogVisible" :title="categoryForm.id ? '编辑字典目录' : '新增字典目录'" destroy-on-close width="520px">
             <ElTabs v-model="categoryDialogTab">
                 <ElTabPane label="基本信息" name="form">
                     <ElForm label-width="90px">
@@ -98,14 +98,14 @@
                 ><ElButton @click="categoryDialogVisible = false">取消</ElButton
                 ><ElButton :loading="saving" @click="saveCategory" type="primary">保存</ElButton></template
             >
-        </ElDialog>
+        </ElDrawer>
 
-        <ElDialog v-model="itemDialogVisible" :title="itemForm.id ? '编辑字典内容' : '新增字典内容'" destroy-on-close width="520px">
+        <ElDrawer v-model="itemDialogVisible" :title="itemForm.id ? '编辑字典内容' : '新增字典内容'" destroy-on-close width="520px">
             <ElTabs v-model="itemDialogTab">
                 <ElTabPane label="基本信息" name="form">
                     <ElForm label-width="80px">
                         <ElFormItem label="标签" required><ElInput v-model="itemForm.label" maxlength="100" /></ElFormItem>
-                        <ElFormItem label="键值" required><ElInput v-model="itemForm.value" maxlength="100" /></ElFormItem>
+                        <ElFormItem label="键值" required><ElInput v-model="itemForm.value" :rows="8" type="textarea" /></ElFormItem>
                         <ElFormItem label="排序"><ElInputNumber v-model="itemForm.sort" :max="9999" :min="0" /></ElFormItem>
                         <ElFormItem label="是否启用"><ElSwitch v-model="itemForm.isEnabled" /></ElFormItem>
                         <ElFormItem label="备注"
@@ -119,7 +119,7 @@
                 ><ElButton @click="itemDialogVisible = false">取消</ElButton
                 ><ElButton :loading="saving" @click="saveItem" type="primary">保存</ElButton></template
             >
-        </ElDialog>
+        </ElDrawer>
     </div>
 </template>
 

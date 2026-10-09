@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AiAdmin.Api.Services;
 using StackExchange.Redis;
 
 namespace AiAdmin.Api.Logging;
@@ -33,7 +34,7 @@ public sealed class ElasticsearchLogQueue(IConnectionMultiplexer connectionMulti
             cancellationToken.ThrowIfCancellationRequested();
             var payload = await _database.ListLeftPopAsync(_key).ConfigureAwait(false);
             if (!payload.IsNullOrEmpty) {
-                return JsonSerializer.Deserialize<ElasticsearchLogEntry>(payload.ToString());
+                return JsonSerializer.Deserialize<ElasticsearchLogEntry>(payload.ToString(), JsonParsing.Options);
             }
 
             await Task.Delay(TimeSpan.FromMilliseconds(250), cancellationToken).ConfigureAwait(false);
@@ -61,6 +62,6 @@ public sealed class ElasticsearchLogQueue(IConnectionMultiplexer connectionMulti
     /// <returns>取出的日志，队列为空时返回 null</returns>
     public async Task<ElasticsearchLogEntry?> TryDequeueAsync() {
         var payload = await _database.ListLeftPopAsync(_key).ConfigureAwait(false);
-        return payload.IsNullOrEmpty ? null : JsonSerializer.Deserialize<ElasticsearchLogEntry>(payload.ToString());
+        return payload.IsNullOrEmpty ? null : JsonSerializer.Deserialize<ElasticsearchLogEntry>(payload.ToString(), JsonParsing.Options);
     }
 }

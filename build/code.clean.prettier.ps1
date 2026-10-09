@@ -12,19 +12,23 @@ $changedFiles = @(
     $_.StartsWith($webPrefix, [StringComparison]::OrdinalIgnoreCase) -and $_ -match $prettierExtensions
 } | Sort-Object -Unique
 
-if ($changedFiles.Count -eq 0) {
+if ($changedFiles.Count -eq 0)
+{
     Write-Host "No changed frontend files require Prettier cleanup."
     exit 0
 }
 
-$relativeFiles = $changedFiles | ForEach-Object { $_.Substring($webPrefix.Length) }
+$relativeFiles = @($changedFiles | ForEach-Object { $_.Substring($webPrefix.Length) })
 Push-Location $webRoot
-try {
+try
+{
     cnpm run prettier:changed -- @relativeFiles
-    if ($LASTEXITCODE -ne 0) {
+    if ($LASTEXITCODE -ne 0)
+    {
         exit $LASTEXITCODE
     }
 }
-finally {
+finally
+{
     Pop-Location
 }

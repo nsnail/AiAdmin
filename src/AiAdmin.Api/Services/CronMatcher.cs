@@ -65,37 +65,88 @@ internal static class CronMatcher
         , int min
         , int max
     ) {
-        return field
-            .Split(',')
-            .Any(part =>
-                {
-                    var pieces = part.Split('/');
-                    var step = pieces.Length == 2 && int.TryParse(pieces[1], out var parsedStep) ? parsedStep : 1;
-                    (int, int) range;
-                    if (step <= 0) {
-                        return false;
-                    }
+        return field.Split(',').Any(IsMatch);
 
-                    if (pieces[0] == "*" || (pieces.Length == 2 && int.TryParse(pieces[0], out _))) {
-                        // 数字步长（如 0/5）从指定起点延伸到字段上限
-                        var start = pieces[0] == "*" ? min : int.Parse(pieces[0], CultureInfo.InvariantCulture);
-                        range = (start, max);
-                    }
-                    else if (pieces[0].Contains('-')
-                             && pieces[0].Split('-') is [var a, var b]
-                             && int.TryParse(a, out var start)
-                             && int.TryParse(b, out var end)) {
-                        range = (start, end);
-                    }
-                    else if (int.TryParse(pieces[0], out var exact)) {
-                        range = (exact, exact);
-                    }
-                    else {
-                        range = (int.MinValue, int.MinValue);
-                    }
+        bool IsMatch(string part) {
+            return MatchPart(part, value, min, max);
+        }
+    }
 
-                    return value >= range.Item1 && value <= range.Item2 && (value - range.Item1) % step == 0;
-                }
-            );
+    /// <summary>
+    ///     判断 Cron 单个逗号片段是否匹配
+    /// </summary>
+    /// <param name="part">Cron 片段</param>
+    /// <param name="value">待匹配数值</param>
+    /// <param name="min">字段最小值</param>
+    /// <param name="max">字段最大值</param>
+    /// <returns>匹配时返回 true</returns>
+    private static bool MatchPart(
+        string part
+        , int value
+        , int min
+        , int max
+    ) {
+        var pieces = part.Split('/');
+        var step = ParseStep(pieces);
+        return step > 0
+               && TryGetRange(pieces, min, max, out var range)
+               && value >= range.Start
+               && value <= range.End
+               && (value - range.Start) % step == 0;
+    }
+
+    /// <summary>
+    ///     解析 Cron 步长
+    /// </summary>
+    /// <param name="pieces">按步长分隔的 Cron 片段</param>
+    /// <returns>步长数值</returns>
+    private static int ParseStep(string[] pieces) {
+        return pieces.Length == 2 && int.TryParse(pieces[1], out var step) ? step : 1;
+    }
+
+    /// <summary>
+    ///     解析 Cron 片段范围
+    /// </summary>
+    /// <param name="pieces">按步长分隔的 Cron 片段</param>
+    /// <param name="min">字段最小值</param>
+    /// <param name="max">字段最大值</param>
+    /// <param name="range">解析出的范围</param>
+    /// <returns>解析成功时返回 true</returns>
+    private static bool TryGetRange(
+        string[] pieces
+        , int min
+        , int max
+        , out (int Start, int End) range
+    ) {
+        range = default;
+        if (pieces.Length == 0) {
+            return false;
+        }
+
+        var expression = pieces[0];
+        if (expression == "*") {
+            range = (min, max);
+            return true;
+        }
+
+        if (pieces.Length == 2 && int.TryParse(expression, CultureInfo.InvariantCulture, out var steppedStart)) {
+            range = (steppedStart, max);
+            return true;
+        }
+
+        var bounds = expression.Split('-');
+        if (bounds is [var startText, var endText]
+            && int.TryParse(startText, CultureInfo.InvariantCulture, out var start)
+            && int.TryParse(endText, CultureInfo.InvariantCulture, out var end)) {
+            range = (start, end);
+            return true;
+        }
+
+        if (!int.TryParse(expression, CultureInfo.InvariantCulture, out var exact)) {
+            return false;
+        }
+
+        range = (exact, exact);
+        return true;
     }
 }

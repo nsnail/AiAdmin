@@ -5,6 +5,8 @@ namespace AiAdmin.Api.Caching;
 /// </summary>
 public static class RedisKeyPrefix
 {
-    /// <summary>应用内部 Redis 键前缀</summary>
+    /// <summary>
+    ///     应用内部 Redis 键前缀
+    /// </summary>
     public const string VALUE = "aiadmin:";
 }

@@ -12,6 +12,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="Options">可选项列表</param>
 /// <param name="ValueType">字段值类型</param>
 /// <param name="GroupCount">是否启用分组计数筛选</param>
+/// <param name="IsVisible">是否显示在基础筛选栏</param>
 public sealed record ListFilterFieldResult(
     string Field
     , string Label
@@ -21,4 +22,5 @@ public sealed record ListFilterFieldResult(
     , string Placeholder
     , IReadOnlyList<ListFilterOptionResult> Options
     , string ValueType
-    , bool GroupCount);
+    , bool GroupCount
+    , bool IsVisible);

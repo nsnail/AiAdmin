@@ -8,6 +8,11 @@ namespace AiAdmin.Api.Contracts;
 public sealed class UpdateEnabledRequest
 {
     /// <summary>
+    ///     禁用原因
+    /// </summary>
+    public string? DisableReason { get; init; }
+
+    /// <summary>
     ///     是否启用当前记录
     /// </summary>
     [JsonRequired]

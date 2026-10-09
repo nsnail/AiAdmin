@@ -69,7 +69,7 @@
             <div v-if="queryMenu.visible" :style="{ left: `${queryMenu.x}px`, top: `${queryMenu.y}px` }" @contextmenu.prevent class="cell-query-menu">
                 <div :class="{ 'opens-left': queryMenu.submenuLeft }" class="cell-query-submenu cell-query-title-submenu">
                     <button @click="copyQueryValue" aria-keyshortcuts="C" class="cell-query-title" type="button">
-                        <span>{{ queryMenu.label }}</span>
+                        <span>{{ queryMenu.label }} ({{ queryMenu.valueType }})</span>
                         <span class="cell-query-shortcut">{{ t('table.contextMenu.copyHint') }}</span>
                     </button>
                     <div v-if="queryMenu.sortable" class="cell-query-submenu-panel">
@@ -93,7 +93,7 @@
             </div>
         </Teleport>
 
-        <ElDialog v-model="queryDialogVisible" append-to-body title="添加查询条件" width="420px">
+        <ElDialog v-model="queryDialogVisible" append-to-body destroy-on-close title="添加查询条件" width="420px">
             <ElForm label-width="80px">
                 <ElFormItem label="字段">{{ queryMenu.label }}</ElFormItem>
                 <ElFormItem label="操作符">{{ selectedOperatorLabel }}</ElFormItem>
@@ -150,6 +150,7 @@ import { useTableStore } from '@/store/modules/table'
 import { useCommon } from '@/hooks/core/useCommon'
 import { useTableHeight } from '@/hooks/core/useTableHeight'
 import { useResizeObserver, useWindowSize } from '@vueuse/core'
+import { convertDynamicQueryValue } from '@/utils/json/dynamic-query-value'
 import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ArtTable' })
@@ -161,7 +162,7 @@ const paginationRef = ref<HTMLElement>()
 const tableHeaderRef = ref<HTMLElement>()
 const tableStore = useTableStore()
 const { isBorder, isZebra, tableSize, isFullScreen, isHeaderBackground } = storeToRefs(tableStore)
-type QueryValueType = 'string' | 'number' | 'boolean' | 'date'
+type QueryValueType = 'string' | 'number' | 'enum' | 'boolean' | 'date'
 const queryMenu = reactive({
     visible: false,
     x: 0,
@@ -212,14 +213,17 @@ const booleanOperators = [
     { label: '任一匹配', symbol: 'IN', value: 'Any' },
     { label: '均不匹配', symbol: 'NOT IN', value: 'NotAny' },
 ]
+const enumOperators = booleanOperators
 const availableOperators = computed(() =>
     (queryMenu.valueType === 'string'
         ? stringOperators
-        : queryMenu.valueType === 'boolean'
-          ? booleanOperators
-          : queryMenu.valueType === 'date'
-            ? dateOperators
-            : comparableOperators
+        : queryMenu.valueType === 'enum'
+          ? enumOperators
+          : queryMenu.valueType === 'boolean'
+            ? booleanOperators
+            : queryMenu.valueType === 'date'
+              ? dateOperators
+              : comparableOperators
     ).filter((operator) => !queryMenu.operators || queryMenu.operators.includes(operator.value)),
 )
 const selectedOperatorLabel = computed(() => {
@@ -464,12 +468,18 @@ const handleCellContextMenu = (
     event.preventDefault()
     const valuePath = definition.queryValueField || definition.prop
     const rowValue = getRowValue(row, valuePath)
-    const targetValue = queryTarget?.dataset.queryValue
-    const value = queryTarget ? targetValue : rowValue
     const targetValueType = queryTarget?.dataset.queryValueType as QueryValueType | undefined
+    const targetValue = queryTarget?.dataset.queryValue
+    const value = queryTarget
+        ? targetValueType === 'boolean'
+            ? targetValue?.toLowerCase() === 'true'
+            : targetValueType === 'number'
+              ? convertDynamicQueryValue(targetValue, targetValueType)
+              : targetValue
+        : rowValue
     Object.assign(queryMenu, {
         visible: true,
-        x: Math.min(event.clientX, window.innerWidth - 180),
+        x: Math.min(event.clientX, window.innerWidth - 240),
         y: Math.min(event.clientY, window.innerHeight - 420),
         label: queryTarget?.dataset.queryLabel || definition.label || column.label || definition.prop,
         field: queryTarget?.dataset.queryField || definition.queryField || definition.prop,
@@ -477,7 +487,7 @@ const handleCellContextMenu = (
         sortable: hasSortListener && definition.sortable !== false,
         submenuLeft: event.clientX > window.innerWidth - 360,
         valueType: targetValueType || definition.queryValueType || inferValueType(value),
-        operators: definition.queryOperators,
+        operators: queryTarget?.dataset.queryOperators?.split(',').filter(Boolean) || definition.queryOperators,
         initialValue: value,
     })
 }
@@ -503,7 +513,9 @@ const applyCellQuery = () => {
     emit('cell-query', {
         field: queryMenu.field,
         operator: queryOperator.value,
-        value,
+        value: Array.isArray(value)
+            ? value.map((item) => convertDynamicQueryValue(item, queryMenu.valueType))
+            : convertDynamicQueryValue(value, queryMenu.valueType),
     })
     queryDialogVisible.value = false
 }
@@ -653,7 +665,8 @@ defineExpose({
 .cell-query-menu {
     position: fixed;
     z-index: 4000;
-    width: 176px;
+    width: 224px;
+    max-width: calc(100vw - 16px);
     max-height: 400px;
     padding: 6px;
     overflow: visible;
@@ -678,7 +691,8 @@ defineExpose({
     background: transparent;
     border: 0;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
     border-bottom: 1px solid var(--el-border-color-lighter);
 
     &:hover {
@@ -693,6 +707,7 @@ defineExpose({
     color: inherit;
     font-family: Consolas, Monaco, monospace;
     font-size: 12px;
+    white-space: nowrap;
     background: transparent;
     border: 0;
 }

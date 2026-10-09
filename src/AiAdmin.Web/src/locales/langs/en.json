@@ -41,7 +41,10 @@
         "confirm": "Confirm",
         "logOutTips": "Do you want to log out?",
         "search": "Search",
-        "reset": "Reset"
+        "reset": "Reset",
+        "createdAt": "Created at",
+        "updatedAt": "Updated at",
+        "jsonFormatInvalid": "The current content is not valid JSON and cannot be formatted"
     },
     "apiDocs": {
         "search": "Search path, name or description",
@@ -273,6 +276,7 @@
     },
     "exceptionPage": {
         "gohome": "Go Home",
+        "autoRedirect": "Redirecting to the home page in {seconds} seconds",
         "403": "Sorry, you do not have permission to access this page",
         "404": "Sorry, the page you are trying to access does not exist",
         "500": "Sorry, there was an error on the server"
@@ -393,19 +397,27 @@
             "userName": "Username",
             "gender": "Gender",
             "email": "Email",
+            "emailVerificationCode": "Email verification code",
+            "emailVerificationCodePlaceholder": "Enter the 6-digit code sent to {email}",
             "phone": "Phone"
         },
         "password": {
             "title": "Change password",
             "current": "Current password",
             "new": "New password",
-            "confirm": "Confirm new password"
+            "confirm": "Confirm new password",
+            "strength": "Password strength: {level}",
+            "strengthLevels": { "weak": "Weak", "medium": "Medium", "strong": "Strong" }
         },
         "actions": {
             "editProfile": "Edit profile",
             "saveProfile": "Save profile",
             "changePassword": "Change password",
-            "savePassword": "Save password"
+            "savePassword": "Save password",
+            "sendCode": "Send code",
+            "resendCode": "Resend in {seconds}s",
+            "deleteAvatar": "Delete avatar",
+            "cancel": "Cancel"
         },
         "validation": {
             "emailRequired": "Email is required",
@@ -414,10 +426,20 @@
             "currentPasswordRequired": "Current password is required",
             "newPasswordRequired": "New password is required",
             "confirmPasswordRequired": "Confirm the new password",
-            "passwordLength": "Password must contain at least 6 characters",
+            "emailCodeRequired": "Enter the 6-digit email verification code",
+            "passwordLength": "Password must contain at least 8 characters",
+            "passwordStrength": "Password must contain both letters and numbers",
             "passwordMismatch": "The passwords do not match"
         },
-        "messages": { "profileUpdated": "Profile updated", "passwordChanged": "Password changed" }
+        "messages": {
+            "profileUpdated": "Profile updated",
+            "passwordChanged": "Password changed",
+            "emailCodeSent": "Verification code sent to the current email",
+            "avatarFormatInvalid": "The avatar must be an image",
+            "avatarTooLarge": "The avatar must not exceed 500 KB",
+            "avatarUpdated": "Avatar updated",
+            "avatarDeleted": "Avatar deleted"
+        }
     },
     "userManagement": {
         "actions": {
@@ -440,6 +462,10 @@
             "status": "Enabled",
             "createdAt": "Created at",
             "updatedAt": "Updated at",
+            "lastLogin": "Last login",
+            "lastLoginIp": "Last login IP",
+            "lastLoginRegion": "Last login location",
+            "unknownRegion": "Unknown location",
             "operation": "Actions"
         },
         "status": { "enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown" },
@@ -494,6 +520,7 @@
         "saved": "System settings saved",
         "loadFailed": "System settings category was not found",
         "sections": {
+            "telegram": "Telegram",
             "registration": "Registration and Verification",
             "smtp": "Email Service",
             "export": "Data Export"
@@ -508,7 +535,8 @@
             "smtpUser": "SMTP username",
             "smtpPassword": "SMTP password",
             "smtpFrom": "Sender address",
-            "maximumExportRows": "Maximum export rows"
+            "maximumExportRows": "Maximum export rows",
+            "telegramBotToken": "Telegram Bot Token"
         }
     },
     "rawData": "Raw Data",
@@ -596,6 +624,14 @@
         }
     },
     "systemLog": {
+        "levels": {
+            "Trace": "Trace",
+            "Debug": "Debug",
+            "Information": "Information",
+            "Warning": "Warning",
+            "Error": "Error",
+            "Critical": "Critical"
+        },
         "filters": {
             "level": "Log level",
             "logType": "Log type",
@@ -664,27 +700,41 @@
             "run": "Run now",
             "executions": "Execution records",
             "edit": "Edit job",
+            "copy": "Copy job",
             "delete": "Delete job",
             "formatJson": "Format JSON",
             "close": "Close",
-            "operation": "Actions"
+            "operation": "Actions",
+            "batchRemark": "Set remarks in batch",
+            "save": "Save"
         },
         "executionTitle": "{name} execution records",
         "unknown": "Unknown",
         "messages": {
             "invalidJson": "Enter valid JSON",
-            "invalidHeadersJson": "Request headers must be a JSON object"
+            "invalidHeadersJson": "Request headers must be a JSON object",
+            "copySuccess": "Job copied successfully"
         },
         "fields": {
             "name": "Job name",
-            "cronExpression": "Cron expression",
+            "cronExpression": "Trigger rule",
             "requestUrl": "Request URL",
             "requestMethod": "HTTP method",
             "timeoutSeconds": "Timeout seconds",
             "status": "Execution status",
             "lastTriggeredAt": "Last triggered",
+            "triggered": "Triggered",
+            "finished": "Finished",
             "lastFinishedAt": "Last finished",
-            "lastError": "Last error"
+            "lastError": "Last error",
+            "previous": "Previous",
+            "nextExecution": "Next execution",
+            "executionDuration": "Execution duration",
+            "remark": "Remark"
+        },
+        "tabs": {
+            "basicInfo": "Basic info",
+            "rawData": "Raw data"
         },
         "executionFields": {
             "errorMessage": "Error message",
@@ -698,8 +748,9 @@
         "detail": { "operation": "Details" },
         "placeholder": {
             "name": "Enter job name",
-            "cronExpression": "Enter Cron expression",
-            "requestUrl": "Enter request URL"
+            "cronExpression": "Enter trigger rule",
+            "requestUrl": "Enter request URL",
+            "remark": "Enter a remark"
         },
         "status": {
             "waiting": "Waiting",
@@ -772,6 +823,7 @@
             "everySecond": "Every second",
             "everyMinute": "Every minute",
             "hourly": "Every hour at the start",
+            "everyHours": "Every {value} hours at the start",
             "everySeconds": "Every {value} seconds",
             "everyMinutes": "Every {value} minutes",
             "daily": "Every day at {time}",
@@ -838,7 +890,8 @@
             "controller": "Enter controller",
             "controllerName": "Enter controller name",
             "apiName": "Enter API name",
-            "path": "Enter path"
+            "path": "Enter path",
+            "remark": "Enter a remark"
         },
         "option": {
             "enabled": "Enabled",
@@ -851,6 +904,10 @@
             "ownData": "Own data",
             "yes": "Yes",
             "no": "No",
+            "waiting": "Waiting",
+            "running": "Running",
+            "succeeded": "Succeeded",
+            "failed": "Failed",
             "get": "GET",
             "post": "POST",
             "put": "PUT",

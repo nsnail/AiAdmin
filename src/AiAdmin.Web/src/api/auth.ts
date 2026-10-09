@@ -79,6 +79,14 @@ export function fetchUpdateUserProfile(data: Api.Auth.UpdateProfileParams) {
 }
 
 /**
+ * 发送个人资料邮箱验证码
+ * @returns 发送结果
+ */
+export function fetchProfileEmailCode() {
+    return request.post<Record<string, never>>({ url: '/api/auth/profile-email/code' })
+}
+
+/**
  * 修改当前用户密码
  * @param data 密码修改参数
  * @returns 修改结果

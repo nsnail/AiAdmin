@@ -234,6 +234,11 @@ function handleLoginStatus(to: RouteLocationNormalized, userStore: ReturnType<ty
  * 检查路由是否为静态路由
  */
 function isStaticRoute(path: string): boolean {
+    // 允许直接访问明确的 404 页面，同时避免将其他命中兜底路由的未知地址视为静态页
+    if (path === '/404') {
+        return true
+    }
+
     const checkRoute = (routes: any[], targetPath: string): boolean => {
         return routes.some((route) => {
             // 404 catch-all 路由不应视为可匿名访问的静态页，

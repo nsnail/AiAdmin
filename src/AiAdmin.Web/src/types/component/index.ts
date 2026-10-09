@@ -66,7 +66,7 @@ export interface ColumnOption<T = any> {
     // 右键查询初始值对应的行字段
     queryValueField?: string
     // 右键查询字段值类型
-    queryValueType?: 'string' | 'number' | 'boolean' | 'date'
+    queryValueType?: 'string' | 'number' | 'enum' | 'boolean' | 'date'
     // 右键查询允许的操作符
     queryOperators?: string[]
     // 过滤器选项

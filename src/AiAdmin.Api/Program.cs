@@ -1,5 +1,6 @@
+using System.Collections;
+using System.Globalization;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Text;
 using AiAdmin.Api.Caching;
 using AiAdmin.Api.Data;
@@ -17,15 +18,18 @@ using StackExchange.Redis;
 var applicationArgs = args.ToArray();
 var builder = WebApplication.CreateBuilder(applicationArgs);
 _ = builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
+
+// 仅在显式启用后台服务时注册相关后台服务
+var enabledHostedServices = applicationArgs.Any(argument => argument.Equals("--enabled-hosted-services", StringComparison.OrdinalIgnoreCase));
 var replaceUrlArgumentIndex = Array.FindIndex(
     applicationArgs
-    , argument => argument.Equals("--replace-url", StringComparison.OrdinalIgnoreCase)
-                  || argument.StartsWith("--replace-url=", StringComparison.OrdinalIgnoreCase)
+    , argument => argument.Equals("--replace-job-request-url", StringComparison.OrdinalIgnoreCase)
+                  || argument.StartsWith("--replace-job-request-url=", StringComparison.OrdinalIgnoreCase)
 );
 string? replaceUrl = null;
 if (replaceUrlArgumentIndex >= 0) {
     if (applicationArgs[replaceUrlArgumentIndex].Contains('=', StringComparison.Ordinal)) {
-        replaceUrl = applicationArgs[replaceUrlArgumentIndex]["--replace-url=".Length..];
+        replaceUrl = applicationArgs[replaceUrlArgumentIndex]["--replace-job-request-url=".Length..];
     }
     else if (replaceUrlArgumentIndex + 1 < applicationArgs.Length) {
         replaceUrl = applicationArgs[replaceUrlArgumentIndex + 1];
@@ -40,24 +44,14 @@ SnowflakeIdGenerator.Configure(builder.Configuration.GetValue<long>("Snowflake:W
 var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvariant() ?? "sqlserver";
 
 // 在应用配置完成后立即输出运行环境信息，确保系统信息位于控制台首行
-var startupEnvironmentVariables = string.Join(
-    ", ", $"ASPNETCORE_ENVIRONMENT={Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "<not-set>"}"
-    , $"DOTNET_ENVIRONMENT={Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") ?? "<not-set>"}"
-    , $"ASPNETCORE_URLS={Environment.GetEnvironmentVariable("ASPNETCORE_URLS") ?? "<not-set>"}"
-);
 var entryAssembly = Assembly.GetEntryAssembly();
-var assemblyVersion = entryAssembly?.GetName().Version?.ToString() ?? "<unknown>";
-var informationalVersion = entryAssembly?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "<unknown>";
-var configuredUrls = builder.WebHost.GetSetting("urls") ?? builder.Configuration["ASPNETCORE_URLS"] ?? "<pending>";
-Console.WriteLine(
-    "System information: "
-    + $"MachineName={Environment.MachineName}, OS={RuntimeInformation.OSDescription}, OSArchitecture={RuntimeInformation.OSArchitecture}, "
-    + $"ProcessArchitecture={RuntimeInformation.ProcessArchitecture}, Framework={RuntimeInformation.FrameworkDescription}, "
-    + $"AssemblyVersion={assemblyVersion}, InformationalVersion={informationalVersion}, "
-    + $"ProcessId={Environment.ProcessId}, ProcessorCount={Environment.ProcessorCount}, Environment={builder.Environment.EnvironmentName}, "
-    + $"DatabaseProvider={provider}, ListeningUrls={configuredUrls}, StartupArguments={string.Join("|", args)}, "
-    + $"EnvironmentVariables={startupEnvironmentVariables}"
-);
+var assemblyName = entryAssembly!.GetName().ToString();
+Console.WriteLine($"{new string('-', 4)} {assemblyName} {new string('-', Math.Max(120 - 5 - assemblyName.Length, 1))}");
+foreach (var kv in GetEnvironmentInfo().OrderBy(x => x.Key)) {
+    Console.WriteLine($"<{kv.Key}> {kv.Value}");
+}
+
+Console.WriteLine(new string('-', 120));
 
 builder.Logging.AddConsoleFormatter<AiAdminConsoleFormatter, ConsoleFormatterOptions>();
 builder.Logging.AddConsole(options => options.FormatterName = "aiadmin");
@@ -68,12 +62,14 @@ _ = builder
     .Services.AddControllers()
     .AddJsonOptions(options =>
         {
+            // 所有控制器请求统一忽略 JSON 属性名大小写
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
             options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
             options.JsonSerializerOptions.Converters.Add(new UtcDateTimeOffsetJsonConverter());
             options.JsonSerializerOptions.Converters.Add(new LongJsonConverter());
+            options.JsonSerializerOptions.MaxDepth = 128;
         }
     );
-
 builder.Services.AddProblemDetails();
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
@@ -84,8 +80,16 @@ builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<Elasticsearch
 builder.Services.AddSingleton<ILoggerProvider, ElasticsearchLoggerProvider>();
 builder.Services.Configure<FileLogOptions>(builder.Configuration.GetSection("FileLogging"));
 builder.Services.AddSingleton<ILoggerProvider, FileLoggerProvider>();
+
+// 统一配置出站 HttpClient，兼容 GmailCheck 等外部服务使用异常或不受信任 SSL 证书的场景
+// 该设置会跳过所有由 IHttpClientFactory 创建的客户端的服务器证书校验
+builder.Services.ConfigureHttpClientDefaults(httpClientBuilder => httpClientBuilder.ConfigurePrimaryHttpMessageHandler(() =>
+        new HttpClientHandler { ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator }
+    )
+);
+
 builder.Services.AddHttpClient<ElasticsearchLogWriter>();
-builder.Services.AddHttpClient<ElasticsearchLogQueryService>();
+builder.Services.AddScoped<ElasticsearchLogQueryService>();
 builder.Services.AddHttpClient<IpLocationService>(client =>
     {
         client.BaseAddress = new Uri(
@@ -94,7 +98,6 @@ builder.Services.AddHttpClient<IpLocationService>(client =>
         client.Timeout = TimeSpan.FromSeconds(3);
     }
 );
-builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
 var redisConnection = builder.Configuration.GetConnectionString("Redis")
                       ?? throw new InvalidOperationException("ConnectionStrings:Redis is required.");
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -118,16 +121,22 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
 builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
 builder.Services.AddScoped<DataScopeContext>();
+builder.Services.AddSingleton<DataScopeCache>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<ApiDocumentationService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DictionarySnapshotService>();
 builder.Services.AddScoped<ExportLimitService>();
+builder.Services.AddSingleton<EncryptionService>();
+builder.Services.AddSingleton<CredentialProtectionService>();
 builder.Services.AddSingleton<MinioStorageService>();
 builder.Services.AddHttpClient();
 builder.Services.AddTransient<ExternalHttpRequestService>();
-builder.Services.AddHostedService<ScheduledJobHostedService>();
-builder.Services.AddHostedService<ScheduledJobReleaseHostedService>();
+if (enabledHostedServices) {
+    _ = builder.Services.AddHostedService<ScheduledJobHostedService>();
+    _ = builder.Services.AddHostedService<ScheduledJobReleaseHostedService>();
+    _ = builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
+}
 
 var connectionString = builder.Configuration.GetConnectionString(provider)
                        ?? throw new InvalidOperationException($"Missing connection string for provider '{provider}'.");
@@ -140,10 +149,16 @@ builder.Services.AddDbContext<AppDbContext>((
         _ = options.AddInterceptors(serviceProvider.GetRequiredService<DatabaseCommandAuditInterceptor>());
         _ = provider switch
         {
-            "sqlite" => options.UseSqlite(connectionString)
-            , "sqlserver" => options.UseSqlServer(connectionString)
-            , "postgresql" or "postgres" => options.UseNpgsql(connectionString)
-            , "mysql" => options.UseMySQL(connectionString)
+            "sqlite" => options.UseSqlite(
+                connectionString, sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+            )
+            , "sqlserver" => options.UseSqlServer(
+                connectionString, sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+            )
+            , "postgresql" or "postgres" => options.UseNpgsql(
+                connectionString, npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+            )
+            , "mysql" => options.UseMySQL(connectionString, mysqlOptions => mysqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
             , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
         };
     }
@@ -212,3 +227,22 @@ if (shouldInitializeDatabase) {
 }
 
 await app.RunAsync().ConfigureAwait(false);
+return;
+
+static Dictionary<string, object?> GetEnvironmentInfo() {
+    var ret = typeof(Environment)
+        .GetProperties(BindingFlags.Public | BindingFlags.Static)
+        .Where(x => x.Name is not (nameof(Environment.StackTrace) or nameof(Environment.NewLine)))
+        .ToDictionary(x => x.Name, x => x.GetValue(null));
+
+    var vars = Environment.GetEnvironmentVariables();
+    var keys = new ArrayList(vars.Keys);
+    keys.Sort();
+    var sb = new StringBuilder(vars.Count);
+    foreach (var key in keys) {
+        _ = sb.AppendLine(CultureInfo.InvariantCulture, $"{key}: {vars[key]}");
+    }
+
+    _ = ret.TryAdd("EnvironmentVars", sb.ToString().Trim());
+    return ret;
+}

@@ -1,5 +1,5 @@
 <template>
-    <ElDialog
+    <ElDrawer
         :model-value="visible"
         :title="dialogTitle"
         @closed="handleClosed"
@@ -36,7 +36,7 @@
                 <ElButton :loading="props.saving" @click="handleSubmit" type="primary">确 定</ElButton>
             </span>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>

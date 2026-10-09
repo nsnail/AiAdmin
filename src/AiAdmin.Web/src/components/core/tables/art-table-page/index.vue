@@ -25,6 +25,7 @@
                 </ArtTableHeader>
 
                 <ArtTable
+                    v-bind="tableProps"
                     :columns="columns"
                     :data="data"
                     :loading="loading"
@@ -78,7 +79,9 @@ interface Props {
     treeProps?: Record<string, unknown>
     rowKey?: string
     filterGroupsLoader?: (dynamicFilter?: DynamicFilter) => Promise<ListFilterGroup[]>
+    filterGroupMaxOptions?: number
     reserveFilterGroups?: boolean
+    tableProps?: Record<string, unknown>
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -90,6 +93,7 @@ const props = withDefaults(defineProps<Props>(), {
     treeProps: undefined,
     rowKey: undefined,
     reserveFilterGroups: false,
+    tableProps: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -106,11 +110,16 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const searchBarRef = ref<{ setDynamicFilter?: (filter: DynamicFilter | undefined) => void }>()
 const tableRef = ref()
-const formModel = ref<Record<string, unknown>>({})
-const filterFields = ref<ListFilterField[]>([])
+const cloneFilter = (filter: DynamicFilter | undefined): DynamicFilter | undefined =>
+    filter ? (JSON.parse(JSON.stringify(filter)) as DynamicFilter) : undefined
+// 将默认动态筛选放入初始模型，确保搜索栏首屏预览即显示完整 dynamicFilter 树。
+const formModel = ref<Record<string, unknown>>(props.defaultFilter ? { dynamicFilter: cloneFilter(props.defaultFilter) } : {})
+const allFilterFields = ref<ListFilterField[]>(props.filterFields || [])
+const filterFields = ref<ListFilterField[]>(allFilterFields.value.filter((field) => field.isVisible !== false))
 const filterGroups = ref<ListFilterGroup[]>([])
+const groupSelectionOverrides = ref<Record<string, unknown>>({})
 const groupLoading = ref(false)
-const pageReady = ref(false)
+const pageReady = ref(props.filterFields !== undefined)
 const currentFilter = ref<DynamicFilter>()
 const residualFilter = ref<DynamicFilter>()
 let groupRequestId = 0
@@ -121,9 +130,9 @@ const columnChecksModel = computed({
 })
 
 const advancedQueryFields = computed<DynamicQueryField[]>(() =>
-    filterFields.value.map((field) => ({
+    allFilterFields.value.map((field) => ({
         field: field.field,
-        label: t(field.label),
+        label: typeof field.label === 'string' ? t(field.label) : String(field.label ?? ''),
         type: field.valueType,
     })),
 )
@@ -137,16 +146,14 @@ const groupSelections = computed<Record<string, unknown>>(() => {
         }
         filter.filters?.forEach(collect)
     }
-    collect(currentFilter.value)
-    return selections
+    // 以当前动态筛选树为唯一状态来源，确保分组按钮在查询完成后仍保持选中
+    collect(currentFilter.value || (formModel.value.dynamicFilter as DynamicFilter | undefined))
+    return { ...selections, ...groupSelectionOverrides.value }
 })
 
 // 动态查询本身是 JSON 协议；通过序列化克隆可同时移除任意层级的 Vue 响应式代理。
-const cloneFilter = (filter: DynamicFilter | undefined): DynamicFilter | undefined =>
-    filter ? (JSON.parse(JSON.stringify(filter)) as DynamicFilter) : undefined
-
 const fieldMetadata = (field: string): ListFilterField | undefined =>
-    filterFields.value.find((item) => item.field === field || (field === 'UpdatedAt' && item.field === 'CreatedAt'))
+    allFilterFields.value.find((item) => item.field === field || (field === 'UpdatedAt' && item.field === 'CreatedAt'))
 
 const defaultOperator = (field: ListFilterField, value: unknown): string => {
     if (Array.isArray(value)) return field.valueType === 'date' ? 'DateRange' : 'Any'
@@ -182,7 +189,7 @@ const refreshFilterGroups = async (filter: DynamicFilter | undefined): Promise<v
             ? await props.filterGroupsLoader(cloneFilter(filter))
             : props.filterGroupsFn
               ? await props.filterGroupsFn(cloneFilter(filter))
-              : await fetchGetListFilterGroups(props.resource, cloneFilter(filter))
+              : await fetchGetListFilterGroups(props.resource, cloneFilter(filter), props.filterGroupMaxOptions)
         if (requestId === groupRequestId) filterGroups.value = groups
     } finally {
         if (requestId === groupRequestId) groupLoading.value = false
@@ -225,13 +232,15 @@ const synchronizeFilter = (filter: DynamicFilter | undefined): void => {
     currentFilter.value = cloneFilter(filter)
     const decomposition = decomposeFilter(filter)
     residualFilter.value = decomposition.residual
-    formModel.value = decomposition.fields
+    // 保留完整动态筛选树，供搜索栏首屏及后续预览使用；基础字段仍由分解结果驱动。
+    formModel.value = { ...decomposition.fields, ...(filter ? { dynamicFilter: cloneFilter(filter) } : {}) }
     searchBarRef.value?.setDynamicFilter?.(cloneFilter(filter))
     void refreshFilterGroups(filter)
 }
 
 const handleSearch = (values: Record<string, unknown>): void => {
     const filter = values.dynamicFilter ? (values.dynamicFilter as DynamicFilter) : combineFilters([residualFilter.value, buildBasicFilter(values)])
+    groupSelectionOverrides.value = {}
     synchronizeFilter(filter)
     emit('filter-change', cloneFilter(filter))
 }
@@ -243,6 +252,13 @@ const handleCellQuery = (condition: DynamicFilter): void => {
 }
 
 const handleGroupSelect = (field: string, value: unknown): void => {
+    if (value === undefined) {
+        const next = { ...groupSelectionOverrides.value }
+        delete next[field]
+        groupSelectionOverrides.value = next
+    } else {
+        groupSelectionOverrides.value = { ...groupSelectionOverrides.value, [field]: value }
+    }
     const baseFilter = removeFieldFilter(currentFilter.value, field)
     const filter = value === undefined ? baseFilter : combineFilters([baseFilter, { field, operator: 'Equal', value }])
     synchronizeFilter(filter)
@@ -250,13 +266,15 @@ const handleGroupSelect = (field: string, value: unknown): void => {
 }
 
 const handleReset = (): void => {
+    groupSelectionOverrides.value = {}
     synchronizeFilter(props.defaultFilter)
     emit('reset')
 }
 
 onMounted(async () => {
     try {
-        filterFields.value = props.filterFields || (await fetchGetListFilterFields(props.resource))
+        allFilterFields.value = props.filterFields || (await fetchGetListFilterFields(props.resource))
+        filterFields.value = allFilterFields.value.filter((field) => field.isVisible !== false)
         await nextTick()
         synchronizeFilter(props.defaultFilter)
         await refreshFilterGroups(currentFilter.value)
@@ -271,13 +289,14 @@ watch(
     () => props.filterFields,
     (fields) => {
         if (fields) {
-            filterFields.value = fields
+            allFilterFields.value = fields
+            filterFields.value = fields.filter((field) => field.isVisible !== false)
             synchronizeFilter(currentFilter.value || props.defaultFilter)
         }
     },
 )
 
-defineExpose({ tableRef })
+defineExpose({ tableRef, refreshFilterGroups })
 </script>
 
 <style scoped>

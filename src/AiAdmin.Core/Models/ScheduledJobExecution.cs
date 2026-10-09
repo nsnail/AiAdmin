@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
@@ -11,6 +12,7 @@ public sealed class ScheduledJobExecution : EntityBase
     /// <summary>
     ///     错误信息
     /// </summary>
+    [MaxLength(4000)]
     [ListFilter("scheduledJob.executionFields.errorMessage")]
     public string ErrorMessage { get; set; } = string.Empty;
 

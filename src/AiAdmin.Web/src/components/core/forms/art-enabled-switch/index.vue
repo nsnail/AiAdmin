@@ -1,16 +1,17 @@
 <template>
     <ElPopconfirm
         v-if="modelValue"
+        :disabled="disabled"
         @confirm="updateEnabled(false)"
         cancel-button-text="取消"
         confirm-button-text="确定禁用"
         title="确定要禁用当前记录吗？"
         width="220">
         <template #reference>
-            <ElSwitch :loading="loading" :model-value="modelValue" />
+            <ElSwitch :disabled="disabled" :loading="loading" :model-value="modelValue" />
         </template>
     </ElPopconfirm>
-    <ElSwitch v-else :loading="loading" :model-value="modelValue" @change="updateEnabled(true)" />
+    <ElSwitch v-else :disabled="disabled" :loading="loading" :model-value="modelValue" @change="updateEnabled(true)" />
 </template>
 
 <script lang="ts" setup>
@@ -19,7 +20,7 @@ import { fetchUpdateEnabledState, type EnabledStateResource } from '@/api/system
 
 defineOptions({ name: 'ArtEnabledSwitch' })
 
-const props = defineProps<{ id: string; modelValue: boolean; resource: EnabledStateResource }>()
+const props = defineProps<{ id: string; modelValue: boolean; resource: EnabledStateResource | 'email-account'; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 const loading = ref(false)
 

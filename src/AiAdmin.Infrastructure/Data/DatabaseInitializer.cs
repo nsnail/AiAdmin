@@ -24,7 +24,7 @@ public static class DatabaseInitializer
         , ApiEndpointKey.Create("DELETE", "api/notifications"), ApiEndpointKey.Create("DELETE", "api/notifications/{id:long}")
     ];
 
-    private static readonly JsonSerializerOptions _seedJsonOptions = new() { PropertyNameCaseInsensitive = true };
+    private static readonly JsonSerializerOptions _seedJsonOptions = JsonParsing.Options;
 
     /// <summary>
     ///     删除当前应用数据库，供开发和测试环境启动时重置数据
@@ -153,6 +153,7 @@ public static class DatabaseInitializer
             , (Label: "SMTP From", Value: configuration["SystemSettings:Smtp:From"] ?? string.Empty, Sort: 8, Remark: "SMTP sender address")
             , (Label: "Maximum export rows", Value: configuration["SystemSettings:MaximumExportRows"] ?? "10000", Sort: 9
                 , Remark: "Maximum number of rows allowed per export")
+            , (Label: "Telegram Bot Token", Value: configuration["Telegram:BotToken"] ?? string.Empty, Sort: 10, Remark: "Telegram bot token")
         };
         var existingSystemSettingLabels = await db
             .DictionaryItems.Where(x => x.CategoryId == systemSettings.Id)
@@ -161,17 +162,17 @@ public static class DatabaseInitializer
             .ConfigureAwait(false);
 
         // 本地配置仅作为首次建库的种子来源，避免应用重启时覆盖管理后台已经修改的设置
-        foreach (var setting in systemSettingSeeds.Where(x => !existingSystemSettingLabels.Contains(x.Label))) {
+        foreach (var (label, value, sort, remark) in systemSettingSeeds.Where(x => !existingSystemSettingLabels.Contains(x.Label))) {
             _ = await db
                 .DictionaryItems.AddAsync(
                     new DictionaryItem
                     {
                         CategoryId = systemSettings.Id
-                        , Label = setting.Label
-                        , Value = setting.Value
-                        , Sort = setting.Sort
+                        , Label = label
+                        , Value = value
+                        , Sort = sort
                         , IsEnabled = true
-                        , Remark = setting.Remark
+                        , Remark = remark
                     }
                 )
                 .ConfigureAwait(false);
@@ -314,6 +315,12 @@ public static class DatabaseInitializer
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     筛选 FilterByRole 方法对应的业务数据
+    /// </summary>
+    /// <param name="menus">方法参数 menus</param>
+    /// <param name="roleCode">方法参数 roleCode</param>
+    /// <returns>FilterByRole 方法的执行结果</returns>
     private static MenuItemRequest[] FilterByRole(
         IEnumerable<MenuItemRequest> menus
         , string roleCode
@@ -334,6 +341,12 @@ public static class DatabaseInitializer
         ];
     }
 
+    /// <summary>
+    ///     展平 Flatten 方法对应的业务数据
+    /// </summary>
+    /// <param name="menus">待展平的菜单集合</param>
+    /// <param name="parentName">父级菜单名称</param>
+    /// <returns>Flatten 方法的执行结果</returns>
     private static IEnumerable<(MenuItemRequest Menu, string ParentName, int Sort)> Flatten(
         IEnumerable<MenuItemRequest> menus
         , string parentName = ""
@@ -348,6 +361,12 @@ public static class DatabaseInitializer
         }
     }
 
+    /// <summary>
+    ///     展平 FlattenSeed 方法对应的业务数据
+    /// </summary>
+    /// <param name="menus">待展平的种子菜单集合</param>
+    /// <param name="parent">父级菜单名称</param>
+    /// <returns>FlattenSeed 方法的执行结果</returns>
     private static IEnumerable<(MenuItemRequest Menu, string ParentName)> FlattenSeed(
         IEnumerable<MenuItemRequest> menus
         , string parent = ""
@@ -360,16 +379,26 @@ public static class DatabaseInitializer
         }
     }
 
+    /// <summary>
+    ///     判断是否包含 HasRole 方法对应的业务数据
+    /// </summary>
+    /// <param name="meta">方法参数 meta</param>
+    /// <param name="roleCode">方法参数 roleCode</param>
+    /// <returns>HasRole 方法的执行结果</returns>
     private static bool HasRole(
         JsonElement meta
         , string roleCode
     ) {
         return meta.ValueKind == JsonValueKind.Object
-               && meta.TryGetProperty("roles", out var roles)
+               && meta.TryGetPropertyIgnoreCase("roles", out var roles)
                && roles.ValueKind == JsonValueKind.Array
                && roles.EnumerateArray().Any(x => x.GetString() == roleCode);
     }
 
+    /// <summary>
+    ///     初始化 SeedMenusAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
     private static async Task SeedMenusAsync(AppDbContext db) {
         var seedPath = Path.Combine(AppContext.BaseDirectory, "Data", "menu-seed.json");
         var json = await File.ReadAllTextAsync(seedPath).ConfigureAwait(false);
@@ -396,6 +425,10 @@ public static class DatabaseInitializer
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
+    /// <summary>
+    ///     初始化 SeedRoleMenusAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
     private static async Task SeedRoleMenusAsync(AppDbContext db) {
         var seedPath = Path.Combine(AppContext.BaseDirectory, "Data", "menu-seed.json");
         var json = await File.ReadAllTextAsync(seedPath).ConfigureAwait(false);

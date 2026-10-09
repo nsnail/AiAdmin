@@ -56,11 +56,12 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// <summary>
     ///     删除部门
     /// </summary>
-    /// <param name="id">部门主键</param>
+    /// <param name="request">部门标识请求</param>
     /// <returns>删除结果</returns>
-    [HttpPost("{id:long}/delete")]
+    [HttpPost("delete")]
     [ApiDescription("Delete department")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
         if (department is null) {
             return NotFound(new ApiResponse<object>(404, "Department not found", null));
@@ -137,15 +138,12 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
     /// <summary>
     ///     更新部门
     /// </summary>
-    /// <param name="id">部门主键</param>
     /// <param name="request">部门保存请求</param>
     /// <returns>更新后的部门节点</returns>
-    [HttpPost("{id:long}")]
+    [HttpPost("update")]
     [ApiDescription("Update department")]
-    public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> UpdateAsync(
-        long id
-        , SaveDepartmentRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> UpdateAsync([FromBody] SaveDepartmentRequest request) {
+        var id = request.Id.GetValueOrDefault();
         var department = await db.Departments.FindAsync(id).ConfigureAwait(false);
         if (department is null) {
             return NotFound(new ApiResponse<object>(404, "Department not found", null));

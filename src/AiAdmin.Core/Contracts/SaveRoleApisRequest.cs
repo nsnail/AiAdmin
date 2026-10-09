@@ -9,4 +9,9 @@ public sealed class SaveRoleApisRequest
     ///     接口主键集合
     /// </summary>
     public long[] ApiIds { get; init; } = [];
+
+    /// <summary>
+    ///     角色主键
+    /// </summary>
+    public long Id { get; init; }
 }

@@ -112,7 +112,7 @@ const { columnChecks, columns } = useTableColumns(() => [
         align: 'center',
         queryField: false,
         formatter: (row: AppRouteRecord) => {
-            return h(ElTag, { type: getMenuTypeTag(row) }, () => getMenuTypeText(row))
+            return h(ElTag, { effect: 'light', size: 'small', type: getMenuTypeTag(row) }, () => getMenuTypeText(row))
         },
     },
     {

@@ -27,6 +27,10 @@ public static class Crc32
         return unchecked((int)~crc);
     }
 
+    /// <summary>
+    ///     创建 CreateTable 方法对应的业务数据
+    /// </summary>
+    /// <returns>CreateTable 方法的执行结果</returns>
     private static uint[] CreateTable() {
         const uint polynomial = 0xedb88320;
         var table = new uint[256];

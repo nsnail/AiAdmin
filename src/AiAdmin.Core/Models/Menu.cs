@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
@@ -35,6 +36,7 @@ public sealed class Menu : EntityBase, IUpdatedAt
     /// <summary>
     ///     菜单元数据 JSON
     /// </summary>
+    [MaxLength(4000)]
     public string MetaJson { get; set; } = "{}";
 
     /// <summary>

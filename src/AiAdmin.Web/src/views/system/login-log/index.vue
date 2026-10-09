@@ -13,7 +13,7 @@
             @size-change="handleSizeChange"
             @sort-change="handleSortChange"
             resource="login-log" />
-        <ElDialog v-model="detailVisible" :title="t('loginLog.detail.title')" destroy-on-close width="850px">
+        <ElDrawer v-model="detailVisible" :title="t('loginLog.detail.title')" destroy-on-close width="850px">
             <ElTabs v-if="selectedLog" v-model="activeDetailTab" type="card">
                 <ElTabPane :label="t('loginLog.detail.tabs.details')" name="details">
                     <ElDescriptions :column="2" :label-width="150" border>
@@ -29,12 +29,12 @@
             <template #footer
                 ><ElButton @click="detailVisible = false">{{ t('loginLog.detail.close') }}</ElButton></template
             >
-        </ElDialog>
+        </ElDrawer>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ElButton, ElDescriptions, ElDescriptionsItem, ElDialog } from 'element-plus'
+import { ElButton, ElDescriptions, ElDescriptionsItem, ElDrawer } from 'element-plus'
 import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchGetLoginLogList, type LoginLogRecord } from '@/api/system-manage'

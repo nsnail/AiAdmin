@@ -38,9 +38,9 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// </summary>
     /// <param name="id">角色主键</param>
     /// <returns>接口主键集合</returns>
-    [HttpGet("{id:long}/apis")]
+    [HttpGet("apis")]
     [ApiDescription("Query role API permissions")]
-    public async Task<ActionResult<ApiResponse<long[]>>> ApisAsync(long id) {
+    public async Task<ActionResult<ApiResponse<long[]>>> ApisAsync([FromQuery] long id) {
         if (!await db.Roles.AnyAsync(x => x.Id == id).ConfigureAwait(false)) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
         }
@@ -52,11 +52,12 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <summary>
     ///     复制角色及其菜单和接口权限
     /// </summary>
-    /// <param name="id">源角色主键</param>
+    /// <param name="request">源角色标识请求</param>
     /// <returns>复制后的角色</returns>
-    [HttpPost("{id:long}/copy")]
+    [HttpPost("copy")]
     [ApiDescription("Copy role")]
-    public async Task<ActionResult<ApiResponse<RoleListItem>>> CopyAsync(long id) {
+    public async Task<ActionResult<ApiResponse<RoleListItem>>> CopyAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var source = await db.Roles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (source is null) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
@@ -113,11 +114,12 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <summary>
     ///     删除角色
     /// </summary>
-    /// <param name="id">角色主键</param>
+    /// <param name="request">角色标识请求</param>
     /// <returns>删除结果</returns>
-    [HttpPost("{id:long}/delete")]
+    [HttpPost("delete")]
     [ApiDescription("Delete role")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var role = await db.Roles.Include(x => x.UserRoles).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (role is null) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
@@ -197,9 +199,9 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// </summary>
     /// <param name="id">角色主键</param>
     /// <returns>角色菜单树</returns>
-    [HttpGet("{id:long}/menus")]
+    [HttpGet("menus")]
     [ApiDescription("Query role menu permissions")]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<MenuItemResult>>>> MenusAsync(long id) {
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<MenuItemResult>>>> MenusAsync([FromQuery] long id) {
         if (!await db.Roles.AnyAsync(x => x.Id == id).ConfigureAwait(false)) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
         }
@@ -218,15 +220,13 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <summary>
     ///     保存角色接口权限
     /// </summary>
-    /// <param name="id">角色主键</param>
     /// <param name="request">接口授权请求</param>
     /// <returns>保存结果</returns>
-    [HttpPost("{id:long}/apis")]
+    [HttpPost("apis")]
     [ApiDescription("Save role API permissions")]
-    public async Task<ActionResult<ApiResponse<object>>> SaveApisAsync(
-        long id
-        , SaveRoleApisRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<object>>> SaveApisAsync([FromBody] SaveRoleApisRequest request) {
+        var id = request.Id;
+
         // 替换角色接口映射并使权限缓存立即失效。
         var role = await db.Roles.Include(x => x.RoleApis).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (role is null) {
@@ -234,7 +234,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         }
 
         var requestedIds = request.ApiIds.Distinct().ToArray();
-        var endpoints = await db.ApiEndpoints.Where(x => requestedIds.Contains(x.Id)).ToListAsync().ConfigureAwait(false);
+        var endpoints = await db.ApiEndpoints.Where(x => Enumerable.Contains(requestedIds, x.Id)).ToListAsync().ConfigureAwait(false);
         if (endpoints.Count != requestedIds.Length) {
             return BadRequest(new ApiResponse<object>(400, "Invalid API endpoint", null));
         }
@@ -249,15 +249,12 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <summary>
     ///     保存角色菜单权限
     /// </summary>
-    /// <param name="id">角色主键</param>
     /// <param name="request">菜单授权请求</param>
     /// <returns>保存结果</returns>
-    [HttpPost("{id:long}/menus")]
+    [HttpPost("menus")]
     [ApiDescription("Save role menu permissions")]
-    public async Task<ActionResult<ApiResponse<object>>> SaveMenusAsync(
-        long id
-        , SaveRoleMenusRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<object>>> SaveMenusAsync([FromBody] SaveRoleMenusRequest request) {
+        var id = request.Id;
         var role = await db.Roles.Include(x => x.RoleMenus).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (role is null) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
@@ -273,15 +270,12 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     /// <summary>
     ///     更新角色
     /// </summary>
-    /// <param name="id">角色主键</param>
     /// <param name="request">角色保存请求</param>
     /// <returns>更新后的角色</returns>
-    [HttpPost("{id:long}")]
+    [HttpPost("update")]
     [ApiDescription("Update role")]
-    public async Task<ActionResult<ApiResponse<RoleListItem>>> UpdateAsync(
-        long id
-        , SaveRoleRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<RoleListItem>>> UpdateAsync([FromBody] SaveRoleRequest request) {
+        var id = request.Id.GetValueOrDefault();
         var role = await db.Roles.FindAsync(id).ConfigureAwait(false);
         if (role is null) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
@@ -317,6 +311,11 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         return query.ApplyDynamicSort(sortField, sortOrder, nameof(Role.CreatedAt), true, _sortAliases);
     }
 
+    /// <summary>
+    ///     构建 BuildTree 方法对应的业务数据
+    /// </summary>
+    /// <param name="rows">数据行集合</param>
+    /// <returns>BuildTree 方法的执行结果</returns>
     private static IReadOnlyList<MenuItemResult> BuildTree(IReadOnlyList<Menu> rows) {
         var nodes = rows.ToDictionary(
             x => x.Name
@@ -346,6 +345,11 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         }
     }
 
+    /// <summary>
+    ///     解析 ParseMeta 方法对应的业务数据
+    /// </summary>
+    /// <param name="json">JSON 文本</param>
+    /// <returns>ParseMeta 方法的执行结果</returns>
     private static JsonElement ParseMeta(string json) {
         using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
         return document.RootElement.Clone();
@@ -380,8 +384,9 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     private async Task<string> CreateCopyCodeAsync(string sourceCode) {
         var baseCode = $"{sourceCode}_COPY";
         var code = baseCode;
+        var codeCopy = code;
         var suffix = 2;
-        while (await db.Roles.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
+        while (await db.Roles.AnyAsync(x => x.Code == codeCopy).ConfigureAwait(false)) {
             code = $"{baseCode}_{suffix++}";
         }
 

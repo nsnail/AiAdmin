@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using AiAdmin.Api.Attributes;
@@ -49,6 +50,8 @@ public sealed class AuthController(
 
     private static readonly TimeSpan _passwordResetCodeLifetime = TimeSpan.FromMinutes(10);
     private static readonly TimeSpan _passwordResetCooldown = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan _profileEmailCodeCooldown = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan _profileEmailCodeLifetime = TimeSpan.FromMinutes(10);
 
     /// <summary>
     ///     创建登录算力挑战
@@ -196,8 +199,59 @@ public sealed class AuthController(
                 }
             )
             .ConfigureAwait(false);
+        user.LastLoginAt = DateTime.UtcNow;
+        user.LastLoginIp = Limit(clientIp, 64);
+        user.LastLoginRegion = Limit(region, 300);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, previous), "Login successful"));
+    }
+
+    /// <summary>
+    ///     向当前用户已绑定的邮箱发送验证码
+    /// </summary>
+    /// <returns>发送结果</returns>
+    [HttpPost("profile-email/code")]
+    [Authorize]
+    [ApiDescription("Send profile email verification code")]
+    public async Task<ActionResult<ApiResponse<object>>> ProfileEmailCodeAsync() {
+        if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), CultureInfo.InvariantCulture, out var id)) {
+            return Unauthorized(new ApiResponse<object>(401, "Login session has expired, please log in again", null));
+        }
+
+        var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id, HttpContext.RequestAborted).ConfigureAwait(false);
+        if (user is null) {
+            return Unauthorized(new ApiResponse<object>(401, "Login session has expired, please log in again", null));
+        }
+
+        var email = user.Email.Trim().ToLowerInvariant();
+        var cooldownKey = $"profile-email-code-cooldown:{id}:{email}";
+        if (!string.IsNullOrWhiteSpace(await cache.GetStringAsync(cooldownKey, HttpContext.RequestAborted).ConfigureAwait(false))) {
+            return Ok(ApiResponse<object>.Ok(new { }, "Verification code has been sent"));
+        }
+
+        var smtp = await GetSmtpSettingsAsync().ConfigureAwait(false);
+        if (string.IsNullOrWhiteSpace(smtp.Host) || string.IsNullOrWhiteSpace(smtp.From)) {
+            return BadRequest(new ApiResponse<object>(400, "SMTP is not configured", null));
+        }
+
+        var code = RandomNumberGenerator.GetInt32(100000, 1000000).ToString(CultureInfo.InvariantCulture);
+        await SendEmailAsync(
+                smtp, email, "Email change verification code", $"Your email change verification code is {code}. It expires in 10 minutes."
+            )
+            .ConfigureAwait(false);
+        await cache
+            .SetStringAsync(
+                $"profile-email-code:{id}:{email}", code
+                , new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _profileEmailCodeLifetime }, HttpContext.RequestAborted
+            )
+            .ConfigureAwait(false);
+        await cache
+            .SetStringAsync(
+                cooldownKey, "1", new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = _profileEmailCodeCooldown }
+                , HttpContext.RequestAborted
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { }, "Verification code has been sent"));
     }
 
     /// <summary>
@@ -209,72 +263,29 @@ public sealed class AuthController(
     [AllowAnonymous]
     [ApiDescription("Register user")]
     public async Task<ActionResult<ApiResponse<object>>> RegisterAsync(RegisterRequest request) {
-        var enabled = await IsSettingEnabledAsync("Enable user registration").ConfigureAwait(false);
-        if (!enabled) {
-            return BadRequest(new ApiResponse<object>(400, "User registration is disabled", null));
-        }
-
-        var codeValid = !await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false)
-                        || await cache.GetStringAsync($"register-code:{request.Email.Trim().ToLowerInvariant()}").ConfigureAwait(false)
-                        == request.VerificationCode.Trim();
-        if (!codeValid) {
-            return BadRequest(new ApiResponse<object>(400, "Invalid email verification code", null));
-        }
-
         var userName = request.UserName.Trim();
         var email = request.Email.Trim();
-        if (await db.Users.AnyAsync(x => x.UserName == userName).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, "Username already exists", null));
-        }
-
-        if (await db.Users.AnyAsync(x => x.Email == email).ConfigureAwait(false)) {
-            return Conflict(new ApiResponse<object>(409, "Email already exists", null));
+        var validationError = await ValidateRegistrationAsync(request, userName, email).ConfigureAwait(false);
+        if (validationError is not null) {
+            return validationError;
         }
 
         var invitationCode = request.InvitationCode?.Trim().ToUpperInvariant();
-        var inviter = string.IsNullOrWhiteSpace(invitationCode)
-            ? null
-            : await db.Users.SingleOrDefaultAsync(x => x.InvitationCode == invitationCode).ConfigureAwait(false);
-        if (!string.IsNullOrWhiteSpace(invitationCode) && inviter is null) {
-            return BadRequest(new ApiResponse<object>(400, "Invitation code is invalid", null));
+        var (inviter, inviterDepartment, invitationError) = await ResolveInvitationAsync(invitationCode).ConfigureAwait(false);
+        if (invitationError is not null) {
+            return invitationError;
         }
 
         var role = await db.Roles.SingleAsync(x => x.Code == "R_USER").ConfigureAwait(false);
         var defaultDepartment = await db.Departments.SingleAsync(x => x.Code == Department.DEFAULT_CODE).ConfigureAwait(false);
-        Department? inviterDepartment = null;
-        if (inviter is not null) {
-            // 有邀请者时，新用户个人部门挂在邀请者个人部门下，确保部门数据权限覆盖多级邀请关系
-            inviterDepartment = await db.Departments.SingleOrDefaultAsync(x => x.Code == $"USER_{inviter.Id}").ConfigureAwait(false);
-            if (inviterDepartment is null) {
-                return StatusCode(500, new ApiResponse<object>(500, "Inviter department does not exist", null));
-            }
-        }
-
         var user = new User { UserName = userName, Email = email, PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password) };
         user.UserRoles.Add(new UserRole { User = user, Role = role });
-
         var personalDepartment = new Department
         {
             Name = user.UserName, Code = $"USER_{user.Id}", ParentId = inviterDepartment?.Id ?? defaultDepartment.Id, Sort = 0
         };
         user.UserDepartments.Add(new UserDepartment { User = user, Department = personalDepartment });
-        _ = await db.Wallets.AddAsync(new Wallet { UserId = user.Id, OwnerDepartmentId = personalDepartment.Id }).ConfigureAwait(false);
-
-        // 事务确保用户、邀请关系、个人部门及关联数据同时创建成功
-        await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);
-        _ = await db.Users.AddAsync(user).ConfigureAwait(false);
-        if (inviterDepartment is not null) {
-            // 受邀用户同时加入邀请人的个人部门，用于按邀请关系管理成员
-            user.UserDepartments.Add(new UserDepartment { User = user, Department = inviterDepartment });
-            _ = await db
-                .UserReferrals.AddAsync(
-                    new UserReferral { Invitee = user, InviteeUserId = user.Id, OwnerId = inviter!.Id, OwnerDepartmentId = inviterDepartment.Id }
-                )
-                .ConfigureAwait(false);
-        }
-
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        await transaction.CommitAsync().ConfigureAwait(false);
+        await SaveRegisteredUserAsync(user, personalDepartment, inviter, inviterDepartment).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "Registration successful"));
     }
 
@@ -425,6 +436,12 @@ public sealed class AuthController(
         return Ok(ApiResponse<VerifyRegisterPuzzleResult>.Ok(new VerifyRegisterPuzzleResult(ticket)));
     }
 
+    /// <summary>
+    ///     创建 CreatePuzzleImages 方法对应的业务数据
+    /// </summary>
+    /// <param name="targetX">拼图缺口横坐标</param>
+    /// <param name="targetY">拼图缺口纵坐标</param>
+    /// <returns>CreatePuzzleImages 方法的执行结果</returns>
     private static (string Background, string Piece) CreatePuzzleImages(
         int targetX
         , int targetY
@@ -465,6 +482,13 @@ public sealed class AuthController(
         return settings.Any(x => x.Label == label && x is { Value: "true", IsEnabled: true });
     }
 
+    /// <summary>
+    ///     判断 IsValidProof 方法对应的业务数据
+    /// </summary>
+    /// <param name="challenge">方法参数 challenge</param>
+    /// <param name="proof">方法参数 proof</param>
+    /// <param name="difficulty">方法参数 difficulty</param>
+    /// <returns>IsValidProof 方法的执行结果</returns>
     private static bool IsValidProof(
         string challenge
         , string proof
@@ -492,6 +516,11 @@ public sealed class AuthController(
         return text.Length <= maximumLength ? text : text[..maximumLength];
     }
 
+    /// <summary>
+    ///     转换 ToSvgDataUrl 方法对应的业务数据
+    /// </summary>
+    /// <param name="svg">方法参数 svg</param>
+    /// <returns>ToSvgDataUrl 方法的执行结果</returns>
     private static string ToSvgDataUrl(string svg) {
         return $"data:image/svg+xml;base64,{Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))}";
     }
@@ -529,6 +558,63 @@ public sealed class AuthController(
     }
 
     /// <summary>
+    ///     解析邀请用户及其个人部门
+    /// </summary>
+    /// <param name="invitationCode">标准化邀请码</param>
+    /// <returns>邀请用户、邀请人部门和失败响应</returns>
+    private async Task<(User? Inviter, Department? Department, ActionResult<ApiResponse<object>>? Error)> ResolveInvitationAsync(
+        string? invitationCode
+    ) {
+        if (string.IsNullOrWhiteSpace(invitationCode)) {
+            return (null, null, null);
+        }
+
+        var inviter = await db.Users.SingleOrDefaultAsync(x => x.InvitationCode == invitationCode).ConfigureAwait(false);
+        if (inviter is null) {
+            return (null, null, BadRequest(new ApiResponse<object>(400, "Invitation code is invalid", null)));
+        }
+
+        // 有邀请者时，新用户个人部门挂在邀请者个人部门下，确保部门数据权限覆盖多级邀请关系
+        var department = await db.Departments.SingleOrDefaultAsync(x => x.Code == $"USER_{inviter.Id}").ConfigureAwait(false);
+        return department is null
+            ? (null, null, StatusCode(500, new ApiResponse<object>(500, "Inviter department does not exist", null)))
+            : (inviter, department, null);
+    }
+
+    /// <summary>
+    ///     在事务中保存注册用户及邀请关系
+    /// </summary>
+    /// <param name="user">待注册用户</param>
+    /// <param name="personalDepartment">用户个人部门</param>
+    /// <param name="inviter">邀请用户</param>
+    /// <param name="inviterDepartment">邀请人个人部门</param>
+    /// <returns>异步保存任务</returns>
+    private async Task SaveRegisteredUserAsync(
+        User user
+        , Department personalDepartment
+        , User? inviter
+        , Department? inviterDepartment
+    ) {
+        _ = await db.Wallets.AddAsync(new Wallet { UserId = user.Id, OwnerDepartmentId = personalDepartment.Id }).ConfigureAwait(false);
+
+        // 事务确保用户、邀请关系、个人部门及关联数据同时创建成功
+        await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);
+        _ = await db.Users.AddAsync(user).ConfigureAwait(false);
+        if (inviterDepartment is not null) {
+            // 受邀用户同时加入邀请人的个人部门，用于按邀请关系管理成员
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = inviterDepartment });
+            _ = await db
+                .UserReferrals.AddAsync(
+                    new UserReferral { Invitee = user, InviteeUserId = user.Id, OwnerId = inviter!.Id, OwnerDepartmentId = inviterDepartment.Id }
+                )
+                .ConfigureAwait(false);
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        await transaction.CommitAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
     ///     通过系统 SMTP 配置发送纯文本邮件
     /// </summary>
     /// <param name="smtp">SMTP 配置</param>
@@ -556,5 +642,37 @@ public sealed class AuthController(
 
         _ = await client.SendAsync(mail, HttpContext.RequestAborted).ConfigureAwait(false);
         await client.DisconnectAsync(true, HttpContext.RequestAborted).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     校验注册开关、邮箱验证码及账号唯一性
+    /// </summary>
+    /// <param name="request">注册信息</param>
+    /// <param name="userName">标准化用户名</param>
+    /// <param name="email">标准化邮箱</param>
+    /// <returns>校验失败响应，校验成功时返回 null</returns>
+    private async Task<ActionResult<ApiResponse<object>>?> ValidateRegistrationAsync(
+        RegisterRequest request
+        , string userName
+        , string email
+    ) {
+        if (!await IsSettingEnabledAsync("Enable user registration").ConfigureAwait(false)) {
+            return BadRequest(new ApiResponse<object>(400, "User registration is disabled", null));
+        }
+
+        var codeValid = !await IsSettingEnabledAsync("Enable email verification").ConfigureAwait(false)
+                        || await cache.GetStringAsync($"register-code:{email.ToLowerInvariant()}").ConfigureAwait(false)
+                        == request.VerificationCode.Trim();
+        if (!codeValid) {
+            return BadRequest(new ApiResponse<object>(400, "Invalid email verification code", null));
+        }
+
+        if (await db.Users.AnyAsync(x => x.UserName == userName).ConfigureAwait(false)) {
+            return Conflict(new ApiResponse<object>(409, "Username already exists", null));
+        }
+
+        return (await db.Users.AnyAsync(x => x.Email == email).ConfigureAwait(false)
+            ? Conflict(new ApiResponse<object>(409, "Email already exists", null))
+            : null)!;
     }
 }

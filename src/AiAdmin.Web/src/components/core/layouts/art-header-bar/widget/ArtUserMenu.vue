@@ -26,17 +26,9 @@
                     </div>
                 </div>
                 <ul class="py-4 mt-3 border-t border-g-300/80">
-                    <li @click="goPage('/system/user-center')" class="btn-item">
+                    <li @click="goUserCenter" class="btn-item">
                         <ArtSvgIcon icon="ri:user-3-line" />
                         <span>{{ $t('topBar.user.userCenter') }}</span>
-                    </li>
-                    <li @click="toDocs()" class="btn-item">
-                        <ArtSvgIcon icon="ri:book-2-line" />
-                        <span>{{ $t('topBar.user.docs') }}</span>
-                    </li>
-                    <li @click="toGithub()" class="btn-item">
-                        <ArtSvgIcon icon="ri:github-line" />
-                        <span>{{ $t('topBar.user.github') }}</span>
                     </li>
                     <li @click="lockScreen()" class="btn-item">
                         <ArtSvgIcon icon="ri:lock-line" />
@@ -61,7 +53,6 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
-import { WEB_LINKS } from '@/utils/constants'
 import { mittBus } from '@/utils/sys'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 
@@ -75,25 +66,11 @@ const { getUserInfo: userInfo } = storeToRefs(userStore)
 const userMenuPopover = ref()
 
 /**
- * 页面跳转
- * @param {string} path - 目标路径
+ * 跳转到个人中心
  */
-const goPage = (path: string): void => {
-    router.push(path)
-}
-
-/**
- * 打开文档页面
- */
-const toDocs = (): void => {
-    window.open(WEB_LINKS.DOCS)
-}
-
-/**
- * 打开 GitHub 页面
- */
-const toGithub = (): void => {
-    window.open(WEB_LINKS.GITHUB)
+const goUserCenter = (): void => {
+    closeUserMenu()
+    router.push({ name: 'UserCenter' })
 }
 
 /**

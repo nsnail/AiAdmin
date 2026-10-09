@@ -23,7 +23,7 @@ public sealed class ElasticsearchLogOptions
     public TimeSpan FlushInterval { get; set; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
-    ///     日志索引名称
+    ///     日志索引前缀，写入时追加日志发生时的 UTC 日期后缀 yyyy.MM.dd
     /// </summary>
     public string Index { get; set; } = "aiadmin-logs";
 
@@ -51,4 +51,9 @@ public sealed class ElasticsearchLogOptions
     ///     Elasticsearch 用户名
     /// </summary>
     public string? Username { get; set; }
+
+    /// <summary>
+    ///     并行消费 Worker 数量
+    /// </summary>
+    public int WorkerCount { get; set; } = 4;
 }

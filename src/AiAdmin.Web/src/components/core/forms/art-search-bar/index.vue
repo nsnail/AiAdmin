@@ -208,7 +208,6 @@
                                             <ArtJsonEditor v-model="queryPreviewText" class="query-preview-ace" />
                                             <div class="query-preview-actions">
                                                 <span v-if="queryPreviewError" class="query-preview-error">{{ queryPreviewError }}</span>
-                                                <ElButton @click="formatQueryPreview" size="small">格式化</ElButton>
                                                 <ElButton @click="applyQueryPreview" size="small" type="primary">应用</ElButton>
                                                 <ElButton @click="saveQueryPreview" size="small">保存</ElButton>
                                             </div>
@@ -228,7 +227,7 @@
             v-if="advancedQueryFields?.length"
             v-model:visible="advancedQueryVisible"
             :fields="advancedQueryFields"
-            :model-value="activeAdvancedFilter"
+            :model-value="activeAdvancedFilter || modelValue.dynamicFilter"
             @apply="handleAdvancedQueryApply" />
     </section>
 </template>
@@ -417,7 +416,9 @@ const groupOptionsRefs = new Map<string, HTMLElement>()
 const groupOptionKey = (value: unknown): string => JSON.stringify(value) ?? 'undefined'
 const hasGroupSelection = (field: string): boolean => Object.prototype.hasOwnProperty.call(props.groupSelections, field)
 const isGroupSelected = (field: string, value: unknown): boolean =>
-    hasGroupSelection(field) && JSON.stringify(props.groupSelections[field]) === JSON.stringify(value)
+    hasGroupSelection(field) &&
+    (JSON.stringify(props.groupSelections[field]) === JSON.stringify(value) ||
+        (typeof props.groupSelections[field] !== 'object' && typeof value !== 'object' && String(props.groupSelections[field]) === String(value)))
 const translateGroupOption = (label: string): string => {
     const translated = t(label)
     return translated === label ? label : translated
@@ -738,7 +739,7 @@ const queryPreviewToFilter = (query: Record<string, any>): DynamicFilter | undef
         .map(([field, value]) => ({
             field,
             operator: Array.isArray(value)
-                ? ['CreatedAt', 'UpdatedAt'].includes(field)
+                ? props.filterFields?.find((item) => item.field === field)?.valueType === 'date'
                     ? 'DateRange'
                     : 'Any'
                 : typeof value === 'string'
@@ -920,54 +921,60 @@ const createDateShortcuts = (fieldKey: string) => {
     ]
 }
 
-const backendFormItems = computed<SearchFormItem[]>(() =>
-    // 分组计数字段由顶部选项负责筛选，仅从基础筛选控件中隐藏，完整元数据仍供高级查询使用。
-    (props.filterFields || [])
-        .filter((field) => !field.groupCount)
-        .map((field) => {
-            const fieldPlaceholder = t(field.label)
-            const controlProps =
-                field.control === 'date'
-                    ? {
-                          type: 'datetimerange',
-                          valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
-                          rangeSeparator: t('table.searchBar.to'),
-                          startPlaceholder: t('table.searchBar.startDate'),
-                          endPlaceholder: t('table.searchBar.endDate'),
-                          shortcuts: createDateShortcuts(field.field),
-                          clearable: true,
-                      }
-                    : field.control === 'select'
-                      ? {
-                            placeholder: fieldPlaceholder,
-                            options: field.options.map((option) => ({
-                                ...option,
-                                label: t(option.label),
-                                value: convertFilterOptionValue(option.value, field.valueType),
-                            })),
-                            clearable: true,
-                        }
-                      : { placeholder: fieldPlaceholder, clearable: true }
+const translateFilterLabel = (value: unknown): string => {
+    if (typeof value !== 'string') return String(value ?? '')
+    try {
+        return t(value)
+    } catch {
+        return value
+    }
+}
 
-            return {
-                key: field.field,
-                label: undefined,
-                type:
-                    field.control === 'user-select'
-                        ? 'user-select'
-                        : field.control === 'select'
-                          ? 'select'
-                          : field.control === 'date'
-                            ? 'date'
-                            : field.control === 'number'
-                              ? 'number'
-                              : 'input',
-                render: field.control === 'user-select' ? ArtUserSelect : undefined,
-                span: field.span,
-                placeholder: fieldPlaceholder,
-                props: controlProps,
-            }
-        }),
+const backendFormItems = computed<SearchFormItem[]>(() =>
+    (props.filterFields || []).map((field) => {
+        const fieldPlaceholder = translateFilterLabel(field.label)
+        const controlProps =
+            field.control === 'date'
+                ? {
+                      type: 'datetimerange',
+                      valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
+                      rangeSeparator: t('table.searchBar.to'),
+                      startPlaceholder: fieldPlaceholder,
+                      endPlaceholder: fieldPlaceholder,
+                      shortcuts: createDateShortcuts(field.field),
+                      clearable: true,
+                  }
+                : field.control === 'select'
+                  ? {
+                        placeholder: fieldPlaceholder,
+                        options: field.options.map((option) => ({
+                            ...option,
+                            label: translateFilterLabel(option.label),
+                            value: convertFilterOptionValue(option.value, field.valueType),
+                        })),
+                        clearable: true,
+                    }
+                  : { placeholder: fieldPlaceholder, clearable: true }
+
+        return {
+            key: field.field,
+            label: undefined,
+            type:
+                field.control === 'user-select'
+                    ? 'user-select'
+                    : field.control === 'select'
+                      ? 'select'
+                      : field.control === 'date'
+                        ? 'date'
+                        : field.control === 'number'
+                          ? 'number'
+                          : 'input',
+            render: field.control === 'user-select' ? ArtUserSelect : undefined,
+            span: field.span,
+            placeholder: fieldPlaceholder,
+            props: controlProps,
+        }
+    }),
 )
 const activeItems = computed(() => (props.filterFields?.length ? backendFormItems.value : props.items))
 const currentBreakpoint = computed<ResponsiveBreakpoint>(() => {
@@ -1116,6 +1123,9 @@ const handleAdvancedQueryApply = (filter: DynamicFilter | undefined) => applyAdv
 /** 同步表格右键筛选等外部来源的完整动态查询 */
 const setDynamicFilter = (filter: DynamicFilter | undefined) => {
     activeAdvancedFilter.value = filter
+    // 外部同步的动态筛选必须写回模型，确保查询预览和实际请求使用同一棵 JSON 树。
+    if (filter) modelValue.value.dynamicFilter = cloneModelValue(filter)
+    else delete modelValue.value.dynamicFilter
 }
 
 defineExpose({

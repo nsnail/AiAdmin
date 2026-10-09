@@ -8,9 +8,9 @@ namespace AiAdmin.Api.Logging;
 /// <param name="options">文件日志配置选项</param>
 public sealed class FileLoggerProvider(IOptions<FileLogOptions> options) : ILoggerProvider
 {
+    private readonly string _directory = ResolveDirectory(options.Value.Directory);
     private readonly FileLogOptions _options = options.Value;
     private readonly object _syncRoot = new();
-    private readonly string _directory = ResolveDirectory(options.Value.Directory);
 
     /// <summary>
     ///     创建指定分类的文件日志记录器
@@ -34,8 +34,6 @@ public sealed class FileLoggerProvider(IOptions<FileLogOptions> options) : ILogg
     /// <returns>日志目录绝对路径</returns>
     private static string ResolveDirectory(string directory) {
         var configuredDirectory = string.IsNullOrWhiteSpace(directory) ? "logs" : directory.Trim();
-        return Path.IsPathRooted(configuredDirectory)
-            ? configuredDirectory
-            : Path.Combine(AppContext.BaseDirectory, configuredDirectory);
+        return Path.IsPathRooted(configuredDirectory) ? configuredDirectory : Path.Combine(AppContext.BaseDirectory, configuredDirectory);
     }
 }

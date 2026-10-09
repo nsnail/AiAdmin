@@ -77,6 +77,7 @@ import { ElNotification, type FormInstance, type FormRules } from 'element-plus'
 import { useSettingStore } from '@/store/modules/setting'
 import { h } from 'vue'
 import { formatDateTime } from '@/utils/date'
+import CryptoJS from 'crypto-js'
 
 defineOptions({ name: 'Login' })
 
@@ -187,7 +188,8 @@ const handleSubmit = async () => {
 
 // 重置拖拽验证
 const resetDragVerify = () => {
-    dragVerify.value.reset()
+    const instance = dragVerify.value
+    if (instance && typeof instance.reset === 'function') instance.reset()
 }
 
 onMounted(async () => {
@@ -222,8 +224,14 @@ const solveProof = async (challenge: string, difficulty: number) => {
     const prefix = '0'.repeat(difficulty)
     let nonce = 0
     while (true) {
-        const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${challenge}:${nonce}`))
-        const hash = Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
+        const input = `${challenge}:${nonce}`
+        const subtle = globalThis.crypto?.subtle
+        const hash =
+            subtle && typeof subtle.digest === 'function'
+                ? Array.from(new Uint8Array(await subtle.digest('SHA-256', new TextEncoder().encode(input))), (byte) =>
+                      byte.toString(16).padStart(2, '0'),
+                  ).join('')
+                : CryptoJS.SHA256(input).toString(CryptoJS.enc.Hex)
         if (hash.startsWith(prefix)) return String(nonce)
         nonce++
         if (nonce % 1000 === 0) await new Promise((resolve) => setTimeout(resolve, 0))

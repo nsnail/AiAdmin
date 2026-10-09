@@ -42,6 +42,12 @@
                 <ElFormItem :label="t('systemSettings.fields.maximumExportRows')">
                     <ElInputNumber v-model="maximumExportRows" :max="100000" :min="1" class="w-full" />
                 </ElFormItem>
+
+                <ElDivider />
+                <h3>{{ t('systemSettings.sections.telegram') }}</h3>
+                <ElFormItem :label="t('systemSettings.fields.telegramBotToken')">
+                    <ElInput v-model="values['Telegram Bot Token']" autocomplete="off" show-password type="password" />
+                </ElFormItem>
             </ElForm>
             <ElEmpty v-else :description="t('systemSettings.loadFailed')" />
         </ElCard>
@@ -126,6 +132,23 @@ onMounted(loadSettings)
 </script>
 
 <style scoped>
+/* 设置内容在可用高度内滚动，标题和保存操作保持可见 */
+.system-settings-page {
+    height: var(--art-full-height);
+    min-height: 0;
+}
+.system-settings-page .art-table-card {
+    min-height: 0;
+}
+.system-settings-page :deep(.el-card__header) {
+    flex-shrink: 0;
+}
+.system-settings-page :deep(.el-card__body) {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    overflow-y: auto;
+}
 .settings-header {
     display: flex;
     align-items: center;

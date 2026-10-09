@@ -1,5 +1,5 @@
 <template>
-    <ElDialog
+    <ElDrawer
         v-model="dialogVisible"
         :title="t('scheduledJob.executionDetail.title')"
         align-center
@@ -15,7 +15,7 @@
                         <ArtListIdCell :created-at="execution.createdAt" :id="execution.scheduledJobId" />
                     </ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.status')">
-                        <ElTag :type="currentStatus.type">{{ currentStatus.label }}</ElTag>
+                        <ElTag :type="currentStatus.type" effect="light" size="small">{{ currentStatus.label }}</ElTag>
                     </ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.createdAt')">
                         {{ formatTime(execution.createdAt) }}
@@ -27,7 +27,7 @@
                         {{ duration }}
                     </ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.requestMethod')">
-                        <ElTag type="info">{{ execution.requestMethod }}</ElTag>
+                        <ElTag effect="light" size="small" type="info">{{ execution.requestMethod }}</ElTag>
                     </ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.responseStatusCode')">
                         {{ execution.responseStatusCode ?? '-' }}
@@ -61,13 +61,13 @@
                 </div>
             </ElTabPane>
             <ElTabPane :label="t('rawData')" name="raw-data">
-                <ArtJsonEditor :model-value="rawData" class="execution-editor raw-data-editor" height="500px" readonly />
+                <ArtRawData :data="execution" />
             </ElTabPane>
         </ElTabs>
         <template #footer>
             <ElButton @click="dialogVisible = false">{{ t('scheduledJob.executionDetail.close') }}</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>
@@ -75,6 +75,7 @@ import { useI18n } from 'vue-i18n'
 import type { ScheduledJobExecution } from '@/api/system-manage'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
+import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import { formatDateTime } from '@/utils/date'
 
 const props = defineProps<{
@@ -122,7 +123,6 @@ const requestHeaders = computed(() => tryFormatJson(props.execution?.requestHead
 const requestBody = computed(() => tryFormatJson(props.execution?.requestBody || '', ''))
 const responseHeaders = computed(() => tryFormatJson(props.execution?.responseHeaders || '', '{}'))
 const responseBody = computed(() => tryFormatJson(props.execution?.responseBody || '', ''))
-const rawData = computed(() => JSON.stringify(props.execution ?? null, null, 2))
 
 watch(dialogVisible, (visible) => {
     if (visible) activeTab.value = 'overview'
@@ -130,9 +130,6 @@ watch(dialogVisible, (visible) => {
 </script>
 
 <style scoped>
-.execution-detail-tabs {
-    min-height: 500px;
-}
 .break-all {
     word-break: break-all;
 }
@@ -157,15 +154,8 @@ watch(dialogVisible, (visible) => {
 .execution-header-editor {
     height: 180px;
 }
-.raw-data-editor {
-    height: 500px;
-}
 @media (max-width: 767px) {
-    .execution-detail-tabs {
-        min-height: 420px;
-    }
-    .execution-editor,
-    .raw-data-editor {
+    .execution-editor {
         height: 300px;
     }
 }

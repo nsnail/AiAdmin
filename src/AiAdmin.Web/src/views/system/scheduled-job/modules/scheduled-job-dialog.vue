@@ -1,70 +1,58 @@
 <template>
-    <ElDialog v-model="dialogVisible" :title="jobData?.id ? '编辑作业' : '新增作业'" align-center destroy-on-close width="680px">
-        <ElForm :model="formData" :rules="rules" label-width="140px" ref="formRef">
-            <ElFormItem label="名称" prop="name">
-                <ElInput v-model.trim="formData.name" maxlength="100" show-word-limit />
-            </ElFormItem>
-            <ElFormItem label="Cron 表达式" prop="cronExpression">
-                <ScCron v-model="formData.cronExpression" maxlength="100" placeholder="0 */5 * * * *" />
-            </ElFormItem>
-            <ElFormItem label="请求地址" prop="requestUrl">
-                <ElInput v-model.trim="formData.requestUrl" maxlength="2000" />
-            </ElFormItem>
-            <ElFormItem label="请求方法" prop="requestMethod">
-                <ElSegmented v-model="formData.requestMethod" :options="methods" />
-            </ElFormItem>
-            <ElFormItem prop="requestHeadersJson">
-                <template #label>
-                    <span class="editor-label">
-                        <span>请求头 JSON</span>
-                        <ElTooltip :content="t('scheduledJob.actions.formatJson')">
-                            <ElButton
-                                :aria-label="t('scheduledJob.actions.formatJson')"
-                                @click="formatJson('requestHeadersJson')"
-                                circle
-                                text
-                                type="primary">
-                                <ArtSvgIcon icon="ri:code-s-slash-line" />
-                            </ElButton>
-                        </ElTooltip>
-                    </span>
-                </template>
-                <ArtJsonEditor
-                    v-model="formData.requestHeadersJson"
-                    @blur="formRef?.validateField('requestHeadersJson')"
-                    class="scheduled-job-editor"
-                    height="160px" />
-            </ElFormItem>
-            <ElFormItem prop="requestBody">
-                <template #label>
-                    <span class="editor-label">
-                        <span>请求体</span>
-                        <ElTooltip :content="t('scheduledJob.actions.formatJson')">
-                            <ElButton
-                                :aria-label="t('scheduledJob.actions.formatJson')"
-                                @click="formatJson('requestBody')"
-                                circle
-                                text
-                                type="primary">
-                                <ArtSvgIcon icon="ri:code-s-slash-line" />
-                            </ElButton>
-                        </ElTooltip>
-                    </span>
-                </template>
-                <ArtJsonEditor v-model="formData.requestBody" class="scheduled-job-editor scheduled-job-body-editor" height="220px" />
-            </ElFormItem>
-            <ElFormItem label="超时（秒）" prop="timeoutSeconds">
-                <ElInputNumber v-model="formData.timeoutSeconds" :max="86400" :min="1" controls-position="right" />
-            </ElFormItem>
-            <ElFormItem label="启用">
-                <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="禁用" />
-            </ElFormItem>
-        </ElForm>
+    <ElDrawer v-model="dialogVisible" :title="jobData?.id ? '编辑作业' : '新增作业'" align-center destroy-on-close width="680px">
+        <ElTabs v-model="activeTab">
+            <ElTabPane :label="t('scheduledJob.tabs.basicInfo')" name="edit">
+                <ElForm :model="formData" :rules="rules" label-width="140px" ref="formRef">
+                    <ElFormItem label="名称" prop="name">
+                        <ElInput v-model.trim="formData.name" maxlength="100" show-word-limit />
+                    </ElFormItem>
+                    <ElFormItem :label="t('scheduledJob.fields.cronExpression')" prop="cronExpression">
+                        <ScCron v-model="formData.cronExpression" maxlength="100" placeholder="0 */5 * * * *" />
+                    </ElFormItem>
+                    <ElFormItem label="请求地址" prop="requestUrl">
+                        <ElInput v-model.trim="formData.requestUrl" maxlength="2000" />
+                    </ElFormItem>
+                    <ElFormItem :label="t('scheduledJob.fields.remark')" prop="remark">
+                        <ElInput v-model.trim="formData.remark" :placeholder="t('scheduledJob.placeholder.remark')" maxlength="500" show-word-limit />
+                    </ElFormItem>
+                    <ElFormItem label="请求方法" prop="requestMethod">
+                        <ElSegmented v-model="formData.requestMethod" :options="methods" />
+                    </ElFormItem>
+                    <ElFormItem prop="requestHeadersJson">
+                        <template #label>
+                            <span class="editor-label">
+                                <span>请求头 JSON</span>
+                            </span>
+                        </template>
+                        <ArtJsonEditor
+                            v-model="formData.requestHeadersJson"
+                            @blur="formRef?.validateField('requestHeadersJson')"
+                            class="scheduled-job-editor"
+                            height="160px" />
+                    </ElFormItem>
+                    <ElFormItem prop="requestBody">
+                        <template #label>
+                            <span class="editor-label">
+                                <span>请求体</span>
+                            </span>
+                        </template>
+                        <ArtJsonEditor v-model="formData.requestBody" class="scheduled-job-editor scheduled-job-body-editor" height="220px" />
+                    </ElFormItem>
+                    <ElFormItem label="超时（秒）" prop="timeoutSeconds">
+                        <ElInputNumber v-model="formData.timeoutSeconds" :max="86400" :min="1" controls-position="right" />
+                    </ElFormItem>
+                    <ElFormItem label="启用">
+                        <ElSwitch v-model="formData.isEnabled" active-text="启用" inactive-text="禁用" />
+                    </ElFormItem>
+                </ElForm>
+            </ElTabPane>
+            <ElTabPane v-if="jobData?.id" :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
+        </ElTabs>
         <template #footer>
             <ElButton :disabled="saving" @click="dialogVisible = false">取消</ElButton>
             <ElButton :loading="saving" @click="submit" type="primary">保存</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>
@@ -72,6 +60,7 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import type { SaveScheduledJob, ScheduledJob } from '@/api/system-manage'
 import ScCron from '@/components/business/sc-cron/index.vue'
 import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
+import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
@@ -98,10 +87,13 @@ const defaults = (): SaveScheduledJob => ({
     requestMethod: 'GET',
     requestHeadersJson: '{}',
     requestBody: '',
+    remark: '',
     timeoutSeconds: 30,
     isEnabled: true,
 })
 const formData = reactive<SaveScheduledJob>(defaults())
+const activeTab = ref('edit')
+const rawData = computed(() => props.jobData || formData)
 
 type JsonField = 'requestHeadersJson' | 'requestBody'
 
@@ -181,6 +173,7 @@ watch(
     ([visible, job]) => {
         if (!visible) return
         Object.assign(formData, defaults(), job || {})
+        activeTab.value = 'edit'
         nextTick(() => formRef.value?.clearValidate())
     },
     { immediate: true },
@@ -204,5 +197,13 @@ const submit = async (): Promise<void> => {
 }
 .scheduled-job-body-editor {
     height: 220px;
+}
+.raw-data {
+    background: var(--el-fill-color-light);
+    border-radius: 4px;
+    max-height: 560px;
+    overflow: auto;
+    padding: 12px;
+    white-space: pre-wrap;
 }
 </style>

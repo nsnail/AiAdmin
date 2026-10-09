@@ -4,9 +4,6 @@
         <Project Path="src/AiAdmin.Core/AiAdmin.Core.csproj"/>
         <Project Path="src/AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
     </Folder>
-    <Folder Name="/.drone/workflows/">
-        <File Path=".drone/workflows/README.md"/>
-    </Folder>
     <Folder Name="/.github/workflows/">
         <File Path=".github/workflows/README.md"/>
     </Folder>
@@ -24,6 +21,7 @@
         <File Path="build/code.clean.prettier.ps1"/>
         <File Path="build/code.clean.resharper.ps1"/>
         <File Path="build/code.quality.props"/>
+        <File Path="build/new.version.tag.ps1"/>
         <File Path="build/stylecop.analyzers.ruleset"/>
         <File Path="build/sync.slnx.files.csx"/>
     </Folder>

@@ -1,5 +1,5 @@
 <template>
-    <ElDialog v-model="visible" @close="handleClose" align-center class="el-dialog-border" title="接口权限" width="min(920px, 92vw)">
+    <ElDrawer v-model="visible" @close="handleClose" align-center class="el-dialog-border" title="接口权限" width="min(920px, 92vw)">
         <ElTabs v-model="activeTab">
             <ElTabPane label="基本信息" name="form">
                 <ElScrollbar v-loading="loading" height="65vh">
@@ -25,7 +25,7 @@
             <ElButton @click="handleClose">取消</ElButton>
             <ElButton :loading="saving" @click="savePermission" type="primary">保存</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>

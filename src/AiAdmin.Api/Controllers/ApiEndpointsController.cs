@@ -28,7 +28,6 @@ public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncServi
     /// <returns>接口文档分组</returns>
     [HttpGet("documentation")]
     [ApiDescription("Query API documentation")]
-    [ApiDocumented]
     public async Task<ActionResult<ApiResponse<ApiDocumentationResult>>> DocumentationAsync() {
         var result = await documentationService.GetAsync(User).ConfigureAwait(false);
         return Ok(ApiResponse<ApiDocumentationResult>.Ok(result));

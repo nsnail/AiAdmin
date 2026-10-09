@@ -11,6 +11,11 @@ public sealed class SaveScheduledJobRequest
     public required string CronExpression { get; set; }
 
     /// <summary>
+    ///     作业主键，修改时必填
+    /// </summary>
+    public long? Id { get; init; }
+
+    /// <summary>
     ///     是否启用
     /// </summary>
     public bool IsEnabled { get; set; } = true;
@@ -19,6 +24,11 @@ public sealed class SaveScheduledJobRequest
     ///     作业名称
     /// </summary>
     public required string Name { get; set; }
+
+    /// <summary>
+    ///     备注
+    /// </summary>
+    public string Remark { get; set; } = string.Empty;
 
     /// <summary>
     ///     请求体模板

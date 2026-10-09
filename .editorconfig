@@ -18,19 +18,24 @@ indent_size = 2 # 对于 JSON 和 YAML 文件，缩进大小为 2 个空格
 
 [*.cs]
 dotnet_analyzer_diagnostic.severity = warning # 设置 C# 文件中所有 dotnet_analyzer_diagnostic 的严重性级别为 warning
-dotnet_diagnostic.CA1000.severity = suggestion # 泛型类型不应声明静态成员
+dotnet_diagnostic.ASA002.severity = suggestion
+dotnet_diagnostic.CA1000.severity = none # 泛型类型不应声明静态成员
 dotnet_diagnostic.CA1707.severity = none # 标识符不应包含下划线
-dotnet_diagnostic.CA1711.severity = suggestion # 标识符不应使用错误的后缀
+dotnet_diagnostic.CA1711.severity = none # 标识符不应使用错误的后缀
 dotnet_diagnostic.IDE0008.severity = none # 应使用显式类型而不是 var
 dotnet_diagnostic.IDE0010.severity = suggestion # switch 语句应包含所有可能的情况
 dotnet_diagnostic.IDE0028.severity = suggestion # 简化集合初始化
 dotnet_diagnostic.IDE0045.severity = suggestion # 将赋值语句转换为条件表达式
 dotnet_diagnostic.IDE0046.severity = suggestion # 将返回语句转换为条件表达式
+dotnet_diagnostic.IDE0048.severity = suggestion # 为清楚起见，应添加括号
 dotnet_diagnostic.IDE0055.severity = none # 修正代码格式
 dotnet_diagnostic.IDE0072.severity = suggestion # switch 表达式应包含所有可能的情况
 dotnet_diagnostic.IDE0160.severity = none # 将块范围命名空间转换为文件范围命名空间
+dotnet_diagnostic.RCS1238.severity = suggestion # Avoid nested ?: operators
 dotnet_diagnostic.S1075.severity = suggestion # URI 不应硬编码
 dotnet_diagnostic.S1313.severity = suggestion # IP 地址不应硬编码
+dotnet_diagnostic.S3358.severity = suggestion
+dotnet_diagnostic.S4830.severity = suggestion # 应在 SSL/TLS 连接期间验证服务器证书
 dotnet_diagnostic.S6960.severity = suggestion # API 控制器应遵循统一的设计规范
 dotnet_diagnostic.SA1001.severity = suggestion # 逗号应正确设置空格
 dotnet_diagnostic.SA1009.severity = suggestion # 右括号应正确设置空格

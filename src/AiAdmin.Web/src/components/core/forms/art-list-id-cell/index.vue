@@ -2,10 +2,10 @@
     <div class="list-id-cell">
         <span :data-query-value="id" class="list-id" data-query-field="Id" data-query-label="ID" data-query-value-type="number">{{ id }}</span>
         <span
+            :data-query-label="t('common.createdAt')"
             :data-query-value="createdAt || ''"
             class="created-at"
             data-query-field="CreatedAt"
-            data-query-label="创建时间"
             data-query-value-type="date"
             >{{ formattedCreatedAt }}</span
         >
@@ -19,7 +19,7 @@ import { formatDateTime } from '@/utils/date'
 defineOptions({ name: 'ArtListIdCell' })
 
 const props = defineProps<{ id: string | number; createdAt?: string | Date | null }>()
-const { locale } = useI18n()
+const { locale, t } = useI18n()
 const formattedCreatedAt = computed(() => (props.createdAt ? formatDateTime(props.createdAt, locale.value) : '-'))
 </script>
 

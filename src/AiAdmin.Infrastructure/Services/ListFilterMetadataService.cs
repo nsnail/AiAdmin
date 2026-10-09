@@ -24,15 +24,37 @@ public static class ListFilterMetadataService
                         , index
                     ) => (Property: property, Attribute: property.GetCustomAttribute<ListFilterAttribute>(), DeclarationIndex: index)
                 )
-                .Where(item => item.Attribute?.IsVisible == true)
+                .Where(item => item.Attribute is not null)
                 .OrderBy(item => item.Attribute!.Sort)
                 .ThenBy(item => item.DeclarationIndex)
                 .Select(item => new ListFilterFieldResult(
                         item.Property.Name, item.Attribute!.Label, item.Attribute.Control, item.Attribute.Span, item.Attribute.Sort
                         , item.Attribute.Placeholder
                         , [.. item.Attribute.Options.Select(ToOption)], GetValueType(item.Property.PropertyType), item.Attribute.GroupCount
+                        , item.Attribute.IsVisible
                     )
                 )
+        ];
+    }
+
+    /// <summary>
+    ///     获取实体字段并合并声明式导航属性筛选字段
+    /// </summary>
+    /// <typeparam name="TEntity">实体类型</typeparam>
+    /// <param name="nestedFields">导航属性筛选字段</param>
+    /// <returns>筛选字段元数据</returns>
+    public static IReadOnlyList<ListFilterFieldResult> GetFields<TEntity>(params NestedListFilterField[] nestedFields) {
+        return
+        [
+            .. GetFields<TEntity>()
+                .Concat(
+                    nestedFields.Select(field => new ListFilterFieldResult(
+                            field.Field, field.Label, field.Control, field.Span, field.Sort, field.Placeholder, [], field.ValueType, field.GroupCount
+                            , field.IsVisible
+                        )
+                    )
+                )
+                .OrderBy(field => field.Sort)
         ];
     }
 
@@ -47,7 +69,8 @@ public static class ListFilterMetadataService
         {
             _ when valueType == typeof(bool) => "boolean"
             , _ when valueType == typeof(DateTime) || valueType == typeof(DateTimeOffset) => "date"
-            , _ when valueType.IsEnum || valueType.IsPrimitive || valueType == typeof(decimal) => "number"
+            , _ when valueType.IsEnum => "enum"
+            , _ when valueType.IsPrimitive || valueType == typeof(decimal) => "number"
             , _ => "string"
         };
     }

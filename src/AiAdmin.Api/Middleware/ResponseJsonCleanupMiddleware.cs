@@ -9,6 +9,11 @@ namespace AiAdmin.Api.Middleware;
 /// <param name="next">后续请求处理委托</param>
 public sealed class ResponseJsonCleanupMiddleware(RequestDelegate next)
 {
+    /// <summary>
+    ///     标记当前响应保留 null 属性的上下文键
+    /// </summary>
+    public const string PRESERVE_NULL_PROPERTIES_KEY = "ResponseJsonCleanup.PreserveNullProperties";
+
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
     /// <summary>
@@ -23,7 +28,7 @@ public sealed class ResponseJsonCleanupMiddleware(RequestDelegate next)
 
         try {
             await next(context).ConfigureAwait(false);
-            if (!IsJsonResponse(context.Response) || responseBody.Length == 0) {
+            if (!IsJsonResponse(context.Response) || responseBody.Length == 0 || context.Items.ContainsKey(PRESERVE_NULL_PROPERTIES_KEY)) {
                 responseBody.Position = 0;
                 await responseBody.CopyToAsync(originalBody, context.RequestAborted).ConfigureAwait(false);
                 return;
@@ -74,29 +79,51 @@ public sealed class ResponseJsonCleanupMiddleware(RequestDelegate next)
     }
 
     /// <summary>
+    ///     递归处理 JSON 数组中的子节点
+    /// </summary>
+    /// <param name="jsonArray">待处理 JSON 数组</param>
+    private static void RemoveEmptyArrayItems(JsonArray jsonArray) {
+        foreach (var item in jsonArray) {
+            RemoveEmptyProperties(item);
+        }
+    }
+
+    /// <summary>
+    ///     清理 JSON 对象中的空属性并递归处理子节点
+    /// </summary>
+    /// <param name="jsonObject">待清理 JSON 对象</param>
+    private static void RemoveEmptyObjectProperties(JsonObject jsonObject) {
+        foreach (var property in jsonObject.ToList()) {
+            if (ShouldRemoveProperty(property.Value)) {
+                _ = jsonObject.Remove(property.Key);
+                continue;
+            }
+
+            RemoveEmptyProperties(property.Value);
+        }
+    }
+
+    /// <summary>
     ///     递归移除对象中的 null 和空字符串属性
     /// </summary>
     /// <param name="node">待清理 JSON 节点</param>
     private static void RemoveEmptyProperties(JsonNode? node) {
         switch (node) {
             case JsonObject jsonObject:
-                foreach (var property in jsonObject.ToList()) {
-                    if (property.Value is null || IsEmptyString(property.Value)) {
-                        _ = jsonObject.Remove(property.Key);
-                        continue;
-                    }
-
-                    RemoveEmptyProperties(property.Value);
-                }
-
+                RemoveEmptyObjectProperties(jsonObject);
                 break;
-
             case JsonArray jsonArray:
-                foreach (var item in jsonArray) {
-                    RemoveEmptyProperties(item);
-                }
-
+                RemoveEmptyArrayItems(jsonArray);
                 break;
         }
+    }
+
+    /// <summary>
+    ///     判断 JSON 对象属性是否应被移除
+    /// </summary>
+    /// <param name="value">属性值</param>
+    /// <returns>是否应移除属性</returns>
+    private static bool ShouldRemoveProperty(JsonNode? value) {
+        return value is null || IsEmptyString(value);
     }
 }

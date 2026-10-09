@@ -19,7 +19,7 @@
                     <ElOption v-for="field in fields" :key="field.field" :label="field.label" :value="field.field" />
                 </ElSelect>
                 <ElSelect v-model="item.operator" class="operator-select" filterable placeholder="操作符">
-                    <ElOption v-for="operator in operators" :key="operator.value" :label="operator.label" :value="operator.value" />
+                    <ElOption v-for="operator in fieldOperators(item.field)" :key="operator.value" :label="operator.label" :value="operator.value" />
                 </ElSelect>
                 <ElSelect v-if="selectedField(item.field)?.type === 'boolean'" v-model="item.value" class="value-input" filterable placeholder="值">
                     <ElOption label="true" value="true" />
@@ -74,6 +74,16 @@ const operators = [
     { label: '开头是', value: 'StartsWith' },
     { label: '结尾是', value: 'EndsWith' },
 ]
+const fieldOperators = (fieldName: string) => {
+    const type = selectedField(fieldName)?.type
+    if (type === 'enum' || type === 'boolean') return operators.filter((item) => ['Equal', 'NotEqual', 'Any', 'NotAny'].includes(item.value))
+    if (type === 'string')
+        return operators.filter(
+            (item) => !['GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual', 'Range', 'DateRange'].includes(item.value),
+        )
+    if (type === 'number') return operators.filter((item) => !['Contains', 'NotContains', 'StartsWith', 'EndsWith', 'DateRange'].includes(item.value))
+    return operators
+}
 
 const selectedField = (fieldName: string) => props.fields.find((field) => field.field === fieldName)
 const addCondition = () =>

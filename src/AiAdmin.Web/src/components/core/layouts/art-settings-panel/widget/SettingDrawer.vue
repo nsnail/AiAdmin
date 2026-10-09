@@ -8,6 +8,7 @@
             :with-header="false"
             @close="handleDrawerClose"
             @open="handleOpen"
+            class="setting-drawer"
             modal-class="setting-modal"
             size="300px">
             <div class="drawer-con">

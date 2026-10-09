@@ -17,6 +17,7 @@ public sealed class ChangePasswordRequest
     ///     新密码
     /// </summary>
     [Required]
-    [StringLength(100, MinimumLength = 6)]
+    [StringLength(100, MinimumLength = 8)]
+    [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$")]
     public string NewPassword { get; init; } = string.Empty;
 }

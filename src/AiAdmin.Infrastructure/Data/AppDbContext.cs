@@ -13,8 +13,12 @@ namespace AiAdmin.Api.Data;
 /// <param name="options">数据库上下文配置</param>
 /// <param name="dataScope">数据权限上下文</param>
 /// <param name="httpContextAccessor">HTTP 上下文访问器</param>
-public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataScopeContext dataScope, IHttpContextAccessor httpContextAccessor)
-    : DbContext(options)
+/// <param name="dataScopeCache">数据权限缓存</param>
+public sealed class AppDbContext(
+    DbContextOptions<AppDbContext> options
+    , DataScopeContext dataScope
+    , IHttpContextAccessor httpContextAccessor
+    , DataScopeCache dataScopeCache) : DbContext(options)
 {
     /// <summary>
     ///     接口实体集合
@@ -128,7 +132,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     /// <returns>写入数据库的状态条目数</returns>
     public override int SaveChanges(bool acceptAllChangesOnSuccess) {
         PrepareSaveChanges();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        var shouldInvalidate = ChangeTracker.Entries().Any(entry => entry.Entity is Role or UserRole or UserDepartment or Department);
+        var result = base.SaveChanges(acceptAllChangesOnSuccess);
+        if (shouldInvalidate) {
+            _ = dataScopeCache.InvalidateAsync();
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -137,12 +147,18 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
     /// <param name="acceptAllChangesOnSuccess">保存成功后是否接受所有变更</param>
     /// <param name="cancellationToken">取消操作令牌</param>
     /// <returns>写入数据库的状态条目数</returns>
-    public override Task<int> SaveChangesAsync(
+    public override async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess
         , CancellationToken cancellationToken = default
     ) {
         PrepareSaveChanges();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var shouldInvalidate = ChangeTracker.Entries().Any(entry => entry.Entity is Role or UserRole or UserDepartment or Department);
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
+        if (shouldInvalidate) {
+            await dataScopeCache.InvalidateAsync().ConfigureAwait(false);
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -158,6 +174,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.HasIndex(x => x.UserName).IsUnique();
                 _ = entity.HasIndex(x => x.Email);
                 _ = entity.HasIndex(x => x.InvitationCode).IsUnique();
+                _ = entity.HasIndex(x => x.LastLoginAt);
                 _ = entity.Property(x => x.UserName).HasMaxLength(50).IsRequired();
                 _ = entity.Property(x => x.PasswordHash).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.InvitationCode).HasMaxLength(12).IsRequired();
@@ -165,6 +182,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Phone).HasMaxLength(20);
                 _ = entity.Property(x => x.Gender).HasConversion<int>();
                 _ = entity.Property(x => x.Avatar).HasMaxLength(500);
+                _ = entity.Property(x => x.LastLoginIp).HasMaxLength(64).HasDefaultValue(string.Empty).IsRequired();
+                _ = entity.Property(x => x.LastLoginRegion).HasMaxLength(300).HasDefaultValue(string.Empty).IsRequired();
                 _ = entity.Property(x => x.Version).IsConcurrencyToken().IsRequired();
             }
         );
@@ -210,7 +229,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.TimeZone).HasMaxLength(100);
                 _ = entity.Property(x => x.ScreenResolution).HasMaxLength(50);
                 _ = entity.Property(x => x.ViewportSize).HasMaxLength(50);
-                _ = entity.Property(x => x.ClientHints).HasColumnType("TEXT");
+                _ = entity.Property(x => x.ClientHints).HasMaxLength(4000);
                 _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
                 _ = entity.HasQueryFilter(x =>
                     !dataScope.IsInitialized
@@ -269,7 +288,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.HasKey(x => x.Id);
                 _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
-                _ = entity.Property(x => x.Content).HasColumnType("TEXT").IsRequired();
+                _ = entity.Property(x => x.Content).IsRequired();
                 _ = entity.HasIndex(x => x.CreatedAt);
                 _ = entity.HasOne<User>().WithMany().HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.Restrict);
             }
@@ -308,7 +327,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.HasIndex(x => new { x.UserId, x.Route });
                 _ = entity.Property(x => x.Route).HasMaxLength(300).IsRequired();
                 _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
-                _ = entity.Property(x => x.FilterJson).HasColumnType("TEXT").IsRequired();
+                _ = entity.Property(x => x.FilterJson).IsRequired();
                 _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             }
         );
@@ -322,9 +341,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.CronExpression).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.RequestUrl).HasMaxLength(2000).IsRequired();
                 _ = entity.Property(x => x.RequestMethod).HasMaxLength(20).IsRequired();
-                _ = entity.Property(x => x.RequestHeadersJson).HasColumnType("TEXT");
-                _ = entity.Property(x => x.RequestBody).HasColumnType("TEXT");
-                _ = entity.Property(x => x.LastError).HasColumnType("TEXT");
+                _ = entity.Property(x => x.Remark).HasMaxLength(500);
+                _ = entity.Property(x => x.LastError).HasMaxLength(4000);
                 _ = entity.Property(x => x.Status).HasConversion<int>();
                 _ = entity.HasIndex(x => new { x.IsEnabled, x.Status });
             }
@@ -337,11 +355,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.Property(x => x.RequestUrl).HasMaxLength(2000);
                 _ = entity.Property(x => x.RequestMethod).HasMaxLength(20);
-                _ = entity.Property(x => x.RequestHeaders).HasColumnType("TEXT");
-                _ = entity.Property(x => x.RequestBody).HasColumnType("TEXT");
-                _ = entity.Property(x => x.ResponseHeaders).HasColumnType("TEXT");
-                _ = entity.Property(x => x.ResponseBody).HasColumnType("TEXT");
-                _ = entity.Property(x => x.ErrorMessage).HasColumnType("TEXT");
+                _ = entity.Property(x => x.ErrorMessage).HasMaxLength(4000);
                 _ = entity.Property(x => x.Status).HasConversion<int>();
                 _ = entity.HasIndex(x => new { x.ScheduledJobId, x.StartedAt });
                 _ = entity
@@ -405,7 +419,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Path).HasMaxLength(300).IsRequired();
                 _ = entity.Property(x => x.Component).HasMaxLength(300);
                 _ = entity.Property(x => x.ParentName).HasMaxLength(100);
-                _ = entity.Property(x => x.MetaJson).HasColumnType("TEXT");
+                _ = entity.Property(x => x.MetaJson).HasMaxLength(4000);
             }
         );
 
@@ -448,6 +462,47 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
                 _ = entity.Property(x => x.Path).HasMaxLength(500).IsRequired();
             }
         );
+    }
+
+    /// <summary>
+    ///     设置新增实体的创建时间、更新时间和初始版本
+    /// </summary>
+    /// <param name="entity">新增实体</param>
+    /// <param name="now">当前 UTC 时间</param>
+    private static void ApplyAddedAuditTimes(
+        EntityBase entity
+        , DateTime now
+    ) {
+        entity.CreatedAt = now;
+        if (entity is IUpdatedAt updatedEntity) {
+            updatedEntity.UpdatedAt = null;
+        }
+
+        if (entity is IVersion { Version: <= 0 } versionedEntity) {
+            versionedEntity.Version = 1;
+        }
+    }
+
+    /// <summary>
+    ///     设置修改实体的更新时间并递增版本
+    /// </summary>
+    /// <param name="entry">修改实体状态条目</param>
+    /// <param name="now">当前 UTC 时间</param>
+    private static void ApplyModifiedAuditTimes(
+        EntityEntry<EntityBase> entry
+        , DateTime now
+    ) {
+        entry.Property(x => x.CreatedAt).IsModified = false;
+        if (entry.Entity is IUpdatedAt updatedEntity) {
+            updatedEntity.UpdatedAt = now;
+        }
+
+        if (entry.Entity is not IVersion versionedEntity) {
+            return;
+        }
+
+        var originalVersion = Convert.ToInt32(entry.Property(nameof(IVersion.Version)).OriginalValue, CultureInfo.InvariantCulture);
+        versionedEntity.Version = originalVersion + 1;
     }
 
     /// <summary>
@@ -525,37 +580,12 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options, DataSco
         foreach (var entry in ChangeTracker.Entries<EntityBase>()) {
             switch (entry.State) {
                 case EntityState.Added:
-                    entry.Entity.CreatedAt = now;
-                    if (entry.Entity is IUpdatedAt addedEntity) {
-                        addedEntity.UpdatedAt = null;
-                    }
-
-                    EnsureInitialVersion(entry.Entity);
+                    ApplyAddedAuditTimes(entry.Entity, now);
                     break;
                 case EntityState.Modified:
-                    entry.Property(x => x.CreatedAt).IsModified = false;
-                    if (entry.Entity is IUpdatedAt modifiedEntity) {
-                        modifiedEntity.UpdatedAt = now;
-                    }
-
-                    IncrementVersion(entry);
+                    ApplyModifiedAuditTimes(entry, now);
                     break;
             }
-        }
-
-        static void EnsureInitialVersion(EntityBase entity) {
-            if (entity is IVersion { Version: <= 0 } versionedEntity) {
-                versionedEntity.Version = 1;
-            }
-        }
-
-        static void IncrementVersion(EntityEntry<EntityBase> entry) {
-            if (entry.Entity is not IVersion versionedEntity) {
-                return;
-            }
-
-            var originalVersion = Convert.ToInt32(entry.Property(nameof(IVersion.Version)).OriginalValue, CultureInfo.InvariantCulture);
-            versionedEntity.Version = originalVersion + 1;
         }
     }
 }

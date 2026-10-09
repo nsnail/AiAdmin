@@ -18,6 +18,12 @@ public sealed class UpdateCurrentUserProfileRequest
     public string Email { get; init; } = string.Empty;
 
     /// <summary>
+    ///     修改邮箱时使用的邮件验证码
+    /// </summary>
+    [StringLength(6, MinimumLength = 6)]
+    public string? EmailVerificationCode { get; init; }
+
+    /// <summary>
     ///     性别编码
     /// </summary>
     [JsonRequired]

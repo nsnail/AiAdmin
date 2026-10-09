@@ -1,7 +1,7 @@
 <!-- 系统聊天窗口 -->
 <template>
     <div>
-        <ElDrawer v-model="isDrawerVisible" :size="isMobile ? '100%' : '480px'" :with-header="false">
+        <ElDrawer v-model="isDrawerVisible" :size="isMobile ? '100%' : '480px'" :with-header="false" class="chat-drawer">
             <div class="mb-5 flex-cb">
                 <div>
                     <span class="text-base font-medium">Art Bot</span>

@@ -39,13 +39,13 @@
                         <span class="inline-flex items-center gap-2 whitespace-nowrap">
                             <ArtSvgIcon v-if="row.isGroup" class="text-g-500" icon="ri:code-box-line" />
                             <span :class="{ 'font-medium': row.isGroup }">{{ row.name }}</span>
-                            <ElTag v-if="row.isGroup" effect="plain" size="small" type="info"> {{ row.children.length }} 个接口 </ElTag>
+                            <ElTag v-if="row.isGroup" effect="light" size="small" type="info"> {{ row.children.length }} 个接口 </ElTag>
                         </span>
                     </template>
                 </ElTableColumn>
                 <ElTableColumn label="方法" prop="method" sortable="custom" width="100">
                     <template #default="{ row }">
-                        <ElTag v-if="!row.isGroup" :type="methodTagType(row.method)" effect="plain">
+                        <ElTag v-if="!row.isGroup" :type="methodTagType(row.method)" effect="light" size="small">
                             {{ row.method }}
                         </ElTag>
                     </template>
@@ -53,7 +53,7 @@
                 <ElTableColumn label="路径" min-width="280" prop="path" show-overflow-tooltip sortable="custom" />
                 <ElTableColumn label="允许匿名访问" prop="allowAnonymous" sortable="custom" width="140">
                     <template #default="{ row }">
-                        <ElTag v-if="!row.isGroup" :type="row.allowAnonymous ? 'success' : 'info'" effect="plain">
+                        <ElTag v-if="!row.isGroup" :type="row.allowAnonymous ? 'success' : 'info'" effect="light" size="small">
                             {{ row.allowAnonymous ? '是' : '否' }}
                         </ElTag>
                     </template>

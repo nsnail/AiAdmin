@@ -18,6 +18,7 @@
 import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElTag } from 'element-plus'
+import { getHashTagStyle } from '@/utils/tagColor'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
@@ -76,7 +77,8 @@ const {
                 label: t('wallet.currency'),
                 width: 110,
                 align: 'right',
-                formatter: (row: WalletInfo) => h(ElTag, { type: 'success', size: 'small' }, () => row.currency),
+                formatter: (row: WalletInfo) =>
+                    h(ElTag, { size: 'small', effect: 'light', style: getHashTagStyle(row.currency) }, () => row.currency),
             },
             {
                 prop: 'availableBalance',

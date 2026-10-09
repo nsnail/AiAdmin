@@ -37,6 +37,7 @@ export interface ListFilterField {
     options: Array<{ label: string; value: string }>
     valueType: 'string' | 'number' | 'boolean' | 'date'
     groupCount: boolean
+    isVisible: boolean
 }
 
 export interface ListFilterGroupOption {
@@ -77,7 +78,7 @@ export interface LoginLogRecord {
     createdAt: string
 }
 
-export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item'
+export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job'
 
 export interface RedisServerInfo {
     endpoint: string
@@ -176,15 +177,15 @@ export function fetchDeleteRedisValue(key: string) {
 }
 
 export function fetchUpdateEnabledState(resource: EnabledStateResource, id: string, isEnabled: boolean) {
-    return request.post<void>({ url: `/api/enabled-state/${resource}/${id}`, data: { isEnabled } })
+    return request.post<void>({ url: '/api/enabled-state', data: { resource, id, isEnabled } })
 }
 
 export function fetchGetListFilterFields(resource: ListFilterResource) {
     return request.get<ListFilterField[]>({ url: `/api/${resource}/filter-fields` })
 }
 
-export function fetchGetListFilterGroups(resource: ListFilterResource, dynamicFilter?: DynamicFilter) {
-    return request.post<ListFilterGroup[]>({ url: `/api/${resource}/filter-groups`, data: { dynamicFilter } })
+export function fetchGetListFilterGroups(resource: ListFilterResource, dynamicFilter?: DynamicFilter, maxOptions?: number) {
+    return request.post<ListFilterGroup[]>({ url: `/api/${resource}/filter-groups`, data: { dynamicFilter, maxOptions } })
 }
 
 export function fetchGetDictionaryFilterGroups(categoryId: string, dynamicFilter?: DynamicFilter) {
@@ -204,7 +205,7 @@ export function fetchSaveQuery(data: { name: string; route: string; dynamicFilte
 }
 
 export function fetchDeleteSavedQuery(id: string) {
-    return request.post<void>({ url: `/api/saved-query/${id}/delete` })
+    return request.post<void>({ url: '/api/saved-query/delete', data: { id } })
 }
 
 export interface SystemLogSearchParams extends Api.Common.CommonSearchParams {
@@ -276,7 +277,7 @@ export function fetchGetUserList(params: DynamicTableQuery) {
 }
 
 export function fetchGetUser(id: string) {
-    return request.get<Api.SystemManage.UserListItem>({ url: `/api/user/${id}` })
+    return request.get<Api.SystemManage.UserListItem>({ url: '/api/user/detail', params: { id } })
 }
 
 export interface UserExportResult {
@@ -294,17 +295,26 @@ export function fetchCreateUser(data: Api.SystemManage.SaveUserParams) {
 }
 
 export function fetchUpdateUser(id: string, data: Api.SystemManage.UpdateUserParams) {
-    return request.post<Api.SystemManage.UserListItem>({ url: `/api/user/${id}`, data })
+    return request.post<Api.SystemManage.UserListItem>({ url: '/api/user/update', data: { ...data, id } })
 }
 
 export function fetchUploadUserAvatar(id: string, file: File) {
     const data = new FormData()
     data.append('file', file)
-    return request.post<Api.SystemManage.UserListItem>({ url: `/api/user/${id}/avatar`, data })
+    data.append('id', id)
+    return request.post<Api.SystemManage.UserListItem>({ url: '/api/user/avatar', data })
 }
 
-export function fetchDeleteUserAvatar(id: string) {
-    return request.post<Api.SystemManage.UserListItem>({ url: `/api/user/${id}/avatar/delete` })
+/** 上传当前登录用户头像 */
+export function fetchUploadCurrentUserAvatar(file: File) {
+    const data = new FormData()
+    data.append('file', file)
+    return request.post<Api.SystemManage.UserListItem>({ url: '/api/user/profile/avatar', data })
+}
+
+/** 删除当前登录用户头像 */
+export function fetchDeleteCurrentUserAvatar() {
+    return request.post<Api.SystemManage.UserListItem>({ url: '/api/user/profile/avatar/delete' })
 }
 
 export function fetchGetUserRoles() {
@@ -333,11 +343,11 @@ export function fetchSendSystemMessage(data: Api.SystemManage.SendSystemMessageP
 }
 
 export function fetchUpdateSystemMessage(id: string, data: { title: string; content: string }) {
-    return request.post<void>({ url: `/api/message/${id}`, data, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/message/update', data: { ...data, id }, showSuccessMessage: true })
 }
 
 export function fetchDeleteSystemMessage(id: string) {
-    return request.post<void>({ url: `/api/message/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/message/delete-one', data: { id }, showSuccessMessage: true })
 }
 
 export function fetchBatchDeleteSystemMessages(ids: string[]) {
@@ -345,7 +355,7 @@ export function fetchBatchDeleteSystemMessages(ids: string[]) {
 }
 
 export function fetchGetSystemMessageRecipients(id: string) {
-    return request.get<Api.SystemManage.SystemMessageRecipientItem[]>({ url: `/api/message/${id}/recipients` })
+    return request.get<Api.SystemManage.SystemMessageRecipientItem[]>({ url: '/api/message/recipients', params: { id } })
 }
 
 export function fetchGetNotifications(current = 1, size = 20) {
@@ -353,7 +363,7 @@ export function fetchGetNotifications(current = 1, size = 20) {
 }
 
 export function fetchMarkNotificationRead(id: number) {
-    return request.post<void>({ url: `/api/notifications/${id}/read`, data: {} })
+    return request.post<void>({ url: '/api/notifications/read', data: { id } })
 }
 
 export function fetchMarkAllNotificationsRead() {
@@ -361,7 +371,7 @@ export function fetchMarkAllNotificationsRead() {
 }
 
 export function fetchDeleteNotification(id: number) {
-    return request.post<void>({ url: `/api/notifications/${id}/delete` })
+    return request.post<void>({ url: '/api/notifications/delete', data: { id } })
 }
 
 export function fetchClearNotifications() {
@@ -373,11 +383,11 @@ export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParam
 }
 
 export function fetchUpdateDepartment(id: string, data: Api.SystemManage.SaveDepartmentParams) {
-    return request.post<Api.SystemManage.DepartmentTreeItem>({ url: `/api/department/${id}`, data })
+    return request.post<Api.SystemManage.DepartmentTreeItem>({ url: '/api/department/update', data: { ...data, id } })
 }
 
 export function fetchDeleteDepartment(id: string) {
-    return request.post<void>({ url: `/api/department/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/department/delete', data: { id }, showSuccessMessage: true })
 }
 
 // 获取角色列表
@@ -403,31 +413,31 @@ export function fetchCreateRole(data: Api.SystemManage.SaveRoleParams) {
 }
 
 export function fetchUpdateRole(id: string, data: Api.SystemManage.SaveRoleParams) {
-    return request.post<Api.SystemManage.RoleListItem>({ url: `/api/role/${id}`, data })
+    return request.post<Api.SystemManage.RoleListItem>({ url: '/api/role/update', data: { ...data, id } })
 }
 
 export function fetchDeleteRole(id: string) {
-    return request.post<void>({ url: `/api/role/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/role/delete', data: { id }, showSuccessMessage: true })
 }
 
 export function fetchCopyRole(id: string) {
-    return request.post<Api.SystemManage.RoleListItem>({ url: `/api/role/${id}/copy` })
+    return request.post<Api.SystemManage.RoleListItem>({ url: '/api/role/copy', data: { id } })
 }
 
 export function fetchGetRoleMenus(id: string) {
-    return request.get<AppRouteRecord[]>({ url: `/api/role/${id}/menus` })
+    return request.get<AppRouteRecord[]>({ url: '/api/role/menus', params: { id } })
 }
 
 export function fetchSaveRoleMenus(id: string, menuIds: string[]) {
-    return request.post<void>({ url: `/api/role/${id}/menus`, data: { menuIds } })
+    return request.post<void>({ url: '/api/role/menus', data: { id, menuIds } })
 }
 
 export function fetchGetRoleApis(id: string) {
-    return request.get<string[]>({ url: `/api/role/${id}/apis` })
+    return request.get<string[]>({ url: '/api/role/apis', params: { id } })
 }
 
 export function fetchSaveRoleApis(id: string, apiIds: string[]) {
-    return request.post<void>({ url: `/api/role/${id}/apis`, data: { apiIds } })
+    return request.post<void>({ url: '/api/role/apis', data: { id, apiIds } })
 }
 
 export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter, sortField?: string, sortOrder?: 'asc' | 'desc') {
@@ -462,11 +472,11 @@ export function fetchCreateMenu(data: Record<string, any>) {
 }
 
 export function fetchUpdateMenu(id: string, data: Record<string, any>) {
-    return request.post<AppRouteRecord>({ url: `/api/menu/${id}`, data })
+    return request.post<AppRouteRecord>({ url: '/api/menu/update', data: { ...data, id } })
 }
 
 export function fetchDeleteMenu(id: string) {
-    return request.post<void>({ url: `/api/menu/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/menu/delete', data: { id }, showSuccessMessage: true })
 }
 
 export function fetchGetDictionaryCategories() {
@@ -486,18 +496,19 @@ export function fetchCreateDictionaryCategory(data: Api.SystemManage.SaveDiction
 
 export function fetchUpdateDictionaryCategory(id: string, data: Api.SystemManage.SaveDictionaryCategoryParams) {
     return request.post<Api.SystemManage.DictionaryCategory>({
-        url: `/api/dictionary/categories/${id}`,
-        data,
+        url: '/api/dictionary/categories/update',
+        data: { ...data, id },
     })
 }
 
 export function fetchDeleteDictionaryCategory(id: string) {
-    return request.post<void>({ url: `/api/dictionary/categories/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/dictionary/categories/delete', data: { id }, showSuccessMessage: true })
 }
 
 export function fetchGetDictionaryItems(categoryId: string) {
     return request.get<Api.SystemManage.DictionaryItem[]>({
-        url: `/api/dictionary/categories/${categoryId}/items`,
+        url: '/api/dictionary/items',
+        params: { categoryId },
     })
 }
 
@@ -506,24 +517,24 @@ export function fetchGetDictionaryItemList(
     data: { current: number; size: number; dynamicFilter?: DynamicFilter; sortField?: string; sortOrder?: 'asc' | 'desc' },
 ) {
     return request.post<Api.Common.PaginatedResponse<Api.SystemManage.DictionaryItem>>({
-        url: `/api/dictionary/categories/${categoryId}/items/list`,
-        data,
+        url: '/api/dictionary/items/list',
+        data: { ...data, parentId: categoryId },
     })
 }
 
 export function fetchCreateDictionaryItem(categoryId: string, data: Api.SystemManage.SaveDictionaryItemParams) {
     return request.post<Api.SystemManage.DictionaryItem>({
-        url: `/api/dictionary/categories/${categoryId}/items`,
-        data,
+        url: '/api/dictionary/items',
+        data: { ...data, categoryId },
     })
 }
 
 export function fetchUpdateDictionaryItem(id: string, data: Api.SystemManage.SaveDictionaryItemParams) {
-    return request.post<Api.SystemManage.DictionaryItem>({ url: `/api/dictionary/items/${id}`, data })
+    return request.post<Api.SystemManage.DictionaryItem>({ url: '/api/dictionary/items/update', data: { ...data, id } })
 }
 
 export function fetchDeleteDictionaryItem(id: string) {
-    return request.post<void>({ url: `/api/dictionary/items/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/dictionary/items/delete', data: { id }, showSuccessMessage: true })
 }
 
 export interface ScheduledJob {
@@ -535,6 +546,7 @@ export interface ScheduledJob {
     requestMethod: string
     requestHeadersJson?: string
     requestBody?: string
+    remark: string
     timeoutSeconds: number
     isEnabled: boolean
     status: number
@@ -569,8 +581,12 @@ export type ScheduledJobExecutionSearchParams = DynamicQuery & {
 
 export type SaveScheduledJob = Pick<
     ScheduledJob,
-    'name' | 'cronExpression' | 'requestUrl' | 'requestMethod' | 'requestHeadersJson' | 'requestBody' | 'timeoutSeconds' | 'isEnabled'
+    'name' | 'cronExpression' | 'requestUrl' | 'requestMethod' | 'requestHeadersJson' | 'requestBody' | 'remark' | 'timeoutSeconds' | 'isEnabled'
 >
+
+export function fetchBatchUpdateScheduledJobRemark(ids: string[], remark: string) {
+    return request.post<{ affected: number }>({ url: '/api/scheduled-job/batch-remark', data: { ids, remark }, showSuccessMessage: true })
+}
 
 export function fetchGetScheduledJobs(params: DynamicTableQuery) {
     return request.post<Api.Common.PaginatedResponse<ScheduledJob>>({ url: '/api/scheduled-job/list', data: params })
@@ -581,15 +597,19 @@ export function fetchCreateScheduledJob(data: SaveScheduledJob) {
 }
 
 export function fetchUpdateScheduledJob(id: string, data: SaveScheduledJob) {
-    return request.post<ScheduledJob>({ url: `/api/scheduled-job/${id}`, data })
+    return request.post<ScheduledJob>({ url: '/api/scheduled-job/update', data: { ...data, id } })
 }
 
 export function fetchDeleteScheduledJob(id: string) {
-    return request.post<void>({ url: `/api/scheduled-job/${id}/delete`, showSuccessMessage: true })
+    return request.post<void>({ url: '/api/scheduled-job/delete', data: { id }, showSuccessMessage: true })
+}
+
+export function fetchCopyScheduledJob(id: string) {
+    return request.post<ScheduledJob>({ url: '/api/scheduled-job/copy', data: { id } })
 }
 
 export function fetchRunScheduledJob(id: string) {
-    return request.post<void>({ url: `/api/scheduled-job/${id}/run` })
+    return request.post<void>({ url: '/api/scheduled-job/run', data: { id } })
 }
 
 export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExecutionSearchParams) {
@@ -601,15 +621,15 @@ export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExec
             value,
         }))
     return request.post<Api.Common.PaginatedResponse<ScheduledJobExecution>>({
-        url: `/api/scheduled-job/${id}/executions/list`,
-        data: createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder),
+        url: '/api/scheduled-job/executions/list',
+        data: { ...createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder), parentId: id },
     })
 }
 
 export function fetchScheduledJobExecutionFilterFields(id: string) {
-    return request.get<ListFilterField[]>({ url: `/api/scheduled-job/${id}/executions/filter-fields` })
+    return request.get<ListFilterField[]>({ url: '/api/scheduled-job/executions/filter-fields', params: { id } })
 }
 
 export function fetchScheduledJobExecutionFilterGroups(id: string, dynamicFilter?: DynamicFilter) {
-    return request.post<ListFilterGroup[]>({ url: `/api/scheduled-job/${id}/executions/filter-groups`, data: { dynamicFilter } })
+    return request.post<ListFilterGroup[]>({ url: '/api/scheduled-job/executions/filter-groups', data: { parentId: id, dynamicFilter } })
 }

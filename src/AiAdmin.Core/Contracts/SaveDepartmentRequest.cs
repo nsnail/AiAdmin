@@ -22,6 +22,11 @@ public sealed class SaveDepartmentRequest
     public string Description { get; init; } = string.Empty;
 
     /// <summary>
+    ///     部门主键，修改时必填
+    /// </summary>
+    public long? Id { get; init; }
+
+    /// <summary>
     ///     是否启用部门
     /// </summary>
     public bool IsEnabled { get; init; } = true;

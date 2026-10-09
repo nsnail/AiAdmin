@@ -62,6 +62,7 @@ import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-dr
 import * as XLSX from 'xlsx'
 import FileSaver from 'file-saver'
 import { formatDateTime } from '@/utils/date'
+import { getHashTagStyle } from '@/utils/tagColor'
 
 defineOptions({ name: 'User' })
 const { t, locale } = useI18n()
@@ -185,7 +186,7 @@ const {
             },
             {
                 prop: 'userRoles',
-                queryField: 'RoleName',
+                queryField: 'UserRoles.Role.Name',
                 queryValueField: 'roleNames.0',
                 queryValueType: 'string',
                 label: t('userManagement.fields.roles'),
@@ -199,6 +200,7 @@ const {
                                 ElTag,
                                 {
                                     size: 'small',
+                                    style: getHashTagStyle(roleName(role)),
                                     'data-query-field': 'RoleName',
                                     'data-query-label': t('userManagement.fields.roles'),
                                     'data-query-value': row.roleNames[index],
@@ -211,7 +213,7 @@ const {
             },
             {
                 prop: 'departmentNames',
-                queryField: 'DepartmentName',
+                queryField: 'UserDepartments.Department.Name',
                 queryValueField: 'departmentNames.0',
                 queryValueType: 'string',
                 label: t('userManagement.fields.departments'),
@@ -226,7 +228,7 @@ const {
                                       ElTag,
                                       {
                                           size: 'small',
-                                          type: 'info',
+                                          style: getHashTagStyle(department),
                                           'data-query-field': 'DepartmentName',
                                           'data-query-label': t('userManagement.fields.departments'),
                                           'data-query-value': department,
@@ -237,6 +239,52 @@ const {
                               ),
                           )
                         : '-',
+            },
+            {
+                prop: 'lastLoginAt',
+                queryField: 'LastLoginAt',
+                queryValueField: 'lastLoginAt',
+                queryValueType: 'date',
+                label: t('userManagement.fields.lastLogin'),
+                minWidth: 220,
+                sortable: true,
+                showOverflowTooltip: true,
+                formatter: (row) =>
+                    h('div', { class: 'leading-5' }, [
+                        h(
+                            'div',
+                            {
+                                'data-query-field': 'LastLoginAt',
+                                'data-query-label': t('userManagement.fields.lastLogin'),
+                                'data-query-value': row.lastLoginAt || '',
+                                'data-query-value-type': 'date',
+                            },
+                            row.lastLoginAt ? formatDateTime(row.lastLoginAt, locale.value) : '-',
+                        ),
+                        h('div', { class: 'text-xs text-gray-400' }, [
+                            h(
+                                'span',
+                                {
+                                    'data-query-field': 'LastLoginIp',
+                                    'data-query-label': t('userManagement.fields.lastLoginIp'),
+                                    'data-query-value': row.lastLoginIp || '',
+                                    'data-query-value-type': 'string',
+                                },
+                                row.lastLoginIp || '-',
+                            ),
+                            h('span', { class: 'mx-1' }, '|'),
+                            h(
+                                'span',
+                                {
+                                    'data-query-field': 'LastLoginRegion',
+                                    'data-query-label': t('userManagement.fields.lastLoginRegion'),
+                                    'data-query-value': row.lastLoginRegion || '',
+                                    'data-query-value-type': 'string',
+                                },
+                                row.lastLoginRegion || t('userManagement.fields.unknownRegion'),
+                            ),
+                        ]),
+                    ]),
             },
             {
                 prop: 'status',

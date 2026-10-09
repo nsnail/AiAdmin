@@ -18,7 +18,7 @@
 
         <!-- 锁屏弹窗 -->
         <div v-if="!isLock">
-            <ElDialog v-model="visible" :show-close="false" :width="370" @open="handleDialogOpen">
+            <ElDrawer v-model="visible" :show-close="false" :width="370" @open="handleDialogOpen">
                 <div class="flex-c flex-col">
                     <ElAvatar :size="64" :src="userInfo.avatar" aria-label="用户头像">
                         <ArtSvgIcon icon="ri:user-line" />
@@ -47,7 +47,7 @@
                         </ElButton>
                     </ElForm>
                 </div>
-            </ElDialog>
+            </ElDrawer>
         </div>
 
         <!-- 解锁界面 -->

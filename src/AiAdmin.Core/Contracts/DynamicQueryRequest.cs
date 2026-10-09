@@ -19,6 +19,12 @@ public sealed class DynamicQueryRequest
     public DynamicFilter? DynamicFilter { get; init; }
 
     /// <summary>
+    ///     父资源主键，嵌套列表查询时使用
+    /// </summary>
+    [Range(1, long.MaxValue)]
+    public long? ParentId { get; init; }
+
+    /// <summary>
     ///     每页记录数
     /// </summary>
     [Range(1, 100)]

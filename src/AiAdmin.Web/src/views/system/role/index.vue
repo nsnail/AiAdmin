@@ -152,6 +152,7 @@ const {
                     return h(
                         ElTag,
                         {
+                            effect: 'light',
                             size: 'small',
                             'data-query-field': 'DataScope',
                             'data-query-label': t('listFilter.role.dataScope'),

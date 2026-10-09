@@ -1,25 +1,21 @@
 <template>
     <div class="system-log-page art-full-height">
-        <ArtSearchBar
-            v-model="searchForm"
-            :advanced-query-fields="advancedQueryFields"
-            :items="searchItems"
-            @reset="handleReset"
-            @search="handleSearch" />
-        <ElCard class="art-table-card">
-            <ArtTableHeader v-model:columns="columnChecks" :loading="loading" @refresh="refreshData" />
-            <ArtTable
-                :columns="columns"
-                :data="data"
-                :loading="loading"
-                :pagination="pagination"
-                :show-pagination-when-empty="true"
-                @cell-query="applySystemLogCellQuery"
-                @pagination:current-change="handleCurrentChange"
-                @pagination:size-change="handleSizeChange"
-                @sort-change="handleSortChange" />
-        </ElCard>
-        <ElDialog v-model="detailVisible" :title="t('systemLog.detail.title')" destroy-on-close width="900px">
+        <ArtTablePage
+            v-model:column-checks="columnChecks"
+            :columns="columns"
+            :data="data"
+            :default-filter="defaultFilter"
+            :loading="loading"
+            :pagination="pagination"
+            :table-props="{ showPaginationWhenEmpty: true }"
+            @filter-change="handleFilterChange"
+            @page-change="handleCurrentChange"
+            @refresh="refreshData"
+            @reset="resetSearchParams"
+            @size-change="handleSizeChange"
+            @sort-change="handleSortChange"
+            resource="system-log" />
+        <ElDrawer v-model="detailVisible" :title="t('systemLog.detail.title')" destroy-on-close width="900px">
             <ElTabs v-if="selectedLog" v-model="activeDetailTab" type="card">
                 <ElTabPane
                     v-for="group in visibleLogDetailGroups"
@@ -41,7 +37,7 @@
             <template #footer>
                 <ElButton @click="detailVisible = false">{{ t('systemLog.detail.close') }}</ElButton>
             </template>
-        </ElDialog>
+        </ElDrawer>
     </div>
 </template>
 
@@ -49,100 +45,18 @@
 import { ElButton, ElMessage, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
-import { fetchGetSystemLogs, type SystemLogSearchParams } from '@/api/system-manage'
+import { fetchGetSystemLogs } from '@/api/system-manage'
 import { useTable } from '@/hooks/core/useTable'
-import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
-import { getDateTimeShortcuts } from '@/utils/date-time-shortcuts'
+import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
+import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import { formatDateTime } from '@/utils/date'
+import type { ColumnOption } from '@/types/component'
 
-type SystemLogSearchForm = SystemLogSearchParams & {
-    timestamp?: string[]
-    level?: string
-    logType?: string
-    keyword?: string
-}
-
+// 系统日志复用公共列表的动态筛选、保存查询和排序状态
 defineOptions({ name: 'SystemLog' })
 const { t, locale } = useI18n()
-const levels = ['Trace', 'Debug', 'Information', 'Warning', 'Error', 'Critical']
-const logTypes = ['System', 'Api', 'Sql', 'Http']
-const getTimestampShortcuts = () => {
-    return getDateTimeShortcuts(t)
-    /*
-    const now = new Date()
-    const today = new Date(now)
-    today.setHours(0, 0, 0, 0)
-    const tomorrow = new Date(today)
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    const currentHour = new Date(now)
-    currentHour.setMinutes(0, 0, 0)
-    const nextHour = new Date(currentHour)
-    nextHour.setHours(nextHour.getHours() + 1)
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
-    const weekStart = new Date(today)
-    weekStart.setDate(weekStart.getDate() - weekStart.getDay())
-    const nextWeek = new Date(weekStart)
-    nextWeek.setDate(nextWeek.getDate() + 7)
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
-    const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
-    const range = (start: Date, end: Date) => [start, end]
-    return [
-        {
-            text: t('table.searchBar.lastHour'),
-            value: () => range(new Date(now.getTime() - 3600000), new Date()),
-        },
-        {
-            text: t('table.searchBar.currentHour'),
-            value: () => range(new Date(currentHour), new Date(nextHour)),
-        },
-        {
-            text: t('table.searchBar.previousHour'),
-            value: () => range(new Date(now.getTime() - 7200000), new Date(now.getTime() - 3600000)),
-        },
-        {
-            text: t('table.searchBar.yesterdayAtThisTime'),
-            value: () => range(new Date(yesterday.getTime() + (now.getTime() - today.getTime())), new Date()),
-        },
-        { text: t('table.searchBar.today'), value: () => range(new Date(today), new Date(tomorrow)) },
-        {
-            text: t('table.searchBar.yesterday'),
-            value: () => range(new Date(yesterday), new Date(today)),
-        },
-        {
-            text: t('table.searchBar.previousDay'),
-            value: () => {
-                const start = new Date(yesterday)
-                start.setDate(start.getDate() - 1)
-                return range(start, new Date(yesterday))
-            },
-        },
-        {
-            text: t('table.searchBar.thisWeek'),
-            value: () => range(new Date(weekStart), new Date(nextWeek)),
-        },
-        {
-            text: t('table.searchBar.previousWeek'),
-            value: () => {
-                const start = new Date(weekStart)
-                start.setDate(start.getDate() - 7)
-                return range(start, new Date(weekStart))
-            },
-        },
-        {
-            text: t('table.searchBar.thisMonth'),
-            value: () => range(new Date(monthStart), new Date(nextMonth)),
-        },
-        {
-            text: t('table.searchBar.previousMonth'),
-            value: () => {
-                const start = new Date(monthStart.getFullYear(), monthStart.getMonth() - 1, 1)
-                return range(start, new Date(monthStart))
-            },
-        },
-    ] */
-}
+
 const toLocalIsoString = (date: Date): string => {
     const pad = (value: number, length = 2) => String(value).padStart(length, '0')
     const offsetMinutes = -date.getTimezoneOffset()
@@ -163,98 +77,11 @@ const getTodayTimestampRange = (): string[] => {
     end.setDate(end.getDate() + 1)
     return [toLocalIsoString(start), toLocalIsoString(end)]
 }
-const initialTimestamp = getTodayTimestampRange()
-const searchForm = ref<SystemLogSearchForm>({
-    current: 1,
-    size: 20,
-    timestamp: initialTimestamp,
-    dynamicFilter: {
-        field: 'timestamp',
-        operator: 'DateRange',
-        value: initialTimestamp,
-    },
-})
-const searchItems = computed(() => [
-    {
-        label: '',
-        key: 'timestamp',
-        type: 'datetime',
-        span: 6,
-        props: {
-            style: { width: '100%' },
-            placeholder: t('systemLog.filters.timestamp'),
-            type: 'datetimerange',
-            rangeSeparator: t('table.searchBar.to'),
-            valueFormat: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
-            startPlaceholder: t('systemLog.filters.startTime'),
-            endPlaceholder: t('systemLog.filters.endTime'),
-            clearable: true,
-            shortcuts: getTimestampShortcuts(),
-        },
-    },
-    {
-        label: '',
-        key: 'level',
-        type: 'select',
-        span: 3,
-        props: {
-            placeholder: t('systemLog.filters.level'),
-            options: levels.map((level) => ({ label: level, value: level })),
-        },
-    },
-    {
-        label: '',
-        key: 'logType',
-        type: 'select',
-        span: 3,
-        props: {
-            placeholder: t('systemLog.filters.logType'),
-            options: logTypes.map((type) => ({ label: t(`systemLog.types.${type}`), value: type })),
-        },
-    },
-    {
-        label: '',
-        span: 6,
-        key: 'keyword',
-        type: 'input',
-        props: { placeholder: t('systemLog.filters.keyword') },
-    },
-])
-const advancedQueryFields = computed<DynamicQueryField[]>(() =>
-    [
-        'timestamp',
-        'level',
-        'category',
-        'clientIp',
-        'elapsedMilliseconds',
-        'eventId',
-        'eventName',
-        'exception',
-        'logType',
-        'message',
-        'requestBody',
-        'requestContentType',
-        'requestHeaders',
-        'traceId',
-        'requestMethod',
-        'requestRelativeUrl',
-        'requestUrl',
-        'responseBody',
-        'responseContentType',
-        'responseHeaders',
-        'serverIp',
-        'source',
-        'sql',
-        'statusCode',
-        'threadId',
-        'userAgent',
-        'userName',
-    ].map((field) => ({
-        field,
-        label: t(`systemLog.fields.${field}`),
-        type: ['elapsedMilliseconds', 'eventId', 'statusCode', 'threadId'].includes(field) ? 'number' : field === 'timestamp' ? 'date' : 'string',
-    })),
-)
+const defaultFilter: DynamicFilter = {
+    field: 'Timestamp',
+    operator: 'DateRange',
+    value: getTodayTimestampRange(),
+}
 
 const levelType = (level: string) => {
     if (level === 'Error' || level === 'Critical') return 'danger'
@@ -367,22 +194,21 @@ const openDetail = (row: Api.SystemManage.SystemLogItem) => {
     detailVisible.value = true
 }
 
-const textQueryOperators = ['Equal', 'NotEqual', 'Contains', 'StartsWith', 'EndsWith']
-const numericQueryOperators = ['Equal', 'NotEqual', 'GreaterThan', 'GreaterThanOrEqual', 'LessThan', 'LessThanOrEqual']
-const withQueryFields = (items: Array<Record<string, unknown>>) =>
-    items.map((item) => {
+const withQueryFields = (items: ColumnOption<Api.SystemManage.SystemLogItem>[]): ColumnOption<Api.SystemManage.SystemLogItem>[] =>
+    items.map((item): ColumnOption<Api.SystemManage.SystemLogItem> => {
         const valueType =
             item.queryValueType ||
             (item.prop === 'timestamp'
                 ? 'date'
-                : ['elapsedMilliseconds', 'eventId', 'statusCode', 'threadId'].includes(String(item.prop))
+                : ['elapsedMilliseconds', 'eventId', 'statusCode', 'threadId', 'traceId'].includes(String(item.prop))
                   ? 'number'
                   : 'string')
         return {
             ...item,
-            queryField: item.queryField ?? item.prop,
+            queryField: item.queryField ?? String(item.prop).replace(/^./, (letter) => letter.toUpperCase()),
+            queryValueField: item.prop,
+            sortable: item.queryField === false ? false : 'custom',
             queryValueType: valueType,
-            queryOperators: item.queryOperators || (valueType === 'string' ? textQueryOperators : numericQueryOperators),
         }
     })
 
@@ -394,7 +220,7 @@ const {
     pagination,
     getData,
     replaceSearchParams,
-    handleCellQuery: applyCellQuery,
+    resetSearchParams,
     handleSizeChange,
     handleCurrentChange,
     handleSortChange,
@@ -402,7 +228,7 @@ const {
 } = useTable({
     core: {
         apiFn: fetchGetSystemLogs,
-        apiParams: searchForm.value,
+        apiParams: { current: 1, size: 20, dynamicFilter: defaultFilter },
         columnsFactory: () =>
             withQueryFields([
                 {
@@ -530,7 +356,7 @@ const {
                     minWidth: 220,
                     showOverflowTooltip: true,
                 },
-                { prop: 'statusCode', label: t('systemLog.fields.statusCode'), width: 130 },
+                { prop: 'statusCode', label: t('systemLog.fields.statusCode'), width: 130, align: 'right' },
                 {
                     prop: 'sql',
                     label: t('systemLog.fields.sql'),
@@ -562,54 +388,9 @@ const {
     },
 })
 
-const applySystemLogCellQuery = async (condition: { field: string; operator: string; value: unknown }) => {
-    const currentFilter = searchForm.value.dynamicFilter
-    searchForm.value.dynamicFilter = currentFilter ? { logic: 'And', filters: [currentFilter, condition] } : condition
-    await applyCellQuery(condition)
-}
-
-const buildDynamicFilter = (params: SystemLogSearchForm): DynamicFilter | undefined => {
-    const directFields = new Set<string>()
-    if (params.timestamp?.length === 2) directFields.add('timestamp')
-    if (params.level) directFields.add('level')
-    if (params.logType) directFields.add('logType')
-    if (params.keyword?.trim()) directFields.add('message')
-    const existingFilters = params.dynamicFilter
-        ? params.dynamicFilter.filters?.length
-            ? params.dynamicFilter.filters.filter((filter) => !directFields.has(filter.field || ''))
-            : directFields.has(params.dynamicFilter.field || '')
-              ? []
-              : [params.dynamicFilter]
-        : []
-    const filters: DynamicFilter[] = [...existingFilters]
-    if (params.timestamp?.length === 2) {
-        filters.push({ field: 'timestamp', operator: 'DateRange', value: params.timestamp })
-    }
-    if (params.level) filters.push({ field: 'level', operator: 'Equal', value: params.level })
-    if (params.logType) filters.push({ field: 'logType', operator: 'Equal', value: params.logType })
-    if (params.keyword?.trim()) {
-        filters.push({ field: 'message', operator: 'Contains', value: params.keyword.trim() })
-    }
-    if (!filters.length) return undefined
-    return filters.length === 1 ? filters[0] : { logic: 'And', filters }
-}
-
-async function handleSearch(params: SystemLogSearchForm) {
-    const nextParams = { ...params, current: 1, dynamicFilter: buildDynamicFilter(params) }
-    searchForm.value.dynamicFilter = nextParams.dynamicFilter
-    replaceSearchParams(nextParams)
-    await getData()
-}
-
-async function handleReset() {
-    const timestamp = getTodayTimestampRange()
-    searchForm.value = {
-        current: 1,
-        size: pagination.size,
-        timestamp,
-        dynamicFilter: { field: 'timestamp', operator: 'DateRange', value: timestamp },
-    }
-    replaceSearchParams(searchForm.value)
+// 公共列表输出完整查询树，替换唯一筛选状态后从第一页查询
+async function handleFilterChange(dynamicFilter: DynamicFilter | undefined) {
+    replaceSearchParams({ dynamicFilter })
     await getData()
 }
 </script>

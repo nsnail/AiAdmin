@@ -26,6 +26,11 @@ public sealed class SaveRoleRequest
     public bool Enabled { get; init; } = true;
 
     /// <summary>
+    ///     角色主键，修改时必填
+    /// </summary>
+    public long? Id { get; init; }
+
+    /// <summary>
     ///     角色编码
     /// </summary>
     [Required]

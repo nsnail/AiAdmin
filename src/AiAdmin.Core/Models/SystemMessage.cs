@@ -15,10 +15,14 @@ public sealed class SystemMessage : EntityBase, IUpdatedAt
     [NotMapped]
     public int RecipientCount => Recipients.Count;
 
-    /// <summary>消息正文 HTML</summary>
+    /// <summary>
+    ///     消息正文 HTML
+    /// </summary>
     public string Content { get; set; } = string.Empty;
 
-    /// <summary>消息主键</summary>
+    /// <summary>
+    ///     消息主键
+    /// </summary>
     public long Id { get; init; } = SnowflakeIdGenerator.Next();
 
     /// <summary>
@@ -29,10 +33,14 @@ public sealed class SystemMessage : EntityBase, IUpdatedAt
     )]
     public bool IsPopup { get; init; }
 
-    /// <summary>用户收件关联集合</summary>
+    /// <summary>
+    ///     用户收件关联集合
+    /// </summary>
     public ICollection<UserMessage> Recipients { get; init; } = [];
 
-    /// <summary>发送人主键</summary>
+    /// <summary>
+    ///     发送人主键
+    /// </summary>
     public long SenderId { get; init; }
 
     /// <summary>

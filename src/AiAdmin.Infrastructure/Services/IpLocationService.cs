@@ -32,7 +32,7 @@ public sealed class IpLocationService(HttpClient httpClient, ILogger<IpLocationS
             await using var stream
                 = await httpClient.GetStreamAsync($"?ip={Uri.EscapeDataString(ipAddress)}", cancellationToken).ConfigureAwait(false);
             var result = await JsonSerializer
-                .DeserializeAsync<IpLocationResponse[]>(stream, cancellationToken: cancellationToken)
+                .DeserializeAsync<IpLocationResponse[]>(stream, JsonParsing.Options, cancellationToken)
                 .ConfigureAwait(false);
             return result?.FirstOrDefault(x => x.Code == 0)?.Region.Trim() ?? string.Empty;
         }

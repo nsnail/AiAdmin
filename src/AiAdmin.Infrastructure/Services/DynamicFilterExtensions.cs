@@ -83,6 +83,14 @@ public static class DynamicFilterExtensions
         return query.Provider.CreateQuery<T>(ordered);
     }
 
+    /// <summary>
+    ///     构建 BuildAny 方法对应的业务数据
+    /// </summary>
+    /// <param name="member">成员名称</param>
+    /// <param name="value">待处理的值</param>
+    /// <param name="negate">方法参数 negate</param>
+    /// <returns>BuildAny 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">集合筛选值为空时抛出</exception>
     private static BinaryExpression BuildAny(
         MemberExpression member
         , JsonElement value
@@ -104,6 +112,14 @@ public static class DynamicFilterExtensions
         );
     }
 
+    /// <summary>
+    ///     构建 BuildComparison 方法对应的业务数据
+    /// </summary>
+    /// <param name="member">成员名称</param>
+    /// <param name="value">待处理的值</param>
+    /// <param name="factory">方法参数 factory</param>
+    /// <returns>BuildComparison 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">字段类型不支持比较操作时抛出</exception>
     private static BinaryExpression BuildComparison(
         MemberExpression member
         , JsonElement value
@@ -115,6 +131,14 @@ public static class DynamicFilterExtensions
             : throw new DynamicFilterValidationException("Dynamic filter comparison operator does not support string or boolean fields.");
     }
 
+    /// <summary>
+    ///     构建 BuildCondition 方法对应的业务数据
+    /// </summary>
+    /// <param name="parameter">参数信息</param>
+    /// <param name="suppliedFilter">方法参数 suppliedFilter</param>
+    /// <param name="aliases">方法参数 aliases</param>
+    /// <returns>BuildCondition 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">筛选逻辑无效时抛出</exception>
     private static Expression? BuildCondition(
         ParameterExpression parameter
         , DynamicFilter suppliedFilter
@@ -142,6 +166,13 @@ public static class DynamicFilterExtensions
             : throw new DynamicFilterValidationException("Dynamic filter logic must be And or Or.");
     }
 
+    /// <summary>
+    ///     构建 BuildConstant 方法对应的业务数据
+    /// </summary>
+    /// <param name="targetType">方法参数 targetType</param>
+    /// <param name="value">待处理的值</param>
+    /// <returns>BuildConstant 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">非空值类型接收到空值时抛出</exception>
     private static Expression BuildConstant(
         Type targetType
         , JsonElement value
@@ -158,6 +189,14 @@ public static class DynamicFilterExtensions
         return sourceType == targetType ? constant : Expression.Convert(constant, targetType);
     }
 
+    /// <summary>
+    ///     构建 BuildFieldCondition 方法对应的业务数据
+    /// </summary>
+    /// <param name="parameter">参数信息</param>
+    /// <param name="filter">动态筛选条件</param>
+    /// <param name="aliases">方法参数 aliases</param>
+    /// <returns>BuildFieldCondition 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">筛选字段或操作符缺失时抛出</exception>
     private static Expression BuildFieldCondition(
         ParameterExpression parameter
         , DynamicFilter filter
@@ -190,28 +229,31 @@ public static class DynamicFilterExtensions
         , DynamicFilter filter
     ) {
         var operation = filter.Operator!.Trim();
-        var value = filter.Value ?? throw new DynamicFilterValidationException("Dynamic filter value is required.");
-        return operation.ToUpperInvariant() switch
-        {
-            "CONTAINS" => BuildStringCondition(member, value, nameof(string.Contains), false)
-            , "STARTSWITH" => BuildStringCondition(member, value, nameof(string.StartsWith), false)
-            , "ENDSWITH" => BuildStringCondition(member, value, nameof(string.EndsWith), false)
-            , "NOTCONTAINS" => BuildStringCondition(member, value, nameof(string.Contains), true)
-            , "NOTSTARTSWITH" => BuildStringCondition(member, value, nameof(string.StartsWith), true)
-            , "NOTENDSWITH" => BuildStringCondition(member, value, nameof(string.EndsWith), true)
-            , "EQUAL" or "EQUALS" or "EQ" => Expression.Equal(member, BuildConstant(member.Type, value))
-            , "NOTEQUAL" => Expression.NotEqual(member, BuildConstant(member.Type, value))
-            , "GREATERTHAN" => BuildComparison(member, value, Expression.GreaterThan)
-            , "GREATERTHANOREQUAL" => BuildComparison(member, value, Expression.GreaterThanOrEqual)
-            , "LESSTHAN" => BuildComparison(member, value, Expression.LessThan)
-            , "LESSTHANOREQUAL" => BuildComparison(member, value, Expression.LessThanOrEqual)
-            , "RANGE" => BuildRange(member, value, false)
-            , "DATERANGE" => BuildRange(member, value, true)
-            , "ANY" => BuildAny(member, value, false)
-            , "NOTANY" => BuildAny(member, value, true)
-            , "CUSTOM" => throw new DynamicFilterValidationException("Dynamic filter operator Custom is not supported.")
-            , _ => throw new DynamicFilterValidationException($"Unsupported dynamic filter operator '{filter.Operator}'.")
-        };
+        var operationName = operation.ToUpperInvariant();
+        var value = filter.Value ?? default;
+        return filter.Value is null && operationName is not ("EQUAL" or "EQUALS" or "EQ" or "NOTEQUAL")
+            ? throw new DynamicFilterValidationException("Dynamic filter value is required.")
+            : operationName switch
+            {
+                "CONTAINS" => BuildStringCondition(member, value, nameof(string.Contains), false)
+                , "STARTSWITH" => BuildStringCondition(member, value, nameof(string.StartsWith), false)
+                , "ENDSWITH" => BuildStringCondition(member, value, nameof(string.EndsWith), false)
+                , "NOTCONTAINS" => BuildStringCondition(member, value, nameof(string.Contains), true)
+                , "NOTSTARTSWITH" => BuildStringCondition(member, value, nameof(string.StartsWith), true)
+                , "NOTENDSWITH" => BuildStringCondition(member, value, nameof(string.EndsWith), true)
+                , "EQUAL" or "EQUALS" or "EQ" => Expression.Equal(member, BuildConstant(member.Type, value))
+                , "NOTEQUAL" => Expression.NotEqual(member, BuildConstant(member.Type, value))
+                , "GREATERTHAN" => BuildComparison(member, value, Expression.GreaterThan)
+                , "GREATERTHANOREQUAL" => BuildComparison(member, value, Expression.GreaterThanOrEqual)
+                , "LESSTHAN" => BuildComparison(member, value, Expression.LessThan)
+                , "LESSTHANOREQUAL" => BuildComparison(member, value, Expression.LessThanOrEqual)
+                , "RANGE" => BuildRange(member, value, false)
+                , "DATERANGE" => BuildRange(member, value, true)
+                , "ANY" => BuildAny(member, value, false)
+                , "NOTANY" => BuildAny(member, value, true)
+                , "CUSTOM" => throw new DynamicFilterValidationException("Dynamic filter operator Custom is not supported.")
+                , _ => throw new DynamicFilterValidationException($"Unsupported dynamic filter operator '{filter.Operator}'.")
+            };
     }
 
     /// <summary>
@@ -236,7 +278,7 @@ public static class DynamicFilterExtensions
 
         var member = Expression.Property(current, property);
         if (!IsCollection(property.PropertyType)) {
-            return index < segments.Count - 1 ? BuildPathCondition(member, segments, index + 1, filter) : BuildMemberCondition(member, filter);
+            return index >= segments.Count - 1 ? BuildMemberCondition(member, filter) : BuildPathCondition(member, segments, index + 1, filter);
         }
 
         if (index == segments.Count - 1) {
@@ -259,6 +301,14 @@ public static class DynamicFilterExtensions
         return negate ? Expression.Not(any) : any;
     }
 
+    /// <summary>
+    ///     构建 BuildRange 方法对应的业务数据
+    /// </summary>
+    /// <param name="member">成员名称</param>
+    /// <param name="value">待处理的值</param>
+    /// <param name="dateRange">方法参数 dateRange</param>
+    /// <returns>BuildRange 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">范围筛选值数量无效时抛出</exception>
     private static BinaryExpression BuildRange(
         MemberExpression member
         , JsonElement value
@@ -283,6 +333,15 @@ public static class DynamicFilterExtensions
         return Expression.AndAlso(lower, upper);
     }
 
+    /// <summary>
+    ///     构建 BuildStringCondition 方法对应的业务数据
+    /// </summary>
+    /// <param name="member">成员名称</param>
+    /// <param name="value">待处理的值</param>
+    /// <param name="method">方法参数 method</param>
+    /// <param name="negate">方法参数 negate</param>
+    /// <returns>BuildStringCondition 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">字段类型或字符串筛选值无效时抛出</exception>
     private static Expression BuildStringCondition(
         MemberExpression member
         , JsonElement value
@@ -302,6 +361,11 @@ public static class DynamicFilterExtensions
         return negate ? Expression.Not(call) : call;
     }
 
+    /// <summary>
+    ///     创建 CreateStringElement 方法对应的业务数据
+    /// </summary>
+    /// <param name="value">待处理的值</param>
+    /// <returns>CreateStringElement 方法的执行结果</returns>
     private static JsonElement CreateStringElement(string value) {
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(value));
         return document.RootElement.Clone();
@@ -326,6 +390,12 @@ public static class DynamicFilterExtensions
                ?? throw new DynamicFilterValidationException("Dynamic filter collection element type is not available.");
     }
 
+    /// <summary>
+    ///     获取 GetDateRangeEnd 方法对应的业务数据
+    /// </summary>
+    /// <param name="value">待处理的值</param>
+    /// <returns>GetDateRangeEnd 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">日期范围结束值缺失或格式无效时抛出</exception>
     private static JsonElement GetDateRangeEnd(JsonElement value) {
         var text = value.GetString() ?? throw new DynamicFilterValidationException("Dynamic filter DateRange end value is required.");
         if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffset)) {
@@ -345,6 +415,11 @@ public static class DynamicFilterExtensions
         return document.RootElement.Clone();
     }
 
+    /// <summary>
+    ///     判断 IsCollection 方法对应的业务数据
+    /// </summary>
+    /// <param name="type">类型</param>
+    /// <returns>IsCollection 方法的执行结果</returns>
     private static bool IsCollection(Type type) {
         return type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type);
     }
@@ -368,6 +443,12 @@ public static class DynamicFilterExtensions
             or TypeCode.Decimal;
     }
 
+    /// <summary>
+    ///     判断 IsSameDateAtMidnight 方法对应的业务数据
+    /// </summary>
+    /// <param name="start">方法参数 start</param>
+    /// <param name="end">方法参数 end</param>
+    /// <returns>IsSameDateAtMidnight 方法的执行结果</returns>
     private static bool IsSameDateAtMidnight(
         JsonElement start
         , JsonElement end
@@ -398,6 +479,12 @@ public static class DynamicFilterExtensions
             : (new DynamicFilter { Field = filter.Field, Operator = positiveOperation, Value = filter.Value }, true);
     }
 
+    /// <summary>
+    ///     解析 ParseDate 方法对应的业务数据
+    /// </summary>
+    /// <param name="value">待处理的值</param>
+    /// <returns>ParseDate 方法的执行结果</returns>
+    /// <exception cref="DynamicFilterValidationException">日期值缺失或格式无效时抛出</exception>
     private static DateTimeOffset ParseDate(JsonElement value) {
         var text = value.GetString() ?? throw new DynamicFilterValidationException("Dynamic filter DateRange date is required.");
         return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result)
@@ -446,7 +533,8 @@ public static class DynamicFilterExtensions
                 , _ when IsNumericType(targetType) && value.ValueKind == JsonValueKind.String => Convert.ChangeType(
                     value.GetString() ?? string.Empty, targetType, CultureInfo.InvariantCulture
                 )
-                , _ => JsonSerializer.Deserialize(value.GetRawText(), targetType)
+                , _ when targetType == typeof(bool) && value.ValueKind == JsonValueKind.String => bool.Parse(value.GetString() ?? string.Empty)
+                , _ => JsonSerializer.Deserialize(value.GetRawText(), targetType, JsonParsing.Options)
             };
         }
         catch (Exception exception) when (exception is JsonException
@@ -458,6 +546,11 @@ public static class DynamicFilterExtensions
         }
     }
 
+    /// <summary>
+    ///     读取 ReadValues 方法对应的业务数据
+    /// </summary>
+    /// <param name="value">待处理的值</param>
+    /// <returns>ReadValues 方法的执行结果</returns>
     private static IReadOnlyList<JsonElement> ReadValues(JsonElement value) {
         return value.ValueKind switch
         {
@@ -472,6 +565,11 @@ public static class DynamicFilterExtensions
         };
     }
 
+    /// <summary>
+    ///     解包 Unwrap 方法对应的业务数据
+    /// </summary>
+    /// <param name="filter">动态筛选条件</param>
+    /// <returns>Unwrap 方法的执行结果</returns>
     private static DynamicFilter Unwrap(DynamicFilter filter) {
         var current = filter;
         while (current.NestedDynamicFilter is not null) {

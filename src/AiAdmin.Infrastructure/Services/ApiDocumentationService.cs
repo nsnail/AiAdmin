@@ -5,6 +5,7 @@ using System.Xml.Linq;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.ActionConstraints;
 using Microsoft.AspNetCore.Mvc.Controllers;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
@@ -31,54 +32,89 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         var groups = new Dictionary<string, (string Description, List<ApiDocumentationItem> Items)>(StringComparer.Ordinal);
 
         foreach (var action in actions.ActionDescriptors.Items.OfType<ControllerActionDescriptor>()) {
-            if (!isSuper && action.MethodInfo.GetCustomAttribute<ApiDocumentedAttribute>() is null) {
-                continue;
-            }
-
-            var template = action.AttributeRouteInfo?.Template;
-            if (string.IsNullOrWhiteSpace(template)) {
-                continue;
-            }
-
-            var methods = action
-                              .ActionConstraints?.OfType<HttpMethodActionConstraint>()
-                              .SelectMany(x => x.HttpMethods)
-                              .Distinct(StringComparer.OrdinalIgnoreCase)
-                          ?? [];
-            foreach (var method in methods) {
-                var path = ApiEndpointKey.NormalizePath(template);
-                if (!isSuper
-                    && !snapshot.AnonymousKeys.Contains(ApiEndpointKey.Create(method, path))
-                    && !snapshot.Allows(roles, ApiEndpointKey.Create(method, path))) {
-                    continue;
-                }
-
-                var item = BuildItem(action, method.ToUpperInvariant(), path, xml);
-                if (!groups.TryGetValue(action.ControllerName, out var group)) {
-                    var controllerMember = "T:" + action.ControllerTypeInfo.FullName;
-                    var controllerDescription = ReadSummary(xml, controllerMember)
-                                                ?? action.ControllerTypeInfo.GetCustomAttribute<ApiDescriptionAttribute>()?.Description
-                                                ?? action.ControllerName;
-                    group = (controllerDescription, []);
-                    groups[action.ControllerName] = group;
-                }
-
-                group.Items.Add(item);
-            }
+            AddActionDocumentation(action, snapshot, roles, isSuper, xml, groups);
         }
 
-        return new ApiDocumentationResult(
-            [
-                .. groups
-                    .OrderBy(x => x.Key, StringComparer.Ordinal)
-                    .Select(x => new ApiDocumentationGroup(
-                        x.Key, x.Value.Description, [.. x.Value.Items.OrderBy(i => i.Path, StringComparer.Ordinal)]
-                    )
-                    )
-            ]
-        );
+        return BuildResult(groups);
     }
 
+    /// <summary>
+    ///     将单个 MVC 操作的可访问接口写入文档分组
+    /// </summary>
+    /// <param name="action">MVC 操作描述符</param>
+    /// <param name="snapshot">接口权限快照</param>
+    /// <param name="roles">当前用户角色编码</param>
+    /// <param name="isSuper">是否为超级管理员</param>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <param name="groups">接口文档分组</param>
+    private static void AddActionDocumentation(
+        ControllerActionDescriptor action
+        , ApiPermissionSnapshot snapshot
+        , IReadOnlyCollection<string> roles
+        , bool isSuper
+        , Dictionary<string, string> xml
+        , Dictionary<string, (string Description, List<ApiDocumentationItem> Items)> groups
+    ) {
+        if (!TryGetDocumentedPath(action, isSuper, out var path)) {
+            return;
+        }
+
+        foreach (var method in GetHttpMethods(action).Where(method => CanAccess(snapshot, roles, isSuper, method, path))) {
+            AddToGroup(groups, action, BuildItem(action, method.ToUpperInvariant(), path, xml), xml);
+        }
+    }
+
+    /// <summary>
+    ///     将接口文档项加入对应控制器分组
+    /// </summary>
+    /// <param name="groups">接口文档分组</param>
+    /// <param name="action">MVC 操作描述符</param>
+    /// <param name="item">接口文档项</param>
+    /// <param name="xml">XML 文档成员映射</param>
+    private static void AddToGroup(
+        Dictionary<string, (string Description, List<ApiDocumentationItem> Items)> groups
+        , ControllerActionDescriptor action
+        , ApiDocumentationItem item
+        , Dictionary<string, string> xml
+    ) {
+        if (!groups.TryGetValue(action.ControllerName, out var group)) {
+            var controllerMember = "T:" + action.ControllerTypeInfo.FullName;
+            var description = ReadSummary(xml, controllerMember)
+                              ?? action.ControllerTypeInfo.GetCustomAttribute<ApiDescriptionAttribute>()?.Description ?? action.ControllerName;
+            group = (description, []);
+            groups[action.ControllerName] = group;
+        }
+
+        group.Items.Add(item);
+    }
+
+    /// <summary>
+    ///     将单个 XML 成员的摘要和参数说明写入注释字典
+    /// </summary>
+    /// <param name="member">XML 成员节点</param>
+    /// <param name="result">成员注释汇总字典</param>
+    private static void AddXmlMemberComments(
+        XElement member
+        , Dictionary<string, string> result
+    ) {
+        var key = member.Attribute("name")!.Value;
+        result[key] = Clean(member.Element("summary")?.Value);
+        foreach (var parameter in member.Elements("param")) {
+            var name = parameter.Attribute("name")?.Value;
+            if (!string.IsNullOrWhiteSpace(name)) {
+                result[key + "#" + name] = Clean(parameter.Value);
+            }
+        }
+    }
+
+    /// <summary>
+    ///     根据控制器操作和 XML 注释构建接口文档项
+    /// </summary>
+    /// <param name="action">控制器操作描述符</param>
+    /// <param name="method">HTTP 方法</param>
+    /// <param name="path">接口路径</param>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <returns>接口文档项</returns>
     private static ApiDocumentationItem BuildItem(
         ControllerActionDescriptor action
         , string method
@@ -93,34 +129,14 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         var parameters = new List<ApiDocumentationParameter>();
         ApiDocumentationType? body = null;
         foreach (var parameter in action.Parameters) {
-            var info = action.MethodInfo.GetParameters().FirstOrDefault(x => string.Equals(x.Name, parameter.Name, StringComparison.Ordinal));
-            string source;
-            if (info?.GetCustomAttribute<FromBodyAttribute>() is not null || IsBodyParameter(parameter.ParameterType, info)) {
-                source = "body";
-            }
-            else if (info?.GetCustomAttribute<FromHeaderAttribute>() is not null) {
-                source = "header";
-            }
-            else if (info?.GetCustomAttribute<FromRouteAttribute>() is not null
-                     || path.Contains("{" + parameter.Name + "}", StringComparison.OrdinalIgnoreCase)) {
-                source = "path";
-            }
-            else {
-                source = "query";
+            var info = FindParameterInfo(action, parameter.Name);
+            var description = ReadParam(xml, member, parameter.Name) ?? string.Empty;
+            if (GetParameterSource(parameter, info, path) == "body") {
+                body = BuildType(parameter.ParameterType, description, xml);
+                continue;
             }
 
-            var type = ToType(parameter.ParameterType);
-            var description = ReadParam(xml, member, parameter.Name) ?? string.Empty;
-            if (source == "body") {
-                body = BuildType(parameter.ParameterType, description, xml);
-            }
-            else {
-                parameters.Add(
-                    new ApiDocumentationParameter(
-                        parameter.Name, source, type, info?.IsOptional == false, description, info?.DefaultValue?.ToString()
-                    )
-                );
-            }
+            parameters.Add(BuildParameter(parameter, info, description, path));
         }
 
         var response = BuildType(UnwrapResponse(action.MethodInfo.ReturnType), string.Empty, xml);
@@ -129,6 +145,51 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         );
     }
 
+    /// <summary>
+    ///     构建非请求体参数文档
+    /// </summary>
+    /// <param name="parameter">操作参数</param>
+    /// <param name="info">反射参数信息</param>
+    /// <param name="description">参数说明</param>
+    /// <param name="path">接口路径</param>
+    /// <returns>参数文档</returns>
+    private static ApiDocumentationParameter BuildParameter(
+        ParameterDescriptor parameter
+        , ParameterInfo? info
+        , string description
+        , string path
+    ) {
+        return new ApiDocumentationParameter(
+            parameter.Name, GetParameterSource(parameter, info, path), ToType(parameter.ParameterType), info?.IsOptional == false, description
+            , info?.DefaultValue?.ToString()
+        );
+    }
+
+    /// <summary>
+    ///     将接口文档分组转换为稳定排序的返回结果
+    /// </summary>
+    /// <param name="groups">接口文档分组</param>
+    /// <returns>接口文档结果</returns>
+    private static ApiDocumentationResult BuildResult(Dictionary<string, (string Description, List<ApiDocumentationItem> Items)> groups) {
+        return new ApiDocumentationResult(
+            [
+                .. groups
+                    .OrderBy(x => x.Key, StringComparer.Ordinal)
+                    .Select(x => new ApiDocumentationGroup(
+                            x.Key, x.Value.Description, [.. x.Value.Items.OrderBy(item => item.Path, StringComparer.Ordinal)]
+                        )
+                    )
+            ]
+        );
+    }
+
+    /// <summary>
+    ///     构建类型及其公开属性的接口文档
+    /// </summary>
+    /// <param name="type">待描述的类型</param>
+    /// <param name="description">类型说明</param>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <returns>类型文档</returns>
     private static ApiDocumentationType BuildType(
         Type type
         , string description
@@ -152,8 +213,85 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         return new ApiDocumentationType(actual.Name, ToType(type), description, properties);
     }
 
+    /// <summary>
+    ///     判断当前用户是否可以访问指定接口
+    /// </summary>
+    /// <param name="snapshot">接口权限快照</param>
+    /// <param name="roles">当前用户角色编码</param>
+    /// <param name="isSuper">是否为超级管理员</param>
+    /// <param name="method">HTTP 方法</param>
+    /// <param name="path">规范化接口路径</param>
+    /// <returns>允许访问时返回 true</returns>
+    private static bool CanAccess(
+        ApiPermissionSnapshot snapshot
+        , IReadOnlyCollection<string> roles
+        , bool isSuper
+        , string method
+        , string path
+    ) {
+        if (isSuper) {
+            return true;
+        }
+
+        var key = ApiEndpointKey.Create(method, path);
+        return snapshot.AnonymousKeys.Contains(key) || snapshot.Allows(roles, key);
+    }
+
+    /// <summary>
+    ///     清理文档文本中的多余空白字符
+    /// </summary>
+    /// <param name="value">待清理的文本</param>
+    /// <returns>空白规范化后的文本</returns>
     private static string Clean(string? value) {
         return string.Join(" ", (value ?? string.Empty).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    /// <summary>
+    ///     查找操作方法的反射参数信息
+    /// </summary>
+    /// <param name="action">控制器操作描述符</param>
+    /// <param name="name">参数名称</param>
+    /// <returns>匹配的反射参数信息</returns>
+    private static ParameterInfo? FindParameterInfo(
+        ControllerActionDescriptor action
+        , string name
+    ) {
+        return action.MethodInfo.GetParameters().FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     读取 MVC 操作声明的 HTTP 方法
+    /// </summary>
+    /// <param name="action">MVC 操作描述符</param>
+    /// <returns>去重后的 HTTP 方法集合</returns>
+    private static IEnumerable<string> GetHttpMethods(ControllerActionDescriptor action) {
+        return action
+                   .ActionConstraints?.OfType<HttpMethodActionConstraint>()
+                   .SelectMany(x => x.HttpMethods)
+                   .Distinct(StringComparer.OrdinalIgnoreCase)
+               ?? [];
+    }
+
+    /// <summary>
+    ///     判断参数来源位置
+    /// </summary>
+    /// <param name="parameter">操作参数</param>
+    /// <param name="info">反射参数信息</param>
+    /// <param name="path">接口路径</param>
+    /// <returns>参数来源</returns>
+    private static string GetParameterSource(
+        ParameterDescriptor parameter
+        , ParameterInfo? info
+        , string path
+    ) {
+        return info?.GetCustomAttribute<FromBodyAttribute>() is not null || IsBodyParameter(parameter.ParameterType, info)
+            ? "body"
+            : info?.GetCustomAttribute<FromHeaderAttribute>() is not null
+                ? "header"
+                : info?.GetCustomAttribute<FromRouteAttribute>() is not null
+                  || path.Contains("{" + parameter.Name + "}", StringComparison.OrdinalIgnoreCase)
+                    ? "path"
+                    : "query";
     }
 
     /// <summary>
@@ -200,6 +338,13 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         return string.IsNullOrWhiteSpace(entry.Value) ? null : entry.Value;
     }
 
+    /// <summary>
+    ///     读取指定方法参数的 XML 文档说明
+    /// </summary>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <param name="member">方法成员名称前缀</param>
+    /// <param name="name">参数名称</param>
+    /// <returns>参数说明，不存在时返回 null</returns>
     private static string? ReadParam(
         Dictionary<string, string> xml
         , string member
@@ -215,6 +360,12 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         return string.IsNullOrWhiteSpace(entry.Value) ? null : entry.Value;
     }
 
+    /// <summary>
+    ///     读取指定成员的 XML 文档摘要
+    /// </summary>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <param name="key">成员键</param>
+    /// <returns>成员摘要，不存在时返回 null</returns>
     private static string? ReadSummary(
         Dictionary<string, string> xml
         , string key
@@ -222,62 +373,95 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         return xml.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value) ? value : null;
     }
 
+    /// <summary>
+    ///     读取单个程序集 XML 文档中的成员注释
+    /// </summary>
+    /// <param name="path">XML 文档路径</param>
+    /// <param name="result">成员注释汇总字典</param>
+    private static void ReadXmlCommentFile(
+        string path
+        , Dictionary<string, string> result
+    ) {
+        foreach (var member in XDocument.Load(path).Descendants("member").Where(x => x.Attribute("name") is not null)) {
+            AddXmlMemberComments(member, result);
+        }
+    }
+
+    /// <summary>
+    ///     汇总当前应用已加载程序集的 XML 文档注释
+    /// </summary>
+    /// <returns>XML 文档成员映射</returns>
     private static Dictionary<string, string> ReadXmlComments() {
         var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies()) {
-            var path = Path.ChangeExtension(assembly.Location, ".xml");
-            if (!File.Exists(path)) {
-                continue;
-            }
-
-            foreach (var member in XDocument.Load(path).Descendants("member").Where(x => x.Attribute("name") is not null)) {
-                var key = member.Attribute("name")!.Value;
-                result[key] = Clean(member.Element("summary")?.Value);
-                foreach (var parameter in member.Elements("param")) {
-                    var name = parameter.Attribute("name")?.Value;
-                    if (!string.IsNullOrWhiteSpace(name)) {
-                        result[key + "#" + name] = Clean(parameter.Value);
-                    }
-                }
-            }
+        foreach (var path in AppDomain
+                     .CurrentDomain.GetAssemblies()
+                     .Select(assembly => Path.ChangeExtension(assembly.Location, ".xml"))
+                     .Where(File.Exists)) {
+            ReadXmlCommentFile(path, result);
         }
 
         return result;
     }
 
+    /// <summary>
+    ///     将 .NET 类型转换为接口文档使用的类型名称
+    /// </summary>
+    /// <param name="type">待转换的 .NET 类型</param>
+    /// <returns>接口文档类型名称</returns>
     private static string ToType(Type type) {
-        if (type.IsArray) {
-            return ToType(type.GetElementType()!) + "[]";
-        }
-
-        if (Nullable.GetUnderlyingType(type) is { } nullable) {
-            return ToType(nullable) + "?";
-        }
-
-        if (type == typeof(string) || type == typeof(Guid)) {
-            return "string";
-        }
-
-        if (type == typeof(bool)) {
-            return "boolean";
-        }
-
-        if (type == typeof(int)
-            || type == typeof(long)
-            || type == typeof(short)
-            || type == typeof(decimal)
-            || type == typeof(double)
-            || type == typeof(float)) {
-            return "number";
-        }
-
-        return type.IsGenericType switch
-        {
-            true when typeof(IEnumerable).IsAssignableFrom(type) => ToType(type.GetGenericArguments()[0]) + "[]"
-            , _ => type.Name
-        };
+        return type.IsArray
+            ? ToType(type.GetElementType()!) + "[]"
+            : Nullable.GetUnderlyingType(type) is { } nullable
+                ? ToType(nullable) + "?"
+                : type == typeof(string) || type == typeof(Guid)
+                    ? "string"
+                    : type == typeof(bool)
+                        ? "boolean"
+                        : type == typeof(int)
+                          || type == typeof(long)
+                          || type == typeof(short)
+                          || type == typeof(decimal)
+                          || type == typeof(double)
+                          || type == typeof(float)
+                            ? "number"
+                            : type.IsGenericType switch
+                            {
+                                true when typeof(IEnumerable).IsAssignableFrom(type) => ToType(type.GetGenericArguments()[0]) + "[]"
+                                , _ => type.Name
+                            };
     }
 
+    /// <summary>
+    ///     校验操作是否应生成文档并读取规范化路径
+    /// </summary>
+    /// <param name="action">MVC 操作描述符</param>
+    /// <param name="isSuper">是否为超级管理员</param>
+    /// <param name="path">规范化接口路径</param>
+    /// <returns>操作应生成文档且路由有效时返回 true</returns>
+    private static bool TryGetDocumentedPath(
+        ControllerActionDescriptor action
+        , bool isSuper
+        , out string path
+    ) {
+        path = string.Empty;
+        if (!isSuper && action.MethodInfo.GetCustomAttribute<ApiDocumentedAttribute>() is null) {
+            return false;
+        }
+
+        var template = action.AttributeRouteInfo?.Template;
+        if (string.IsNullOrWhiteSpace(template)) {
+            return false;
+        }
+
+        path = ApiEndpointKey.NormalizePath(template);
+        return true;
+    }
+
+    /// <summary>
+    ///     解包异步、操作结果和统一响应包装类型
+    /// </summary>
+    /// <param name="type">接口返回类型</param>
+    /// <returns>实际响应数据类型</returns>
     private static Type UnwrapResponse(Type type) {
         while (type.IsGenericType
                && (type.GetGenericTypeDefinition() == typeof(Task<>) || type.GetGenericTypeDefinition() == typeof(ActionResult<>))) {

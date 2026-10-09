@@ -15,8 +15,8 @@
                             <div class="avatar-upload-mask"><ArtSvgIcon icon="ri:camera-line" /></div>
                             <ElButton
                                 v-if="userInfo.avatar"
+                                :aria-label="t('userCenter.actions.deleteAvatar')"
                                 @click.stop.prevent="removeAvatar"
-                                aria-label="删除头像"
                                 circle
                                 class="avatar-delete"
                                 text
@@ -90,7 +90,36 @@
                             </ElFormItem>
                         </ElRow>
 
+                        <ElRow v-if="isEdit && emailChanged">
+                            <ElFormItem :label="t('userCenter.profile.emailVerificationCode')" prop="emailVerificationCode">
+                                <div class="flex w-full gap-2">
+                                    <ElInput
+                                        v-model="form.emailVerificationCode"
+                                        :placeholder="
+                                            t('userCenter.profile.emailVerificationCodePlaceholder', {
+                                                email: userInfo.email,
+                                            })
+                                        " />
+                                    <ElButton
+                                        :disabled="sendCodeCountdown > 0"
+                                        :loading="sendingCode"
+                                        @click="sendEmailCode"
+                                        class="shrink-0"
+                                        type="primary">
+                                        {{
+                                            sendCodeCountdown > 0
+                                                ? t('userCenter.actions.resendCode', { seconds: sendCodeCountdown })
+                                                : t('userCenter.actions.sendCode')
+                                        }}
+                                    </ElButton>
+                                </div>
+                            </ElFormItem>
+                        </ElRow>
+
                         <div class="flex-c justify-end [&_.el-button]:!w-27.5">
+                            <ElButton v-if="isEdit" v-ripple @click="cancelEditProfile">
+                                {{ t('userCenter.actions.cancel') }}
+                            </ElButton>
                             <ElButton v-ripple @click="edit" class="w-22.5" type="primary">
                                 {{ t(isEdit ? 'userCenter.actions.saveProfile' : 'userCenter.actions.editProfile') }}
                             </ElButton>
@@ -108,6 +137,12 @@
 
                         <ElFormItem :label="t('userCenter.password.new')" prop="newPassword">
                             <ElInput v-model="pwdForm.newPassword" :disabled="!isEditPwd" show-password type="password" />
+                            <div v-if="isEditPwd" aria-live="polite" class="password-strength">
+                                <div class="password-strength-bars">
+                                    <span v-for="level in 3" :class="{ active: passwordStrengthLevel >= level }" :key="level" />
+                                </div>
+                                <span>{{ t('userCenter.password.strength', { level: passwordStrengthText }) }}</span>
+                            </div>
                         </ElFormItem>
 
                         <ElFormItem :label="t('userCenter.password.confirm')" prop="confirmPassword">
@@ -115,6 +150,9 @@
                         </ElFormItem>
 
                         <div class="flex-c justify-end [&_.el-button]:!w-27.5">
+                            <ElButton v-if="isEditPwd" v-ripple @click="cancelEditPassword">
+                                {{ t('userCenter.actions.cancel') }}
+                            </ElButton>
                             <ElButton v-ripple @click="editPwd" class="w-22.5" type="primary">
                                 {{ t(isEditPwd ? 'userCenter.actions.savePassword' : 'userCenter.actions.changePassword') }}
                             </ElButton>
@@ -128,8 +166,8 @@
 
 <script lang="ts" setup>
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
-import { fetchChangeUserPassword, fetchUpdateUserProfile } from '@/api/auth'
-import { fetchDeleteUserAvatar, fetchUploadUserAvatar } from '@/api/system-manage'
+import { fetchChangeUserPassword, fetchProfileEmailCode, fetchUpdateUserProfile } from '@/api/auth'
+import { fetchDeleteCurrentUserAvatar, fetchUploadCurrentUserAvatar } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
 import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
 import { useI18n } from 'vue-i18n'
@@ -146,6 +184,10 @@ const ruleFormRef = ref<FormInstance>()
 const pwdFormRef = ref<FormInstance>()
 const displayName = computed(() => userInfo.value.userName || t('userCenter.empty.user'))
 const genderLabel = computed(() => t(userInfo.value.gender === 2 ? 'userCenter.gender.female' : 'userCenter.gender.male'))
+const emailChanged = computed(() => form.email.trim().toLowerCase() !== (userInfo.value.email || '').trim().toLowerCase())
+const sendingCode = ref(false)
+const sendCodeCountdown = ref(0)
+let sendCodeTimer: ReturnType<typeof setInterval> | undefined
 
 /**
  * 用户信息表单
@@ -153,6 +195,7 @@ const genderLabel = computed(() => t(userInfo.value.gender === 2 ? 'userCenter.g
 const form = reactive({
     userName: '',
     email: '',
+    emailVerificationCode: '',
     phone: '',
     gender: 1 as 1 | 2,
 })
@@ -174,6 +217,15 @@ const rules = computed<FormRules>(() => ({
         { required: true, message: t('userCenter.validation.emailRequired'), trigger: 'blur' },
         { type: 'email', message: t('userCenter.validation.emailInvalid'), trigger: 'blur' },
     ],
+    emailVerificationCode: [
+        {
+            validator: (_rule, value, callback) => {
+                if (emailChanged.value && !/^\d{6}$/.test(value)) callback(new Error(t('userCenter.validation.emailCodeRequired')))
+                else callback()
+            },
+            trigger: 'blur',
+        },
+    ],
     gender: [{ required: true, message: t('userCenter.validation.genderRequired'), trigger: 'change' }],
 }))
 
@@ -187,7 +239,14 @@ const pwdRules = computed<FormRules>(() => ({
     ],
     newPassword: [
         { required: true, message: t('userCenter.validation.newPasswordRequired'), trigger: 'blur' },
-        { min: 6, message: t('userCenter.validation.passwordLength'), trigger: 'blur' },
+        { min: 8, message: t('userCenter.validation.passwordLength'), trigger: 'blur' },
+        {
+            validator: (_rule, value, callback) => {
+                if (value && (!/[A-Za-z]/.test(value) || !/\d/.test(value))) callback(new Error(t('userCenter.validation.passwordStrength')))
+                else callback()
+            },
+            trigger: 'blur',
+        },
     ],
     confirmPassword: [
         {
@@ -205,6 +264,17 @@ const pwdRules = computed<FormRules>(() => ({
     ],
 }))
 
+const passwordStrengthLevel = computed(() => {
+    const password = pwdForm.newPassword
+    if (!password) return 0
+    if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) return 1
+    return password.length >= 12 || (/[a-z]/.test(password) && /[A-Z]/.test(password)) || /[^A-Za-z0-9]/.test(password) ? 3 : 2
+})
+const passwordStrengthText = computed(() => {
+    const keys = ['weak', 'weak', 'medium', 'strong']
+    return t(`userCenter.password.strengthLevels.${keys[passwordStrengthLevel.value]}`)
+})
+
 /**
  * 性别选项
  */
@@ -217,11 +287,14 @@ onMounted(() => {
     syncForm()
 })
 
+onBeforeUnmount(() => clearInterval(sendCodeTimer))
+
 watch(userInfo, syncForm, { deep: true })
 
 function syncForm() {
     form.userName = userInfo.value.userName || ''
     form.email = userInfo.value.email || ''
+    form.emailVerificationCode = ''
     form.phone = userInfo.value.phone || ''
     form.gender = userInfo.value.gender || 1
 }
@@ -237,24 +310,64 @@ const handleAvatarChange = async (uploadFile: UploadFile) => {
     if (!file || !userId) return
     const extension = file.name.split('.').pop()?.toLowerCase()
     if (!file.type.startsWith('image/') || !extension || !['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tif', 'tiff'].includes(extension)) {
-        ElMessage.error('头像只允许上传图像格式')
+        ElMessage.error(t('userCenter.messages.avatarFormatInvalid'))
         return
     }
     if (file.size > 500 * 1024) {
-        ElMessage.error('头像大小不能超过 500 KB')
+        ElMessage.error(t('userCenter.messages.avatarTooLarge'))
         return
     }
-    const result = await fetchUploadUserAvatar(userId, file)
+    const result = await fetchUploadCurrentUserAvatar(file)
     userStore.setUserInfo({ ...userInfo.value, avatar: result.avatar } as Api.Auth.UserInfo)
-    ElMessage.success('头像更新成功')
+    ElMessage.success(t('userCenter.messages.avatarUpdated'))
 }
 
 const removeAvatar = async (): Promise<void> => {
     const userId = userInfo.value.userId
     if (!userId) return
-    const result = await fetchDeleteUserAvatar(userId)
+    const result = await fetchDeleteCurrentUserAvatar()
     userStore.setUserInfo({ ...userInfo.value, avatar: result.avatar || '' } as Api.Auth.UserInfo)
-    ElMessage.success('头像已删除')
+    ElMessage.success(t('userCenter.messages.avatarDeleted'))
+}
+
+/**
+ * 向待绑定的新邮箱发送验证码
+ */
+const sendEmailCode = async () => {
+    if (!ruleFormRef.value || !(await ruleFormRef.value.validateField('email').catch(() => false))) return
+    sendingCode.value = true
+    try {
+        await fetchProfileEmailCode()
+        ElMessage.success(t('userCenter.messages.emailCodeSent'))
+        sendCodeCountdown.value = 60
+        clearInterval(sendCodeTimer)
+        sendCodeTimer = setInterval(() => {
+            sendCodeCountdown.value--
+            if (sendCodeCountdown.value <= 0) clearInterval(sendCodeTimer)
+        }, 1000)
+    } finally {
+        sendingCode.value = false
+    }
+}
+
+/**
+ * 取消编辑个人资料并恢复当前数据
+ */
+const cancelEditProfile = () => {
+    isEdit.value = false
+    clearInterval(sendCodeTimer)
+    sendCodeCountdown.value = 0
+    syncForm()
+    ruleFormRef.value?.clearValidate()
+}
+
+/**
+ * 取消修改密码并清空输入
+ */
+const cancelEditPassword = () => {
+    isEditPwd.value = false
+    Object.assign(pwdForm, { currentPassword: '', newPassword: '', confirmPassword: '' })
+    pwdFormRef.value?.resetFields()
 }
 
 /**
@@ -269,6 +382,7 @@ const edit = async () => {
     if (!ruleFormRef.value || !(await ruleFormRef.value.validate().catch(() => false))) return
     const data = await fetchUpdateUserProfile({
         email: form.email,
+        emailVerificationCode: emailChanged.value ? form.emailVerificationCode : undefined,
         phone: form.phone,
         gender: form.gender,
         version: userInfo.value.version ?? 0,
@@ -328,5 +442,41 @@ const editPwd = async () => {
 
 .avatar-upload:hover .avatar-upload-mask {
     opacity: 1;
+}
+
+.password-strength {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    margin-top: 8px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+    line-height: 1;
+}
+
+.password-strength-bars {
+    display: grid;
+    flex: 1;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.password-strength-bars span {
+    height: 4px;
+    background: var(--el-border-color);
+    border-radius: 2px;
+}
+
+.password-strength-bars span.active:nth-child(1) {
+    background: var(--el-color-danger);
+}
+
+.password-strength-bars span.active:nth-child(2) {
+    background: var(--el-color-warning);
+}
+
+.password-strength-bars span.active:nth-child(3) {
+    background: var(--el-color-success);
 }
 </style>

@@ -103,7 +103,7 @@
             </div>
         </div>
 
-        <ElDialog v-model="puzzleVisible" :title="$t('register.puzzle.title')" destroy-on-close width="380px">
+        <ElDrawer v-model="puzzleVisible" :title="$t('register.puzzle.title')" destroy-on-close width="380px">
             <div v-loading="puzzleLoading" class="puzzle-wrap">
                 <div v-if="puzzle" :style="{ width: `${puzzle.width}px`, height: `${puzzle.height}px` }" class="puzzle-board">
                     <img :src="puzzle.backgroundImage" alt="" class="puzzle-background" />
@@ -133,7 +133,7 @@
                     <span class="puzzle-status">{{ puzzleVerifying ? $t('register.puzzle.verifying') : $t('register.puzzle.hint') }}</span>
                 </div>
             </div>
-        </ElDialog>
+        </ElDrawer>
     </div>
 </template>
 

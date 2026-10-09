@@ -154,6 +154,12 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         );
     }
 
+    /// <summary>
+    ///     计算 CalculateCpuUsage 方法对应的业务数据
+    /// </summary>
+    /// <param name="endpoint">方法参数 endpoint</param>
+    /// <param name="cpuSeconds">方法参数 cpuSeconds</param>
+    /// <returns>CalculateCpuUsage 方法的执行结果</returns>
     private static double CalculateCpuUsage(
         string endpoint
         , double cpuSeconds
@@ -172,6 +178,12 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
             : Math.Clamp((cpuSeconds - previous.CpuSeconds) / elapsedSeconds * 100, 0, 100);
     }
 
+    /// <summary>
+    ///     获取 GetDoubleInfo 方法对应的业务数据
+    /// </summary>
+    /// <param name="info">信息集合</param>
+    /// <param name="key">键名</param>
+    /// <returns>GetDoubleInfo 方法的执行结果</returns>
     private static double GetDoubleInfo(
         IReadOnlyDictionary<string, string> info
         , string key
@@ -179,6 +191,13 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         return double.TryParse(GetInfo(info, key), out var value) ? value : 0;
     }
 
+    /// <summary>
+    ///     获取 GetInfo 方法对应的业务数据
+    /// </summary>
+    /// <param name="info">信息集合</param>
+    /// <param name="key">键名</param>
+    /// <param name="fallback">字段不存在时使用的默认值</param>
+    /// <returns>GetInfo 方法的执行结果</returns>
     private static string GetInfo(
         IReadOnlyDictionary<string, string> info
         , string key
@@ -187,6 +206,13 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         return info.GetValueOrDefault(key, fallback);
     }
 
+    /// <summary>
+    ///     获取 GetLengthAsync 方法对应的业务数据
+    /// </summary>
+    /// <param name="database">方法参数 database</param>
+    /// <param name="key">键名</param>
+    /// <param name="type">类型</param>
+    /// <returns>GetLengthAsync 方法的执行结果</returns>
     private static async Task<long> GetLengthAsync(
         IDatabase database
         , RedisKey key
@@ -203,6 +229,12 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         };
     }
 
+    /// <summary>
+    ///     获取 GetLongInfo 方法对应的业务数据
+    /// </summary>
+    /// <param name="info">信息集合</param>
+    /// <param name="key">键名</param>
+    /// <returns>GetLongInfo 方法的执行结果</returns>
     private static long GetLongInfo(
         IReadOnlyDictionary<string, string> info
         , string key
@@ -254,19 +286,32 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
     /// <returns>Redis INFO 字段</returns>
     private static async Task<IReadOnlyDictionary<string, string>> TryGetServerInfoAsync(IServer server) {
         try {
+            // 不同 INFO 分区可能出现同名字段（如各模块各自上报的 module 字段），取最后一次出现的值
             return (await server.InfoAsync().ConfigureAwait(false))
                 .SelectMany(x => x)
-                .ToDictionary(x => x.Key, x => x.Value, StringComparer.OrdinalIgnoreCase);
+                .GroupBy(x => x.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(x => x.Key, x => x.Last().Value, StringComparer.OrdinalIgnoreCase);
         }
         catch (RedisCommandException) {
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 
+    /// <summary>
+    ///     获取 GetServer 方法对应的业务数据
+    /// </summary>
+    /// <returns>GetServer 方法的执行结果</returns>
+    /// <exception cref="InvalidOperationException">没有可用的 Redis 主服务器连接时抛出</exception>
     private IServer GetServer() {
         var server = connectionMultiplexer.GetServers().FirstOrDefault(x => x is { IsConnected: true, IsReplica: false });
         return server ?? throw new InvalidOperationException("No connected Redis server is available");
     }
 
+    /// <summary>
+    ///     执行 CpuSample 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="CpuSeconds">方法参数 CpuSeconds</param>
+    /// <param name="Timestamp">时间戳</param>
+    /// <returns>CpuSample 方法的执行结果</returns>
     private sealed record CpuSample(double CpuSeconds, DateTimeOffset Timestamp);
 }

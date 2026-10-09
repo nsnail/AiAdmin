@@ -23,7 +23,7 @@
                 </ElSpace>
             </template>
         </ArtTablePage>
-        <ElDialog
+        <ElDrawer
             v-model="editorVisible"
             :title="editingId ? t('messageManagement.edit') : t('messageManagement.send')"
             class="message-editor-dialog"
@@ -70,11 +70,11 @@
                 ><ElButton @click="editorVisible = false">{{ t('common.cancel') }}</ElButton
                 ><ElButton :loading="sending" @click="send" type="primary">{{ t('messageManagement.send') }}</ElButton></template
             >
-        </ElDialog>
-        <ElDialog v-model="previewVisible" :title="form.title" width="900px"><div v-html="previewHtml" class="message-content" /></ElDialog>
-        <ElDialog v-model="recipientsVisible" :title="recipientsTitle" width="900px">
+        </ElDrawer>
+        <ElDrawer v-model="previewVisible" :title="form.title" width="900px"><div v-html="previewHtml" class="message-content" /></ElDrawer>
+        <ElDrawer v-model="recipientsVisible" :title="recipientsTitle" width="900px">
             <ArtTable :columns="recipientColumns" :data="recipients" />
-        </ElDialog>
+        </ElDrawer>
     </div>
 </template>
 <script lang="ts" setup>

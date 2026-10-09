@@ -137,10 +137,20 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
         return Ok(ApiResponse<MinioObject>.Ok(new MinioObject(normalizedPath + Path.GetFileName(name), file.Length, DateTime.UtcNow)));
     }
 
+    /// <summary>
+    ///     规范化 NormalizeObjectPath 方法对应的业务数据
+    /// </summary>
+    /// <param name="path">路径</param>
+    /// <returns>NormalizeObjectPath 方法的执行结果</returns>
     private static string NormalizeObjectPath(string? path) {
         return NormalizePath(path).TrimEnd('/');
     }
 
+    /// <summary>
+    ///     规范化 NormalizePath 方法对应的业务数据
+    /// </summary>
+    /// <param name="path">路径</param>
+    /// <returns>NormalizePath 方法的执行结果</returns>
     private static string NormalizePath(string? path) {
         var value = (path ?? string.Empty).Replace('\\', '/').Trim('/');
         if (value.Length == 0) {
@@ -154,6 +164,11 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
         return string.Join('/', segments) + "/";
     }
 
+    /// <summary>
+    ///     执行 SanitizeSegment 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="value">待处理的值</param>
+    /// <returns>SanitizeSegment 方法的执行结果</returns>
     private static string SanitizeSegment(string value) {
         return string.Join(string.Empty, value.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch) && ch != '/' && ch != '\\')).Trim();
     }

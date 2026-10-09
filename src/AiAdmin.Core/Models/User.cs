@@ -48,6 +48,21 @@ public sealed class User : EntityBase, IUpdatedAt, IVersion
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
+    ///     最后登录时间
+    /// </summary>
+    public DateTime? LastLoginAt { get; set; }
+
+    /// <summary>
+    ///     最后登录 IP 地址
+    /// </summary>
+    public string LastLoginIp { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     最后登录地点
+    /// </summary>
+    public string LastLoginRegion { get; set; } = string.Empty;
+
+    /// <summary>
     ///     密码哈希
     /// </summary>
     public required string PasswordHash { get; set; }

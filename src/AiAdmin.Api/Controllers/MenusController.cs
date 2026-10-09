@@ -85,11 +85,12 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     /// <summary>
     ///     删除菜单
     /// </summary>
-    /// <param name="id">菜单主键</param>
+    /// <param name="request">菜单标识请求</param>
     /// <returns>删除结果</returns>
-    [HttpPost("{id:long}/delete")]
+    [HttpPost("delete")]
     [ApiDescription("Delete menu")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var menu = await db.Menus.FindAsync(id).ConfigureAwait(false);
         if (menu is null) {
             return NotFound(new ApiResponse<object>(404, "Menu not found", null));
@@ -158,15 +159,12 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
     /// <summary>
     ///     更新菜单
     /// </summary>
-    /// <param name="id">菜单主键</param>
     /// <param name="request">菜单保存请求</param>
     /// <returns>更新后的菜单</returns>
-    [HttpPost("{id:long}")]
+    [HttpPost("update")]
     [ApiDescription("Update menu")]
-    public async Task<ActionResult<ApiResponse<MenuItemResult>>> UpdateAsync(
-        long id
-        , SaveMenuRequest request
-    ) {
+    public async Task<ActionResult<ApiResponse<MenuItemResult>>> UpdateAsync([FromBody] SaveMenuRequest request) {
+        var id = request.Id.GetValueOrDefault();
         var menu = await db.Menus.FindAsync(id).ConfigureAwait(false);
         if (menu is null) {
             return NotFound(new ApiResponse<object>(404, "Menu not found", null));
@@ -183,6 +181,11 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         return Ok(ApiResponse<MenuItemResult>.Ok(ToResult(menu), "Menu updated"));
     }
 
+    /// <summary>
+    ///     构建 BuildTree 方法对应的业务数据
+    /// </summary>
+    /// <param name="rows">数据行集合</param>
+    /// <returns>BuildTree 方法的执行结果</returns>
     private static IReadOnlyList<MenuItemResult> BuildTree(IReadOnlyList<Menu> rows) {
         var nodes = rows.ToDictionary(x => x.Name, ToResult, StringComparer.Ordinal);
 
@@ -206,6 +209,11 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         }
     }
 
+    /// <summary>
+    ///     执行 FromRequest 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="request">请求参数</param>
+    /// <returns>FromRequest 方法的执行结果</returns>
     private static Menu FromRequest(SaveMenuRequest request) {
         return new Menu
         {
@@ -219,11 +227,21 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
         };
     }
 
+    /// <summary>
+    ///     解析 ParseMeta 方法对应的业务数据
+    /// </summary>
+    /// <param name="json">JSON 文本</param>
+    /// <returns>ParseMeta 方法的执行结果</returns>
     private static JsonElement ParseMeta(string json) {
         using var document = JsonDocument.Parse(string.IsNullOrWhiteSpace(json) ? "{}" : json);
         return document.RootElement.Clone();
     }
 
+    /// <summary>
+    ///     转换 ToResult 方法对应的业务数据
+    /// </summary>
+    /// <param name="menu">方法参数 menu</param>
+    /// <returns>ToResult 方法的执行结果</returns>
     private static MenuItemResult ToResult(Menu menu) {
         return new MenuItemResult(
             menu.Id, ServerTime.ToOffset(menu.CreatedAt), menu.UpdatedAt.HasValue ? ServerTime.ToOffset(menu.UpdatedAt.Value) : null, menu.Name

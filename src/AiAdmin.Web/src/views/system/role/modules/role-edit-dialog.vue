@@ -1,5 +1,5 @@
 <template>
-    <ElDialog
+    <ElDrawer
         v-model="visible"
         :title="t(dialogType === 'add' ? 'roleManagement.dialog.addTitle' : 'roleManagement.dialog.editTitle')"
         @close="handleClose"
@@ -38,7 +38,7 @@
             <ElButton :disabled="saving" @click="handleClose">{{ t('common.cancel') }}</ElButton>
             <ElButton :loading="saving" @click="handleSubmit" type="primary">{{ t('table.form.submit') }}</ElButton>
         </template>
-    </ElDialog>
+    </ElDrawer>
 </template>
 
 <script lang="ts" setup>

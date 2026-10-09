@@ -1,6 +1,6 @@
 <template>
-    <div class="raw-data-editor">
-        <ArtJsonEditor v-model="formattedData" readonly />
+    <div :style="{ height }" class="raw-data-editor">
+        <ArtJsonEditor v-model="formattedData" class="raw-data-content" height="100%" readonly />
     </div>
 </template>
 
@@ -9,9 +9,14 @@ import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 
 defineOptions({ name: 'ArtRawData' })
 
-const props = defineProps<{
-    data: unknown
-}>()
+// 原始数据默认填满详情页签，也允许调用方显式指定高度
+const props = withDefaults(
+    defineProps<{
+        data: unknown
+        height?: string
+    }>(),
+    { height: '100%' },
+)
 
 const formattedData = computed({
     get: () => JSON.stringify(props.data, null, 2) ?? 'null',
@@ -22,8 +27,13 @@ const formattedData = computed({
 <style scoped>
 .raw-data-editor {
     width: 100%;
-    height: 480px;
+    box-sizing: border-box;
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 4px;
+}
+
+.raw-data-content {
+    height: 100%;
+    min-height: 0;
 }
 </style>

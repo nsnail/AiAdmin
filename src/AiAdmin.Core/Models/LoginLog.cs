@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
@@ -17,6 +18,7 @@ public sealed class LoginLog : EntityBase, IOwner
     /// <summary>
     ///     浏览器客户端提示原始 JSON
     /// </summary>
+    [MaxLength(4000)]
     public string ClientHints { get; init; } = string.Empty;
 
     /// <summary>

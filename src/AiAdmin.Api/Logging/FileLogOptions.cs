@@ -6,14 +6,14 @@ namespace AiAdmin.Api.Logging;
 public sealed class FileLogOptions
 {
     /// <summary>
-    ///     是否启用文件日志输出
-    /// </summary>
-    public bool Enabled { get; set; } = true;
-
-    /// <summary>
     ///     日志文件目录
     /// </summary>
     public string Directory { get; set; } = "logs";
+
+    /// <summary>
+    ///     是否启用文件日志输出
+    /// </summary>
+    public bool Enabled { get; set; } = true;
 
     /// <summary>
     ///     日志文件名称前缀

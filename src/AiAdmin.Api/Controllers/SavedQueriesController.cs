@@ -27,11 +27,12 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     /// <summary>
     ///     删除当前用户的查询条件
     /// </summary>
-    /// <param name="id">查询条件主键</param>
+    /// <param name="request">查询条件标识请求</param>
     /// <returns>删除结果</returns>
-    [HttpPost("{id:long}/delete")]
+    [HttpPost("delete")]
     [ApiDescription("Delete saved query condition")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync(long id) {
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] IdentifierRequest request) {
+        var id = request.Id;
         var userId = GetCurrentUserId();
         var entity = await db.SavedQueries.SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (entity is null) {

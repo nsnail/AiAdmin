@@ -34,7 +34,7 @@ public sealed class SystemMessageDynamicListQueryTests
             ]
         };
 
-        Assert.Equal([2L], CreateMessages().ApplyDynamicFilter(filter, _aliases).Select(x => x.Id).ToArray());
+        Assert.Equal([2L], [.. CreateMessages().ApplyDynamicFilter(filter, _aliases).Select(x => x.Id)]);
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public sealed class SystemMessageDynamicListQueryTests
             ]
         };
 
-        Assert.Equal([1L, 3L], CreateMessages().ApplyDynamicFilter(filter, _aliases).OrderBy(x => x.Id).Select(x => x.Id).ToArray());
+        Assert.Equal([1L, 3L], [.. CreateMessages().ApplyDynamicFilter(filter, _aliases).OrderBy(x => x.Id).Select(x => x.Id)]);
     }
 
     /// <summary>
@@ -82,10 +82,21 @@ public sealed class SystemMessageDynamicListQueryTests
         _ = Assert.Throws<DynamicFilterValidationException>(() => CreateMessages().ApplyDynamicSort("InvalidField", "asc", nameof(SystemMessage.CreatedAt), true, _aliases).ToArray());
     }
 
+    /// <summary>
+    ///     执行 Condition 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="field">字段名称</param>
+    /// <param name="operation">操作符</param>
+    /// <param name="value">待处理的值</param>
+    /// <returns>Condition 方法的执行结果</returns>
     private static DynamicFilter Condition(string field, string operation, object value) {
         return new DynamicFilter { Field = field, Operator = operation, Value = JsonSerializer.SerializeToElement(value) };
     }
 
+    /// <summary>
+    ///     创建 CreateMessages 方法对应的业务数据
+    /// </summary>
+    /// <returns>CreateMessages 方法的执行结果</returns>
     private static IQueryable<SystemMessage> CreateMessages() {
         return new[] {
             new SystemMessage {

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
@@ -35,6 +36,7 @@ public sealed class ScheduledJob : EntityBase, IUpdatedAt
     /// <summary>
     ///     最近一次错误信息
     /// </summary>
+    [MaxLength(4000)]
     [ListFilter("scheduledJob.fields.lastError")]
     public string LastError { get; set; } = string.Empty;
 
@@ -55,6 +57,13 @@ public sealed class ScheduledJob : EntityBase, IUpdatedAt
     /// </summary>
     [ListFilter("scheduledJob.fields.name", Placeholder = "scheduledJob.placeholder.name", Sort = 0)]
     public required string Name { get; set; }
+
+    /// <summary>
+    ///     备注
+    /// </summary>
+    [MaxLength(500)]
+    [ListFilter("scheduledJob.fields.remark", Placeholder = "scheduledJob.placeholder.remark", GroupCount = true)]
+    public string Remark { get; set; } = string.Empty;
 
     /// <summary>
     ///     请求体模板

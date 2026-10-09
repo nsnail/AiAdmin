@@ -18,4 +18,4 @@ ENV ASPNETCORE_URLS=http://+:80
 EXPOSE 80
 
 COPY --from=build /app/publish .
-ENTRYPOINT ["dotnet", "AiAdmin.Api.dll"]
+ENTRYPOINT ["dotnet", "AiAdmin.Api.dll", "--enabled-hosted-services"]

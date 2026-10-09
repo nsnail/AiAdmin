@@ -25,7 +25,7 @@ public sealed class RoleDynamicListQueryTests
                 Condition(nameof(Role.IsEnabled), "Equal", true), Condition(nameof(Role.CreatedAt), "DateRange", _januaryRange)
             ]
         };
-        Assert.Equal([2L], CreateRoles().ApplyDynamicFilter(filter).Select(x => x.Id).ToArray());
+        Assert.Equal([2L], [.. CreateRoles().ApplyDynamicFilter(filter).Select(x => x.Id)]);
     }
 
     /// <summary>
@@ -34,7 +34,7 @@ public sealed class RoleDynamicListQueryTests
     [Fact]
     public void ApplyDynamicFilter_UsesLeftClosedRightOpenDateRange() {
         var filter = Condition(nameof(Role.CreatedAt), "DateRange", _januaryRange);
-        Assert.Equal([1L, 2L], CreateRoles().ApplyDynamicFilter(filter).Select(x => x.Id).ToArray());
+        Assert.Equal([1L, 2L], [.. CreateRoles().ApplyDynamicFilter(filter).Select(x => x.Id)]);
     }
 
     /// <summary>
@@ -52,13 +52,24 @@ public sealed class RoleDynamicListQueryTests
             , new Role { Id = 3L, Name = "End", Code = "END", CreatedAt = new DateTime(2026, 1, 1, 16, 0, 0, DateTimeKind.Utc) }
         }.AsQueryable();
 
-        Assert.Equal([2L], roles.ApplyDynamicFilter(filter).Select(x => x.Id).ToArray());
+        Assert.Equal([2L], [.. roles.ApplyDynamicFilter(filter).Select(x => x.Id)]);
     }
 
+    /// <summary>
+    ///     执行 Condition 方法对应的业务逻辑
+    /// </summary>
+    /// <param name="field">字段名称</param>
+    /// <param name="operation">操作符</param>
+    /// <param name="value">待处理的值</param>
+    /// <returns>Condition 方法的执行结果</returns>
     private static DynamicFilter Condition(string field, string operation, object value) {
         return new DynamicFilter { Field = field, Operator = operation, Value = JsonSerializer.SerializeToElement(value) };
     }
 
+    /// <summary>
+    ///     创建 CreateRoles 方法对应的业务数据
+    /// </summary>
+    /// <returns>CreateRoles 方法的执行结果</returns>
     private static IQueryable<Role> CreateRoles() {
         return new[] {
             new Role { Id = 1L, Name = "Super Admin", Code = "R_SUPER", CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), IsEnabled = true },

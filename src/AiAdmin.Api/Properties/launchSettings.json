@@ -1,25 +1,58 @@
 {
-  "$schema":"https://json.schemastore.org/launchsettings.json",
-  "profiles":{
-    "dev":{
-      "applicationUrl":"http://[::]:5678",
-      "commandName":"Project",
-      "dotnetRunMessages":true,
-      "environmentVariables":{
-        "ASPNETCORE_ENVIRONMENT":"Development"
+  "$schema": "https://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "dev": {
+      "applicationUrl": "http://[::]:5678",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "launchBrowser":true,
-      "launchUrl":"http://localhost:5678"
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:5678"
     },
-    "remote":{
-      "applicationUrl":"http://[::]:5678",
-      "commandName":"Project",
-      "dotnetRunMessages":true,
-      "environmentVariables":{
-        "ASPNETCORE_ENVIRONMENT":"Remote"
+    "dev --enabled-hosted-services": {
+      "applicationUrl": "http://[::]:5678",
+      "commandLineArgs": "--enabled-hosted-services",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "launchBrowser":true,
-      "launchUrl":"http://localhost:5678"
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:5678"
     },
+    "dev --clear-database": {
+      "applicationUrl": "http://[::]:5678",
+      "commandLineArgs": "--clear-database --enabled-hosted-services",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:5678"
+    },
+    "remote": {
+      "applicationUrl": "http://[::]:5678",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Remote"
+      },
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:5678"
+    },
+    "remote --enabled-hosted-services": {
+      "applicationUrl": "http://[::]:5678",
+      "commandLineArgs": "--enabled-hosted-services",
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Remote"
+      },
+      "launchBrowser": true,
+      "launchUrl": "http://localhost:5678"
+    }
   }
 }

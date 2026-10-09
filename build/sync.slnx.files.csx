@@ -69,5 +69,31 @@ content = Regex.Replace(
 """
 );
 
+content = Regex.Replace(
+    content,
+    "<Folder Name=\"/scripts/\">(?:.|\n)*?</Folder>",
+    $$"""
+<Folder Name="/scripts/">
+{{string.Join('\n',
+             Directory.GetFiles(@"../scripts", "*")
+                      .Select(x=>$"        <File Path=\"scripts/{Path.GetFileName(x)}\"/>")
+                      )}}
+    </Folder>
+"""
+);
+
+content = Regex.Replace(
+    content,
+    "<Folder Name=\"/docs/\">(?:.|\n)*?</Folder>",
+    $$"""
+<Folder Name="/docs/">
+{{string.Join('\n',
+             Directory.GetFiles(@"../docs", "*")
+                      .Select(x=>$"        <File Path=\"docs/{Path.GetFileName(x)}\"/>")
+                      )}}
+    </Folder>
+"""
+);
+
 Console.WriteLine(content);
 File.WriteAllText(slnxFile, content);

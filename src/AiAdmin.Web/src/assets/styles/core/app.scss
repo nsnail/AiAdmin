@@ -1,5 +1,10 @@
 // 全局样式
 
+// 业务弹窗统一使用较宽的右侧抽屉，顶栏功能抽屉保留自身尺寸
+.el-drawer:not(.notification-drawer, .chat-drawer, .setting-drawer) {
+    width: min(760px, 92vw) !important;
+}
+
 // 表格优先使用等宽字体，确保数字和标识符保持稳定对齐
 .el-table,
 .el-table th,
