@@ -1,7 +1,7 @@
 <!-- 个人中心页面 -->
 <template>
-    <div class="w-full h-full p-0 bg-transparent border-none shadow-none">
-        <div class="relative flex-b mt-2.5 max-md:block max-md:mt-1">
+    <div class="w-full h-full p-0 bg-transparent border-none shadow-none max-md:h-auto">
+        <div class="relative flex-b mt-2.5 max-md:flex max-md:flex-col max-md:mt-1">
             <div class="w-112 mr-5 max-md:w-full max-md:mr-0">
                 <div class="art-card-sm relative p-9 pb-6 overflow-hidden text-center">
                     <img class="absolute top-0 left-0 w-full h-50 object-cover" src="@imgs/user/bg.webp" />
@@ -54,8 +54,23 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="art-card-sm mt-5 max-md:mb-5 max-md:w-full max-md:overflow-hidden">
+                    <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.token.title') }}</h1>
+                    <div class="box-border w-full min-w-0 p-5 max-md:p-4">
+                        <ElInput :model-value="accessToken" :rows="5" class="token-input" readonly type="textarea" />
+                        <div class="mt-3 text-sm break-all text-g-700">
+                            {{ t('userCenter.token.expiresAt') }}：{{ tokenExpiresText }}
+                            <span :class="tokenExpired ? 'text-danger' : ''">（{{ tokenRemainingText }}）</span>
+                        </div>
+                        <ElButton v-ripple :disabled="!accessToken" @click="copyToken" class="mt-3 w-full" type="primary">
+                            <ArtSvgIcon class="mr-1" icon="ri:file-copy-line" />
+                            {{ t('userCenter.token.copy') }}
+                        </ElButton>
+                    </div>
+                </div>
             </div>
-            <div class="flex-1 overflow-hidden max-md:w-full max-md:mt-3.5">
+            <div class="flex-1 overflow-hidden max-md:w-full max-md:flex-none max-md:mt-3.5">
                 <div class="art-card-sm">
                     <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.profile.title') }}</h1>
 
@@ -178,6 +193,55 @@ const userStore = useUserStore()
 const { t } = useI18n()
 const userInfo = computed(() => userStore.getUserInfo)
 
+const rawToken = computed(() => userStore.accessToken)
+const accessToken = computed(() => (rawToken.value ? `Bearer ${rawToken.value}` : ''))
+const now = ref(Date.now())
+let nowTimer: ReturnType<typeof setInterval> | undefined
+
+/**
+ * 解析 JWT 载荷中的过期时间（毫秒时间戳），解析失败返回 undefined
+ */
+const tokenExpiresAt = computed<number | undefined>(() => {
+    try {
+        const payload = rawToken.value.split('.')[1]
+        const json = decodeURIComponent(
+            atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+                .split('')
+                .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
+                .join(''),
+        )
+        const exp = JSON.parse(json).exp
+        return typeof exp === 'number' ? exp * 1000 : undefined
+    } catch {
+        return undefined
+    }
+})
+const tokenExpired = computed(() => tokenExpiresAt.value !== undefined && tokenExpiresAt.value <= now.value)
+const tokenExpiresText = computed(() => (tokenExpiresAt.value ? new Date(tokenExpiresAt.value).toLocaleString() : t('userCenter.token.unknown')))
+const tokenRemainingText = computed(() => {
+    if (tokenExpiresAt.value === undefined) return t('userCenter.token.unknown')
+    const seconds = Math.floor((tokenExpiresAt.value - now.value) / 1000)
+    if (seconds <= 0) return t('userCenter.token.expired')
+    const d = Math.floor(seconds / 86400)
+    const h = Math.floor((seconds % 86400) / 3600)
+    const m = Math.floor((seconds % 3600) / 60)
+    const s = seconds % 60
+    const time = d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`
+    return t('userCenter.token.remaining', { time })
+})
+
+/**
+ * 复制当前 JWT 令牌到剪贴板
+ */
+const copyToken = async () => {
+    try {
+        await navigator.clipboard.writeText(accessToken.value)
+        ElMessage.success(t('userCenter.token.copied'))
+    } catch {
+        ElMessage.error(t('userCenter.token.copyFailed'))
+    }
+}
+
 const isEdit = ref(false)
 const isEditPwd = ref(false)
 const ruleFormRef = ref<FormInstance>()
@@ -285,9 +349,13 @@ const options = computed(() => [
 
 onMounted(() => {
     syncForm()
+    nowTimer = setInterval(() => (now.value = Date.now()), 1000)
 })
 
-onBeforeUnmount(() => clearInterval(sendCodeTimer))
+onBeforeUnmount(() => {
+    clearInterval(sendCodeTimer)
+    clearInterval(nowTimer)
+})
 
 watch(userInfo, syncForm, { deep: true })
 
@@ -414,6 +482,10 @@ const editPwd = async () => {
 </script>
 
 <style scoped>
+.token-input :deep(textarea) {
+    word-break: break-all;
+}
+
 .avatar-upload-mask {
     position: absolute;
     inset: 0;

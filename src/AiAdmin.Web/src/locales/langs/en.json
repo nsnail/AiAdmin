@@ -64,7 +64,16 @@
         "url": "URL",
         "paramsJson": "Query parameters JSON",
         "bodyJson": "Request body JSON",
-        "send": "Send request"
+        "send": "Send request",
+        "requestInfo": "Request",
+        "requestHeaders": "Request headers",
+        "responseInfo": "Response",
+        "responseHeaders": "Response headers",
+        "responseBody": "Response body",
+        "empty": "(empty)",
+        "copy": "Copy",
+        "copied": "Copied to clipboard",
+        "copyFailed": "Copy failed"
     },
     "search": {
         "placeholder": "Search page",
@@ -401,6 +410,16 @@
             "emailVerificationCodePlaceholder": "Enter the 6-digit code sent to {email}",
             "phone": "Phone"
         },
+        "token": {
+            "title": "Access token",
+            "expiresAt": "Valid until",
+            "remaining": "{time} remaining",
+            "expired": "Expired",
+            "unknown": "Unknown",
+            "copy": "Copy token",
+            "copied": "Token copied",
+            "copyFailed": "Copy failed"
+        },
         "password": {
             "title": "Change password",
             "current": "Current password",
@@ -442,6 +461,11 @@
         }
     },
     "userManagement": {
+        "impersonate": {
+            "title": "Impersonate user",
+            "message": "You will enter the system as \"{name}\". Your current session will be replaced and no login log will be created. Continue?",
+            "confirm": "Impersonate"
+        },
         "actions": {
             "add": "Add user",
             "save": "Save",
@@ -984,6 +1008,9 @@
             "updatedAt": "Updated at"
         },
         "placeholder": { "parent": "Leave empty for a root menu" }
+    },
+    "changeLog": {
+        "empty": "No change log available"
     },
     "wallet": {
         "title": "My Wallet",

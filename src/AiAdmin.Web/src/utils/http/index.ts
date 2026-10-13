@@ -11,7 +11,7 @@
  * - 支持 GET/POST/PUT/DELETE 等常用方法
  *
  * @module utils/http
- * @author Art Design Pro Team
+ * @author AiAdmin Team
  */
 
 import axios, { AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios'
@@ -222,6 +222,68 @@ async function request<T = any>(config: ExtendedAxiosRequestConfig): Promise<T> 
     }
 }
 
+/** 接口调试的完整请求与响应信息 */
+export interface DebugExchange {
+    request: { method: string; url: string; headers: Record<string, unknown>; body: string }
+    response: { status: number; statusText: string; headers: Record<string, unknown>; body: string; duration: number } | null
+    error: string
+}
+
+/**
+ * 发送接口调试请求，返回实际发出的请求头、请求体以及完整的响应头、响应体
+ * 不经过统一的业务码校验和错误提示，非 2xx 响应同样会返回
+ */
+async function debugRequest(config: AxiosRequestConfig): Promise<DebugExchange> {
+    const { accessToken, language } = useUserStore()
+    const headers: Record<string, string> = { 'Accept-Language': language }
+    if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+    const hasBody = config.data !== undefined && config.data !== null
+    const body = hasBody ? JSON.stringify(config.data) : ''
+    if (hasBody) headers['Content-Type'] = 'application/json'
+
+    const full: AxiosRequestConfig = {
+        ...config,
+        baseURL: VITE_API_URL,
+        withCredentials: VITE_WITH_CREDENTIALS === 'true',
+        timeout: REQUEST_TIMEOUT,
+        headers,
+        data: hasBody ? body : undefined,
+        validateStatus: () => true,
+        transformResponse: [(data) => data],
+    }
+    const exchange: DebugExchange = {
+        request: {
+            method: (config.method || 'GET').toUpperCase(),
+            url: new URL(axios.getUri(full), window.location.href).href,
+            headers: { ...headers },
+            body,
+        },
+        response: null,
+        error: '',
+    }
+    const startedAt = performance.now()
+    try {
+        const res = await axios.request<string>(full)
+        const raw = typeof res.data === 'string' ? res.data : JSON.stringify(res.data)
+        let text = raw
+        try {
+            text = JSON.stringify(JSON.parse(raw), null, 2)
+        } catch {
+            // 非 JSON 响应保持原文展示
+        }
+        exchange.response = {
+            status: res.status,
+            statusText: res.statusText,
+            headers: { ...res.headers },
+            body: text,
+            duration: Math.round(performance.now() - startedAt),
+        }
+    } catch (error) {
+        exchange.error = error instanceof Error ? error.message : String(error)
+    }
+    return exchange
+}
+
 /** API方法集合 */
 const api = {
     get<T>(config: ExtendedAxiosRequestConfig) {
@@ -239,6 +301,7 @@ const api = {
     request<T>(config: ExtendedAxiosRequestConfig) {
         return retryRequest<T>(config)
     },
+    debug: debugRequest,
 }
 
 export default api

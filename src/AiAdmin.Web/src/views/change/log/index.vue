@@ -1,45 +1,86 @@
-<!-- 更新日志页面 -->
+<!-- 更新日志页面：读取后端嵌入程序集的 CHANGELOG.md 并渲染 -->
 <template>
-    <div class="mx-auto pt-5 mb-5">
-        <!-- 标题 -->
-        <h3 class="text-2xl font-medium text-g-900 mb-8">更新日志</h3>
-
-        <!-- 日志列表 -->
-        <div class="space-y-5">
-            <div v-for="item in upgradeLogList" :key="item.version" class="art-card-sm rounded-lg p-6 transition-shadow max-md:p-4">
-                <!-- 版本和日期 -->
-                <div class="flex-cb gap-3 mb-4 flex-wrap">
-                    <span class="px-3 py-1 bg-theme/10 text-theme text-sm font-medium rounded-full">
-                        {{ item.version }}
-                    </span>
-                    <span class="text-sm text-g-500">{{ item.date }}</span>
-                </div>
-
-                <!-- 标题 -->
-                <h4 class="text-lg font-medium text-g-900 mb-3">{{ item.title }}</h4>
-
-                <!-- 详情列表 -->
-                <ul v-if="item.detail?.length" class="space-y-2 mb-4">
-                    <li v-for="(detail, index) in item.detail" :key="index" class="flex-c gap-2 text-sm text-g-600">
-                        <span class="mt-0.5">•</span>
-                        <span class="text-g-700">{{ detail }}</span>
-                    </li>
-                </ul>
-
-                <!-- 备注 -->
-                <div v-if="item.remark" class="text-sm text-g-800 bg-g-300/60 rounded p-3 mb-3">
-                    {{ item.remark }}
-                </div>
-
-                <!-- 标签 -->
-                <ElTag v-if="item.requireReLogin" size="small" type="warning">需要重新登录</ElTag>
+    <div v-loading="loading" class="change-log page-content">
+        <el-empty v-if="!loading && !blocks.length" :description="$t('changeLog.empty')" />
+        <template v-for="(block, index) in blocks" :key="index">
+            <component v-if="block.type === 'heading'" :is="`h${Math.min(block.level ?? 3, 6)}`" class="heading">
+                <changelog-inline :inlines="block.inlines" />
+            </component>
+            <div v-else-if="block.type === 'item'" class="item">
+                <span class="bullet">•</span>
+                <span><changelog-inline :inlines="block.inlines" /></span>
             </div>
-        </div>
+            <p v-else class="paragraph"><changelog-inline :inlines="block.inlines" /></p>
+        </template>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { upgradeLogList } from '@/mock/upgrade/changeLog'
+import { defineComponent, h, onMounted, ref, type PropType } from 'vue'
+import { fetchGetChangeLog } from '@/api/system-manage'
+import { parseChangeLog, type ChangeLogBlock, type ChangeLogInline } from './parse-changelog'
 
 defineOptions({ name: 'ChangeLog' })
+
+/** 渲染行内片段，全部通过 Vue 节点输出，不使用 v-html，内容中的标签不会被解析 */
+const ChangelogInline = defineComponent({
+    props: { inlines: { type: Array as PropType<ChangeLogInline[]>, required: true } },
+    setup(props) {
+        return () =>
+            props.inlines.map((part) => {
+                if (part.type === 'link') return h('a', { href: part.href, target: '_blank', rel: 'noopener noreferrer' }, part.text)
+                if (part.type === 'bold') return h('strong', part.text)
+                if (part.type === 'code') return h('code', part.text)
+                return part.text
+            })
+    },
+})
+
+const loading = ref(false)
+const blocks = ref<ChangeLogBlock[]>([])
+
+/** 加载并解析更新日志 */
+const load = async (): Promise<void> => {
+    loading.value = true
+    try {
+        const result = await fetchGetChangeLog()
+        blocks.value = parseChangeLog(result.content)
+    } finally {
+        loading.value = false
+    }
+}
+onMounted(load)
 </script>
+
+<style scoped>
+.change-log {
+    padding: 20px;
+    overflow-wrap: anywhere;
+}
+.heading {
+    margin: 24px 0 10px;
+    font-weight: 600;
+    color: var(--el-text-color-primary);
+}
+.item {
+    display: flex;
+    gap: 8px;
+    margin: 6px 0;
+    color: var(--el-text-color-regular);
+}
+.bullet {
+    color: var(--el-text-color-secondary);
+}
+.paragraph {
+    margin: 8px 0;
+    color: var(--el-text-color-secondary);
+}
+.change-log :deep(a) {
+    color: var(--el-color-primary);
+}
+.change-log :deep(code) {
+    padding: 1px 6px;
+    background: var(--el-fill-color-light);
+    border-radius: 4px;
+}
+</style>

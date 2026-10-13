@@ -64,7 +64,16 @@
         "url": "地址",
         "paramsJson": "查询参数 JSON",
         "bodyJson": "请求体 JSON",
-        "send": "发送请求"
+        "send": "发送请求",
+        "requestInfo": "请求",
+        "requestHeaders": "请求头",
+        "responseInfo": "响应",
+        "responseHeaders": "响应头",
+        "responseBody": "响应体",
+        "empty": "（空）",
+        "copy": "复制",
+        "copied": "已复制到剪贴板",
+        "copyFailed": "复制失败"
     },
     "search": {
         "placeholder": "搜索页面",
@@ -397,6 +406,16 @@
             "emailVerificationCodePlaceholder": "请输入发送到 {email} 的 6 位验证码",
             "phone": "手机号"
         },
+        "token": {
+            "title": "访问令牌",
+            "expiresAt": "有效期至",
+            "remaining": "剩余 {time}",
+            "expired": "已过期",
+            "unknown": "未知",
+            "copy": "复制令牌",
+            "copied": "令牌已复制",
+            "copyFailed": "复制失败"
+        },
         "password": {
             "title": "更改密码",
             "current": "当前密码",
@@ -438,6 +457,11 @@
         }
     },
     "userManagement": {
+        "impersonate": {
+            "title": "模拟登录",
+            "message": "将以用户“{name}”的身份进入系统，当前登录会被替换，且不会产生登录日志。确认继续?",
+            "confirm": "模拟登录"
+        },
         "actions": {
             "add": "新增用户",
             "save": "保存",
@@ -975,6 +999,9 @@
             "updatedAt": "更新时间"
         },
         "placeholder": { "parent": "不选择则为根菜单" }
+    },
+    "changeLog": {
+        "empty": "暂无更新日志"
     },
     "wallet": {
         "title": "我的钱包",

@@ -52,7 +52,56 @@
                                     <el-button :loading="debug[item.path].loading" @click="send(item)" type="primary"
                                         ><el-icon><Promotion /></el-icon>{{ $t('apiDocs.send') }}</el-button
                                     >
-                                    <pre v-if="debug[item.path].result" class="result">{{ debug[item.path].result }}</pre>
+                                    <div v-if="debug[item.path].exchange" class="exchange">
+                                        <el-alert
+                                            v-if="debug[item.path].exchange?.error"
+                                            :closable="false"
+                                            :title="debug[item.path].exchange?.error"
+                                            type="error" />
+                                        <el-tabs v-model="debug[item.path].exchangeTab" class="exchange-tabs">
+                                            <el-tab-pane :label="$t('apiDocs.requestInfo')" name="request">
+                                                <exchange-block
+                                                    :text="`${debug[item.path].exchange?.request.method} ${debug[item.path].exchange?.request.url}`"
+                                                    :title="$t('apiDocs.url')" />
+                                                <exchange-block
+                                                    :text="formatHeaders(debug[item.path].exchange?.request.headers)"
+                                                    :title="$t('apiDocs.requestHeaders')"
+                                                    language="http" />
+                                                <exchange-block
+                                                    :text="debug[item.path].exchange?.request.body || $t('apiDocs.empty')"
+                                                    :title="$t('apiDocs.requestBody')"
+                                                    language="json" />
+                                            </el-tab-pane>
+                                            <el-tab-pane :disabled="!debug[item.path].exchange?.response" name="response">
+                                                <template #label>
+                                                    <span class="response-label">
+                                                        {{ $t('apiDocs.responseInfo') }}
+                                                        <template v-if="debug[item.path].exchange?.response">
+                                                            <el-tag
+                                                                :type="
+                                                                    (debug[item.path].exchange?.response?.status ?? 500) < 400 ? 'success' : 'danger'
+                                                                "
+                                                                size="small"
+                                                                >{{ debug[item.path].exchange?.response?.status }}
+                                                                {{ debug[item.path].exchange?.response?.statusText }}</el-tag
+                                                            >
+                                                            <span class="muted">{{ debug[item.path].exchange?.response?.duration }} ms</span>
+                                                        </template>
+                                                    </span>
+                                                </template>
+                                                <template v-if="debug[item.path].exchange?.response">
+                                                    <exchange-block
+                                                        :text="formatHeaders(debug[item.path].exchange?.response?.headers)"
+                                                        :title="$t('apiDocs.responseHeaders')"
+                                                        language="http" />
+                                                    <exchange-block
+                                                        :text="debug[item.path].exchange?.response?.body || $t('apiDocs.empty')"
+                                                        :title="$t('apiDocs.responseBody')"
+                                                        language="json" />
+                                                </template>
+                                            </el-tab-pane>
+                                        </el-tabs>
+                                    </div>
                                 </div>
                             </el-tab-pane>
                         </el-tabs>
@@ -66,10 +115,11 @@
 <script lang="ts" setup>
 import { ArrowDown, ArrowRight, Promotion, Refresh } from '@element-plus/icons-vue'
 import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
-import { ElTable, ElTableColumn } from 'element-plus'
+import { ElMessage, ElTable, ElTableColumn } from 'element-plus'
 import { fetchGetApiDocumentation } from '@/api/system-manage'
 import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
-import request from '@/utils/http'
+import request, { type DebugExchange } from '@/utils/http'
+import ExchangeBlock from './exchange-block.vue'
 
 const TypePreview = defineComponent({
     props: { title: String, type: { type: Object, required: true } },
@@ -99,7 +149,12 @@ const keyword = ref('')
 const groups = ref<Api.SystemManage.ApiDocumentationGroup[]>([])
 const openedGroups = ref<string[]>([])
 const open = ref<string | null>(null)
-const debug = reactive<Record<string, { url: string; params: string; body: string; loading: boolean; result: string }>>({})
+const debug = reactive<
+    Record<
+        string,
+        { url: string; params: string; body: string; loading: boolean; exchange: DebugExchange | null; exchangeTab: 'request' | 'response' }
+    >
+>({})
 const filteredGroups = computed(() =>
     groups.value
         .map((g) => ({
@@ -121,7 +176,7 @@ const load = async () => {
 }
 const toggle = (item: Api.SystemManage.ApiDocumentationItem) => {
     open.value = open.value === item.method + item.path ? null : item.method + item.path
-    if (!debug[item.path]) debug[item.path] = { url: item.path, params: '{}', body: '{}', loading: false, result: '' }
+    if (!debug[item.path]) debug[item.path] = { url: item.path, params: '{}', body: '{}', loading: false, exchange: null, exchangeTab: 'request' }
 }
 const isOpen = (item: Api.SystemManage.ApiDocumentationItem) => open.value === item.method + item.path
 const methodType = (method: string) => ({ GET: 'success', POST: '', PUT: 'warning', DELETE: 'danger', PATCH: 'info' })[method] as any
@@ -134,20 +189,25 @@ const parseJson = (value: string, field: string): unknown => {
     }
 }
 
+const formatHeaders = (headers?: Record<string, unknown>) =>
+    Object.entries(headers ?? {})
+        .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+        .join('\n')
+
 const send = async (item: Api.SystemManage.ApiDocumentationItem) => {
     const state = debug[item.path]
     state.loading = true
     try {
         const params = parseJson(state.params, 'Parameters')
         const body = parseJson(state.body, 'Request body')
-        const res = await request.request({
+        state.exchange = await request.debug({
             url: state.url,
             method: item.method,
             ...(item.method === 'GET' || item.method === 'DELETE' ? { params } : { data: body }),
         })
-        state.result = JSON.stringify(res, null, 2)
+        state.exchangeTab = state.exchange.response ? 'response' : 'request'
     } catch (error) {
-        state.result = String(error)
+        ElMessage.error(error instanceof Error ? error.message : String(error))
     } finally {
         state.loading = false
     }
@@ -202,13 +262,16 @@ onMounted(load)
 }
 .debug-form {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 12px;
 }
-.result {
-    background: var(--el-fill-color-light);
-    padding: 12px;
-    max-height: 360px;
-    overflow: auto;
+.exchange {
+    min-width: 0;
+}
+.response-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 .type-preview {
     margin-top: 18px;

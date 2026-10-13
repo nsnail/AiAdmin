@@ -20,12 +20,17 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="storage">对象存储服务</param>
 /// <param name="exportLimitService">列表导出上限服务</param>
 /// <param name="cache">分布式缓存</param>
+/// <param name="tokenService">JWT 访问令牌服务</param>
 [ApiController]
 [ApiDescription("User management")]
 [Authorize]
 [Route("api/user")]
-public sealed class UsersController(AppDbContext db, MinioStorageService storage, ExportLimitService exportLimitService, IDistributedCache cache)
-    : ControllerBase
+public sealed class UsersController(
+    AppDbContext db
+    , MinioStorageService storage
+    , ExportLimitService exportLimitService
+    , IDistributedCache cache
+    , TokenService tokenService) : ControllerBase
 {
     /// <summary>
     ///     对外使用稳定查询字段名，实体路径仅由后端维护
@@ -223,6 +228,36 @@ public sealed class UsersController(AppDbContext db, MinioStorageService storage
             .SingleOrDefaultAsync(x => x.Id == id)
             .ConfigureAwait(false);
         return user is null ? NotFound(new ApiResponse<object>(404, "User not found", null)) : Ok(ApiResponse<UserListItem>.Ok(ToListItem(user)));
+    }
+
+    /// <summary>
+    ///     模拟指定用户登录，只签发令牌，不写入登录日志也不更新最后登录信息
+    /// </summary>
+    /// <param name="request">模拟登录请求</param>
+    /// <returns>被模拟用户的访问令牌</returns>
+    [HttpPost("impersonate")]
+    [ApiDescription("Impersonate user")]
+    public async Task<ActionResult<ApiResponse<LoginResult>>> ImpersonateAsync([FromBody] ImpersonateUserRequest request) {
+        var currentId = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+        if (request.Id == currentId) {
+            return BadRequest(new ApiResponse<object>(400, "Cannot impersonate yourself", null));
+        }
+
+        var user = await db
+            .Users.AsNoTracking()
+            .Include(x => x.UserRoles)
+            .ThenInclude(x => x.Role)
+            .SingleOrDefaultAsync(x => x.Id == request.Id)
+            .ConfigureAwait(false);
+        if (user is null) {
+            return NotFound(new ApiResponse<object>(404, "User not found", null));
+        }
+
+        if (!user.IsEnabled) {
+            return BadRequest(new ApiResponse<object>(400, "User is disabled", null));
+        }
+
+        return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, null), "Impersonation successful"));
     }
 
     /// <summary>

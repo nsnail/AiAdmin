@@ -294,6 +294,11 @@ export function fetchCreateUser(data: Api.SystemManage.SaveUserParams) {
     return request.post<Api.SystemManage.UserListItem>({ url: '/api/user', data })
 }
 
+/** 超级管理员模拟指定用户登录，返回该用户的访问令牌，不产生登录日志 */
+export function fetchImpersonateUser(id: string) {
+    return request.post<{ token: string; refreshToken: string }>({ url: '/api/user/impersonate', data: { id } })
+}
+
 export function fetchUpdateUser(id: string, data: Api.SystemManage.UpdateUserParams) {
     return request.post<Api.SystemManage.UserListItem>({ url: '/api/user/update', data: { ...data, id } })
 }
@@ -445,6 +450,10 @@ export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter, sortField
         url: '/api/api-endpoint/list',
         data: { dynamicFilter, sortField, sortOrder },
     })
+}
+
+export function fetchGetChangeLog() {
+    return request.get<{ content: string }>({ url: '/api/change-log/content' })
 }
 
 export function fetchGetApiDocumentation() {

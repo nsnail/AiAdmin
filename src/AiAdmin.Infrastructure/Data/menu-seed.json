@@ -63,7 +63,13 @@
         "meta": {
           "title": "menus.system.user",
           "icon": "ri:user-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Impersonate",
+              "authMark": "impersonate"
+            }
+          ]
         }
       },
       {

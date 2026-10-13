@@ -52,9 +52,20 @@ import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.v
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
-import { fetchCreateUser, fetchExportUsers, fetchGetUser, fetchGetUserList, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
+import {
+    fetchCreateUser,
+    fetchExportUsers,
+    fetchGetUser,
+    fetchGetUserList,
+    fetchImpersonateUser,
+    fetchUpdateUser,
+    fetchUploadUserAvatar,
+} from '@/api/system-manage'
 import UserDialog from './modules/user-dialog.vue'
-import { ElMessage, ElTag } from 'element-plus'
+import { resolveDirective, withDirectives } from 'vue'
+import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { useUserStore } from '@/store/modules/user'
+import { StorageConfig } from '@/utils/storage/storage-config'
 import { DialogType } from '@/types'
 import { useI18n } from 'vue-i18n'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
@@ -307,21 +318,61 @@ const {
             {
                 prop: 'operation',
                 label: t('userManagement.fields.operation'),
-                width: 70,
+                width: 130, // 每个操作按钮占 46px，加单元格内边距 24px，两个按钮至少 116px
                 fixed: 'right', // 固定列
-                formatter: (row) =>
-                    h('div', [
+                formatter: (row) => {
+                    return h('div', [
                         h(ArtButtonTable, {
                             type: 'edit',
                             onClick: () => showDialog('edit', row),
                         }),
-                    ]),
+                        // 按钮权限由菜单 authList 中的 impersonate 控制（v-auth），且不能模拟自己和已禁用的用户
+                        row.id !== currentUserId.value && row.isEnabled
+                            ? withDirectives(
+                                  h(ArtButtonTable, {
+                                      icon: 'ri:user-shared-line',
+                                      iconClass: 'bg-warning/12 text-warning',
+                                      onClick: () => impersonate(row),
+                                  }),
+                                  [[resolveDirective('auth')!, 'impersonate']],
+                              )
+                            : null,
+                    ])
+                },
             },
         ],
     },
 })
 
 watch(locale, () => resetColumns?.())
+
+const userStore = useUserStore()
+const currentUserId = computed(() => String(userStore.info.userId ?? ''))
+
+/**
+ * 模拟登录：由后端签发目标用户的令牌，替换本地令牌后整页刷新
+ * 整页刷新让路由、菜单和用户信息按新身份重新初始化，该流程不经过登录接口，因此不会产生登录日志
+ * @param row 被模拟的用户
+ */
+const impersonate = async (row: UserListItem): Promise<void> => {
+    try {
+        await ElMessageBox.confirm(t('userManagement.impersonate.message', { name: row.userName }), t('userManagement.impersonate.title'), {
+            confirmButtonText: t('userManagement.impersonate.confirm'),
+            cancelButtonText: t('common.cancel'),
+            type: 'warning',
+        })
+    } catch {
+        return
+    }
+    const { token } = await fetchImpersonateUser(row.id)
+    // 记录当前身份，刷新后检测到用户变化会清理上一个身份的工作台标签页
+    localStorage.setItem(StorageConfig.LAST_USER_ID_KEY, currentUserId.value)
+    userStore.setToken(token, '')
+    userStore.setLoginStatus(true)
+    // 清空用户信息，刷新后按新身份重新拉取并重建动态路由
+    userStore.info = {}
+    window.location.href = import.meta.env.BASE_URL
+}
 
 type ExportFormat = 'excel' | 'json'
 

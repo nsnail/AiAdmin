@@ -27,7 +27,7 @@
  * ```
  *
  * @module useAuth
- * @author Art Design Pro Team
+ * @author AiAdmin Team
  */
 
 import { useRoute } from 'vue-router'

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
@@ -17,6 +18,8 @@ namespace AiAdmin.Api.Logging;
 public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<ElasticsearchLogOptions> options, ExternalHttpRequestService httpRequests)
 {
     private const int _MAX_ATTEMPTS = 3;
+
+    private readonly ConcurrentDictionary<string, byte> _ensuredIndices = new();
 
     private volatile bool _templateInitialized;
 
@@ -38,7 +41,16 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
 
         var settings = options.Value;
         await EnsureIndexTemplateAsync(settings, cancellationToken).ConfigureAwait(false);
-        await SendWithRetryAsync(settings, BuildPayload(entries, settings.Index), cancellationToken).ConfigureAwait(false);
+        await EnsureIndicesAsync(settings, entries.Select(entry => GetDailyIndex(settings.Index, entry)).Distinct(), cancellationToken)
+            .ConfigureAwait(false);
+        try {
+            await SendWithRetryAsync(settings, BuildPayload(entries, settings.Index), cancellationToken).ConfigureAwait(false);
+        }
+        catch (InvalidOperationException) {
+            // 索引可能被外部删除，清空缓存以便下次重新创建
+            _ensuredIndices.Clear();
+            throw;
+        }
     }
 
     /// <summary>
@@ -53,8 +65,7 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
     ) {
         var payload = new StringBuilder();
         foreach (var entry in entries) {
-            var dailyIndex = $"{index}-{entry.Timestamp.UtcDateTime.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture)}";
-            _ = payload.Append("{\"index\":{\"_index\":").Append(JsonSerializer.Serialize(dailyIndex)).Append("}}\n");
+            _ = payload.Append("{\"index\":{\"_index\":").Append(JsonSerializer.Serialize(GetDailyIndex(index, entry))).Append("}}\n");
             _ = payload
                 .Append(
                     JsonSerializer.Serialize(
@@ -127,6 +138,70 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
     }
 
     /// <summary>
+    ///     计算日志所属的 UTC 每日索引名
+    /// </summary>
+    /// <param name="index">目标索引前缀</param>
+    /// <param name="entry">日志条目</param>
+    /// <returns>每日索引名</returns>
+    private static string GetDailyIndex(
+        string index
+        , ElasticsearchLogEntry entry
+    ) {
+        return $"{index}-{entry.Timestamp.UtcDateTime.ToString("yyyy.MM.dd", CultureInfo.InvariantCulture)}";
+    }
+
+    /// <summary>
+    ///     从 Bulk 响应中提取前几个失败项的状态、索引、错误类型与原因，便于排查
+    /// </summary>
+    /// <param name="responseBody">Bulk 响应正文</param>
+    /// <returns>失败项摘要，无法解析时返回截断的原始响应</returns>
+    private static string SummarizeItemErrors(string responseBody) {
+        const int maxItems = 3;
+        try {
+            using var document = JsonDocument.Parse(responseBody);
+            if (!document.RootElement.TryGetProperty("items", out var items)) {
+                return Truncate(responseBody);
+            }
+
+            var summaries = new List<string>();
+            var total = 0;
+            foreach (var item in items.EnumerateArray()) {
+                // 每个 item 形如 {"index":{...,"error":{...}}}
+                foreach (var body in item.EnumerateObject().Select(operation => operation.Value)) {
+                    if (!body.TryGetProperty("error", out var error)) {
+                        continue;
+                    }
+
+                    ++total;
+                    if (summaries.Count >= maxItems) {
+                        continue;
+                    }
+
+                    var status = body.TryGetProperty("status", out var s) ? s.ToString() : "?";
+                    var index = body.TryGetProperty("_index", out var i) ? i.ToString() : "?";
+                    var type = error.TryGetProperty("type", out var t) ? t.ToString() : "?";
+                    var reason = error.TryGetProperty("reason", out var r) ? r.ToString() : "?";
+                    summaries.Add($"[status={status}, index={index}, type={type}, reason={reason}]");
+                }
+            }
+
+            return $"{total} failed item(s), first {summaries.Count}: {string.Join(' ', summaries)}";
+        }
+        catch (JsonException) {
+            return Truncate(responseBody);
+        }
+    }
+
+    /// <summary>
+    ///     截断过长文本，避免异常消息过大
+    /// </summary>
+    /// <param name="value">原始文本</param>
+    /// <returns>最多 1000 个字符的文本</returns>
+    private static string Truncate(string value) {
+        return value.Length <= 1000 ? value : value[..1000];
+    }
+
+    /// <summary>
     ///     首次写入前注册精确匹配字段模板，供 Elasticsearch 自动创建日志索引时应用
     /// </summary>
     /// <param name="settings">Elasticsearch 配置</param>
@@ -164,6 +239,36 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
     }
 
     /// <summary>
+    ///     确保每日索引已存在；集群禁用 action.auto_create_index 时 Bulk 不会自动建索引
+    /// </summary>
+    /// <param name="settings">Elasticsearch 配置</param>
+    /// <param name="indices">待确认的索引名</param>
+    /// <param name="cancellationToken">取消操作令牌</param>
+    /// <returns>索引创建任务</returns>
+    /// <exception cref="HttpRequestException">索引创建失败</exception>
+    private async Task EnsureIndicesAsync(
+        ElasticsearchLogOptions settings
+        , IEnumerable<string> indices
+        , CancellationToken cancellationToken
+    ) {
+        foreach (var index in indices.Where(index => !_ensuredIndices.ContainsKey(index))) {
+            using var request = CreateRequest(settings, "{}");
+            request.Method = HttpMethod.Put;
+            request.RequestUri = new Uri($"{settings.Uri.TrimEnd('/')}/{Uri.EscapeDataString(index)}");
+            request.Content!.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+            var response = await httpRequests.SendAsync(request, HttpCompletionOption.ResponseContentRead, cancellationToken).ConfigureAwait(false);
+            var created = response.StatusCode is >= 200 and < 300;
+            var exists = response.StatusCode == (int)HttpStatusCode.BadRequest
+                         && response.ResponseBody.Contains("resource_already_exists_exception", StringComparison.Ordinal);
+            if (!created && !exists) {
+                throw new HttpRequestException($"Elasticsearch index creation failed with {response.StatusCode}: {response.ResponseBody}");
+            }
+
+            _ = _ensuredIndices.TryAdd(index, 0);
+        }
+    }
+
+    /// <summary>
     ///     执行单次 Bulk API 请求并校验响应
     /// </summary>
     /// <param name="settings">Elasticsearch 配置</param>
@@ -182,7 +287,7 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         _ = response.EnsureSuccessStatusCode();
         if (responseBody.Contains("\"errors\":true", StringComparison.OrdinalIgnoreCase)) {
-            throw new InvalidOperationException("Elasticsearch bulk response contains item errors");
+            throw new InvalidOperationException($"Elasticsearch bulk response contains item errors: {SummarizeItemErrors(responseBody)}");
         }
     }
 

@@ -14,6 +14,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <EmbeddedResource Include="../../CHANGELOG.md" LogicalName="CHANGELOG.md"/>
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="../AiAdmin.Core/AiAdmin.Core.csproj"/>
         <ProjectReference Include="../AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
     </ItemGroup>

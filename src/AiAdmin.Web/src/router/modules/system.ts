@@ -19,6 +19,7 @@ export const permissionRoutes: AppRouteRecord = {
                 icon: 'ri:user-line',
                 keepAlive: true,
                 roles: ['R_SUPER', 'R_ADMIN'],
+                authList: [{ title: '模拟登录', authMark: 'impersonate' }],
             },
         },
         {
