@@ -11,7 +11,6 @@ public sealed class ResourceEnabledRequest
     /// <summary>
     ///     资源主键
     /// </summary>
-    [Range(1, long.MaxValue)]
     public long Id { get; init; }
 
     /// <summary>
@@ -19,6 +18,11 @@ public sealed class ResourceEnabledRequest
     /// </summary>
     [JsonRequired]
     public bool IsEnabled { get; init; }
+
+    /// <summary>
+    ///     字符串类型的资源主键，如设备编号
+    /// </summary>
+    public string? Key { get; init; }
 
     /// <summary>
     ///     资源类型

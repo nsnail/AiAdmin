@@ -14,7 +14,7 @@ namespace AiAdmin.Api.Data;
 /// <param name="dataScope">数据权限上下文</param>
 /// <param name="httpContextAccessor">HTTP 上下文访问器</param>
 /// <param name="dataScopeCache">数据权限缓存</param>
-public sealed class AppDbContext(
+public sealed partial class AppDbContext(
     DbContextOptions<AppDbContext> options
     , DataScopeContext dataScope
     , IHttpContextAccessor httpContextAccessor
@@ -462,6 +462,8 @@ public sealed class AppDbContext(
                 _ = entity.Property(x => x.Path).HasMaxLength(500).IsRequired();
             }
         );
+
+        ConfigureBusinessModel(modelBuilder);
     }
 
     /// <summary>
@@ -504,6 +506,17 @@ public sealed class AppDbContext(
         var originalVersion = Convert.ToInt32(entry.Property(nameof(IVersion.Version)).OriginalValue, CultureInfo.InvariantCulture);
         versionedEntity.Version = originalVersion + 1;
     }
+
+    /// <summary>
+    ///     业务实体模型配置扩展点，由 AppDbContext.Business.cs 实现
+    /// </summary>
+    /// <param name="modelBuilder">实体模型构建器</param>
+    static partial void ConfigureBusinessModel(ModelBuilder modelBuilder);
+
+    /// <summary>
+    ///     业务保存前处理扩展点，由 AppDbContext.Business.cs 实现
+    /// </summary>
+    static partial void PrepareBusinessSaveChanges();
 
     /// <summary>
     ///     为本次数据库写入创建审计日志
@@ -566,6 +579,7 @@ public sealed class AppDbContext(
             .Entries()
             .Where(x => x.Entity is not DatabaseAuditLog && x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .ToList();
+        PrepareBusinessSaveChanges();
         AssignOwners(entries);
         AddDatabaseAuditLogs(entries);
         UpdateAuditTimes();

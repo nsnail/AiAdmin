@@ -27,9 +27,11 @@ import { LanguageEnum } from '@/enums/appEnum'
 import { getSystemStorage } from '@/utils/storage'
 import { StorageKeyManager } from '@/utils/storage/storage-key-manager'
 
-// 同步导入语言文件
+// 同步导入语言文件：langs 为框架语言资源，business 为业务系统语言资源，分开维护以减少合并冲突
 import enMessages from './langs/en.json'
 import zhMessages from './langs/zh.json'
+import enBusinessMessages from './business/en.json'
+import zhBusinessMessages from './business/zh.json'
 
 /**
  * 存储键管理器实例
@@ -37,11 +39,40 @@ import zhMessages from './langs/zh.json'
 const storageKeyManager = new StorageKeyManager()
 
 /**
+ * 语言消息树
+ */
+interface MessageTree {
+    [key: string]: string | string[] | MessageTree
+}
+
+/**
+ * 判断值是否为可深度合并的普通对象，数组按叶子节点整体覆盖
+ * @param value 待判断的值
+ * @returns 是普通对象时为 true
+ */
+const isMessageTree = (value: unknown): value is MessageTree => typeof value === 'object' && value !== null && !Array.isArray(value)
+
+/**
+ * 将业务语言资源深度合并到框架语言资源
+ * @param base 框架语言资源
+ * @param extra 业务语言资源，同名叶子节点以业务资源为准
+ * @returns 合并后的语言资源，不修改入参
+ */
+const mergeMessages = (base: MessageTree, extra: MessageTree): MessageTree => {
+    const result: MessageTree = { ...base }
+    for (const [key, value] of Object.entries(extra)) {
+        const current = result[key]
+        result[key] = isMessageTree(value) && isMessageTree(current) ? mergeMessages(current, value) : value
+    }
+    return result
+}
+
+/**
  * 语言消息对象
  */
 const messages = {
-    [LanguageEnum.EN]: enMessages,
-    [LanguageEnum.ZH]: zhMessages,
+    [LanguageEnum.EN]: mergeMessages(enMessages, enBusinessMessages),
+    [LanguageEnum.ZH]: mergeMessages(zhMessages, zhBusinessMessages),
 }
 
 /**

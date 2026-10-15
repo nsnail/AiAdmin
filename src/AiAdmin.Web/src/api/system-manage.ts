@@ -9,8 +9,25 @@ export type DynamicFilter = {
     filters?: DynamicFilter[]
 }
 
+/**
+ * 业务系统追加的列表筛选资源，由 business-manage.ts 通过模块扩展声明，框架这里保持为空
+ * 键为资源名，值固定为 true
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface BusinessListFilterResources {}
+
 export type ListFilterResource =
-    'api-endpoint' | 'department' | 'dictionary' | 'login-log' | 'menu' | 'message' | 'role' | 'scheduled-job' | 'user' | 'wallet'
+    | 'api-endpoint'
+    | 'department'
+    | 'dictionary'
+    | 'login-log'
+    | 'menu'
+    | 'message'
+    | 'role'
+    | 'scheduled-job'
+    | 'user'
+    | 'wallet'
+    | keyof BusinessListFilterResources
 
 export interface DynamicTableQuery {
     current?: number
@@ -78,7 +95,20 @@ export interface LoginLogRecord {
     createdAt: string
 }
 
-export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job'
+/**
+ * 业务系统追加的启用状态资源，由 business-manage.ts 通过模块扩展声明，框架这里保持为空
+ * 键为资源名，值为主键形式：'string' 表示使用字符串主键（请求字段为 key），'number' 表示使用数字主键（请求字段为 id）
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface BusinessEnabledStateResources {}
+
+export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job' | keyof BusinessEnabledStateResources
+
+/**
+ * 使用字符串主键的启用状态资源名集合，请求时主键放在 key 字段而不是 id 字段
+ * 业务系统在 business-manage.ts 中向其登记资源名，框架不感知具体业务资源
+ */
+export const stringKeyEnabledStateResources = new Set<string>()
 
 export interface RedisServerInfo {
     endpoint: string
@@ -177,7 +207,10 @@ export function fetchDeleteRedisValue(key: string) {
 }
 
 export function fetchUpdateEnabledState(resource: EnabledStateResource, id: string, isEnabled: boolean) {
-    return request.post<void>({ url: '/api/enabled-state', data: { resource, id, isEnabled } })
+    return request.post<void>({
+        url: '/api/enabled-state',
+        data: stringKeyEnabledStateResources.has(resource) ? { resource, key: id, isEnabled } : { resource, id, isEnabled },
+    })
 }
 
 export function fetchGetListFilterFields(resource: ListFilterResource) {

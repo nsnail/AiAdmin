@@ -18,7 +18,7 @@ public sealed class ChangeLogController : ControllerBase
     /// <summary>
     ///     嵌入资源的逻辑名称，与项目文件中的 LogicalName 保持一致
     /// </summary>
-    private const string RESOURCE_NAME = "CHANGELOG.md";
+    private const string _RESOURCE_NAME = "CHANGELOG.md";
 
     /// <summary>
     ///     嵌入资源在进程生命周期内不会变化，首次读取后缓存
@@ -40,7 +40,7 @@ public sealed class ChangeLogController : ControllerBase
     /// </summary>
     /// <returns>更新日志文本</returns>
     private static string ReadEmbeddedContent() {
-        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(RESOURCE_NAME);
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(_RESOURCE_NAME);
         if (stream is null) {
             return string.Empty;
         }

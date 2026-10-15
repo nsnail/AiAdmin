@@ -4,6 +4,7 @@
  * 服务端仅返回稳定的英文文本，本模块根据当前语言在客户端完成展示翻译
  */
 import i18n from '@/locales'
+import { businessZhTranslations } from './server-message.business'
 
 const zhTranslations: Record<string, string> = {
     'Operation succeeded': '操作成功',
@@ -183,16 +184,9 @@ const zhTranslations: Record<string, string> = {
     'Upload current user avatar': '上传当前用户头像',
     'Change log': '更新日志',
     'Query change log': '查询更新日志',
-    'Account management': '账号管理',
-    'Query account filter fields': '查询账号筛选字段',
-    'Query account filter groups': '查询账号筛选分组',
-    'Query account list': '查询账号列表',
-    'Device management': '设备管理',
-    'Query device filter fields': '查询设备筛选字段',
-    'Query device filter groups': '查询设备筛选分组',
-    'Query device list': '查询设备列表',
-    'Report device heartbeat': '上报设备心跳',
-    'Refresh device online status': '刷新设备在线状态',
+    'Resource id is required': '资源主键不能为空',
+    'File must not exceed 100 MB': '文件不能超过 100 MB',
+    ...businessZhTranslations,
 }
 
 /** 将服务端稳定英文文本转换为当前界面语言 */

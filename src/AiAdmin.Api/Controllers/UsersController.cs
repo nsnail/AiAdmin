@@ -532,7 +532,7 @@ public sealed class UsersController(
         image.ResetPage();
         image.Resize(120, 120);
         image.BackgroundColor = MagickColors.White;
-        image.Alpha(AlphaOption.Remove);
+        image.Alpha(AlphaAction.Remove);
         image.Format = MagickFormat.Png;
         await using var output = new MemoryStream();
         await image.WriteAsync(output).ConfigureAwait(false);

@@ -12,7 +12,7 @@ public sealed class ResponseJsonCleanupMiddleware(RequestDelegate next)
     /// <summary>
     ///     标记当前响应保留 null 属性的上下文键
     /// </summary>
-    public const string PRESERVE_NULL_PROPERTIES_KEY = "ResponseJsonCleanup.PreserveNullProperties";
+    private const string _PRESERVE_NULL_PROPERTIES_KEY = "ResponseJsonCleanup.PreserveNullProperties";
 
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -28,7 +28,7 @@ public sealed class ResponseJsonCleanupMiddleware(RequestDelegate next)
 
         try {
             await next(context).ConfigureAwait(false);
-            if (!IsJsonResponse(context.Response) || responseBody.Length == 0 || context.Items.ContainsKey(PRESERVE_NULL_PROPERTIES_KEY)) {
+            if (!IsJsonResponse(context.Response) || responseBody.Length == 0 || context.Items.ContainsKey(_PRESERVE_NULL_PROPERTIES_KEY)) {
                 responseBody.Position = 0;
                 await responseBody.CopyToAsync(originalBody, context.RequestAborted).ConfigureAwait(false);
                 return;
