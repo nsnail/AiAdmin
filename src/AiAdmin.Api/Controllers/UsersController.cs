@@ -253,11 +253,11 @@ public sealed class UsersController(
             return NotFound(new ApiResponse<object>(404, "User not found", null));
         }
 
-        if (!user.IsEnabled) {
-            return BadRequest(new ApiResponse<object>(400, "User is disabled", null));
+        if (user.IsEnabled) {
+            return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, null), "Impersonation successful"));
         }
 
-        return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, null), "Impersonation successful"));
+        return BadRequest(new ApiResponse<object>(400, "User is disabled", null));
     }
 
     /// <summary>
