@@ -8,10 +8,10 @@ public interface IOwner
     /// <summary>
     ///     所有者部门主键
     /// </summary>
-    long OwnerDepartmentId { get; set; }
+    long? OwnerDepartmentId { get; set; }
 
     /// <summary>
     ///     所有者用户主键
     /// </summary>
-    long OwnerId { get; set; }
+    long? OwnerId { get; set; }
 }

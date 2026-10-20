@@ -46,5 +46,6 @@ public sealed class SaveDictionaryItemRequest
     ///     字典键
     /// </summary>
     [Required]
+    [StringLength(4000)]
     public string Value { get; init; } = string.Empty;
 }

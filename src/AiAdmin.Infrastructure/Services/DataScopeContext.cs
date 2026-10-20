@@ -43,7 +43,9 @@ public sealed class DataScopeContext
     /// <param name="owner">目标数据所有者</param>
     /// <returns>可操作时返回 true</returns>
     public bool CanAccess(IOwner owner) {
-        return HasAllData || (HasSelfData && owner.OwnerId == UserId) || DepartmentIds.Contains(owner.OwnerDepartmentId);
+        return HasAllData
+               || (HasSelfData && owner.OwnerId == UserId)
+               || (owner.OwnerDepartmentId is { } departmentId && DepartmentIds.Contains(departmentId));
     }
 
     /// <summary>

@@ -728,6 +728,9 @@
         "messages": {
             "invalidJson": "请输入有效的 JSON",
             "invalidHeadersJson": "请求头必须是 JSON 对象",
+            "invalidUrl": "请输入有效的请求地址",
+            "httpOnly": "仅支持 HTTP 或 HTTPS 地址",
+            "invalidPlaceholder": "占位符格式不正确，应为 {{名称}}",
             "copySuccess": "作业复制成功"
         },
         "fields": {

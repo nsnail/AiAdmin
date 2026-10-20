@@ -105,7 +105,9 @@
                 <ElTabPane label="基本信息" name="form">
                     <ElForm label-width="80px">
                         <ElFormItem label="标签" required><ElInput v-model="itemForm.label" maxlength="100" /></ElFormItem>
-                        <ElFormItem label="键值" required><ElInput v-model="itemForm.value" :rows="8" type="textarea" /></ElFormItem>
+                        <ElFormItem label="键值" required
+                            ><ElInput v-model="itemForm.value" :rows="8" maxlength="4000" show-word-limit type="textarea"
+                        /></ElFormItem>
                         <ElFormItem label="排序"><ElInputNumber v-model="itemForm.sort" :max="9999" :min="0" /></ElFormItem>
                         <ElFormItem label="是否启用"><ElSwitch v-model="itemForm.isEnabled" /></ElFormItem>
                         <ElFormItem label="备注"
@@ -261,7 +263,8 @@ const selectCategory = async (category: Category) => {
     await refreshData()
 }
 const openCategoryDialog = (category?: Category, parentId: string | null = null) => {
-    Object.assign(categoryForm, category ? { ...category } : { id: '', code: '', name: '', parentId, sort: 0 })
+    // 后端会删除响应里值为空的属性，行对象缺少的字段不会被 Object.assign 覆盖，必须先恢复默认值再叠加行数据
+    Object.assign(categoryForm, { id: '', code: '', name: '', parentId, sort: 0 }, category ?? {})
     categoryRawData.value = category ? { ...category } : { ...categoryForm }
     categoryDialogTab.value = 'form'
     categoryDialogVisible.value = true
@@ -297,7 +300,8 @@ const deleteCategory = async (category: Category) => {
     await loadCategories()
 }
 const openItemDialog = (item?: Partial<Item>) => {
-    Object.assign(itemForm, item || { id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' })
+    // 后端会删除响应里值为空的属性（如空键值、空备注），行对象缺少的字段不会被 Object.assign 覆盖，必须先恢复默认值再叠加行数据
+    Object.assign(itemForm, { id: '', value: '', label: '', sort: 0, isEnabled: true, remark: '' }, item ?? {})
     itemRawData.value = item ? { ...item } : { ...itemForm }
     itemDialogTab.value = 'form'
     itemDialogVisible.value = true

@@ -28,8 +28,8 @@ public sealed record LoginLogResult(
     long Id
     , long UserId
     , string UserName
-    , long OwnerId
-    , long OwnerDepartmentId
+    , long? OwnerId
+    , long? OwnerDepartmentId
     , string ClientIp
     , string Region
     , string UserAgent

@@ -59,6 +59,11 @@ public sealed class Role : EntityBase, IUpdatedAt
     public ICollection<RoleApi> RoleApis { get; set; } = [];
 
     /// <summary>
+    ///     角色被授予的菜单按钮权限
+    /// </summary>
+    public ICollection<RoleMenuAuth> RoleMenuAuths { get; set; } = [];
+
+    /// <summary>
     ///     角色菜单关联集合
     /// </summary>
     public ICollection<RoleMenu> RoleMenus { get; set; } = [];

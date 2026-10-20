@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Data;
 
@@ -57,6 +58,7 @@ public sealed class DictionaryItem : EntityBase, IUpdatedAt
     /// <summary>
     ///     字典键
     /// </summary>
+    [MaxLength(4000)]
     [ListFilter("listFilter.dictionary.value", Placeholder = "listFilter.placeholder.dictionaryValue", Sort = 1, Span = 4)]
     public required string Value { get; set; }
 }

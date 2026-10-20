@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq.Expressions;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -29,6 +30,11 @@ public sealed partial class AppDbContext(
     ///     当前数据库操作审计用户主键
     /// </summary>
     public long? CurrentAuditActorUserId => dataScope.IsInitialized ? dataScope.UserId : null;
+
+    /// <summary>
+    ///     当前请求的数据权限上下文，供全局查询过滤表达式访问
+    /// </summary>
+    public DataScopeContext DataScope => dataScope;
 
     /// <summary>
     ///     数据库写入审计日志集合
@@ -64,6 +70,11 @@ public sealed partial class AppDbContext(
     ///     角色接口关联集合
     /// </summary>
     public DbSet<RoleApi> RoleApis => Set<RoleApi>();
+
+    /// <summary>
+    ///     角色菜单按钮权限实体集合
+    /// </summary>
+    public DbSet<RoleMenuAuth> RoleMenuAuths => Set<RoleMenuAuth>();
 
     /// <summary>
     ///     角色菜单关联集合
@@ -200,12 +211,6 @@ public sealed partial class AppDbContext(
                 _ = entity.Property(x => x.Version).IsConcurrencyToken().IsRequired();
                 _ = entity.HasIndex(x => x.OwnerDepartmentId);
                 _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-                _ = entity.HasQueryFilter(x =>
-                    !dataScope.IsInitialized
-                    || dataScope.HasAllData
-                    || (dataScope.HasSelfData && x.OwnerId == dataScope.UserId)
-                    || dataScope.DepartmentIds.Contains(x.OwnerDepartmentId)
-                );
             }
         );
 
@@ -231,12 +236,6 @@ public sealed partial class AppDbContext(
                 _ = entity.Property(x => x.ViewportSize).HasMaxLength(50);
                 _ = entity.Property(x => x.ClientHints).HasMaxLength(4000);
                 _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-                _ = entity.HasQueryFilter(x =>
-                    !dataScope.IsInitialized
-                    || dataScope.HasAllData
-                    || (dataScope.HasSelfData && x.OwnerId == dataScope.UserId)
-                    || dataScope.DepartmentIds.Contains(x.OwnerDepartmentId)
-                );
             }
         );
 
@@ -273,12 +272,6 @@ public sealed partial class AppDbContext(
                 _ = entity.HasIndex(x => x.OwnerDepartmentId);
                 _ = entity.HasIndex(x => x.InviteeUserId).IsUnique();
                 _ = entity.HasOne(x => x.Invitee).WithMany().HasForeignKey(x => x.InviteeUserId).OnDelete(DeleteBehavior.Restrict);
-                _ = entity.HasQueryFilter(x =>
-                    !dataScope.IsInitialized
-                    || dataScope.HasAllData
-                    || (dataScope.HasSelfData && x.OwnerId == dataScope.UserId)
-                    || dataScope.DepartmentIds.Contains(x.OwnerDepartmentId)
-                );
             }
         );
 
@@ -384,6 +377,16 @@ public sealed partial class AppDbContext(
             }
         );
 
+        _ = modelBuilder.Entity<RoleMenuAuth>(entity =>
+            {
+                _ = entity.ToTable("sys_role_menu_auth");
+                _ = entity.HasKey(x => new { x.RoleId, x.MenuId, x.AuthMark });
+                _ = entity.Property(x => x.AuthMark).HasMaxLength(100);
+                _ = entity.HasOne(x => x.Role).WithMany(x => x.RoleMenuAuths).HasForeignKey(x => x.RoleId);
+                _ = entity.HasOne(x => x.Menu).WithMany().HasForeignKey(x => x.MenuId).OnDelete(DeleteBehavior.Cascade);
+            }
+        );
+
         _ = modelBuilder.Entity<ApiEndpoint>(entity =>
             {
                 _ = entity.ToTable("sys_api");
@@ -441,7 +444,7 @@ public sealed partial class AppDbContext(
                 _ = entity.HasKey(x => x.Id);
                 _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => new { x.CategoryId, x.Label }).IsUnique();
-                _ = entity.Property(x => x.Value).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.Value).HasMaxLength(4000).IsRequired();
                 _ = entity.Property(x => x.Label).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Remark).HasMaxLength(500);
                 _ = entity.HasOne(x => x.Category).WithMany(x => x.Items).HasForeignKey(x => x.CategoryId).OnDelete(DeleteBehavior.Cascade);
@@ -464,6 +467,7 @@ public sealed partial class AppDbContext(
         );
 
         ConfigureBusinessModel(modelBuilder);
+        ApplyOwnerQueryFilters(modelBuilder);
     }
 
     /// <summary>
@@ -545,6 +549,18 @@ public sealed partial class AppDbContext(
     }
 
     /// <summary>
+    ///     为所有实现 IOwner 的实体统一追加数据权限查询过滤，业务实体无需再各自声明
+    ///     规则：未初始化数据权限（后台任务、设备上报等无登录用户场景）或拥有全部数据权限时不过滤；
+    ///     否则仅返回所有者是自己（本人数据权限）或所有者部门在授权部门内的数据，所有者或部门为空的数据不会命中
+    /// </summary>
+    /// <param name="modelBuilder">实体模型构建器</param>
+    private void ApplyOwnerQueryFilters(ModelBuilder modelBuilder) {
+        foreach (var type in modelBuilder.Model.GetEntityTypes().Select(x => x.ClrType).Where(x => typeof(IOwner).IsAssignableFrom(x)).ToList()) {
+            _ = modelBuilder.Entity(type).HasQueryFilter(BuildOwnerFilter(type));
+        }
+    }
+
+    /// <summary>
     ///     为新增的受管控实体补齐当前操作者和所属部门
     /// </summary>
     /// <param name="entries">本次保存的实体状态条目</param>
@@ -554,21 +570,56 @@ public sealed partial class AppDbContext(
             return;
         }
 
-        foreach (var entry in entries.Where(x => x is { State: EntityState.Added, Entity: IOwner })) {
+        // 实现 IAssignedOwner 的实体所有者表示分配关系，未分配时保持为空，不自动补当前用户
+        foreach (var entry in entries.Where(x => x is { State: EntityState.Added, Entity: IOwner and not IAssignedOwner })) {
             var owner = (IOwner)entry.Entity;
-            if (owner.OwnerId == 0) {
-                owner.OwnerId = dataScope.UserId;
-            }
+            owner.OwnerId ??= dataScope.UserId;
 
-            if (owner.OwnerDepartmentId == 0) {
-                // 用户可能同时加入多个部门，所有者部门统一使用 USER_用户ID 对应的主部门
-                owner.OwnerDepartmentId = dataScope.DefaultOwnerDepartmentId;
-            }
+            // 用户可能同时加入多个部门，所有者部门统一使用 USER_用户ID 对应的主部门
+            owner.OwnerDepartmentId ??= dataScope.DefaultOwnerDepartmentId;
         }
 
+        // 所有者为空的数据只有全部数据权限能看到，因此只有全部数据权限才能新增或改成无所有者，其余数据按范围校验
         if (entries.Where(x => x.Entity is IOwner).Any(entry => !dataScope.CanAccess((IOwner)entry.Entity))) {
             throw new DataAccessDeniedException();
         }
+    }
+
+    /// <summary>
+    ///     构建指定实体类型的数据权限过滤表达式，通过上下文属性访问数据权限，保证过滤条件按当前请求参数化
+    /// </summary>
+    /// <param name="entityType">实现 IOwner 的实体类型</param>
+    /// <returns>形如 x =&gt; 未初始化 || 全部数据 || 本人数据 || 授权部门数据 的过滤表达式</returns>
+    private LambdaExpression BuildOwnerFilter(Type entityType) {
+        var entity = Expression.Parameter(entityType, "x");
+        var scope = Expression.Property(Expression.Constant(this), nameof(DataScope));
+        var ownerId = Expression.Property(entity, nameof(IOwner.OwnerId));
+        var departmentId = Expression.Property(entity, nameof(IOwner.OwnerDepartmentId));
+
+        // 本人数据：所有者非空且等于当前用户，可空比较在 SQL 中为空时不命中
+        var self = Expression.AndAlso(
+            Expression.Property(scope, nameof(DataScopeContext.HasSelfData))
+            , Expression.AndAlso(
+                Expression.NotEqual(ownerId, Expression.Constant(null, typeof(long?)))
+                , Expression.Equal(ownerId, Expression.Convert(Expression.Property(scope, nameof(DataScopeContext.UserId)), typeof(long?)))
+            )
+        );
+
+        // 授权部门数据：所有者部门非空且在授权部门集合内
+        var contains = typeof(IReadOnlySet<long>).GetMethod(nameof(IReadOnlySet<>.Contains))!;
+        var department = Expression.AndAlso(
+            Expression.NotEqual(departmentId, Expression.Constant(null, typeof(long?)))
+            , Expression.Call(
+                Expression.Property(scope, nameof(DataScopeContext.DepartmentIds)), contains
+                , Expression.Property(departmentId, nameof(Nullable<>.Value))
+            )
+        );
+
+        var body = Expression.OrElse(
+            Expression.Not(Expression.Property(scope, nameof(DataScopeContext.IsInitialized)))
+            , Expression.OrElse(Expression.Property(scope, nameof(DataScopeContext.HasAllData)), Expression.OrElse(self, department))
+        );
+        return Expression.Lambda(body, entity);
     }
 
     /// <summary>

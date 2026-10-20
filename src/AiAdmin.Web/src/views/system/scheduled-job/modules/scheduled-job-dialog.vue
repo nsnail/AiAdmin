@@ -125,12 +125,30 @@ const validateCron = (_rule: unknown, value: string, callback: (error?: Error) =
             : new Error('请输入有效的 5 段或 6 段 Cron 表达式'),
     )
 }
+/** 占位符格式，与后端计划作业执行时替换占位符的规则一致：双花括号包裹的非花括号文本 */
+const PLACEHOLDER_PATTERN = /\{\{([^{}]+)\}\}/g
+
+/**
+ * 校验请求地址，支持 {{占位符}}：
+ * - 占位符在保存时不会被替换，运行时才由字典取值，因此校验前先用示例值替换
+ * - 以占位符开头时协议和主机由占位符提供，只校验格式；否则必须是 http 或 https 地址
+ */
 const validateUrl = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+    const text = (value ?? '').trim()
+    // 去掉合法占位符后仍残留花括号，说明占位符没有闭合或写法不对
+    if (/[{}]/.test(text.replace(PLACEHOLDER_PATTERN, ''))) {
+        callback(new Error(t('scheduledJob.messages.invalidPlaceholder')))
+        return
+    }
+    if (/^\s*\{\{/.test(text)) {
+        callback(undefined)
+        return
+    }
     try {
-        const url = new URL(value)
-        callback(['http:', 'https:'].includes(url.protocol) ? undefined : new Error('仅支持 HTTP 或 HTTPS 地址'))
+        const url = new URL(text.replace(PLACEHOLDER_PATTERN, 'x'))
+        callback(['http:', 'https:'].includes(url.protocol) ? undefined : new Error(t('scheduledJob.messages.httpOnly')))
     } catch {
-        callback(new Error('请输入有效的请求地址'))
+        callback(new Error(t('scheduledJob.messages.invalidUrl')))
     }
 }
 const validateHeaders = (_rule: unknown, value: string, callback: (error?: Error) => void) => {

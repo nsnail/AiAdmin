@@ -28,15 +28,15 @@ public sealed class Wallet : EntityBase, IOwner, IUpdatedAt, IVersion
     /// <summary>
     ///     所有者部门主键
     /// </summary>
-    public long OwnerDepartmentId { get; set; }
+    public long? OwnerDepartmentId { get; set; }
 
     /// <summary>
     ///     所有者用户主键
     /// </summary>
-    public long OwnerId
+    public long? OwnerId
     {
         get => UserId;
-        set => UserId = value;
+        set => UserId = value ?? 0;
     }
 
     /// <summary>

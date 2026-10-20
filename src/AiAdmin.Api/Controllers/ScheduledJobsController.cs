@@ -15,11 +15,17 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">数据库上下文</param>
 /// <param name="lockService">计划作业分布式锁服务</param>
+/// <param name="dataScopeCache">数据权限缓存</param>
+/// <param name="apiPermissionCache">接口权限缓存</param>
 [ApiController]
 [Authorize]
 [Route("api/scheduled-job")]
 [ApiDescription("Scheduled job management")]
-public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockService lockService) : ControllerBase
+public sealed class ScheduledJobsController(
+    AppDbContext db
+    , ScheduledJobLockService lockService
+    , DataScopeCache dataScopeCache
+    , ApiPermissionCache apiPermissionCache) : ControllerBase
 {
     /// <summary>
     ///     批量更新计划作业备注
@@ -68,6 +74,52 @@ public sealed class ScheduledJobsController(AppDbContext db, ScheduledJobLockSer
         return Ok(
             ApiResponse<CleanupScheduledJobExecutionsResult>.Ok(new CleanupScheduledJobExecutionsResult(deletedCount, ServerTime.ToOffset(cutoff)))
         );
+    }
+
+    /// <summary>
+    ///     清理失效的中间表映射，删除用户角色、用户部门、角色菜单、角色菜单按钮权限、角色接口映射中关联对象已不存在的记录，供计划作业定时调用
+    /// </summary>
+    /// <returns>各中间表删除的映射数量</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpPost("orphan-mappings/cleanup")]
+    [ApiDescription("Cleanup orphan mapping records")]
+    public async Task<ActionResult<ApiResponse<CleanupOrphanMappingsResult>>> CleanupOrphanMappingsAsync() {
+        // 清理会批量删除用户、角色、菜单等授权映射，影响所有人的权限，因此只允许全部数据权限调用
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        // 外键缺失或被绕过（直接改库、历史数据）时会留下指向已删除对象的映射，这里按“任一侧对象不存在”统一清除
+        var userRoles = await db
+            .UserRoles.Where(x => !db.Users.Any(user => user.Id == x.UserId) || !db.Roles.Any(role => role.Id == x.RoleId))
+            .ExecuteDeleteAsync()
+            .ConfigureAwait(false);
+        var userDepartments = await db
+            .UserDepartments
+            .Where(x => !db.Users.Any(user => user.Id == x.UserId) || !db.Departments.Any(department => department.Id == x.DepartmentId))
+            .ExecuteDeleteAsync()
+            .ConfigureAwait(false);
+        var roleMenus = await db
+            .RoleMenus.Where(x => !db.Roles.Any(role => role.Id == x.RoleId) || !db.Menus.Any(menu => menu.Id == x.MenuId))
+            .ExecuteDeleteAsync()
+            .ConfigureAwait(false);
+        var roleMenuAuths = await db
+            .RoleMenuAuths.Where(x => !db.Roles.Any(role => role.Id == x.RoleId) || !db.Menus.Any(menu => menu.Id == x.MenuId))
+            .ExecuteDeleteAsync()
+            .ConfigureAwait(false);
+        var roleApis = await db
+            .RoleApis.Where(x => !db.Roles.Any(role => role.Id == x.RoleId) || !db.ApiEndpoints.Any(endpoint => endpoint.Id == x.ApiEndpointId))
+            .ExecuteDeleteAsync()
+            .ConfigureAwait(false);
+        var result = new CleanupOrphanMappingsResult(userRoles, userDepartments, roleMenus, roleMenuAuths, roleApis);
+
+        // 批量删除不经过保存拦截，需要手动让依赖这些映射的权限缓存失效
+        if (result.Total > 0) {
+            await dataScopeCache.InvalidateAsync().ConfigureAwait(false);
+            apiPermissionCache.Invalidate();
+        }
+
+        return Ok(ApiResponse<CleanupOrphanMappingsResult>.Ok(result));
     }
 
     /// <summary>

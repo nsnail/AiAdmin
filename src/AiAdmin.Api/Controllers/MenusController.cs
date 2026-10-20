@@ -61,11 +61,25 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
                 .ToListAsync()
                 .ConfigureAwait(false);
         var unique = rows.GroupBy(x => x.Id).Select(x => x.First()).OrderBy(x => x.Sort).ToList();
+
+        // 非超级管理员只保留其角色被授予的按钮权限，超级管理员保留菜单声明的全部按钮
+        var grantedMarks = isSuperAdmin
+            ? null
+            : (await db
+                .UserRoles.Where(x => x.UserId == userId && x.Role.IsEnabled)
+                .SelectMany(x => x.Role.RoleMenuAuths)
+                .Select(x => new { x.MenuId, x.AuthMark })
+                .Distinct()
+                .ToListAsync()
+                .ConfigureAwait(false))
+            .Select(x => (x.MenuId, x.AuthMark))
+            .ToHashSet();
         var nodes = unique.ToDictionary(
             x => x.Name
             , x => new MenuItemResult(
                 x.Id, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null, x.Name, x.Path
-                , x.Component, x.ParentName, x.Sort, x.IsEnabled, ParseMeta(x.MetaJson), []
+                , x.Component, x.ParentName, x.Sort, x.IsEnabled
+                , grantedMarks is null ? ParseMeta(x.MetaJson) : MenuAuthListFilter.Filter(x.MetaJson, x.Id, grantedMarks), []
             ), StringComparer.Ordinal
         );
 

@@ -18,6 +18,7 @@ internal static class SystemDataSeeder
         await using var scope = services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await EnsureRobotCommandSeedAsync(db).ConfigureAwait(false);
+        await EnsureScheduledJobSeedAsync(db).ConfigureAwait(false);
         var defaultDepartment = await EnsureDefaultDepartmentAsync(db).ConfigureAwait(false);
         if (!await db.Users.AnyAsync().ConfigureAwait(false)) {
             var superRole = await db.Roles.SingleAsync(x => x.Code == "R_SUPER").ConfigureAwait(false);
@@ -131,6 +132,65 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
             _ = await db.SaveChangesAsync().ConfigureAwait(false);
         }
+    }
+
+    /// <summary>
+    ///     确保系统内置计划作业及其所需的占位符存在，幂等执行，不覆盖已存在的作业和占位符值
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    private static async Task EnsureScheduledJobSeedAsync(AppDbContext db) {
+        var placeholders = await db.DictionaryCategories.SingleOrDefaultAsync(x => x.Code == "scheduled_job_placeholders").ConfigureAwait(false);
+        if (placeholders is null) {
+            placeholders = new DictionaryCategory { Code = "scheduled_job_placeholders", Name = "Scheduled Job Placeholders", Sort = 3 };
+            _ = await db.DictionaryCategories.AddAsync(placeholders).ConfigureAwait(false);
+            _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        // 种子里不能写死部署域名和令牌，占位符值留空，部署后在字典里填写；值未填写前内置作业保持未启用
+        var existingLabels
+            = await db.DictionaryItems.Where(x => x.CategoryId == placeholders.Id).Select(x => x.Label).ToListAsync().ConfigureAwait(false);
+        var seedItems = new[]
+        {
+            (Label: "ApiBaseUrl", Remark: "Base URL of this API used by scheduled jobs, for example https://api.example.com", Sort: 0)
+            , (Label: "JobToken", Remark: "Bearer token of an account with all-data permission used by scheduled jobs", Sort: 1)
+        };
+        foreach (var item in seedItems.Where(x => !existingLabels.Contains(x.Label))) {
+            _ = await db
+                .DictionaryItems.AddAsync(
+                    new DictionaryItem
+                    {
+                        CategoryId = placeholders.Id
+                        , Label = item.Label
+                        , Value = string.Empty
+                        , Remark = item.Remark
+                        , Sort = item.Sort
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
+        // 失效的中间表映射清理作业：每天凌晨 3 点执行，默认未启用，填好占位符后在计划作业页面启用
+        const string orphanJobName = "Cleanup orphan mappings";
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == orphanJobName).ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = orphanJobName
+                        , CronExpression = "0 3 * * *"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/scheduled-job/orphan-mappings/cleanup"
+                        , RequestMethod = "POST"
+                        , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
+                        , Remark
+                            = "Delete user role, user department, role menu, role menu button and role API mappings whose related records no longer exist. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                        , TimeoutSeconds = 120
+                        , IsEnabled = false
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 
     /// <summary>

@@ -18,6 +18,14 @@ public sealed class ExternalHttpRequestService(
     , ILogger<ExternalHttpRequestService> logger)
 {
     /// <summary>
+    ///     日志中需要脱敏的消息头名称，避免密钥和凭据写入日志
+    /// </summary>
+    private static readonly HashSet<string> _sensitiveHeaders =
+    [
+        with(StringComparer.OrdinalIgnoreCase), "X-API-Key", "Authorization", "Proxy-Authorization", "Cookie", "Set-Cookie"
+    ];
+
+    /// <summary>
     ///     发送外部 HTTP 请求并返回完整快照
     /// </summary>
     /// <param name="request">待发送的 HTTP 请求</param>
@@ -109,7 +117,7 @@ public sealed class ExternalHttpRequestService(
     }
 
     /// <summary>
-    ///     将请求或响应头序列化为 JSON
+    ///     将请求或响应头序列化为 JSON，密钥和凭据类消息头的值以 *** 替代
     /// </summary>
     /// <param name="headers">HTTP 消息头</param>
     /// <param name="contentHeaders">HTTP 内容头</param>
@@ -118,7 +126,9 @@ public sealed class ExternalHttpRequestService(
         HttpHeaders headers
         , HttpContentHeaders? contentHeaders
     ) {
-        var values = headers.ToDictionary(item => item.Key, item => string.Join(",", item.Value), StringComparer.OrdinalIgnoreCase);
+        var values = headers.ToDictionary(
+            item => item.Key, item => _sensitiveHeaders.Contains(item.Key) ? "***" : string.Join(",", item.Value), StringComparer.OrdinalIgnoreCase
+        );
         if (contentHeaders is null) {
             return JsonSerializer.Serialize(values);
         }

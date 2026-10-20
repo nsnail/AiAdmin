@@ -129,6 +129,11 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         var parameters = new List<ApiDocumentationParameter>();
         ApiDocumentationType? body = null;
         foreach (var parameter in action.Parameters) {
+            // 取消令牌由框架注入，不属于接口入参，避免被误判为请求体而覆盖真实请求体
+            if (parameter.ParameterType == typeof(CancellationToken)) {
+                continue;
+            }
+
             var info = FindParameterInfo(action, parameter.Name);
             var description = ReadParam(xml, member, parameter.Name) ?? string.Empty;
             if (GetParameterSource(parameter, info, path) == "body") {

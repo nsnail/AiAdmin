@@ -12,7 +12,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13"/>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13"/>
-        <PackageReference Include="SharpCompress" Version="0.50.5"/>
+        <PackageReference Include="SharpCompress" Version="0.50.6" />
         <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" Condition="'$(OS)' != 'Windows_NT'"/>
         <PackageReference Include="StackExchange.Redis" Version="3.4.5"/>
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.13"/>

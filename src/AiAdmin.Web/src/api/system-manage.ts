@@ -75,8 +75,8 @@ export interface LoginLogRecord {
     id: string
     userId: string
     userName: string
-    ownerId: string
-    ownerDepartmentId: string
+    ownerId: string | null
+    ownerDepartmentId: string | null
     clientIp: string
     region: string
     userAgent: string
@@ -466,8 +466,18 @@ export function fetchGetRoleMenus(id: string) {
     return request.get<AppRouteRecord[]>({ url: '/api/role/menus', params: { id } })
 }
 
-export function fetchSaveRoleMenus(id: string, menuIds: string[]) {
-    return request.post<void>({ url: '/api/role/menus', data: { id, menuIds } })
+/** 角色在某个菜单下被授予的按钮权限 */
+export interface RoleMenuAuth {
+    menuId: string
+    authMark: string
+}
+
+export function fetchGetRoleMenuAuths(id: string) {
+    return request.get<RoleMenuAuth[]>({ url: '/api/role/menu-auths', params: { id } })
+}
+
+export function fetchSaveRoleMenus(id: string, menuIds: string[], auths: RoleMenuAuth[]) {
+    return request.post<void>({ url: '/api/role/menus', data: { id, menuIds, auths } })
 }
 
 export function fetchGetRoleApis(id: string) {

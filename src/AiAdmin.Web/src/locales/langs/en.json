@@ -737,6 +737,9 @@
         "messages": {
             "invalidJson": "Enter valid JSON",
             "invalidHeadersJson": "Request headers must be a JSON object",
+            "invalidUrl": "Enter a valid request URL",
+            "httpOnly": "Only HTTP or HTTPS URLs are supported",
+            "invalidPlaceholder": "Invalid placeholder, use the {{name}} format",
             "copySuccess": "Job copied successfully"
         },
         "fields": {

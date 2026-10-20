@@ -66,6 +66,12 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         var code = await CreateCopyCodeAsync(source.Code).ConfigureAwait(false);
         var menuIds = await db.RoleMenus.AsNoTracking().Where(x => x.RoleId == id).Select(x => x.MenuId).ToArrayAsync().ConfigureAwait(false);
         var apiIds = await db.RoleApis.AsNoTracking().Where(x => x.RoleId == id).Select(x => x.ApiEndpointId).ToArrayAsync().ConfigureAwait(false);
+        var auths = await db
+            .RoleMenuAuths.AsNoTracking()
+            .Where(x => x.RoleId == id)
+            .Select(x => new { x.MenuId, x.AuthMark })
+            .ToArrayAsync()
+            .ConfigureAwait(false);
         await using var transaction = await db.Database.BeginTransactionAsync().ConfigureAwait(false);
         var copy = new Role
         {
@@ -75,6 +81,7 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
             , DataScope = source.DataScope
             , IsEnabled = source.IsEnabled
             , RoleMenus = [.. menuIds.Select(menuId => new RoleMenu { MenuId = menuId })]
+            , RoleMenuAuths = [.. auths.Select(item => new RoleMenuAuth { MenuId = item.MenuId, AuthMark = item.AuthMark })]
             , RoleApis = [.. apiIds.Select(apiId => new RoleApi { ApiEndpointId = apiId })]
         };
         _ = await db.Roles.AddAsync(copy).ConfigureAwait(false);
@@ -195,6 +202,27 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     }
 
     /// <summary>
+    ///     查询角色已授予的菜单按钮权限
+    /// </summary>
+    /// <param name="id">角色主键</param>
+    /// <returns>按钮权限集合</returns>
+    [HttpGet("menu-auths")]
+    [ApiDescription("Query role menu button permissions")]
+    public async Task<ActionResult<ApiResponse<IReadOnlyList<RoleMenuAuthItem>>>> MenuAuthsAsync([FromQuery] long id) {
+        if (!await db.Roles.AnyAsync(x => x.Id == id).ConfigureAwait(false)) {
+            return NotFound(new ApiResponse<object>(404, "Role not found", null));
+        }
+
+        var rows = await db
+            .RoleMenuAuths.AsNoTracking()
+            .Where(x => x.RoleId == id)
+            .Select(x => new RoleMenuAuthItem { MenuId = x.MenuId, AuthMark = x.AuthMark })
+            .ToListAsync()
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<IReadOnlyList<RoleMenuAuthItem>>.Ok(rows));
+    }
+
+    /// <summary>
     ///     查询角色已授权的菜单树
     /// </summary>
     /// <param name="id">角色主键</param>
@@ -255,14 +283,25 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
     [ApiDescription("Save role menu permissions")]
     public async Task<ActionResult<ApiResponse<object>>> SaveMenusAsync([FromBody] SaveRoleMenusRequest request) {
         var id = request.Id;
-        var role = await db.Roles.Include(x => x.RoleMenus).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
+        var role = await db.Roles.SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
         if (role is null) {
             return NotFound(new ApiResponse<object>(404, "Role not found", null));
         }
 
-        db.RoleMenus.RemoveRange(role.RoleMenus);
         var menus = await db.Menus.Where(x => request.MenuIds.Distinct().Contains(x.Id)).ToListAsync().ConfigureAwait(false);
+
+        // 按钮权限必须属于本次授权的菜单，且标识必须存在于该菜单的 authList，避免写入无效授权
+        var menuAuthMarks = menus.ToDictionary(x => x.Id, x => MenuAuthListFilter.ReadAuthMarks(x.MetaJson));
+        var auths = request.Auths.DistinctBy(x => (x.MenuId, x.AuthMark)).ToList();
+        if (auths.Any(x => !menuAuthMarks.TryGetValue(x.MenuId, out var marks) || !marks.Contains(x.AuthMark))) {
+            return BadRequest(new ApiResponse<object>(400, "Invalid button permission", null));
+        }
+
+        var oldMenus = await db.RoleMenus.Where(x => x.RoleId == id).ToListAsync().ConfigureAwait(false);
+        db.RoleMenus.RemoveRange(oldMenus);
+        db.RoleMenuAuths.RemoveRange(await db.RoleMenuAuths.Where(x => x.RoleId == id).ToListAsync().ConfigureAwait(false));
         role.RoleMenus = [.. menus.Select(menu => new RoleMenu { Role = role, Menu = menu })];
+        role.RoleMenuAuths = [.. auths.Select(item => new RoleMenuAuth { Role = role, MenuId = item.MenuId, AuthMark = item.AuthMark })];
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "Menu permissions saved"));
     }

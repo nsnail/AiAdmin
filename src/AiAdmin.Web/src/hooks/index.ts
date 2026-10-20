@@ -6,6 +6,7 @@ export { useAppMode } from './core/useAppMode'
 
 // 权限控制
 export { useAuth } from './core/useAuth'
+export { useRouteAuth } from './core/useRouteAuth'
 
 // 表格数据管理方案
 export { useTable } from './core/useTable'

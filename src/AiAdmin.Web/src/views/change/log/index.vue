@@ -56,16 +56,25 @@ onMounted(load)
 .change-log {
     padding: 20px;
     overflow-wrap: anywhere;
+    font-size: 13px;
+    line-height: 1.7;
 }
 .heading {
-    margin: 24px 0 10px;
+    margin: 20px 0 8px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--el-text-color-primary);
+}
+h1.heading {
+    font-size: 18px;
+}
+h2.heading {
+    font-size: 16px;
 }
 .item {
     display: flex;
     gap: 8px;
-    margin: 6px 0;
+    margin: 4px 0;
     color: var(--el-text-color-regular);
 }
 .bullet {
@@ -73,13 +82,14 @@ onMounted(load)
 }
 .paragraph {
     margin: 8px 0;
-    color: var(--el-text-color-secondary);
+    color: var(--el-text-color-regular);
 }
 .change-log :deep(a) {
     color: var(--el-color-primary);
 }
 .change-log :deep(code) {
     padding: 1px 6px;
+    font-size: 12px;
     background: var(--el-fill-color-light);
     border-radius: 4px;
 }

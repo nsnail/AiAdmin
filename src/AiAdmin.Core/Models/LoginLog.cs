@@ -64,12 +64,12 @@ public sealed class LoginLog : EntityBase, IOwner
     /// <summary>
     ///     所有者部门主键
     /// </summary>
-    public long OwnerDepartmentId { get; set; }
+    public long? OwnerDepartmentId { get; set; }
 
     /// <summary>
     ///     所有者用户主键
     /// </summary>
-    public long OwnerId { get; set; }
+    public long? OwnerId { get; set; }
 
     /// <summary>
     ///     设备像素比

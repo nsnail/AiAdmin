@@ -25,10 +25,10 @@ public sealed class UserReferral : EntityBase, IOwner
     /// <summary>
     ///     邀请者个人部门主键
     /// </summary>
-    public long OwnerDepartmentId { get; set; }
+    public long? OwnerDepartmentId { get; set; }
 
     /// <summary>
     ///     邀请者用户主键
     /// </summary>
-    public long OwnerId { get; set; }
+    public long? OwnerId { get; set; }
 }

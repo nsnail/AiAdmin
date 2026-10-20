@@ -8,7 +8,8 @@
                         :data="processedMenuList"
                         :default-expand-all="isExpandAll"
                         :props="defaultProps"
-                        @check="handleTreeCheck"
+                        @check="handleNodeCheck"
+                        check-strictly
                         node-key="id"
                         ref="treeRef"
                         show-checkbox>
@@ -35,7 +36,7 @@
 </template>
 
 <script lang="ts" setup>
-import { fetchGetMenuList, fetchGetRoleMenus, fetchSaveRoleMenus } from '@/api/system-manage'
+import { fetchGetMenuList, fetchGetRoleMenuAuths, fetchGetRoleMenus, fetchSaveRoleMenus, type RoleMenuAuth } from '@/api/system-manage'
 import { formatMenuTitle } from '@/utils/router'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 
@@ -94,11 +95,41 @@ interface MenuNode {
     [key: string]: any
 }
 
+/** 按钮节点 key 的分隔标记，格式为 菜单主键 + 分隔标记 + 权限标识 */
+const AUTH_KEY_SEPARATOR = ':auth:'
+
+/**
+ * 生成按钮权限节点的唯一 key
+ * @param menuId 菜单主键
+ * @param authMark 权限标识
+ * @returns 按钮节点 key
+ */
+const buildAuthKey = (menuId: string | number, authMark: string): string => `${menuId}${AUTH_KEY_SEPARATOR}${authMark}`
+
+/**
+ * 解析按钮节点 key
+ * @param key 树节点 key
+ * @returns 菜单主键和权限标识，不是按钮节点时为空
+ */
+const parseAuthKey = (key: string): RoleMenuAuth | undefined => {
+    const index = key.indexOf(AUTH_KEY_SEPARATOR)
+    return index > 0 ? { menuId: key.slice(0, index), authMark: key.slice(index + AUTH_KEY_SEPARATOR.length) } : undefined
+}
+
 const processedMenuList = computed(() => {
     const processNode = (node: MenuNode): MenuNode | null => {
         if (typeof node.name !== 'string') return null
         const children = node.children?.map(processNode).filter((item): item is MenuNode => !!item)
-        return { ...node, children }
+
+        // 菜单声明的按钮权限作为该菜单下的可勾选子节点，使角色可以只授权部分按钮
+        const authChildren: MenuNode[] = (node.meta?.authList ?? []).map((auth) => ({
+            id: buildAuthKey(node.id ?? '', auth.authMark),
+            name: buildAuthKey(node.id ?? '', auth.authMark),
+            label: auth.title,
+            isAuth: true,
+        }))
+        const merged = [...(children ?? []), ...authChildren]
+        return { ...node, children: merged.length ? merged : undefined }
     }
     return menuList.value.map(processNode).filter((item): item is MenuNode => !!item)
 })
@@ -123,15 +154,17 @@ watch(
             try {
                 menuList.value = (await fetchGetMenuList()) as unknown as MenuNode[]
                 const menuNames = await fetchGetRoleMenus(props.roleData.roleId)
+                const grantedAuths = await fetchGetRoleMenuAuths(props.roleData.roleId)
                 await nextTick()
-                // 只回显已授权叶子节点，避免半选父节点触发级联全选其余子菜单
-                const leafKeys = new Set(getLeafNodeKeys(processedMenuList.value))
+                // 严格勾选下菜单与按钮互相独立：角色已授权的菜单和按钮各自回显，没有授予任何按钮的菜单也保持勾选
+                const allKeys = new Set(getAllNodeKeys(processedMenuList.value))
+                const authKeys = grantedAuths.map((item) => buildAuthKey(item.menuId, item.authMark))
                 treeRef.value?.setCheckedKeys(
-                    flattenMenuItems(menuNames as unknown as MenuNode[])
-                        .map((item) => item.id)
-                        .filter((id): id is string => Boolean(id) && leafKeys.has(String(id))),
+                    [...flattenMenuItems(menuNames as unknown as MenuNode[]).map((item) => item.id), ...authKeys].filter(
+                        (id): id is string => Boolean(id) && allKeys.has(String(id)),
+                    ),
                 )
-                handleTreeCheck()
+                refreshSelectAllState()
             } finally {
                 loading.value = false
             }
@@ -154,9 +187,13 @@ const savePermission = async () => {
     if (!props.roleData || !treeRef.value || saving.value) return
     saving.value = true
     try {
-        const selectedKeys = new Set([...(treeRef.value.getCheckedKeys() as string[]), ...(treeRef.value.getHalfCheckedKeys() as string[])])
-        const menuIds = [...selectedKeys].filter(Boolean)
-        await fetchSaveRoleMenus(props.roleData.roleId, menuIds)
+        // 严格勾选下勾选结果就是授权结果：菜单与按钮各自独立，按钮被勾选时其所属菜单已在 handleNodeCheck 中同步勾选
+        const allKeys = (treeRef.value.getCheckedKeys() as string[]).filter(Boolean)
+
+        // 按钮节点拆成按钮权限，其余为菜单
+        const auths = allKeys.map(parseAuthKey).filter((item): item is RoleMenuAuth => !!item)
+        const menuIds = allKeys.filter((key) => !parseAuthKey(key))
+        await fetchSaveRoleMenus(props.roleData.roleId, menuIds, auths)
         ElMessage.success('权限保存成功，相关用户下次登录后生效')
         emit('success')
         handleClose()
@@ -189,8 +226,7 @@ const toggleSelectAll = () => {
     if (!tree) return
 
     if (!isSelectAll.value) {
-        const allKeys = getLeafNodeKeys(processedMenuList.value)
-        tree.setCheckedKeys(allKeys)
+        tree.setCheckedKeys(getAllNodeKeys(processedMenuList.value))
     } else {
         tree.setCheckedKeys([])
     }
@@ -199,15 +235,12 @@ const toggleSelectAll = () => {
 }
 
 /**
- * 递归获取所有节点的 key
+ * 递归获取所有节点（目录、菜单、按钮）的 key
  * @param nodes 节点列表
  * @returns 所有节点的 key 数组
  */
-const getLeafNodeKeys = (nodes: MenuNode[]): string[] => {
-    return nodes.flatMap((node) => {
-        if (node.children?.length) return getLeafNodeKeys(node.children)
-        return node.id !== undefined ? [String(node.id)] : []
-    })
+const getAllNodeKeys = (nodes: MenuNode[]): string[] => {
+    return nodes.flatMap((node) => [...(node.id !== undefined ? [String(node.id)] : []), ...(node.children ? getAllNodeKeys(node.children) : [])])
 }
 
 const flattenMenuItems = (nodes: MenuNode[]): MenuNode[] => {
@@ -217,17 +250,69 @@ const flattenMenuItems = (nodes: MenuNode[]): MenuNode[] => {
 }
 
 /**
- * 处理树节点选中状态变化
- * 同步更新全选按钮状态
+ * 在树数据中查找节点
+ * @param nodes 节点列表
+ * @param key 节点 key
+ * @param parents 从根到当前节点的祖先链，递归内部使用
+ * @returns 目标节点及其祖先链，找不到时为空
  */
-const handleTreeCheck = () => {
+const findNode = (nodes: MenuNode[], key: string, parents: MenuNode[] = []): { node: MenuNode; parents: MenuNode[] } | undefined => {
+    for (const node of nodes) {
+        if (String(node.id) === key) return { node, parents }
+        const found = node.children ? findNode(node.children, key, [...parents, node]) : undefined
+        if (found) return found
+    }
+    return undefined
+}
+
+/**
+ * 获取节点下所有后代节点 key
+ * @param node 节点
+ * @param onlyMenus 为 true 时只收集菜单和目录，不收集按钮
+ * @returns 后代节点 key 数组
+ */
+const getDescendantKeys = (node: MenuNode, onlyMenus: boolean): string[] => {
+    return (node.children ?? []).flatMap((child) => (onlyMenus && child.isAuth ? [] : [String(child.id), ...getDescendantKeys(child, onlyMenus)]))
+}
+
+/**
+ * 处理节点勾选，菜单与按钮各自独立，只按下面的规则联动：
+ * - 勾选按钮：同步勾选其所属菜单及上级目录，没有菜单就谈不上按钮
+ * - 勾选菜单或目录：同步勾选下级菜单，但不自动勾选按钮，避免悄悄授予按钮权限
+ * - 取消菜单或目录：同步取消其下所有菜单和按钮
+ * - 取消按钮：只取消该按钮，所属菜单保持勾选，即只授权菜单而不授权任何按钮
+ * @param data 被点击的节点
+ * @param state 树当前的勾选状态
+ */
+const handleNodeCheck = (data: MenuNode, state: { checkedKeys: Array<string | number> }) => {
     const tree = treeRef.value
     if (!tree) return
 
-    const leafKeys = new Set(getLeafNodeKeys(processedMenuList.value))
-    const checkedKeys = (tree.getCheckedKeys() as string[]).filter((key) => leafKeys.has(key))
-    const allKeys = [...leafKeys]
+    const key = String(data.id)
+    const checked = new Set(state.checkedKeys.map(String))
+    const isChecked = checked.has(key)
+    const target = findNode(processedMenuList.value, key)
+    if (target) {
+        if (isChecked) {
+            target.parents.forEach((parent) => checked.add(String(parent.id)))
+            if (!data.isAuth) getDescendantKeys(target.node, true).forEach((id) => checked.add(id))
+        } else if (!data.isAuth) {
+            getDescendantKeys(target.node, false).forEach((id) => checked.delete(id))
+        }
+    }
+    tree.setCheckedKeys([...checked])
+    refreshSelectAllState()
+}
 
-    isSelectAll.value = checkedKeys.length === allKeys.length && allKeys.length > 0
+/**
+ * 同步全选按钮状态：所有节点都已勾选时为全选
+ */
+const refreshSelectAllState = () => {
+    const tree = treeRef.value
+    if (!tree) return
+
+    const allKeys = getAllNodeKeys(processedMenuList.value)
+    const checked = new Set((tree.getCheckedKeys() as string[]).map(String))
+    isSelectAll.value = allKeys.length > 0 && allKeys.every((key) => checked.has(key))
 }
 </script>
