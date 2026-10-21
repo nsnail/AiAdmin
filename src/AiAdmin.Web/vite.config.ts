@@ -79,6 +79,8 @@ export default ({ mode }: { mode: string }) => {
             }),
             // 自动按需导入组件
             Components({
+                // 只自动注册通用核心组件，业务组件一律显式 import，避免污染全局组件声明
+                dirs: ['src/components/core'],
                 dts: 'src/types/import/components.d.ts',
                 resolvers: [ElementPlusResolver()],
             }),

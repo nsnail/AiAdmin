@@ -350,6 +350,7 @@ declare namespace Api {
             type: string
             required: boolean
             description: string
+            children?: ApiDocumentationProperty[] | null
         }
 
         interface SendSystemMessageParams {

@@ -167,6 +167,7 @@ const zhTranslations: Record<string, string> = {
     'Cleanup database audit logs': '清理数据库审计日志',
     'Cleanup scheduled job executions': '清理定时任务执行记录',
     'Cleanup orphan mapping records': '清理失效的中间表映射',
+    'Refresh scheduled job success rates': '刷新计划作业成功率',
     'Copy role': '复制角色',
     'Copy scheduled job': '复制定时任务',
     'Delete current user avatar': '删除当前用户头像',

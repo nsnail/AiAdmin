@@ -5,6 +5,9 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Test
       ASPNETCORE_URLS: http://+:80
+      TZ: Asia/Shanghai
+    volumes:
+      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
     depends_on:
       - redis
     ports:

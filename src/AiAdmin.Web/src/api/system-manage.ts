@@ -52,7 +52,7 @@ export interface ListFilterField {
     sort: number
     placeholder: string
     options: Array<{ label: string; value: string }>
-    valueType: 'string' | 'number' | 'boolean' | 'date'
+    valueType: 'string' | 'number' | 'boolean' | 'date' | 'enum'
     groupCount: boolean
     isVisible: boolean
 }
@@ -605,6 +605,7 @@ export interface ScheduledJob {
     lastTriggeredAt: string | null
     lastFinishedAt: string | null
     lastError: string
+    successRate: number
 }
 
 export interface ScheduledJobExecution {
@@ -664,7 +665,7 @@ export function fetchRunScheduledJob(id: string) {
     return request.post<void>({ url: '/api/scheduled-job/run', data: { id } })
 }
 
-export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExecutionSearchParams) {
+export function fetchScheduledJobExecutions(id: string | undefined, params: ScheduledJobExecutionSearchParams) {
     const filters: DynamicFilter[] = Object.entries(params)
         .filter(([field, value]) => /^[A-Z]/.test(field) && value !== undefined && value !== null && value !== '')
         .map(([field, value]) => ({
@@ -674,14 +675,14 @@ export function fetchScheduledJobExecutions(id: string, params: ScheduledJobExec
         }))
     return request.post<Api.Common.PaginatedResponse<ScheduledJobExecution>>({
         url: '/api/scheduled-job/executions/list',
-        data: { ...createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder), parentId: id },
+        data: { ...createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder), parentId: id || undefined },
     })
 }
 
-export function fetchScheduledJobExecutionFilterFields(id: string) {
-    return request.get<ListFilterField[]>({ url: '/api/scheduled-job/executions/filter-fields', params: { id } })
+export function fetchScheduledJobExecutionFilterFields(id?: string) {
+    return request.get<ListFilterField[]>({ url: '/api/scheduled-job/executions/filter-fields', params: { id: id || 0 } })
 }
 
-export function fetchScheduledJobExecutionFilterGroups(id: string, dynamicFilter?: DynamicFilter) {
-    return request.post<ListFilterGroup[]>({ url: '/api/scheduled-job/executions/filter-groups', data: { parentId: id, dynamicFilter } })
+export function fetchScheduledJobExecutionFilterGroups(id: string | undefined, dynamicFilter?: DynamicFilter) {
+    return request.post<ListFilterGroup[]>({ url: '/api/scheduled-job/executions/filter-groups', data: { parentId: id || undefined, dynamicFilter } })
 }

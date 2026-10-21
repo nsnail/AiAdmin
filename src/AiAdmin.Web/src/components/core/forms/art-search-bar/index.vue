@@ -810,6 +810,8 @@ const handleInputEnter = (item: SearchFormItem, event: KeyboardEvent) => {
 const convertFilterOptionValue = (value: string, valueType: ListFilterField['valueType']): string | number | boolean => {
     if (valueType === 'boolean') return value === 'true'
     if (valueType === 'number') return Number(value)
+    // 枚举以数值传输，选项值必须与分组统计和动态筛选中的数值类型一致，否则下拉框无法匹配到选项文本
+    if (valueType === 'enum' && value.trim() !== '' && !Number.isNaN(Number(value))) return Number(value)
     return value
 }
 

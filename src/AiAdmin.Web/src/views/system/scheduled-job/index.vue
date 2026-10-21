@@ -1,7 +1,13 @@
 <template>
-    <div class="art-full-height">
+    <div class="art-full-height flex flex-col">
+        <ElTabs v-model="activeTab" class="scheduled-job-tabs" type="card">
+            <ElTabPane :label="t('scheduledJob.tabs.jobs')" name="jobs" />
+            <ElTabPane :label="t('scheduledJob.tabs.allExecutions')" lazy name="executions" />
+        </ElTabs>
+        <ScheduledJobExecutionTable v-if="activeTab === 'executions'" class="min-h-0 flex-1" />
         <ArtTablePage
             v-model:column-checks="columnChecks"
+            v-show="activeTab === 'jobs'"
             :columns="columns"
             :data="data"
             :default-filter="defaultFilter"
@@ -31,32 +37,17 @@
             </template>
         </ElDialog>
         <ScheduledJobDialog v-model:visible="dialogVisible" :job-data="currentJob" :saving="saving" @submit="saveJob" />
-        <ElDrawer
+        <ElDialog
             v-model="executionVisible"
             :title="t('scheduledJob.executionTitle', { name: executionJob?.name || t('scheduledJob.unknown') })"
             class="execution-dialog"
             destroy-on-close
             fullscreen>
-            <ArtTablePage
-                v-model:column-checks="executionColumnChecks"
-                :columns="executionColumns"
-                :data="executionData"
-                :filter-fields="executionFilterFields"
-                :filter-groups-fn="executionFilterGroups"
-                :loading="executionLoading"
-                :pagination="executionPagination"
-                @filter-change="executionHandleFilterChange"
-                @page-change="executionHandleCurrentChange"
-                @refresh="executionRefreshData"
-                @reset="executionResetSearchParams"
-                @size-change="executionHandleSizeChange"
-                @sort-change="executionHandleSortChange"
-                resource="scheduled-job" />
+            <ScheduledJobExecutionTable :job-id="executionJob?.id" />
             <template #footer
                 ><ElButton @click="executionVisible = false">{{ t('scheduledJob.actions.close') }}</ElButton></template
             >
-        </ElDrawer>
-        <ScheduledJobExecutionDialog v-model:visible="detailVisible" :execution="selectedExecution" />
+        </ElDialog>
     </div>
 </template>
 
@@ -66,7 +57,6 @@ import { useI18n } from 'vue-i18n'
 import { h } from 'vue'
 import ArtButtonMore, { type ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
@@ -77,19 +67,13 @@ import {
     fetchCopyScheduledJob,
     fetchGetScheduledJobs,
     fetchRunScheduledJob,
-    fetchScheduledJobExecutionFilterFields,
-    fetchScheduledJobExecutionFilterGroups,
-    fetchScheduledJobExecutions,
     fetchUpdateScheduledJob,
     type SaveScheduledJob,
     type ScheduledJob,
-    type ScheduledJobExecution,
-    type ScheduledJobExecutionSearchParams,
-    type ListFilterField,
     type DynamicFilter,
 } from '@/api/system-manage'
 import ScheduledJobDialog from './modules/scheduled-job-dialog.vue'
-import ScheduledJobExecutionDialog from './modules/scheduled-job-execution-dialog.vue'
+import ScheduledJobExecutionTable from './modules/scheduled-job-execution-table.vue'
 import { formatDateTime } from '@/utils/date'
 
 defineOptions({ name: 'ScheduledJobManagement' })
@@ -100,9 +84,7 @@ const currentJob = ref<ScheduledJob>()
 const executionJob = ref<ScheduledJob>()
 const executionVisible = ref(false)
 const scheduledJobTablePage = ref<{ refreshFilterGroups: (filter?: DynamicFilter) => Promise<void> }>()
-const executionFilterFields = ref<ListFilterField[]>([])
-const selectedExecution = ref<ScheduledJobExecution>()
-const detailVisible = ref(false)
+const activeTab = ref('jobs')
 const selectedRows = ref<ScheduledJob[]>([])
 const remarkDialogVisible = ref(false)
 const batchRemark = ref('')
@@ -228,7 +210,7 @@ const {
                 queryValueField: 'name',
                 queryValueType: 'string',
                 label: t('scheduledJob.fields.name'),
-                minWidth: 300,
+                minWidth: 260,
                 sortable: true,
                 formatter: (row) =>
                     h(
@@ -321,16 +303,6 @@ const {
                     ]),
             },
             {
-                prop: 'remark',
-                queryField: 'Remark',
-                queryValueField: 'remark',
-                queryValueType: 'string',
-                label: t('scheduledJob.fields.remark'),
-                minWidth: 180,
-                sortable: true,
-                showOverflowTooltip: true,
-            },
-            {
                 prop: 'executionInfo',
                 queryField: 'Status',
                 queryValueType: 'number',
@@ -367,9 +339,10 @@ const {
             },
             {
                 prop: 'executionDuration',
-                queryField: false,
-                label: t('scheduledJob.fields.executionDuration'),
-                width: 110,
+                queryField: 'SuccessRate',
+                queryValueType: 'number',
+                label: `${t('scheduledJob.fields.executionDuration')} / ${t('scheduledJob.fields.successRate')}`,
+                width: 150,
                 align: 'right',
                 sortable: true,
                 formatter: (row) => {
@@ -377,7 +350,29 @@ const {
                         row.lastTriggeredAt && row.lastFinishedAt
                             ? Math.max(0, new Date(row.lastFinishedAt).getTime() - new Date(row.lastTriggeredAt).getTime())
                             : 0
-                    return h('span', { style: { color: duration > 1000 ? 'var(--el-color-danger)' : 'var(--el-color-success)' } }, `${duration} ms`)
+                    const rate = Number(row.successRate ?? 0)
+                    return h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px', lineHeight: '1.35' } }, [
+                        h(
+                            'span',
+                            {
+                                style: { color: duration > 1000 ? 'var(--el-color-danger)' : 'var(--el-color-success)' },
+                            },
+                            `${duration} ms`,
+                        ),
+                        h(
+                            'span',
+                            {
+                                'data-query-field': 'SuccessRate',
+                                'data-query-label': t('scheduledJob.fields.successRate'),
+                                'data-query-value': rate,
+                                'data-query-value-type': 'number',
+                                style: {
+                                    color: rate >= 90 ? 'var(--el-color-success)' : rate >= 60 ? 'var(--el-color-warning)' : 'var(--el-color-danger)',
+                                },
+                            },
+                            `${rate.toFixed(2)}%`,
+                        ),
+                    ])
                 },
             },
             {
@@ -412,6 +407,16 @@ const {
                     ]),
             },
             {
+                prop: 'remark',
+                queryField: 'Remark',
+                queryValueField: 'remark',
+                queryValueType: 'string',
+                label: t('scheduledJob.fields.remark'),
+                minWidth: 180,
+                sortable: true,
+                showOverflowTooltip: true,
+            },
+            {
                 prop: 'operation',
                 queryField: false,
                 label: t('scheduledJob.actions.operation'),
@@ -438,112 +443,6 @@ const {
     },
 })
 
-const executionTable = useTable({
-    core: {
-        apiFn: (params: ScheduledJobExecutionSearchParams) => fetchScheduledJobExecutions(executionJob.value?.id || '0', params),
-        apiParams: { current: 1, size: 20 },
-        immediate: false,
-        columnsFactory: () => [
-            {
-                prop: 'startedAt',
-                queryField: 'StartedAt',
-                label: t('scheduledJob.executionFields.startedAt'),
-                width: 190,
-                sortable: true,
-                formatter: (row) => formatTime(row.startedAt),
-            },
-            {
-                prop: 'requestInfo',
-                queryField: 'RequestUrl',
-                queryValueField: 'requestUrl',
-                queryValueType: 'string',
-                label: t('scheduledJob.executionFields.requestUrl'),
-                minWidth: 280,
-                formatter: (row) =>
-                    h('div', { class: 'request-info' }, [
-                        h(
-                            'div',
-                            {
-                                'data-query-field': 'RequestMethod',
-                                'data-query-label': t('scheduledJob.executionFields.requestMethod'),
-                                'data-query-value': row.requestMethod,
-                                'data-query-value-type': 'string',
-                            },
-                            [h(ElTag, { effect: 'light', size: 'small', type: requestMethodTagType(row.requestMethod) }, () => row.requestMethod)],
-                        ),
-                        h(
-                            'div',
-                            {
-                                class: 'request-url',
-                                'data-query-field': 'RequestUrl',
-                                'data-query-label': t('scheduledJob.executionFields.requestUrl'),
-                                'data-query-value': row.requestUrl,
-                                'data-query-value-type': 'string',
-                            },
-                            row.requestUrl,
-                        ),
-                    ]),
-            },
-            {
-                prop: 'responseStatusCode',
-                queryField: 'ResponseStatusCode',
-                queryValueType: 'number',
-                label: t('scheduledJob.executionFields.responseStatusCode'),
-                width: 130,
-                sortable: true,
-                align: 'right',
-                formatter: (row) => row.responseStatusCode ?? '-',
-            },
-            {
-                prop: 'status',
-                queryField: 'Status',
-                queryValueType: 'number',
-                label: t('scheduledJob.executionFields.status'),
-                width: 130,
-                sortable: true,
-                formatter: (row) =>
-                    h(ElTag, { effect: 'light', size: 'small', type: statusMap[row.status]?.type || 'info' }, () => statusLabel(row.status)),
-            },
-            {
-                prop: 'errorMessage',
-                queryField: 'ErrorMessage',
-                label: t('scheduledJob.executionFields.errorMessage'),
-                minWidth: 180,
-                sortable: true,
-                showOverflowTooltip: true,
-                formatter: (row) => row.errorMessage || '-',
-            },
-            {
-                prop: 'operation',
-                queryField: false,
-                label: t('scheduledJob.detail.operation'),
-                width: 70,
-                fixed: 'right',
-                formatter: (row) =>
-                    h(ArtButtonTable, {
-                        type: 'view',
-                        title: t('scheduledJob.executionDetail.title'),
-                        onClick: () => showExecutionDetail(row),
-                    }),
-            },
-        ],
-    },
-})
-const {
-    columns: executionColumns,
-    columnChecks: executionColumnChecks,
-    data: executionData,
-    loading: executionLoading,
-    pagination: executionPagination,
-    getData: executionGetData,
-    replaceSearchParams: executionReplaceSearchParams,
-    resetSearchParams: executionResetSearchParams,
-    handleSizeChange: executionHandleSizeChange,
-    handleCurrentChange: executionHandleCurrentChange,
-    handleSortChange: executionHandleSortChange,
-    refreshData: executionRefreshData,
-} = executionTable
-
 const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
     replaceSearchParams({ dynamicFilter })
     await getData()
@@ -569,11 +468,6 @@ const saveJob = async (form: SaveScheduledJob): Promise<void> => {
         saving.value = false
     }
 }
-const executionFilterGroups = (dynamicFilter?: DynamicFilter) => fetchScheduledJobExecutionFilterGroups(executionJob.value?.id || '0', dynamicFilter)
-const executionHandleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
-    executionReplaceSearchParams({ dynamicFilter })
-    await executionGetData()
-}
 const handleAction = async (item: ButtonMoreItem, job: ScheduledJob): Promise<void> => {
     if (item.key === 'edit') {
         openDialog(job)
@@ -593,19 +487,12 @@ const handleAction = async (item: ButtonMoreItem, job: ScheduledJob): Promise<vo
     }
     if (item.key === 'executions') {
         executionJob.value = job
-        executionFilterFields.value = await fetchScheduledJobExecutionFilterFields(job.id)
-        executionReplaceSearchParams({ current: 1, size: 20, dynamicFilter: undefined })
         executionVisible.value = true
-        await executionGetData()
         return
     }
     await ElMessageBox.confirm(`确定删除作业“${job.name}”吗？`, '删除确认', { type: 'warning' })
     await fetchDeleteScheduledJob(job.id)
     await refreshRemove()
-}
-const showExecutionDetail = (execution: ScheduledJobExecution): void => {
-    selectedExecution.value = execution
-    detailVisible.value = true
 }
 const openRemarkDialog = (): void => {
     batchRemark.value = ''
@@ -711,5 +598,12 @@ const saveBatchRemark = async (): Promise<void> => {
     flex: 1;
     min-height: 0;
     overflow: hidden;
+}
+.scheduled-job-tabs {
+    flex: none;
+}
+.scheduled-job-tab-body {
+    flex: 1;
+    min-height: 0;
 }
 </style>

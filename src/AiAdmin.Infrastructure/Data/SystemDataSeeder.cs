@@ -190,6 +190,27 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
+        // 成功率刷新作业：每 10 分钟统计一次各作业的成功执行数与总执行数之比，默认未启用
+        const string successRateJobName = "Refresh success rate";
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == successRateJobName).ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = successRateJobName
+                        , CronExpression = "*/10 * * * *"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/scheduled-job/success-rate/refresh"
+                        , RequestMethod = "POST"
+                        , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
+                        , Remark
+                            = "Refresh the success rate of every scheduled job as successful executions divided by total executions. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                        , TimeoutSeconds = 60
+                        , IsEnabled = false
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

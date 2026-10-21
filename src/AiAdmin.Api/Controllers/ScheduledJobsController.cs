@@ -207,9 +207,14 @@ public sealed class ScheduledJobsController(
         [FromBody] ListFilterGroupRequest request
     ) {
         var id = request.ParentId.GetValueOrDefault();
-        var groups = await ListFilterGroupingService
-            .GetGroupsAsync(db.ScheduledJobExecutions.AsNoTracking().Where(x => x.ScheduledJobId == id), request.DynamicFilter)
-            .ConfigureAwait(false);
+        var source = db.ScheduledJobExecutions.AsNoTracking();
+
+        // 未指定作业主键时统计全部作业的执行记录
+        if (id > 0) {
+            source = source.Where(x => x.ScheduledJobId == id);
+        }
+
+        var groups = await ListFilterGroupingService.GetGroupsAsync(source, request.DynamicFilter).ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(groups));
     }
 
@@ -224,7 +229,14 @@ public sealed class ScheduledJobsController(
         [FromBody] DynamicQueryRequest request
     ) {
         var id = request.ParentId.GetValueOrDefault();
-        var query = db.ScheduledJobExecutions.AsNoTracking().Where(x => x.ScheduledJobId == id).ApplyDynamicFilter(request.DynamicFilter);
+        var source = db.ScheduledJobExecutions.AsNoTracking();
+
+        // 未指定作业主键时查询全部作业的执行记录
+        if (id > 0) {
+            source = source.Where(x => x.ScheduledJobId == id);
+        }
+
+        var query = source.ApplyDynamicFilter(request.DynamicFilter);
         var total = await query.CountAsync().ConfigureAwait(false);
         var rows = await query
             .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ScheduledJobExecution.StartedAt), true)
@@ -350,6 +362,42 @@ public sealed class ScheduledJobsController(
     }
 
     /// <summary>
+    ///     刷新所有计划作业的成功率，按作业统计成功执行记录数除以执行记录总数，供计划作业定时调用
+    /// </summary>
+    /// <returns>本次成功率发生变化的作业数量</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpPost("success-rate/refresh")]
+    [ApiDescription("Refresh scheduled job success rates")]
+    public async Task<ActionResult<ApiResponse<RefreshSuccessRateResult>>> RefreshSuccessRateAsync() {
+        // 刷新会写入所有作业，因此只允许全部数据权限调用
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        var stats = await db
+            .ScheduledJobExecutions.AsNoTracking()
+            .GroupBy(x => x.ScheduledJobId)
+            .Select(g => new { JobId = g.Key, Total = g.Count(), Success = g.Count(x => x.Status == ScheduledJobStatus.Success) })
+            .ToDictionaryAsync(x => x.JobId)
+            .ConfigureAwait(false);
+        var jobs = await db.ScheduledJobs.ToListAsync().ConfigureAwait(false);
+        var changed = 0;
+        foreach (var job in jobs) {
+            // 没有执行记录的作业成功率为 0
+            var rate = stats.TryGetValue(job.Id, out var stat) && stat.Total > 0 ? Math.Round((decimal)stat.Success * 100 / stat.Total, 2) : 0m;
+            if (job.SuccessRate == rate) {
+                continue;
+            }
+
+            job.SuccessRate = rate;
+            changed++;
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        return Ok(ApiResponse<RefreshSuccessRateResult>.Ok(new RefreshSuccessRateResult(jobs.Count, changed)));
+    }
+
+    /// <summary>
     ///     立即执行指定作业
     /// </summary>
     /// <param name="request">作业标识请求</param>
@@ -398,7 +446,7 @@ public sealed class ScheduledJobsController(
         return new ScheduledJobResult(
             x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.CronExpression, x.RequestUrl, x.RequestMethod, x.RequestHeadersJson, x.RequestBody
             , x.Remark, x.TimeoutSeconds, x.IsEnabled, x.Status, x.LastTriggeredAt.HasValue ? ServerTime.ToOffset(x.LastTriggeredAt.Value) : null
-            , x.LastFinishedAt.HasValue ? ServerTime.ToOffset(x.LastFinishedAt.Value) : null, x.LastError
+            , x.LastFinishedAt.HasValue ? ServerTime.ToOffset(x.LastFinishedAt.Value) : null, x.LastError, x.SuccessRate
         );
     }
 

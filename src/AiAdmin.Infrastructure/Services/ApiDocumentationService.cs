@@ -171,6 +171,40 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
     }
 
     /// <summary>
+    ///     递归构建类型的公开属性文档，自定义类型及其集合会展开内部字段
+    /// </summary>
+    /// <param name="owner">属性所属类型</param>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <param name="path">当前展开链路上的类型，用于避免循环引用无限展开</param>
+    /// <returns>属性文档集合</returns>
+    private static ApiDocumentationProperty[] BuildProperties(
+        Type owner
+        , Dictionary<string, string> xml
+        , HashSet<Type> path
+    ) {
+        return
+        [
+            .. owner
+                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Select(x =>
+                    {
+                        var element = GetElementType(x.PropertyType);
+                        ApiDocumentationProperty[]? children = null;
+                        if (IsCustomClass(element) && !path.Contains(element)) {
+                            var next = new HashSet<Type>(path) { element };
+                            children = BuildProperties(element, xml, next);
+                        }
+
+                        return new ApiDocumentationProperty(
+                            x.Name, ToType(x.PropertyType), x.PropertyType.IsValueType && Nullable.GetUnderlyingType(x.PropertyType) is null
+                            , ReadSummary(xml, "P:" + owner.FullName + "." + x.Name) ?? string.Empty, children
+                        );
+                    }
+                )
+        ];
+    }
+
+    /// <summary>
     ///     将接口文档分组转换为稳定排序的返回结果
     /// </summary>
     /// <param name="groups">接口文档分组</param>
@@ -205,16 +239,7 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
             actual = actual.GetGenericArguments()[0];
         }
 
-        var properties = actual.IsClass && actual != typeof(string)
-            ? actual
-                .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Select(x => new ApiDocumentationProperty(
-                        x.Name, ToType(x.PropertyType), x.PropertyType.IsValueType && Nullable.GetUnderlyingType(x.PropertyType) is null
-                        , ReadSummary(xml, "P:" + actual.FullName + "." + x.Name) ?? string.Empty
-                    )
-                )
-                .ToArray()
-            : [];
+        var properties = IsCustomClass(actual) ? BuildProperties(actual, xml, [actual]) : [];
         return new ApiDocumentationType(actual.Name, ToType(type), description, properties);
     }
 
@@ -262,6 +287,25 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         , string name
     ) {
         return action.MethodInfo.GetParameters().FirstOrDefault(x => string.Equals(x.Name, name, StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    ///     获取数组、泛型集合或可空类型的元素类型，其他类型原样返回
+    /// </summary>
+    /// <param name="type">属性类型</param>
+    /// <returns>元素类型</returns>
+    private static Type GetElementType(Type type) {
+        if (type.IsArray) {
+            return GetElementType(type.GetElementType()!);
+        }
+
+        if (Nullable.GetUnderlyingType(type) is { } nullable) {
+            return GetElementType(nullable);
+        }
+
+        return type != typeof(string) && type.IsGenericType && typeof(IEnumerable).IsAssignableFrom(type) && type.GetGenericArguments().Length == 1
+            ? GetElementType(type.GetGenericArguments()[0])
+            : type;
     }
 
     /// <summary>
@@ -323,6 +367,18 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
                && actualType != typeof(DateTimeOffset)
                && actualType != typeof(Guid)
                && !actualType.IsEnum;
+    }
+
+    /// <summary>
+    ///     判断类型是否为需要展开内部字段的自定义类或记录
+    /// </summary>
+    /// <param name="type">待判断的类型</param>
+    /// <returns>自定义类型时返回 true</returns>
+    private static bool IsCustomClass(Type type) {
+        return type.IsClass
+               && type != typeof(string)
+               && type != typeof(object)
+               && type.Namespace?.StartsWith("System", StringComparison.Ordinal) != true;
     }
 
     /// <summary>

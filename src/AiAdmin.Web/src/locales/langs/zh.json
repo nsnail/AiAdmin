@@ -747,10 +747,13 @@
             "lastError": "最近错误",
             "previous": "上次",
             "nextExecution": "下次执行",
-            "executionDuration": "执行用时",
+            "executionDuration": "耗时",
+            "successRate": "成功率",
             "remark": "备注"
         },
         "tabs": {
+            "jobs": "作业列表",
+            "allExecutions": "全部执行记录",
             "basicInfo": "基本信息",
             "rawData": "原始数据"
         },

@@ -337,6 +337,7 @@ public sealed partial class AppDbContext(
                 _ = entity.Property(x => x.Remark).HasMaxLength(500);
                 _ = entity.Property(x => x.LastError).HasMaxLength(4000);
                 _ = entity.Property(x => x.Status).HasConversion<int>();
+                _ = entity.Property(x => x.SuccessRate).HasPrecision(5, 2);
                 _ = entity.HasIndex(x => new { x.IsEnabled, x.Status });
             }
         );

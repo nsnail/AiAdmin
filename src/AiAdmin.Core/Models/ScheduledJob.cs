@@ -104,6 +104,12 @@ public sealed class ScheduledJob : EntityBase, IUpdatedAt
     public ScheduledJobStatus Status { get; set; } = ScheduledJobStatus.Waiting;
 
     /// <summary>
+    ///     成功率（百分比，0 到 100），由成功执行次数除以总执行次数得出
+    /// </summary>
+    [ListFilter("scheduledJob.fields.successRate", "number")]
+    public decimal SuccessRate { get; set; }
+
+    /// <summary>
     ///     超时时间（秒）
     /// </summary>
     [ListFilter("scheduledJob.fields.timeoutSeconds", "number")]

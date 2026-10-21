@@ -20,6 +20,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="LastTriggeredAt">最后触发时间</param>
 /// <param name="LastFinishedAt">最后完成时间</param>
 /// <param name="LastError">最后一次错误信息</param>
+/// <param name="SuccessRate">成功率（百分比）</param>
 public sealed record ScheduledJobResult(
     long Id
     , DateTimeOffset CreatedAt
@@ -35,4 +36,5 @@ public sealed record ScheduledJobResult(
     , ScheduledJobStatus Status
     , DateTimeOffset? LastTriggeredAt
     , DateTimeOffset? LastFinishedAt
-    , string LastError);
+    , string LastError
+    , decimal SuccessRate);

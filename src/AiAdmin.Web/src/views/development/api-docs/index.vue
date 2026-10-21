@@ -121,6 +121,13 @@ import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 import request, { type DebugExchange } from '@/utils/http'
 import ExchangeBlock from './exchange-block.vue'
 
+/** 为嵌套属性逐层生成唯一路径作为表格行键，避免不同层级的同名字段冲突 */
+const withPath = (properties: Api.SystemManage.ApiDocumentationProperty[], prefix = ''): Array<Record<string, unknown>> =>
+    properties.map((x) => {
+        const path = prefix ? `${prefix}.${x.name}` : x.name
+        return { ...x, path, children: x.children?.length ? withPath(x.children, path) : undefined }
+    })
+
 const TypePreview = defineComponent({
     props: { title: String, type: { type: Object, required: true } },
     setup(props) {
@@ -131,7 +138,14 @@ const TypePreview = defineComponent({
                 props.type.properties?.length
                     ? h(
                           ElTable,
-                          { data: props.type.properties, size: 'small' },
+                          // 自定义类型属性通过 children 展开内部字段，默认展开全部层级
+                          {
+                              data: withPath(props.type.properties),
+                              size: 'small',
+                              rowKey: 'path',
+                              defaultExpandAll: true,
+                              treeProps: { children: 'children' },
+                          },
                           {
                               default: () => [
                                   h(ElTableColumn, { prop: 'name', label: 'Name' }),

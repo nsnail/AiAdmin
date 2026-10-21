@@ -757,9 +757,12 @@
             "previous": "Previous",
             "nextExecution": "Next execution",
             "executionDuration": "Execution duration",
+            "successRate": "Success rate",
             "remark": "Remark"
         },
         "tabs": {
+            "jobs": "Jobs",
+            "allExecutions": "All execution records",
             "basicInfo": "Basic info",
             "rawData": "Raw data"
         },

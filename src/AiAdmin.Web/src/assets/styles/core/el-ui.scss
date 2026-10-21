@@ -171,6 +171,51 @@ html.dark .el-card {
     }
 }
 
+// 全屏详情弹窗：从弹窗、页签到内容建立完整的可伸缩高度链路，长内容在页签内容区内部滚动
+// 上面 :has(.raw-data-editor) 规则会把弹窗限制为 80dvh，这里需要 !important 恢复全屏
+.el-dialog.is-fullscreen.detail-fullscreen-dialog {
+    display: flex;
+    flex-direction: column;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+
+    > .el-dialog__body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+        padding: 12px 20px !important;
+        overflow: hidden;
+    }
+
+    .detail-fullscreen-tabs {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-height: 0;
+
+        // 弹窗内页签头默认有 -20px 上边距，内容区溢出隐藏后会裁掉页签上边框
+        > .el-tabs__header {
+            flex-shrink: 0;
+            margin-top: 0;
+        }
+
+        > .el-tabs__content {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+
+            > .el-tab-pane {
+                height: 100%;
+                overflow: auto;
+            }
+        }
+    }
+}
+
 // 对话框内的新增和编辑页签不显示底部装饰线
 .el-dialog .el-tabs__nav-wrap::after {
     display: none;
@@ -178,6 +223,15 @@ html.dark .el-card {
 
 .el-dialog .el-tabs__header {
     margin-top: -20px;
+}
+
+// 抽屉默认渲染在触发位置，嵌套在弹窗内时会被上面的弹窗页签规则命中，需要恢复抽屉自身的页签样式
+.el-dialog .el-drawer .el-tabs__nav-wrap::after {
+    display: block;
+}
+
+.el-dialog .el-drawer .el-tabs__header {
+    margin-top: 0;
 }
 
 .el-dialog.el-dialog-border {
