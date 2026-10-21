@@ -673,6 +673,8 @@ export function fetchScheduledJobExecutions(id: string | undefined, params: Sche
             operator: typeof value === 'number' ? 'Equal' : 'Contains',
             value,
         }))
+    // 搜索栏、分组筛选、右键筛选统一通过 dynamicFilter 传入，必须与零散字段条件合并，不能丢弃
+    if (params.dynamicFilter) filters.push(params.dynamicFilter)
     return request.post<Api.Common.PaginatedResponse<ScheduledJobExecution>>({
         url: '/api/scheduled-job/executions/list',
         data: { ...createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder), parentId: id || undefined },
