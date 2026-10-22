@@ -20,15 +20,6 @@ const fastEnterConfig: FastEnterConfig = {
             routeName: 'Console',
         },
         {
-            name: '分析页',
-            description: '数据分析与可视化',
-            icon: 'ri:game-line',
-            iconColor: '#ff3b30',
-            enabled: true,
-            order: 2,
-            routeName: 'Analysis',
-        },
-        {
             name: '礼花效果',
             description: '动画特效展示',
             icon: 'ri:loader-line',

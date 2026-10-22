@@ -305,9 +305,7 @@
         },
         "dashboard": {
             "title": "Dashboard",
-            "console": "Console",
-            "analysis": "Analysis",
-            "ecommerce": "Ecommerce"
+            "console": "Operations Dashboard"
         },
         "exception": {
             "title": "Exception",
@@ -1017,6 +1015,74 @@
     },
     "changeLog": {
         "empty": "No change log available"
+    },
+    "dashboard": {
+        "refresh": "Refresh",
+        "customize": "Customize layout",
+        "done": "Done",
+        "resetLayout": "Reset to default",
+        "editTip": "Drag the handle to reorder cards, change their width or hide them. Changes are saved in this browser",
+        "hiddenWidgets": "Hidden cards (click to add)",
+        "lastDays": "Last {days} days",
+        "updatedAt": "Updated at {time}",
+        "empty": "No data",
+        "noFailures": "No recent failed executions",
+        "unknownRegion": "Unknown region",
+        "series": {
+            "logins": "Logins",
+            "loginUsers": "Login users",
+            "success": "Success",
+            "failed": "Failed"
+        },
+        "widgets": {
+            "statUsers": {
+                "title": "Total users",
+                "desc": "Enabled {enabled} · New today {added}"
+            },
+            "statLogins": {
+                "title": "Logins today",
+                "desc": "{users} users signed in"
+            },
+            "statJobs": {
+                "title": "Scheduled jobs",
+                "desc": "Enabled {enabled} · Running {running} · Failed {failed}"
+            },
+            "statSuccessRate": {
+                "title": "Job success rate (%)",
+                "desc": "Last {days} days · {count} runs today"
+            },
+            "statWallet": {
+                "title": "Available balance",
+                "desc": "Frozen {frozen}"
+            },
+            "loginTrend": {
+                "title": "Login trend"
+            },
+            "deviceDistribution": {
+                "title": "Login devices"
+            },
+            "executionTrend": {
+                "title": "Job execution trend"
+            },
+            "newUserTrend": {
+                "title": "New user trend"
+            },
+            "regionRanking": {
+                "title": "Login regions"
+            },
+            "jobStatus": {
+                "title": "Job status"
+            },
+            "browserDistribution": {
+                "title": "Login browsers"
+            },
+            "recentLogins": {
+                "title": "Recent logins"
+            },
+            "recentFailures": {
+                "title": "Recent failures"
+            }
+        }
     },
     "wallet": {
         "title": "My Wallet",

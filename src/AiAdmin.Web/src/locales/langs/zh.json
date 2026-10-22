@@ -304,10 +304,8 @@
             "title": "内嵌页面"
         },
         "dashboard": {
-            "title": "仪表盘",
-            "console": "工作台",
-            "analysis": "分析页",
-            "ecommerce": "电子商务"
+            "title": "主控面板",
+            "console": "运营大屏"
         },
         "exception": {
             "title": "异常页面",
@@ -1008,6 +1006,74 @@
     },
     "changeLog": {
         "empty": "暂无更新日志"
+    },
+    "dashboard": {
+        "refresh": "刷新",
+        "customize": "自定义布局",
+        "done": "完成",
+        "resetLayout": "恢复默认",
+        "editTip": "拖动卡片左上角手柄调整顺序，可修改卡片宽度或隐藏卡片，修改自动保存在当前浏览器",
+        "hiddenWidgets": "已隐藏的卡片（点击添加）",
+        "lastDays": "近 {days} 天",
+        "updatedAt": "数据更新于 {time}",
+        "empty": "暂无数据",
+        "noFailures": "近期没有异常的执行记录",
+        "unknownRegion": "未知地区",
+        "series": {
+            "logins": "登录次数",
+            "loginUsers": "登录用户数",
+            "success": "成功",
+            "failed": "失败"
+        },
+        "widgets": {
+            "statUsers": {
+                "title": "用户总数",
+                "desc": "启用 {enabled} · 今日新增 {added}"
+            },
+            "statLogins": {
+                "title": "今日登录",
+                "desc": "登录用户 {users} 人"
+            },
+            "statJobs": {
+                "title": "计划作业",
+                "desc": "启用 {enabled} · 运行中 {running} · 异常 {failed}"
+            },
+            "statSuccessRate": {
+                "title": "作业成功率 (%)",
+                "desc": "近 {days} 天 · 今日执行 {count} 次"
+            },
+            "statWallet": {
+                "title": "钱包可用余额",
+                "desc": "冻结余额 {frozen}"
+            },
+            "loginTrend": {
+                "title": "登录趋势"
+            },
+            "deviceDistribution": {
+                "title": "登录设备分布"
+            },
+            "executionTrend": {
+                "title": "作业执行趋势"
+            },
+            "newUserTrend": {
+                "title": "新增用户趋势"
+            },
+            "regionRanking": {
+                "title": "登录地区排行"
+            },
+            "jobStatus": {
+                "title": "作业状态分布"
+            },
+            "browserDistribution": {
+                "title": "登录浏览器分布"
+            },
+            "recentLogins": {
+                "title": "最近登录"
+            },
+            "recentFailures": {
+                "title": "最近异常执行"
+            }
+        }
     },
     "wallet": {
         "title": "我的钱包",

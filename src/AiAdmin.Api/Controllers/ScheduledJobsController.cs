@@ -60,26 +60,28 @@ public sealed class ScheduledJobsController(
     }
 
     /// <summary>
-    ///     清理指定天数之前的计划作业执行记录，供计划作业定时调用，天数通过请求体 days 传入
+    ///     清理指定天数之前的计划作业执行记录，供计划作业定时调用，保留小时数通过请求体 hours 传入
     /// </summary>
-    /// <param name="request">包含保留天数的请求体</param>
-    /// <returns>保留天数和本次删除的执行记录数量</returns>
+    /// <param name="request">包含保留小时数的请求体</param>
+    /// <returns>本次删除的执行记录数量和截止时间</returns>
     /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
     [HttpPost("executions/cleanup")]
     [ApiDescription("Cleanup scheduled job executions")]
-    public async Task<ActionResult<ApiResponse<CleanupExecutionsResult>>> CleanupExecutionsAsync([FromBody] CleanupExecutionsRequest request) {
+    public async Task<ActionResult<ApiResponse<CleanupScheduledJobExecutionsResult>>> CleanupExecutionsAsync(
+        [FromBody] CleanupScheduledJobExecutionsRequest request
+    ) {
         // 清理会批量删除所有作业的执行记录，因此只允许全部数据权限调用
         if (!db.DataScope.HasAllData) {
             throw new DataAccessDeniedException();
         }
 
         // 仍在执行中的记录没有结束结果，即使开始时间过早也不删除
-        var cutoff = DateTime.UtcNow.AddDays(-request.Days);
+        var cutoff = DateTime.UtcNow.AddHours(-request.Hours);
         var deleted = await db
             .ScheduledJobExecutions.Where(x => x.StartedAt < cutoff && x.Status != ScheduledJobStatus.Running)
             .ExecuteDeleteAsync()
             .ConfigureAwait(false);
-        return Ok(ApiResponse<CleanupExecutionsResult>.Ok(new CleanupExecutionsResult(request.Days, deleted)));
+        return Ok(ApiResponse<CleanupScheduledJobExecutionsResult>.Ok(new CleanupScheduledJobExecutionsResult(deleted, ServerTime.ToOffset(cutoff))));
     }
 
     /// <summary>
