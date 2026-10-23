@@ -70,7 +70,6 @@
         "responseInfo": "Response",
         "responseHeaders": "Response headers",
         "responseBody": "Response body",
-        "empty": "(empty)",
         "copy": "Copy",
         "copied": "Copied to clipboard",
         "copyFailed": "Copy failed"

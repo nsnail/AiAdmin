@@ -11,15 +11,12 @@ public static class ShutdownGate
     private static int _closed;
 
     /// <summary>
-    ///     闸门是否已关闭，关闭后只处理存量请求，不再接收新请求
-    /// </summary>
-    public static bool IsClosed => Volatile.Read(ref _closed) == 1;
-
-    /// <summary>
     ///     各类别在途工作数量之和
     /// </summary>
-    public static int InFlightTotal {
-        get {
+    public static int InFlightTotal
+    {
+        get
+        {
             var total = 0;
             for (var i = 0; i < _inFlight.Length; i++) {
                 total += Volatile.Read(ref _inFlight[i]);
@@ -28,6 +25,11 @@ public static class ShutdownGate
             return total;
         }
     }
+
+    /// <summary>
+    ///     闸门是否已关闭，关闭后只处理存量请求，不再接收新请求
+    /// </summary>
+    public static bool IsClosed => Volatile.Read(ref _closed) == 1;
 
     /// <summary>
     ///     关闭闸门，之后新请求会被中间件拒绝
@@ -47,18 +49,18 @@ public static class ShutdownGate
     }
 
     /// <summary>
+    ///     重新打开闸门，恢复接收新流量
+    /// </summary>
+    public static void Open() {
+        _ = Interlocked.Exchange(ref _closed, 0);
+    }
+
+    /// <summary>
     ///     读取各类别在途工作数量快照
     /// </summary>
     /// <returns>类别名称到数量的字典</returns>
     public static Dictionary<string, int> Snapshot() {
         return Enum.GetValues<ShutdownActivity>().ToDictionary(x => x.ToString(), x => Volatile.Read(ref _inFlight[(int)x]), StringComparer.Ordinal);
-    }
-
-    /// <summary>
-    ///     重新打开闸门，恢复接收新流量
-    /// </summary>
-    public static void Open() {
-        _ = Interlocked.Exchange(ref _closed, 0);
     }
 
     /// <summary>

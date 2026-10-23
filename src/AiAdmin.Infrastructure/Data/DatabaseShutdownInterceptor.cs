@@ -14,36 +14,7 @@ public sealed class DatabaseShutdownInterceptor : DbConnectionInterceptor
     /// <summary>
     ///     连接到其租约的映射；关闭或释放时取出并结束登记，保证同一连接只扣减一次
     /// </summary>
-    private readonly System.Collections.Concurrent.ConcurrentDictionary<DbConnection, ShutdownLease> _leases = new();
-
-    /// <summary>
-    ///     同步打开连接后登记在途工作
-    /// </summary>
-    /// <param name="connection">数据库连接</param>
-    /// <param name="eventData">连接事件数据</param>
-    public override void ConnectionOpened(
-        DbConnection connection
-        , ConnectionEndEventData eventData
-    ) {
-        Register(connection);
-        base.ConnectionOpened(connection, eventData);
-    }
-
-    /// <summary>
-    ///     异步打开连接后登记在途工作
-    /// </summary>
-    /// <param name="connection">数据库连接</param>
-    /// <param name="eventData">连接事件数据</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>异步任务</returns>
-    public override Task ConnectionOpenedAsync(
-        DbConnection connection
-        , ConnectionEndEventData eventData
-        , CancellationToken cancellationToken = default
-    ) {
-        Register(connection);
-        return base.ConnectionOpenedAsync(connection, eventData, cancellationToken);
-    }
+    private readonly ConcurrentDictionary<DbConnection, ShutdownLease> _leases = new();
 
     /// <summary>
     ///     连接即将同步关闭时结束登记
@@ -120,6 +91,35 @@ public sealed class DatabaseShutdownInterceptor : DbConnectionInterceptor
     ) {
         Unregister(connection);
         base.ConnectionFailed(connection, eventData);
+    }
+
+    /// <summary>
+    ///     同步打开连接后登记在途工作
+    /// </summary>
+    /// <param name="connection">数据库连接</param>
+    /// <param name="eventData">连接事件数据</param>
+    public override void ConnectionOpened(
+        DbConnection connection
+        , ConnectionEndEventData eventData
+    ) {
+        Register(connection);
+        base.ConnectionOpened(connection, eventData);
+    }
+
+    /// <summary>
+    ///     异步打开连接后登记在途工作
+    /// </summary>
+    /// <param name="connection">数据库连接</param>
+    /// <param name="eventData">连接事件数据</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>异步任务</returns>
+    public override Task ConnectionOpenedAsync(
+        DbConnection connection
+        , ConnectionEndEventData eventData
+        , CancellationToken cancellationToken = default
+    ) {
+        Register(connection);
+        return base.ConnectionOpenedAsync(connection, eventData, cancellationToken);
     }
 
     /// <summary>

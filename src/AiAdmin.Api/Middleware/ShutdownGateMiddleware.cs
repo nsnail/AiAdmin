@@ -31,6 +31,8 @@ public sealed class ShutdownGateMiddleware(RequestDelegate next)
 
         context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
         context.Response.Headers.RetryAfter = "30";
-        await context.Response.WriteAsJsonAsync(new ApiResponse<object>(503, "Service is shutting down", null), context.RequestAborted).ConfigureAwait(false);
+        await context
+            .Response.WriteAsJsonAsync(new ApiResponse<object>(503, "Service is shutting down", null), context.RequestAborted)
+            .ConfigureAwait(false);
     }
 }

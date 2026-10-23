@@ -34,27 +34,6 @@ public sealed partial class SystemInfoService
     }
 
     /// <summary>
-    ///     匹配条目末尾的提交链接
-    /// </summary>
-    /// <returns>提交链接正则</returns>
-    [GeneratedRegex(@"\s*\(\[[0-9a-f]+\]\([^)]*\)\)\s*$")]
-    private static partial Regex _commitLink();
-
-    /// <summary>
-    ///     匹配版本标题行末尾的发布日期
-    /// </summary>
-    /// <returns>发布日期正则</returns>
-    [GeneratedRegex(@"\((\d{4}-\d{2}-\d{2})\)\s*$")]
-    private static partial Regex _releaseDate();
-
-    /// <summary>
-    ///     匹配 CHANGELOG 中的版本标题行
-    /// </summary>
-    /// <returns>版本标题正则</returns>
-    [GeneratedRegex(@"^#{2,3} \[")]
-    private static partial Regex _releaseHeading();
-
-    /// <summary>
     ///     解析嵌入 CHANGELOG 中最近一次版本的发布日期和更新内容
     /// </summary>
     /// <param name="assembly">包含嵌入 CHANGELOG 的程序集</param>
@@ -103,4 +82,25 @@ public sealed partial class SystemInfoService
 
         return (releaseDate, notes.FindAll(x => x.Items.Count > 0));
     }
+
+    /// <summary>
+    ///     匹配条目末尾的提交链接
+    /// </summary>
+    /// <returns>提交链接正则</returns>
+    [GeneratedRegex(@"\s*\(\[[0-9a-f]+\]\([^)]*\)\)\s*$")]
+    private static partial Regex _commitLink();
+
+    /// <summary>
+    ///     匹配版本标题行末尾的发布日期
+    /// </summary>
+    /// <returns>发布日期正则</returns>
+    [GeneratedRegex(@"\((\d{4}-\d{2}-\d{2})\)\s*$")]
+    private static partial Regex _releaseDate();
+
+    /// <summary>
+    ///     匹配 CHANGELOG 中的版本标题行
+    /// </summary>
+    /// <returns>版本标题正则</returns>
+    [GeneratedRegex(@"^#{2,3} \[")]
+    private static partial Regex _releaseHeading();
 }

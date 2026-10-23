@@ -41,7 +41,8 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
     [HttpPost("close")]
     [ApiDescription("Close support conversation")]
     public async Task<ActionResult<ApiResponse<object>>> CloseAsync([FromBody] IdentifierRequest request) {
-        var conversation = await db.SupportConversations.SingleOrDefaultAsync(x => x.Id == request.Id, HttpContext.RequestAborted).ConfigureAwait(false);
+        var conversation
+            = await db.SupportConversations.SingleOrDefaultAsync(x => x.Id == request.Id, HttpContext.RequestAborted).ConfigureAwait(false);
         if (conversation is null) {
             return NotFound(new ApiResponse<object>(404, "Conversation not found", null));
         }
@@ -82,7 +83,11 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
             )
             .ToListAsync(HttpContext.RequestAborted)
             .ConfigureAwait(false);
-        return Ok(ApiResponse<PagedResponse<SupportConversationListItem>>.Ok(new PagedResponse<SupportConversationListItem>(items, request.Current, request.Size, total)));
+        return Ok(
+            ApiResponse<PagedResponse<SupportConversationListItem>>.Ok(
+                new PagedResponse<SupportConversationListItem>(items, request.Current, request.Size, total)
+            )
+        );
     }
 
     /// <summary>
@@ -97,7 +102,8 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
         [FromQuery] long conversationId
         , [FromQuery] long? beforeId = null
     ) {
-        var conversation = await db.SupportConversations.SingleOrDefaultAsync(x => x.Id == conversationId, HttpContext.RequestAborted).ConfigureAwait(false);
+        var conversation
+            = await db.SupportConversations.SingleOrDefaultAsync(x => x.Id == conversationId, HttpContext.RequestAborted).ConfigureAwait(false);
         if (conversation is null) {
             return NotFound(new ApiResponse<SupportMessagePageResult>(404, "Conversation not found", null));
         }
@@ -121,7 +127,8 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
     [ApiDescription("Query my support messages")]
     public async Task<ActionResult<ApiResponse<SupportMessagePageResult>>> MyMessagesAsync([FromQuery] long? beforeId = null) {
         var userId = GetUserId();
-        var conversation = await db.SupportConversations.SingleOrDefaultAsync(x => x.UserId == userId, HttpContext.RequestAborted).ConfigureAwait(false);
+        var conversation
+            = await db.SupportConversations.SingleOrDefaultAsync(x => x.UserId == userId, HttpContext.RequestAborted).ConfigureAwait(false);
         if (conversation is null) {
             return Ok(ApiResponse<SupportMessagePageResult>.Ok(new SupportMessagePageResult([], false)));
         }
@@ -184,9 +191,18 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
         ++conversation.UserUnreadCount;
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
 
-        var senderName = await db.Users.Where(x => x.Id == senderId).Select(x => x.UserName).SingleAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        var senderName = await db
+            .Users.Where(x => x.Id == senderId)
+            .Select(x => x.UserName)
+            .SingleAsync(HttpContext.RequestAborted)
+            .ConfigureAwait(false);
         var item = ToItem(message, senderName);
-        await realtime.PushSupportMessageAsync(conversation.UserId, new RealtimeSupportMessageResult(item, conversation.UserId, conversation.User.UserName, 0, conversation.UserUnreadCount)).ConfigureAwait(false);
+        await realtime
+            .PushSupportMessageAsync(
+                conversation.UserId
+                , new RealtimeSupportMessageResult(item, conversation.UserId, conversation.User.UserName, 0, conversation.UserUnreadCount)
+            )
+            .ConfigureAwait(false);
         return Ok(ApiResponse<SupportMessageItem>.Ok(item));
     }
 
@@ -205,7 +221,8 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
 
         var userId = GetUserId();
         var user = await db.Users.AsNoTracking().SingleAsync(x => x.Id == userId, HttpContext.RequestAborted).ConfigureAwait(false);
-        var conversation = await db.SupportConversations.SingleOrDefaultAsync(x => x.UserId == userId, HttpContext.RequestAborted).ConfigureAwait(false);
+        var conversation
+            = await db.SupportConversations.SingleOrDefaultAsync(x => x.UserId == userId, HttpContext.RequestAborted).ConfigureAwait(false);
         if (conversation is null) {
             conversation = new SupportConversation { UserId = userId };
             _ = db.SupportConversations.Add(conversation);
@@ -221,7 +238,9 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
 
         var item = ToItem(message, user.UserName);
-        await realtime.PushSupportMessageAsync(userId, new RealtimeSupportMessageResult(item, userId, user.UserName, conversation.ServiceUnreadCount, 0)).ConfigureAwait(false);
+        await realtime
+            .PushSupportMessageAsync(userId, new RealtimeSupportMessageResult(item, userId, user.UserName, conversation.ServiceUnreadCount, 0))
+            .ConfigureAwait(false);
         return Ok(ApiResponse<SupportMessageItem>.Ok(item));
     }
 
@@ -245,7 +264,8 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
         , string senderName
     ) {
         return new SupportMessageItem(
-            message.Id, message.ConversationId, message.Content, message.IsFromService, message.SenderId, senderName, ServerTime.ToOffset(message.CreatedAt)
+            message.Id, message.ConversationId, message.Content, message.IsFromService, message.SenderId, senderName
+            , ServerTime.ToOffset(message.CreatedAt)
         );
     }
 
@@ -275,7 +295,12 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
         var rows = await query
             .OrderByDescending(x => x.Id)
             .Take(_PAGE_SIZE + 1)
-            .Select(x => new { Message = x, SenderName = db.Users.Where(user => user.Id == x.SenderId).Select(user => user.UserName).FirstOrDefault() ?? string.Empty })
+            .Select(x => new
+                {
+                    Message = x
+                    , SenderName = db.Users.Where(user => user.Id == x.SenderId).Select(user => user.UserName).FirstOrDefault() ?? string.Empty
+                }
+            )
             .ToListAsync(HttpContext.RequestAborted)
             .ConfigureAwait(false);
         var hasMore = rows.Count > _PAGE_SIZE;

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using AiAdmin.Api.Contracts;
+using Timer = System.Threading.Timer;
 
 namespace AiAdmin.Api.Services;
 
@@ -8,8 +9,8 @@ namespace AiAdmin.Api.Services;
 /// </summary>
 public sealed class ProcessDiagnosticsSampler
 {
-    private readonly long _startTicks = Stopwatch.GetTimestamp();
     private readonly TimeSpan _startCpu = Process.GetCurrentProcess().TotalProcessorTime;
+    private readonly long _startTicks = Stopwatch.GetTimestamp();
 
     /// <summary>
     ///     读取从创建采样器到现在的诊断信息
@@ -21,6 +22,8 @@ public sealed class ProcessDiagnosticsSampler
         var cpu = elapsed.TotalMilliseconds > 0 ? used.TotalMilliseconds / (elapsed.TotalMilliseconds * Environment.ProcessorCount) * 100 : 0;
         ThreadPool.GetMaxThreads(out var maxWorker, out _);
         ThreadPool.GetAvailableThreads(out var availableWorker, out _);
-        return new ProcessDiagnostics(Math.Round(Math.Clamp(cpu, 0, 100), 1), maxWorker - availableWorker, ThreadPool.PendingWorkItemCount, System.Threading.Timer.ActiveCount);
+        return new ProcessDiagnostics(
+            Math.Round(Math.Clamp(cpu, 0, 100), 1), maxWorker - availableWorker, ThreadPool.PendingWorkItemCount, Timer.ActiveCount
+        );
     }
 }

@@ -7,4 +7,8 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="Version">系统版本号</param>
 /// <param name="ReleaseDate">最近一次版本发布日期，无法解析时为空</param>
 /// <param name="ReleaseNotes">最近一次版本的更新内容分组</param>
-public sealed record DashboardSystemInfoResult(string Name, string Version, string? ReleaseDate, IReadOnlyList<DashboardReleaseNoteSection> ReleaseNotes);
+public sealed record DashboardSystemInfoResult(
+    string Name
+    , string Version
+    , string? ReleaseDate
+    , IReadOnlyList<DashboardReleaseNoteSection> ReleaseNotes);
