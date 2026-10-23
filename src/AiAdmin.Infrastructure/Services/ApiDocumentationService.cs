@@ -295,17 +295,26 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
     /// <param name="type">属性类型</param>
     /// <returns>元素类型</returns>
     private static Type GetElementType(Type type) {
-        if (type.IsArray) {
-            return GetElementType(type.GetElementType()!);
-        }
+        while (true) {
+            if (type.IsArray) {
+                type = type.GetElementType()!;
+                continue;
+            }
 
-        if (Nullable.GetUnderlyingType(type) is { } nullable) {
-            return GetElementType(nullable);
-        }
+            if (Nullable.GetUnderlyingType(type) is { } nullable) {
+                type = nullable;
+                continue;
+            }
 
-        return type != typeof(string) && type.IsGenericType && typeof(IEnumerable).IsAssignableFrom(type) && type.GetGenericArguments().Length == 1
-            ? GetElementType(type.GetGenericArguments()[0])
-            : type;
+            if (type == typeof(string)
+                || !type.IsGenericType
+                || !typeof(IEnumerable).IsAssignableFrom(type)
+                || type.GetGenericArguments().Length != 1) {
+                return type;
+            }
+
+            type = type.GetGenericArguments()[0];
+        }
     }
 
     /// <summary>
@@ -333,14 +342,20 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
         , ParameterInfo? info
         , string path
     ) {
-        return info?.GetCustomAttribute<FromBodyAttribute>() is not null || IsBodyParameter(parameter.ParameterType, info)
-            ? "body"
-            : info?.GetCustomAttribute<FromHeaderAttribute>() is not null
-                ? "header"
-                : info?.GetCustomAttribute<FromRouteAttribute>() is not null
-                  || path.Contains("{" + parameter.Name + "}", StringComparison.OrdinalIgnoreCase)
-                    ? "path"
-                    : "query";
+        if (info?.GetCustomAttribute<FromBodyAttribute>() is not null || IsBodyParameter(parameter.ParameterType, info)) {
+            return "body";
+        }
+
+        if (info?.GetCustomAttribute<FromHeaderAttribute>() is not null) {
+            return "header";
+        }
+
+        if (info?.GetCustomAttribute<FromRouteAttribute>() is not null
+            || path.Contains("{" + parameter.Name + "}", StringComparison.OrdinalIgnoreCase)) {
+            return "path";
+        }
+
+        return "query";
     }
 
     /// <summary>
@@ -470,26 +485,36 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
     /// <param name="type">待转换的 .NET 类型</param>
     /// <returns>接口文档类型名称</returns>
     private static string ToType(Type type) {
-        return type.IsArray
-            ? ToType(type.GetElementType()!) + "[]"
-            : Nullable.GetUnderlyingType(type) is { } nullable
-                ? ToType(nullable) + "?"
-                : type == typeof(string) || type == typeof(Guid)
-                    ? "string"
-                    : type == typeof(bool)
-                        ? "boolean"
-                        : type == typeof(int)
-                          || type == typeof(long)
-                          || type == typeof(short)
-                          || type == typeof(decimal)
-                          || type == typeof(double)
-                          || type == typeof(float)
-                            ? "number"
-                            : type.IsGenericType switch
-                            {
-                                true when typeof(IEnumerable).IsAssignableFrom(type) => ToType(type.GetGenericArguments()[0]) + "[]"
-                                , _ => type.Name
-                            };
+        if (type.IsArray) {
+            return ToType(type.GetElementType()!) + "[]";
+        }
+
+        if (Nullable.GetUnderlyingType(type) is { } nullable) {
+            return ToType(nullable) + "?";
+        }
+
+        if (type == typeof(string) || type == typeof(Guid)) {
+            return "string";
+        }
+
+        if (type == typeof(bool)) {
+            return "boolean";
+        }
+
+        if (type == typeof(int)
+            || type == typeof(long)
+            || type == typeof(short)
+            || type == typeof(decimal)
+            || type == typeof(double)
+            || type == typeof(float)) {
+            return "number";
+        }
+
+        return type.IsGenericType switch
+        {
+            true when typeof(IEnumerable).IsAssignableFrom(type) => ToType(type.GetGenericArguments()[0]) + "[]"
+            , _ => type.Name
+        };
     }
 
     /// <summary>
