@@ -3,7 +3,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,7 +13,6 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
 [ApiController]
-[Authorize]
 [Route("api/login-log")]
 [ApiDescription("Login log management")]
 public sealed class LoginLogsController(AppDbContext db) : ControllerBase

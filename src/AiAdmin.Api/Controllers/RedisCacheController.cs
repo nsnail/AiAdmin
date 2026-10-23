@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
 
@@ -12,7 +11,6 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="connectionMultiplexer">Redis 连接复用器</param>
 [ApiController]
-[Authorize(Roles = "R_SUPER")]
 [ApiDescription("Redis cache management")]
 [Route("api/redis-cache")]
 public sealed class RedisCacheController(IConnectionMultiplexer connectionMultiplexer) : ControllerBase

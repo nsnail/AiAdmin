@@ -2,7 +2,6 @@ using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiAdmin.Api.Controllers;
@@ -13,7 +12,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="storage">对象存储服务</param>
 [ApiController]
 [ApiDescription("File management")]
-[Authorize]
 [Route("api/files")]
 public sealed class FilesController(MinioStorageService storage) : ControllerBase
 {

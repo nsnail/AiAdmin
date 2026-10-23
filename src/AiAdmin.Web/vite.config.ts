@@ -12,15 +12,11 @@ import tailwindcss from '@tailwindcss/vite'
 export default ({ mode }: { mode: string }) => {
     const root = process.cwd()
     const env = loadEnv(mode, root)
-    const { VITE_VERSION, VITE_PORT, VITE_BASE_URL, VITE_API_URL, VITE_API_PROXY_URL } = env
+    const { VITE_PORT, VITE_BASE_URL, VITE_API_URL, VITE_API_PROXY_URL } = env
 
     console.log(`🚀 API_URL = ${VITE_API_URL}`)
-    console.log(`🚀 VERSION = ${VITE_VERSION}`)
 
     return defineConfig({
-        define: {
-            __APP_VERSION__: JSON.stringify(VITE_VERSION),
-        },
         base: VITE_BASE_URL,
         server: {
             port: Number(VITE_PORT),
@@ -28,6 +24,7 @@ export default ({ mode }: { mode: string }) => {
                 '/api': {
                     target: VITE_API_PROXY_URL,
                     changeOrigin: true,
+                    ws: true,
                 },
             },
             host: true,

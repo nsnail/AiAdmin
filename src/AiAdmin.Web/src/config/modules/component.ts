@@ -52,6 +52,18 @@ export const globalComponentsConfig: GlobalComponentConfig[] = [
         enabled: true,
     },
     {
+        name: '实时连接',
+        key: 'realtime',
+        component: defineAsyncComponent(() => import('@/components/core/layouts/art-realtime/index.vue')),
+        enabled: true,
+    },
+    {
+        name: '版本升级提示',
+        key: 'version-upgrade',
+        component: defineAsyncComponent(() => import('@/components/core/layouts/art-version-upgrade/index.vue')),
+        enabled: true,
+    },
+    {
         name: '水印效果',
         key: 'watermark',
         component: defineAsyncComponent(() => import('@/components/core/others/art-watermark/index.vue')),

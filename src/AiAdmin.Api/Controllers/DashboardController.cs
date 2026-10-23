@@ -4,7 +4,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +13,11 @@ namespace AiAdmin.Api.Controllers;
 ///     仪表盘统计控制器，为大屏提供用户、登录、计划作业等运营数据
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
+/// <param name="systemInfo">系统信息服务</param>
 [ApiController]
-[Authorize]
 [Route("api/dashboard")]
 [ApiDescription("Dashboard statistics")]
-public sealed class DashboardController(AppDbContext db) : ControllerBase
+public sealed class DashboardController(AppDbContext db, SystemInfoService systemInfo) : ControllerBase
 {
     /// <summary>
     ///     查询仪表盘总览数据
@@ -28,7 +27,10 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
     /// <returns>仪表盘总览结果</returns>
     [HttpGet("overview")]
     [ApiDescription("Query dashboard overview")]
-    public async Task<ActionResult<ApiResponse<DashboardOverviewResult>>> OverviewAsync([FromQuery] int days = 14, [FromQuery] int offsetMinutes = 0) {
+    public async Task<ActionResult<ApiResponse<DashboardOverviewResult>>> OverviewAsync(
+        [FromQuery] int days = 14
+        , [FromQuery] int offsetMinutes = 0
+    ) {
         days = Math.Clamp(days, 1, 90);
         offsetMinutes = Math.Clamp(offsetMinutes, -840, 840);
         var offset = TimeSpan.FromMinutes(offsetMinutes);
@@ -41,10 +43,23 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
         var loginRows = await db
             .LoginLogs.AsNoTracking()
             .Where(x => x.CreatedAt >= rangeStart)
-            .Select(x => new { x.CreatedAt, x.UserId, x.DeviceType, x.Browser, x.Region })
+            .Select(x => new
+                {
+                    x.CreatedAt
+                    , x.UserId
+                    , x.DeviceType
+                    , x.Browser
+                    , x.Region
+                }
+            )
             .ToListAsync()
             .ConfigureAwait(false);
-        var userDates = await db.Users.AsNoTracking().Where(x => x.CreatedAt >= rangeStart).Select(x => x.CreatedAt).ToListAsync().ConfigureAwait(false);
+        var userDates = await db
+            .Users.AsNoTracking()
+            .Where(x => x.CreatedAt >= rangeStart)
+            .Select(x => x.CreatedAt)
+            .ToListAsync()
+            .ConfigureAwait(false);
         var executionRows = await db
             .ScheduledJobExecutions.AsNoTracking()
             .Where(x => x.StartedAt >= rangeStart)
@@ -57,24 +72,25 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
             localDays.Add(rangeStartLocal.AddDays(i));
         }
 
-        var loginTrend = localDays.ConvertAll(
-                d => {
-                    var rows = loginRows.Where(x => (x.CreatedAt + offset).Date == d).ToList();
-                    return new DashboardTrendPoint(FormatDate(d), rows.Count, rows.Select(x => x.UserId).Distinct().Count());
-                }
-            );
+        var loginTrend = localDays.ConvertAll(d =>
+            {
+                var rows = loginRows.Where(x => (x.CreatedAt + offset).Date == d).ToList();
+                return new DashboardTrendPoint(FormatDate(d), rows.Count, rows.Select(x => x.UserId).Distinct().Count());
+            }
+        );
         var newUserTrend = localDays.ConvertAll(d => new DashboardTrendPoint(FormatDate(d), userDates.Count(x => (x + offset).Date == d), 0));
-        var executionTrend = localDays.ConvertAll(
-                d => {
-                    var rows = executionRows.Where(x => (x.StartedAt + offset).Date == d).ToList();
-                    return new DashboardTrendPoint(
-                        FormatDate(d), rows.Count(x => x.Status == ScheduledJobStatus.Success)
-                        , rows.Count(x => x.Status is ScheduledJobStatus.Failed or ScheduledJobStatus.Timeout)
-                    );
-                }
-            );
+        var executionTrend = localDays.ConvertAll(d =>
+            {
+                var rows = executionRows.Where(x => (x.StartedAt + offset).Date == d).ToList();
+                return new DashboardTrendPoint(
+                    FormatDate(d), rows.Count(x => x.Status == ScheduledJobStatus.Success)
+                    , rows.Count(x => x.Status is ScheduledJobStatus.Failed or ScheduledJobStatus.Timeout)
+                );
+            }
+        );
 
-        var finishedExecutions = executionRows.Count(x => x.Status is ScheduledJobStatus.Success or ScheduledJobStatus.Failed or ScheduledJobStatus.Timeout);
+        var finishedExecutions
+            = executionRows.Count(x => x.Status is ScheduledJobStatus.Success or ScheduledJobStatus.Failed or ScheduledJobStatus.Timeout);
         var successExecutions = executionRows.Count(x => x.Status == ScheduledJobStatus.Success);
         var successRate = finishedExecutions == 0 ? 0 : Math.Round((decimal)successExecutions * 100 / finishedExecutions, 1);
 
@@ -105,7 +121,15 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
             .LoginLogs.AsNoTracking()
             .OrderByDescending(x => x.CreatedAt)
             .Take(8)
-            .Select(x => new { x.UserName, x.ClientIp, x.Region, x.Browser, x.CreatedAt })
+            .Select(x => new
+                {
+                    x.UserName
+                    , x.ClientIp
+                    , x.Region
+                    , x.Browser
+                    , x.CreatedAt
+                }
+            )
             .ToListAsync()
             .ConfigureAwait(false);
         var recentFailures = await db
@@ -113,7 +137,16 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
             .Where(x => x.Status == ScheduledJobStatus.Failed || x.Status == ScheduledJobStatus.Timeout)
             .OrderByDescending(x => x.StartedAt)
             .Take(8)
-            .Select(x => new { x.Id, x.ScheduledJobId, JobName = x.ScheduledJob.Name, x.Status, x.ErrorMessage, x.StartedAt })
+            .Select(x => new
+                {
+                    x.Id
+                    , x.ScheduledJobId
+                    , JobName = x.ScheduledJob.Name
+                    , x.Status
+                    , x.ErrorMessage
+                    , x.StartedAt
+                }
+            )
             .ToListAsync()
             .ConfigureAwait(false);
 
@@ -121,12 +154,23 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
             summary, loginTrend, newUserTrend, executionTrend, Distribute(loginRows.Select(x => x.DeviceType), 6)
             , Distribute(loginRows.Select(x => x.Browser), 6), Distribute(loginRows.Select(x => x.Region), 8)
             , [.. jobStatusGroups.Select(x => new DashboardNameValue(x.Status.ToString(), x.Count))]
-            , recentLogins.ConvertAll(x => new DashboardRecentLoginResult(x.UserName, x.ClientIp, x.Region, x.Browser, ServerTime.ToOffset(x.CreatedAt)))
-            , recentFailures.ConvertAll(
-                x => new DashboardFailedExecutionResult(x.Id, x.ScheduledJobId, x.JobName, x.Status, x.ErrorMessage, ServerTime.ToOffset(x.StartedAt))
-            ), ServerTime.ToOffset(now)
+            , recentLogins.ConvertAll(x => new DashboardRecentLoginResult(
+                    x.UserName, x.ClientIp, x.Region, x.Browser, ServerTime.ToOffset(x.CreatedAt)
+                )
+            ), recentFailures.ConvertAll(x => new DashboardFailedExecutionResult(x.Id, x.ScheduledJobId, x.JobName, x.Status, x.ErrorMessage, ServerTime.ToOffset(x.StartedAt)))
+            , ServerTime.ToOffset(now)
         );
         return Ok(ApiResponse<DashboardOverviewResult>.Ok(result));
+    }
+
+    /// <summary>
+    ///     查询系统信息，名称和版本号读取自当前程序集元数据，更新内容读取自嵌入的 CHANGELOG
+    /// </summary>
+    /// <returns>系统名称、版本号与最近一次版本的更新内容</returns>
+    [HttpGet("system-info")]
+    [ApiDescription("Query dashboard system info")]
+    public ActionResult<ApiResponse<DashboardSystemInfoResult>> SystemInfo() {
+        return Ok(ApiResponse<DashboardSystemInfoResult>.Ok(systemInfo.Info));
     }
 
     /// <summary>
@@ -135,7 +179,10 @@ public sealed class DashboardController(AppDbContext db) : ControllerBase
     /// <param name="values">原始值序列</param>
     /// <param name="take">最多返回的项数</param>
     /// <returns>名称与数量列表</returns>
-    private static List<DashboardNameValue> Distribute(IEnumerable<string> values, int take) {
+    private static List<DashboardNameValue> Distribute(
+        IEnumerable<string> values
+        , int take
+    ) {
         return
         [
             .. values

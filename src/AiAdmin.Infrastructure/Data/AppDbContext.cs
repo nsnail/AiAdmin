@@ -102,6 +102,16 @@ public sealed partial class AppDbContext(
     public DbSet<ScheduledJob> ScheduledJobs => Set<ScheduledJob>();
 
     /// <summary>
+    ///     在线客服会话集合
+    /// </summary>
+    public DbSet<SupportConversation> SupportConversations => Set<SupportConversation>();
+
+    /// <summary>
+    ///     在线客服消息集合
+    /// </summary>
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
+
+    /// <summary>
     ///     系统消息集合
     /// </summary>
     public DbSet<SystemMessage> SystemMessages => Set<SystemMessage>();
@@ -146,7 +156,7 @@ public sealed partial class AppDbContext(
         var shouldInvalidate = ChangeTracker.Entries().Any(entry => entry.Entity is Role or UserRole or UserDepartment or Department);
         var result = base.SaveChanges(acceptAllChangesOnSuccess);
         if (shouldInvalidate) {
-            _ = dataScopeCache.InvalidateAsync();
+            dataScopeCache.InvalidateInBackground();
         }
 
         return result;
@@ -284,6 +294,33 @@ public sealed partial class AppDbContext(
                 _ = entity.Property(x => x.Content).IsRequired();
                 _ = entity.HasIndex(x => x.CreatedAt);
                 _ = entity.HasOne<User>().WithMany().HasForeignKey(x => x.SenderId).OnDelete(DeleteBehavior.Restrict);
+            }
+        );
+
+        _ = modelBuilder.Entity<SupportConversation>(entity =>
+            {
+                _ = entity.ToTable("sys_support_conversation");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.LastMessagePreview).HasMaxLength(200).IsRequired();
+                _ = entity.HasIndex(x => x.UserId).IsUnique();
+                _ = entity.HasIndex(x => x.LastMessageAt);
+                _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            }
+        );
+
+        _ = modelBuilder.Entity<SupportMessage>(entity =>
+            {
+                _ = entity.ToTable("sys_support_message");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.Content).HasMaxLength(2000).IsRequired();
+                _ = entity.HasIndex(x => new { x.ConversationId, x.Id });
+                _ = entity
+                    .HasOne(x => x.Conversation)
+                    .WithMany(x => x.Messages)
+                    .HasForeignKey(x => x.ConversationId)
+                    .OnDelete(DeleteBehavior.Cascade);
             }
         );
 

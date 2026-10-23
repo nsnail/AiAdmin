@@ -1,7 +1,6 @@
 using System.Reflection;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiAdmin.Api.Controllers;
@@ -11,7 +10,6 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 [ApiController]
 [ApiDescription("Change log")]
-[Authorize]
 [Route("api/change-log")]
 public sealed class ChangeLogController : ControllerBase
 {

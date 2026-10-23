@@ -1,15 +1,33 @@
+# 单机双实例：api-a / api-b 共享同一数据库和 Redis，由网关 upstream 负载均衡，配合 rolling-deploy.sh 逐个重建实现无中断发布
+x-api: &api
+  image: ${API_IMAGE:?API_IMAGE is required}
+  restart: unless-stopped
+  # 大于应用 HostOptions.ShutdownTimeout(40s)，让主机先完成优雅停止再被 SIGKILL
+  stop_grace_period: 50s
+  volumes:
+    - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+
 services:
-  api:
-    image: ${API_IMAGE:?API_IMAGE is required}
-    restart: unless-stopped
+  api-a:
+    <<: *api
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:80
       TZ: Asia/Shanghai
-    volumes:
-      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+      # 每个实例的 Snowflake WorkerId 必须唯一（0-31），否则会生成重复主键；api-a 沿用单实例时期的 0
+      Snowflake__WorkerId: "0"
     ports:
       - "6678:80"
+
+  api-b:
+    <<: *api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:80
+      TZ: Asia/Shanghai
+      Snowflake__WorkerId: "1"
+    ports:
+      - "6680:80"
 
   web:
     image: ${WEB_IMAGE:?WEB_IMAGE is required}

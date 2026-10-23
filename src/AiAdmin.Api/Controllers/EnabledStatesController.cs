@@ -2,7 +2,6 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,7 +15,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="dataScopeCache">数据权限缓存</param>
 [ApiController]
 [ApiDescription("Enabled state management")]
-[Authorize]
 [Route("api/enabled-state")]
 public sealed partial class EnabledStatesController(AppDbContext db, ApiPermissionCache permissionCache, DataScopeCache dataScopeCache)
     : ControllerBase
@@ -73,7 +71,7 @@ public sealed partial class EnabledStatesController(AppDbContext db, ApiPermissi
         }
 
         if (request.Resource is "role" or "department") {
-            _ = dataScopeCache.InvalidateAsync();
+            dataScopeCache.InvalidateInBackground();
         }
 
         return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));

@@ -4,7 +4,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,7 +17,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="dataScopeCache">数据权限缓存</param>
 /// <param name="apiPermissionCache">接口权限缓存</param>
 [ApiController]
-[Authorize]
 [Route("api/scheduled-job")]
 [ApiDescription("Scheduled job management")]
 public sealed class ScheduledJobsController(

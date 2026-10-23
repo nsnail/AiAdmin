@@ -1,3 +1,4 @@
+using AiAdmin.Api.Services;
 using Microsoft.Extensions.Options;
 
 namespace AiAdmin.Api.Logging;
@@ -86,17 +87,22 @@ public sealed class ElasticsearchLogBackgroundService(
                 continue;
             }
 
+            // 只在已取到数据后登记，空队列时的无限轮询不属于在途工作；批次写完即释放
+            var lease = ShutdownGate.Enter(ShutdownActivity.Background);
             try {
                 await writer.WriteAsync(batch, stoppingToken).ConfigureAwait(false);
-                await DelayBeforeNextBatchAsync(stoppingToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
                 break;
             }
             catch (Exception exception) {
                 _logWriteFailure(logger, exception);
-                await DelayBeforeNextBatchAsync(stoppingToken).ConfigureAwait(false);
             }
+            finally {
+                lease.Dispose();
+            }
+
+            await DelayBeforeNextBatchAsync(stoppingToken).ConfigureAwait(false);
         }
     }
 }

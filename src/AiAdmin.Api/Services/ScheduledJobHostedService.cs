@@ -149,6 +149,12 @@ public sealed class ScheduledJobHostedService(
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>异步处理任务</returns>
     private async Task TickAsync(CancellationToken cancellationToken) {
+        // 安全停机闸门关闭后不再触发新作业，已在执行的作业自然结束
+        using var lease = ShutdownGate.Enter(ShutdownActivity.Job);
+        if (ShutdownGate.IsClosed) {
+            return;
+        }
+
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var now = DateTime.UtcNow;
@@ -179,7 +185,9 @@ public sealed class ScheduledJobHostedService(
                 _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
 
-            _ = ExecuteJobAsync(job.Id, cancellationToken);
+            // 作业脱离扫描循环独立运行，由 Track 在发起点同步登记，避免“已发起但未登记”的空窗
+            var jobId = job.Id;
+            ShutdownGate.Track(ShutdownActivity.Job, () => ExecuteJobAsync(jobId, cancellationToken));
         }
     }
 }

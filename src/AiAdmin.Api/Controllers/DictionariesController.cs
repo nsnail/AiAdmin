@@ -3,7 +3,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,7 +14,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="db">应用数据库上下文</param>
 /// <param name="dictionarySnapshotService">字典快照服务</param>
 [ApiController]
-[Authorize]
 [ApiDescription("Dictionary management")]
 [Route("api/dictionary")]
 public sealed class DictionariesController(AppDbContext db, DictionarySnapshotService dictionarySnapshotService) : ControllerBase

@@ -332,7 +332,8 @@
             "scheduledJob": "Scheduled Jobs",
             "cache": "Cache Management",
             "referrals": "My Referrals",
-            "message": "Message Management"
+            "message": "Message Management",
+            "supportChat": "Customer Service"
         },
         "log": {
             "title": "Log Management",
@@ -1013,6 +1014,35 @@
         },
         "placeholder": { "parent": "Leave empty for a root menu" }
     },
+    "supportChat": {
+        "title": "Customer service",
+        "subtitle": "Online, happy to help",
+        "service": "Service",
+        "me": "Me",
+        "empty": "Leave a message anytime and we will reply soon",
+        "loadMoreHint": "Scroll up to load earlier messages",
+        "placeholder": "Type a message",
+        "sendHint": "Press Enter to send, Shift + Enter for a new line",
+        "send": "Send",
+        "searchUser": "Search user name",
+        "filter": { "all": "All", "open": "Open", "closed": "Closed" },
+        "noConversation": "No conversations",
+        "closedTag": "Closed",
+        "selectTip": "Select a conversation on the left",
+        "close": "Close conversation",
+        "closeConfirm": "Close this conversation? It reopens automatically when the user writes again",
+        "replyPlaceholder": "Type your reply",
+        "closed": "Closed",
+        "serviceUnread": "Unread by service"
+    },
+    "versionUpgrade": {
+        "title": "New version v{version} available",
+        "question": "Upgrade now?",
+        "countdown": "Upgrading automatically in {seconds}s",
+        "paused": "Automatic upgrade paused",
+        "upgrade": "Upgrade now",
+        "later": "Later"
+    },
     "changeLog": {
         "empty": "No change log available"
     },
@@ -1050,6 +1080,11 @@
             "statSuccessRate": {
                 "title": "Job success rate (%)",
                 "desc": "Last {days} days · {count} runs today"
+            },
+            "systemInfo": {
+                "title": "System info",
+                "version": "Version",
+                "empty": "No release notes"
             },
             "statWallet": {
                 "title": "Available balance",

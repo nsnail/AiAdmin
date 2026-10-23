@@ -3,7 +3,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +16,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="documentationService">接口文档服务</param>
 [ApiController]
 [ApiDescription("API management")]
-[Authorize]
 [Route("api/api-endpoint")]
 public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncService syncService, ApiDocumentationService documentationService)
     : ControllerBase

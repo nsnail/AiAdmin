@@ -211,7 +211,6 @@ public sealed class AuthController(
     /// </summary>
     /// <returns>发送结果</returns>
     [HttpPost("profile-email/code")]
-    [Authorize]
     [ApiDescription("Send profile email verification code")]
     public async Task<ActionResult<ApiResponse<object>>> ProfileEmailCodeAsync() {
         if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), CultureInfo.InvariantCulture, out var id)) {

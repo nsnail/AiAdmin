@@ -175,6 +175,20 @@
         }
       },
       {
+        "path": "support-chat",
+        "name": "SupportChat",
+        "component": "/system/support-chat",
+        "meta": {
+          "title": "menus.system.supportChat",
+          "icon": "ri:customer-service-2-line",
+          "keepAlive": true,
+          "roles": [
+            "R_SUPER",
+            "R_ADMIN"
+          ]
+        }
+      },
+      {
         "path": "settings",
         "name": "SystemSettings",
         "component": "/system/settings",

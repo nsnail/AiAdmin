@@ -392,6 +392,52 @@ declare namespace Api {
             hasMore: boolean
             unreadCount: number
         }
+        /** 在线客服会话列表项 */
+        interface SupportConversationListItem {
+            id: number
+            createdAt: string
+            userId: number
+            userName: string
+            userAvatar: string | null
+            lastMessagePreview: string
+            lastMessageAt: string
+            serviceUnreadCount: number
+            isClosed: boolean
+        }
+        /** 在线客服会话消息 */
+        interface SupportMessageItem {
+            id: number
+            conversationId: number
+            content: string
+            isFromService: boolean
+            senderId: number
+            senderName: string
+            createdAt: string
+        }
+        interface SupportMessagePageResult {
+            items: SupportMessageItem[]
+            hasMore: boolean
+        }
+        /** 当前用户自己的客服会话状态 */
+        interface SupportConversationState {
+            conversationId: number | null
+            userUnreadCount: number
+        }
+        /** 客服消息实时推送载荷 */
+        interface RealtimeSupportMessage {
+            message: SupportMessageItem
+            ownerUserId: number
+            userName: string
+            serviceUnreadCount: number
+            userUnreadCount: number
+        }
+        /** 客服会话已读状态实时推送载荷 */
+        interface RealtimeSupportRead {
+            conversationId: number
+            ownerUserId: number
+            userUnreadCount: number
+            serviceUnreadCount: number
+        }
 
         interface DictionaryCategory {
             id: string

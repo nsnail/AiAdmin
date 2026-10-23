@@ -4,7 +4,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Menu = AiAdmin.Api.Models.Menu;
@@ -19,7 +18,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="exportLimitService">列表导出上限服务</param>
 [ApiController]
 [ApiDescription("Role management")]
-[Authorize]
 [Route("api/role")]
 public sealed class RolesController(AppDbContext db, ApiPermissionCache permissionCache, ExportLimitService exportLimitService) : ControllerBase
 {

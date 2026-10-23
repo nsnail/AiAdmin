@@ -2,7 +2,6 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Logging;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AiAdmin.Api.Controllers;
@@ -12,7 +11,6 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="queryService">Elasticsearch 日志查询服务</param>
 [ApiController]
-[Authorize]
 [Route("api/system-log")]
 [ApiDescription("System log management")]
 public sealed class SystemLogsController(ElasticsearchLogQueryService queryService) : ControllerBase

@@ -332,7 +332,8 @@
             "scheduledJob": "计划作业",
             "cache": "缓存管理",
             "referrals": "我的邀请",
-            "message": "消息管理"
+            "message": "消息管理",
+            "supportChat": "在线客服"
         },
         "log": {
             "title": "日志管理",
@@ -1004,6 +1005,35 @@
         },
         "placeholder": { "parent": "不选择则为根菜单" }
     },
+    "supportChat": {
+        "title": "在线客服",
+        "subtitle": "客服在线，随时为您解答",
+        "service": "客服",
+        "me": "我",
+        "empty": "有问题请随时留言，客服会尽快回复",
+        "loadMoreHint": "向上滚动加载更早的消息",
+        "placeholder": "请输入消息",
+        "sendHint": "按 Enter 发送，Shift + Enter 换行",
+        "send": "发送",
+        "searchUser": "搜索用户名",
+        "filter": { "all": "全部", "open": "未处理", "closed": "已关闭" },
+        "noConversation": "暂无会话",
+        "closedTag": "已关闭",
+        "selectTip": "请在左侧选择一个会话",
+        "close": "关闭会话",
+        "closeConfirm": "确定关闭该会话吗？用户再次发言时会话会自动重新打开",
+        "replyPlaceholder": "请输入回复内容",
+        "closed": "已关闭",
+        "serviceUnread": "客服未读数"
+    },
+    "versionUpgrade": {
+        "title": "发现新版本 v{version}",
+        "question": "是否立即升级？",
+        "countdown": "{seconds} 秒后自动升级",
+        "paused": "已暂停自动升级",
+        "upgrade": "立即升级",
+        "later": "稍后"
+    },
     "changeLog": {
         "empty": "暂无更新日志"
     },
@@ -1041,6 +1071,11 @@
             "statSuccessRate": {
                 "title": "作业成功率 (%)",
                 "desc": "近 {days} 天 · 今日执行 {count} 次"
+            },
+            "systemInfo": {
+                "title": "系统信息",
+                "version": "版本",
+                "empty": "暂无更新内容"
             },
             "statWallet": {
                 "title": "钱包可用余额",

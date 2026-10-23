@@ -5,7 +5,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,11 +14,11 @@ namespace AiAdmin.Api.Controllers;
 ///     当前用户消息通知控制器
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
+/// <param name="realtime">实时连接管理器，用于向用户的其他在线页面同步未读数</param>
 [ApiController]
 [ApiDescription("User notifications")]
-[Authorize]
 [Route("api/notifications")]
-public sealed class NotificationsController(AppDbContext db) : ControllerBase
+public sealed class NotificationsController(AppDbContext db, RealtimeConnectionManager realtime) : ControllerBase
 {
     /// <summary>
     ///     清空当前用户全部通知
@@ -33,6 +32,7 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
             .UserMessages.Where(x => x.UserId == userId && !x.IsDeleted)
             .ExecuteUpdateAsync(x => x.SetProperty(y => y.IsDeleted, true), HttpContext.RequestAborted)
             .ConfigureAwait(false);
+        await realtime.NotifyUnreadAsync([userId], false).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -48,6 +48,7 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
         _ = item?.IsDeleted = true;
 
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        await realtime.NotifyUnreadAsync([GetUserId()], false).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -97,6 +98,7 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
             .UserMessages.Where(x => x.UserId == userId && !x.IsDeleted && !x.IsRead)
             .ExecuteUpdateAsync(x => x.SetProperty(y => y.IsRead, true), HttpContext.RequestAborted)
             .ConfigureAwait(false);
+        await realtime.NotifyUnreadAsync([userId], false).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 
@@ -112,6 +114,7 @@ public sealed class NotificationsController(AppDbContext db) : ControllerBase
         _ = item?.IsRead = true;
 
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        await realtime.NotifyUnreadAsync([GetUserId()], false).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

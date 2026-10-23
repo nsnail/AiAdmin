@@ -37,11 +37,17 @@
  * - openSearchDialog: 打开搜索对话框
  * - openChat: 打开聊天窗口
  * - openLockScreen: 打开锁屏
+ * - realtimeSystemInfo: 实时连接推送的后端系统信息
+ * - realtimeUnread: 实时连接推送的站内信未读数
+ * - realtimeSupportMessage: 实时连接推送的客服消息
+ * - realtimeSupportRead: 实时连接推送的客服会话已读状态
+ * - supportUnreadChange: 聊天浮层未读数发生变化
  *
  * @module utils/sys/mittBus
  * @author AiAdmin Team
  */
 import mitt, { type Emitter } from 'mitt'
+import type { DashboardSystemInfo } from '@/api/dashboard'
 
 // 定义事件类型映射
 type Events = {
@@ -56,6 +62,16 @@ type Events = {
     // 打开锁屏事件 - 无参数
     openLockScreen: void
     refreshNotifications: void
+    // 实时连接推送的后端系统信息（版本号、更新内容）
+    realtimeSystemInfo: DashboardSystemInfo
+    // 实时连接推送的站内信未读数变化
+    realtimeUnread: { count: number; hasNew: boolean }
+    // 实时连接推送的客服消息，用户端和客服端都会收到
+    realtimeSupportMessage: Api.SystemManage.RealtimeSupportMessage
+    // 实时连接推送的客服会话已读状态
+    realtimeSupportRead: Api.SystemManage.RealtimeSupportRead
+    // 聊天浮层未读数发生变化
+    supportUnreadChange: number
 }
 
 // 创建类型安全的事件总线实例

@@ -12,16 +12,34 @@ namespace AiAdmin.Api.Data;
 /// </summary>
 public static class DatabaseInitializer
 {
-    private static readonly string[] _basicApiKeys =
+    /// <summary>
+    ///     所有非超级管理员角色登录后台必需的接口：个人信息、当前菜单、个人资料、站内信通知、钱包、更新日志、仪表盘，
+    ///     以及每个用户自己的列表查询条件。启用状态切换、消息管理和用户管理等后台接口不在此列，需在角色管理中单独授权
+    /// </summary>
+    public static readonly IReadOnlyList<string> BasicApiKeys =
     [
         ApiEndpointKey.Create("GET", "api/user/info"), ApiEndpointKey.Create("GET", "api/menu/current")
-        , ApiEndpointKey.Create("PUT", "api/user/profile"), ApiEndpointKey.Create("PUT", "api/user/password")
-        , ApiEndpointKey.Create("GET", "api/user/referrals"), ApiEndpointKey.Create("GET", "api/message/list")
-        , ApiEndpointKey.Create("POST", "api/message"), ApiEndpointKey.Create("GET", "api/message/filter-fields")
-        , ApiEndpointKey.Create("PUT", "api/message/{id:long}"), ApiEndpointKey.Create("DELETE", "api/message/{id:long}")
-        , ApiEndpointKey.Create("DELETE", "api/message"), ApiEndpointKey.Create("GET", "api/notifications")
-        , ApiEndpointKey.Create("PUT", "api/notifications/read-all"), ApiEndpointKey.Create("PUT", "api/notifications/{id:long}/read")
-        , ApiEndpointKey.Create("DELETE", "api/notifications"), ApiEndpointKey.Create("DELETE", "api/notifications/{id:long}")
+        , ApiEndpointKey.Create("POST", "api/user/profile"), ApiEndpointKey.Create("POST", "api/user/password")
+        , ApiEndpointKey.Create("POST", "api/user/profile/avatar"), ApiEndpointKey.Create("POST", "api/user/profile/avatar/delete")
+        , ApiEndpointKey.Create("POST", "api/auth/profile-email/code"), ApiEndpointKey.Create("GET", "api/user/referrals")
+        , ApiEndpointKey.Create("GET", "api/notifications"), ApiEndpointKey.Create("POST", "api/notifications/read")
+        , ApiEndpointKey.Create("POST", "api/notifications/read-all"), ApiEndpointKey.Create("POST", "api/notifications/delete")
+        , ApiEndpointKey.Create("POST", "api/notifications/clear"), ApiEndpointKey.Create("GET", "api/wallet/me")
+        , ApiEndpointKey.Create("GET", "api/change-log/content"), ApiEndpointKey.Create("GET", "api/dashboard/overview")
+        , ApiEndpointKey.Create("GET", "api/dashboard/system-info"), ApiEndpointKey.Create("GET", "api/saved-query")
+        , ApiEndpointKey.Create("POST", "api/saved-query"), ApiEndpointKey.Create("POST", "api/saved-query/delete")
+        , ApiEndpointKey.Create("POST", "api/support/send"), ApiEndpointKey.Create("GET", "api/support/my/messages")
+        , ApiEndpointKey.Create("GET", "api/support/my/state")
+    ];
+
+    /// <summary>
+    ///     在线客服工作台接口，仅授予管理员角色，普通用户只能使用自己的会话接口
+    /// </summary>
+    public static readonly IReadOnlyList<string> SupportServiceApiKeys =
+    [
+        ApiEndpointKey.Create("POST", "api/support/list"), ApiEndpointKey.Create("GET", "api/support/filter-fields")
+        , ApiEndpointKey.Create("GET", "api/support/messages"), ApiEndpointKey.Create("POST", "api/support/reply")
+        , ApiEndpointKey.Create("POST", "api/support/close")
     ];
 
     private static readonly JsonSerializerOptions _seedJsonOptions = JsonParsing.Options;
@@ -66,14 +84,15 @@ public static class DatabaseInitializer
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var permissionCache = scope.ServiceProvider.GetRequiredService<ApiPermissionCache>();
         var roles = await db.Roles.Include(x => x.RoleApis).Where(x => x.Code != "R_SUPER").ToListAsync().ConfigureAwait(false);
-        var endpoints = (await db.ApiEndpoints.ToListAsync().ConfigureAwait(false))
-            .Where(x => _basicApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path), StringComparer.Ordinal))
-            .ToList();
+        var allEndpoints = await db.ApiEndpoints.ToListAsync().ConfigureAwait(false);
+        var endpoints = allEndpoints.Where(x => BasicApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path))).ToList();
+        var serviceEndpoints = allEndpoints.Where(x => SupportServiceApiKeys.Contains(ApiEndpointKey.Create(x.Method, x.Path))).ToList();
 
-        // 接口同步完成后，幂等补齐普通管理员和普通用户登录后台必需的权限
+        // 接口同步完成后，幂等补齐普通管理员和普通用户登录后台必需的权限，客服工作台接口只授予管理员
         foreach (var role in roles) {
             var assignedEndpointIds = role.RoleApis.Select(x => x.ApiEndpointId).ToHashSet();
-            foreach (var endpoint in endpoints.Where(x => !assignedEndpointIds.Contains(x.Id))) {
+            var granted = role.Code == "R_ADMIN" ? endpoints.Concat(serviceEndpoints) : endpoints;
+            foreach (var endpoint in granted.Where(x => !assignedEndpointIds.Contains(x.Id))) {
                 role.RoleApis.Add(new RoleApi { Role = role, ApiEndpoint = endpoint });
             }
         }
@@ -121,6 +140,7 @@ public static class DatabaseInitializer
         await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
         await EnsureLoginLogMenuAsync(db).ConfigureAwait(false);
         await EnsureMessageMenuAsync(db).ConfigureAwait(false);
+        await EnsureSupportChatMenuAsync(db).ConfigureAwait(false);
 
         if (!await db.RoleMenus.AnyAsync().ConfigureAwait(false)) {
             await SeedRoleMenusAsync(db).ConfigureAwait(false);
@@ -312,6 +332,37 @@ public static class DatabaseInitializer
                 }
             )
             .ConfigureAwait(false);
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保已有数据库包含在线客服菜单，仅授权超级管理员和管理员角色
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureSupportChatMenuAsync(AppDbContext db) {
+        var parent = await db.Menus.SingleOrDefaultAsync(x => x.Name == "SystemManagement").ConfigureAwait(false);
+        if (parent is null || await db.Menus.AnyAsync(x => x.Name == "SupportChat").ConfigureAwait(false)) {
+            return;
+        }
+
+        var menu = new Menu
+        {
+            Name = "SupportChat"
+            , Path = "support-chat"
+            , Component = "/system/support-chat"
+            , ParentName = parent.Name
+            , Sort = 6
+            , IsEnabled = true
+            , MetaJson = /*lang=json,strict*/
+                "{\"title\":\"menus.system.supportChat\",\"icon\":\"ri:customer-service-2-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\",\"R_ADMIN\"]}"
+        };
+        _ = await db.Menus.AddAsync(menu).ConfigureAwait(false);
+        var roles = await db.Roles.Where(x => x.Code == "R_SUPER" || x.Code == "R_ADMIN").ToListAsync().ConfigureAwait(false);
+        foreach (var role in roles) {
+            role.RoleMenus.Add(new RoleMenu { Role = role, Menu = menu });
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

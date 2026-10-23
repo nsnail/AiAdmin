@@ -38,6 +38,7 @@ public sealed class ExternalHttpRequestService(
         , HttpCompletionOption completionOption
         , CancellationToken cancellationToken
     ) {
+        using var lease = ShutdownGate.Enter(ShutdownActivity.Outbound);
         long? traceId = null;
         if (HttpTraceContext.TryGet(httpContextAccessor.HttpContext, out var currentTraceId)) {
             traceId = currentTraceId;

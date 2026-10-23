@@ -1,3 +1,4 @@
+using AiAdmin.Api.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 
 namespace AiAdmin.Api.Logging;
@@ -52,41 +53,42 @@ internal sealed class ElasticsearchLogger(string categoryName, ElasticsearchLogQ
 
         var message = formatter(state, exception);
         var fields = ReadFields(state);
-        _ = EnqueueAsync(
-            new ElasticsearchLogEntry
-            {
-                Timestamp = DateTimeOffset.UtcNow
-                , Level = logLevel
-                , Category = categoryName
-                , Source = fields.GetValueOrDefault("Source")?.ToString() ?? categoryName
-                , LogType = fields.GetValueOrDefault("LogType")?.ToString() ?? ResolveLogType(eventId)
-                , ThreadId = Environment.CurrentManagedThreadId
-                , Message = message
-                , Exception = exception?.ToString()
-                , EventId = eventId.Id
-                , EventName = eventId.Name
-                , RequestMethod = GetString(fields, "RequestMethod")
-                , ClientIp = GetString(fields, "ClientIp")
-                , ServerIp = GetString(fields, "ServerIp")
-                , UserAgent = GetString(fields, "UserAgent")
-                , RequestRelativeUrl = GetString(fields, "RequestRelativeUrl")
-                , RequestUrl = GetString(fields, "RequestUrl")
-                , ElapsedMilliseconds = GetLong(fields, "ElapsedMilliseconds")
-                , StatusCode = GetInt(fields, "StatusCode")
-                , ApiResponseCode = GetInt(fields, "ApiResponseCode")
-                , UserId = GetLong(fields, "UserId")
-                , UserName = GetString(fields, "UserName")
-                , RequestBody = GetString(fields, "RequestBody")
-                , RequestHeaders = GetString(fields, "RequestHeaders")
-                , RequestContentType = GetString(fields, "RequestContentType")
-                , TraceId = GetLong(fields, "TraceId")
-                , WorkerId = GetLong(fields, "WorkerId") ?? 0
-                , ResponseHeaders = GetString(fields, "ResponseHeaders")
-                , ResponseBody = GetString(fields, "ResponseBody")
-                , ResponseContentType = GetString(fields, "ResponseContentType")
-                , Sql = GetString(fields, "Sql")
-            }
-        );
+        var entry = new ElasticsearchLogEntry
+        {
+            Timestamp = DateTimeOffset.UtcNow
+            , Level = logLevel
+            , Category = categoryName
+            , Source = fields.GetValueOrDefault("Source")?.ToString() ?? categoryName
+            , LogType = fields.GetValueOrDefault("LogType")?.ToString() ?? ResolveLogType(eventId)
+            , ThreadId = Environment.CurrentManagedThreadId
+            , Message = message
+            , Exception = exception?.ToString()
+            , EventId = eventId.Id
+            , EventName = eventId.Name
+            , RequestMethod = GetString(fields, "RequestMethod")
+            , ClientIp = GetString(fields, "ClientIp")
+            , ServerIp = GetString(fields, "ServerIp")
+            , UserAgent = GetString(fields, "UserAgent")
+            , RequestRelativeUrl = GetString(fields, "RequestRelativeUrl")
+            , RequestUrl = GetString(fields, "RequestUrl")
+            , ElapsedMilliseconds = GetLong(fields, "ElapsedMilliseconds")
+            , StatusCode = GetInt(fields, "StatusCode")
+            , ApiResponseCode = GetInt(fields, "ApiResponseCode")
+            , UserId = GetLong(fields, "UserId")
+            , UserName = GetString(fields, "UserName")
+            , RequestBody = GetString(fields, "RequestBody")
+            , RequestHeaders = GetString(fields, "RequestHeaders")
+            , RequestContentType = GetString(fields, "RequestContentType")
+            , TraceId = GetLong(fields, "TraceId")
+            , WorkerId = GetLong(fields, "WorkerId") ?? 0
+            , ResponseHeaders = GetString(fields, "ResponseHeaders")
+            , ResponseBody = GetString(fields, "ResponseBody")
+            , ResponseContentType = GetString(fields, "ResponseContentType")
+            , Sql = GetString(fields, "Sql")
+        };
+
+        // 入队是脱离调用线程的 fire-and-forget，必须登记，保证安全停机不会在日志入队途中放行
+        ShutdownGate.Track(ShutdownActivity.Background, () => EnqueueAsync(entry));
     }
 
     /// <summary>

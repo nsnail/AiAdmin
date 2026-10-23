@@ -25,6 +25,7 @@ export type ListFilterResource =
     | 'message'
     | 'role'
     | 'scheduled-job'
+    | 'support'
     | 'user'
     | 'wallet'
     | keyof BusinessListFilterResources
@@ -414,6 +415,41 @@ export function fetchDeleteNotification(id: number) {
 
 export function fetchClearNotifications() {
     return request.post<void>({ url: '/api/notifications/clear' })
+}
+
+/** 客服查询会话列表 */
+export function fetchGetSupportConversations(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<Api.SystemManage.SupportConversationListItem>>({ url: '/api/support/list', data: params })
+}
+
+/** 客服查询会话消息，首次加载会把用户消息标记为客服已读 */
+export function fetchGetSupportMessages(conversationId: number, beforeId?: number) {
+    return request.get<Api.SystemManage.SupportMessagePageResult>({ url: '/api/support/messages', params: { conversationId, beforeId } })
+}
+
+/** 客服回复用户 */
+export function fetchReplySupport(conversationId: number, content: string) {
+    return request.post<Api.SystemManage.SupportMessageItem>({ url: '/api/support/reply', data: { conversationId, content } })
+}
+
+/** 客服关闭会话 */
+export function fetchCloseSupportConversation(id: number) {
+    return request.post<void>({ url: '/api/support/close', data: { id }, showSuccessMessage: true })
+}
+
+/** 用户查询自己的客服会话消息，首次加载会把客服消息标记为用户已读 */
+export function fetchGetMySupportMessages(beforeId?: number) {
+    return request.get<Api.SystemManage.SupportMessagePageResult>({ url: '/api/support/my/messages', params: { beforeId } })
+}
+
+/** 用户查询自己的客服会话状态，用于聊天按钮角标 */
+export function fetchGetMySupportState() {
+    return request.get<Api.SystemManage.SupportConversationState>({ url: '/api/support/my/state' })
+}
+
+/** 用户向客服发送消息 */
+export function fetchSendSupportMessage(content: string) {
+    return request.post<Api.SystemManage.SupportMessageItem>({ url: '/api/support/send', data: { content } })
 }
 
 export function fetchCreateDepartment(data: Api.SystemManage.SaveDepartmentParams) {

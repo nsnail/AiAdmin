@@ -90,7 +90,7 @@ public sealed class ApiPermissionCache(IDistributedCache cache, IServiceScopeFac
     public void Invalidate() {
         // 权限或接口配置变化后立即淘汰旧快照。
         _ = Interlocked.Increment(ref _version);
-        _ = cache.RemoveAsync(_CACHE_KEY);
+        ShutdownGate.Track(ShutdownActivity.Background, RemoveAsync);
     }
 
     /// <summary>
@@ -111,5 +111,13 @@ public sealed class ApiPermissionCache(IDistributedCache cache, IServiceScopeFac
                 model.HasApis, model.AnonymousKeys.ToHashSet(StringComparer.Ordinal)
                 , model.ByRole.ToDictionary(x => x.Key, x => x.Value.ToHashSet(StringComparer.Ordinal), StringComparer.Ordinal)
             );
+    }
+
+    /// <summary>
+    ///     删除权限缓存条目；后台执行，缓存故障时旧快照由版本号保护，因此故障只记录为任务失败而不影响调用方
+    /// </summary>
+    /// <returns>删除任务</returns>
+    private Task RemoveAsync() {
+        return cache.RemoveAsync(_CACHE_KEY);
     }
 }

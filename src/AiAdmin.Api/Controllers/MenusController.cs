@@ -5,7 +5,6 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Menu = AiAdmin.Api.Models.Menu;
@@ -18,7 +17,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Menu management")]
-[Authorize]
 [Route("api/menu")]
 public sealed class MenusController(AppDbContext db) : ControllerBase
 {

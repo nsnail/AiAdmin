@@ -119,7 +119,15 @@ builder.Services.AddSingleton<ElasticsearchLogQueue>();
 builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
+builder.Services.AddSingleton<SystemInfoService>();
+builder.Services.AddSingleton<IRealtimeBus, RedisRealtimeBus>();
+builder.Services.AddSingleton<RealtimeConnectionManager>();
+builder.Services.AddHostedService<RealtimeShutdownHostedService>();
+
+// 停机超时需小于容器 stop_grace_period，确保主机先于 SIGKILL 完成优雅停止
+builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(40));
 builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
+builder.Services.AddSingleton<DatabaseShutdownInterceptor>();
 builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddSingleton<DataScopeCache>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
@@ -146,7 +154,9 @@ builder.Services.AddDbContext<AppDbContext>((
         , options
     ) =>
     {
-        _ = options.AddInterceptors(serviceProvider.GetRequiredService<DatabaseCommandAuditInterceptor>());
+        _ = options.AddInterceptors(
+            serviceProvider.GetRequiredService<DatabaseCommandAuditInterceptor>(), serviceProvider.GetRequiredService<DatabaseShutdownInterceptor>()
+        );
         _ = provider switch
         {
             "sqlite" => options.UseSqlite(
@@ -169,6 +179,19 @@ builder
     .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
         {
+            // 浏览器 WebSocket 无法携带请求头，实时连接端点允许通过查询参数传递令牌
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    if (context.Request.Path.Equals(RealtimeWebSocketMiddleware.PATH, StringComparison.OrdinalIgnoreCase)
+                        && context.Request.Query.TryGetValue("access_token", out var token)) {
+                        context.Token = token;
+                    }
+
+                    return Task.CompletedTask;
+                }
+            };
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true
@@ -190,17 +213,23 @@ builder.Services.AddCors(options => options.AddPolicy(
 
 var app = builder.Build();
 
+app.UseMiddleware<ShutdownGateMiddleware>();
 app.UseExceptionHandler();
 app.UseCors("Web");
 app.UseForwardedHeaders();
 app.UseRouting();
+app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
 app.UseAuthentication();
+app.UseMiddleware<RealtimeWebSocketMiddleware>();
 app.UseMiddleware<ApiHttpLoggingMiddleware>();
 app.UseMiddleware<ResponseJsonCleanupMiddleware>();
 app.UseMiddleware<DataScopeMiddleware>();
 app.UseMiddleware<ApiPermissionMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
+
+// 健康检查：匿名可访问，不在 /api 下因此不产生请求日志；安全停机闸门关闭后由 ShutdownGateMiddleware 直接返回 503，网关据此摘除实例
+_ = app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
 // 仅开发和测试环境自动初始化数据库，其他环境不自动执行初始化
 var shouldInitializeDatabase = app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Test");

@@ -6,7 +6,6 @@ using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using ImageMagick;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
@@ -23,7 +22,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="tokenService">JWT 访问令牌服务</param>
 [ApiController]
 [ApiDescription("User management")]
-[Authorize]
 [Route("api/user")]
 public sealed class UsersController(
     AppDbContext db

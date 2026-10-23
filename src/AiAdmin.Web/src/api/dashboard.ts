@@ -80,3 +80,20 @@ export function fetchGetDashboardOverview(days: number) {
         params: { days, offsetMinutes: -new Date().getTimezoneOffset() },
     })
 }
+
+/** 系统信息，来自后端程序集元数据 */
+export interface DashboardSystemInfo {
+    name: string
+    version: string
+    /** 最近一次版本发布日期 */
+    releaseDate: string | null
+    /** 最近一次版本的更新内容分组 */
+    releaseNotes: { title: string; items: string[] }[]
+}
+
+/**
+ * 查询系统信息（名称、版本号）
+ */
+export function fetchGetDashboardSystemInfo() {
+    return request.get<DashboardSystemInfo>({ url: '/api/dashboard/system-info' })
+}

@@ -6,7 +6,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,11 +15,11 @@ namespace AiAdmin.Api.Controllers;
 ///     管理员系统消息管理控制器
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
+/// <param name="realtime">实时连接管理器，用于向在线收件人推送未读数</param>
 [ApiController]
 [ApiDescription("System message management")]
-[Authorize(Roles = "R_SUPER,R_ADMIN")]
 [Route("api/message")]
-public sealed class MessagesController(AppDbContext db) : ControllerBase
+public sealed class MessagesController(AppDbContext db, RealtimeConnectionManager realtime) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> _listAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -177,6 +176,7 @@ public sealed class MessagesController(AppDbContext db) : ControllerBase
 
         _ = await db.SystemMessages.AddAsync(message, HttpContext.RequestAborted).ConfigureAwait(false);
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        await realtime.NotifyUnreadAsync(userIds, true).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "System message sent"));
     }
 

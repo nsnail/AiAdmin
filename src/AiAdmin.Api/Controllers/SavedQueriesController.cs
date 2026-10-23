@@ -6,7 +6,6 @@ using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,7 +17,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Saved query management")]
-[Authorize]
 [Route("api/saved-query")]
 public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
 {

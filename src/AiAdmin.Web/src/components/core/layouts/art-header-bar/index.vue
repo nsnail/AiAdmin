@@ -88,7 +88,8 @@
 
                 <!-- 聊天按钮 -->
                 <ArtIconButton v-if="shouldShowChat" @click="openChat" class="chat-button relative" icon="ri:message-3-line">
-                    <div class="breathing-dot absolute top-2 right-2 size-1.5 !bg-success rounded-full"></div>
+                    <ElBadge v-if="supportUnread" :value="supportUnread > 99 ? '99+' : supportUnread" class="notification-badge" />
+                    <div v-else class="breathing-dot absolute top-2 right-2 size-1.5 !bg-success rounded-full"></div>
                 </ArtIconButton>
 
                 <!-- 设置按钮 -->
@@ -176,6 +177,11 @@ const { menuList } = storeToRefs(menuStore)
 
 const showNotice = ref(false)
 const notificationUnread = ref(0)
+// 在线客服未读数，由聊天浮层通过事件总线同步
+const supportUnread = ref(0)
+const onSupportUnreadChange = (count: number): void => {
+    supportUnread.value = count
+}
 const notice = ref(null)
 
 // 菜单类型判断
@@ -189,10 +195,12 @@ const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
 onMounted(() => {
     initLanguage()
     document.addEventListener('click', bodyCloseNotice)
+    mittBus.on('supportUnreadChange', onSupportUnreadChange)
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', bodyCloseNotice)
+    mittBus.off('supportUnreadChange', onSupportUnreadChange)
 })
 
 /**

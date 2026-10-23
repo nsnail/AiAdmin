@@ -42,6 +42,13 @@ public sealed class DataScopeCache(IConnectionMultiplexer connectionMultiplexer)
     }
 
     /// <summary>
+    ///     在后台递增数据权限缓存版本，登记为在途工作，缓存故障只会让旧快照多存活到过期，不影响调用方
+    /// </summary>
+    public void InvalidateInBackground() {
+        ShutdownGate.Track(ShutdownActivity.Background, InvalidateQuietlyAsync);
+    }
+
+    /// <summary>
     ///     保存指定用户的数据权限快照
     /// </summary>
     /// <param name="snapshot">数据权限快照</param>
@@ -82,5 +89,18 @@ public sealed class DataScopeCache(IConnectionMultiplexer connectionMultiplexer)
         return initialized
             ? 1
             : long.Parse((await database.StringGetAsync(_VERSION_KEY).ConfigureAwait(false)).ToString(), CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    ///     递增缓存版本并吞掉缓存故障
+    /// </summary>
+    /// <returns>失效任务</returns>
+    private async Task InvalidateQuietlyAsync() {
+        try {
+            await InvalidateAsync().ConfigureAwait(false);
+        }
+        catch (RedisException) {
+            // 缓存故障不影响业务请求
+        }
     }
 }

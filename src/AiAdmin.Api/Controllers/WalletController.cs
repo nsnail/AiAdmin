@@ -5,7 +5,6 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,7 +16,6 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="db">应用数据库上下文</param>
 [ApiController]
 [ApiDescription("Wallet management")]
-[Authorize]
 [Route("api/wallet")]
 public sealed class WalletController(AppDbContext db) : ControllerBase
 {

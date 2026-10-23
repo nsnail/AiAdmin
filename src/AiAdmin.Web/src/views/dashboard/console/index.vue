@@ -22,18 +22,21 @@
 
         <ElAlert v-if="editing" :closable="false" :title="t('dashboard.editTip')" class="mb-4" show-icon type="info" />
 
-        <VueDraggable v-model="visibleItems" :animation="200" :disabled="!editing" class="grid grid-cols-12 gap-4" handle=".drag-handle">
+        <VueDraggable v-model="visibleItems" :animation="200" :disabled="!editing" class="grid grid-cols-60 gap-4" handle=".drag-handle">
             <div
                 v-for="item in visibleItems"
                 :class="['widget-cell relative', editing ? 'is-editing' : '']"
                 :key="item.id"
-                :style="{ '--span': item.span, height: definitionMap[item.id].height }">
+                :style="{ '--span': item.span, height: item.height }">
                 <component :is="definitionMap[item.id].component" />
                 <div v-if="editing" class="widget-toolbar">
                     <ArtSvgIcon class="drag-handle cursor-move text-lg" icon="ri:drag-move-2-line" />
                     <span class="mx-2 truncate text-xs">{{ t(definitionMap[item.id].titleKey) }}</span>
                     <ElSelect v-model="item.span" @change="saveLayout" class="w-20!" size="small">
                         <ElOption v-for="span in widgetSpanOptions" :key="span" :label="spanLabel(span)" :value="span" />
+                    </ElSelect>
+                    <ElSelect v-model="item.height" @change="saveLayout" class="ml-1 w-24!" size="small">
+                        <ElOption v-for="option in heightOptionsOf(item)" :key="option" :label="heightLabel(option)" :value="option" />
                     </ElSelect>
                     <ElButton @click="setVisible(item.id, false)" class="ml-1" link size="small" type="danger">
                         <ArtSvgIcon icon="ri:eye-off-line" />
@@ -60,7 +63,7 @@ import { VueDraggable } from 'vue-draggable-plus'
 import { fetchGetDashboardOverview, type DashboardOverview } from '@/api/dashboard'
 import { useUserStore } from '@/store/modules/user'
 import { dashboardContextKey } from './widgets/context'
-import { dashboardWidgets, widgetSpanOptions, type DashboardWidgetDefinition } from './widgets/registry'
+import { dashboardWidgets, defaultDashboardLayout, widgetHeightOptions, widgetSpanOptions, type DashboardWidgetDefinition } from './widgets/registry'
 
 defineOptions({ name: 'Console' })
 
@@ -68,6 +71,8 @@ defineOptions({ name: 'Console' })
 interface LayoutItem {
     id: string
     span: number
+    /** 卡片高度，rem 单位 */
+    height: string
     visible: boolean
 }
 
@@ -85,14 +90,19 @@ provide(dashboardContextKey, { overview, loading, days })
 const definitionMap = Object.fromEntries(dashboardWidgets.map((x) => [x.id, x])) as Record<string, DashboardWidgetDefinition>
 
 /** 布局存储键，按用户隔离 */
-const storageKey = computed(() => `dashboard-layout:${userStore.info?.userId ?? 'anonymous'}`)
+const storageKey = computed(() => `dashboard-layout-v2:${userStore.info?.userId ?? 'anonymous'}`)
 
 /**
  * 生成默认布局
  * @returns 默认布局列表
  */
 function defaultLayout(): LayoutItem[] {
-    return dashboardWidgets.map((x) => ({ id: x.id, span: x.defaultSpan, visible: x.defaultVisible }))
+    const preset = defaultDashboardLayout.filter((x) => definitionMap[x.id])
+    const known = new Set(preset.map((x) => x.id))
+    const rest = dashboardWidgets
+        .filter((x) => !known.has(x.id))
+        .map((x) => ({ id: x.id, span: x.defaultSpan, height: x.height, visible: x.defaultVisible }))
+    return [...preset.map((x) => ({ ...x })), ...rest]
 }
 
 /**
@@ -103,7 +113,9 @@ function loadLayout(): LayoutItem[] {
     try {
         const raw = localStorage.getItem(storageKey.value)
         const saved = raw ? (JSON.parse(raw) as LayoutItem[]) : []
-        const valid = saved.filter((x) => definitionMap[x.id] && widgetSpanOptions.includes(x.span))
+        const valid = saved
+            .filter((x) => definitionMap[x.id] && widgetSpanOptions.includes(x.span))
+            .map((x) => ({ ...x, height: typeof x.height === 'string' && /^\d+(\.\d+)?rem$/.test(x.height) ? x.height : definitionMap[x.id].height }))
         const known = new Set(valid.map((x) => x.id))
         const added = defaultLayout().filter((x) => !known.has(x.id))
         return [...valid, ...added]
@@ -160,7 +172,26 @@ function resetLayout() {
  * @param span 栅格数
  */
 function spanLabel(span: number) {
-    return `${Math.round((span / 12) * 100)}%`
+    return `${Math.round((span / 60) * 100)}%`
+}
+
+/**
+ * 高度可选项：预设档位加上卡片当前高度（默认高度不在档位内时也能显示）
+ * @param item 卡片布局项
+ * @returns 高度可选值列表
+ */
+function heightOptionsOf(item: LayoutItem) {
+    return widgetHeightOptions.includes(item.height)
+        ? widgetHeightOptions
+        : [...widgetHeightOptions, item.height].sort((a, b) => parseFloat(a) - parseFloat(b))
+}
+
+/**
+ * 高度的展示文本
+ * @param height rem 高度
+ */
+function heightLabel(height: string) {
+    return `${Math.round(parseFloat(height) * 16)}px`
 }
 
 const updatedText = computed(() => (overview.value ? t('dashboard.updatedAt', { time: new Date(overview.value.generatedAt).toLocaleString() }) : ''))
@@ -179,6 +210,11 @@ onMounted(loadData)
 </script>
 
 <style lang="scss" scoped>
+/* 60 列栅格：最小卡片宽度 12 列即 20% */
+.grid-cols-60 {
+    grid-template-columns: repeat(60, minmax(0, 1fr));
+}
+
 .widget-cell {
     grid-column: span var(--span) / span var(--span);
     min-width: 0;
@@ -207,7 +243,7 @@ onMounted(loadData)
 
 @media (max-width: 1024px) {
     .widget-cell {
-        grid-column: span 12 / span 12;
+        grid-column: span 60 / span 60;
     }
 }
 </style>

@@ -47,6 +47,12 @@ public sealed class ScheduledJobReleaseHostedService(
     /// <param name="cancellationToken">取消令牌</param>
     /// <returns>异步处理任务</returns>
     private async Task ReleaseTimedOutJobsAsync(CancellationToken cancellationToken) {
+        // 安全停机闸门关闭后跳过本轮，超时作业由另一个实例通过分布式锁接手
+        using var lease = ShutdownGate.Enter(ShutdownActivity.Job);
+        if (ShutdownGate.IsClosed) {
+            return;
+        }
+
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var now = DateTime.UtcNow;

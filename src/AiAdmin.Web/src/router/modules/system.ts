@@ -140,6 +140,12 @@ export const systemManagementRoute: AppRouteRecord = {
             component: '/system/message',
             meta: { title: 'menus.system.message', icon: 'ri:mail-send-line', keepAlive: true, roles: ['R_SUPER', 'R_ADMIN'] },
         },
+        {
+            path: 'support-chat',
+            name: 'SupportChat',
+            component: '/system/support-chat',
+            meta: { title: 'menus.system.supportChat', icon: 'ri:customer-service-2-line', keepAlive: true, roles: ['R_SUPER', 'R_ADMIN'] },
+        },
     ],
 }
 

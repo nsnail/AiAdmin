@@ -150,15 +150,25 @@ watch(
         if (value) load(true)
     },
 )
-let refreshTimer: ReturnType<typeof setInterval> | undefined
+/**
+ * 处理实时连接推送的未读数：始终同步角标数量；收到新消息时重新加载列表，
+ * 使弹窗类消息自动展开，抽屉已打开时也能立即看到新消息
+ * @param payload 未读数推送载荷
+ */
+const onRealtimeUnread = (payload: { count: number; hasNew: boolean }) => {
+    unreadCount.value = payload.count
+    publishUnread()
+    if (payload.hasNew) load(true)
+}
+const onRefresh = () => load(true)
 onMounted(() => {
     load(true)
-    refreshTimer = setInterval(() => load(true), 30000)
-    mittBus.on('refreshNotifications', () => load(true))
+    mittBus.on('refreshNotifications', onRefresh)
+    mittBus.on('realtimeUnread', onRealtimeUnread)
 })
 onBeforeUnmount(() => {
-    if (refreshTimer) clearInterval(refreshTimer)
-    mittBus.off('refreshNotifications')
+    mittBus.off('refreshNotifications', onRefresh)
+    mittBus.off('realtimeUnread', onRealtimeUnread)
 })
 </script>
 <style scoped>
