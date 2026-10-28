@@ -15,7 +15,11 @@
         </PackageReference>
     </ItemGroup>
     <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+    </ItemGroup>
+    <ItemGroup>
         <ProjectReference Include="../../src/AiAdmin.Core/AiAdmin.Core.csproj"/>
         <ProjectReference Include="../../src/AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
+        <ProjectReference Include="../../src/AiAdmin.Api/AiAdmin.Api.csproj"/>
     </ItemGroup>
 </Project>
