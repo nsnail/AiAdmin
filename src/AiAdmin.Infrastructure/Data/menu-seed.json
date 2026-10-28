@@ -293,6 +293,16 @@
           "icon": "ri:login-box-line",
           "keepAlive": true
         }
+      },
+      {
+        "path": "api-request-log",
+        "name": "ApiRequestLog",
+        "component": "/system/api-request-log",
+        "meta": {
+          "title": "menus.log.apiRequestLog",
+          "icon": "ri:route-line",
+          "keepAlive": true
+        }
       }
     ]
   },

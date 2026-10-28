@@ -310,6 +310,7 @@ declare namespace Api {
             controller: string
             controllerName: string
             action: string
+            pathCrc32: number
         }
 
         interface ApiDocumentationResult {

@@ -233,6 +233,28 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
+        // 请求日志分表清理作业：每天凌晨 4 点半删除 30 天前的日分表，天数通过请求体 days 调整，默认未启用
+        const string cleanupApiLogsJobName = "Cleanup API request logs";
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == cleanupApiLogsJobName).ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = cleanupApiLogsJobName
+                        , CronExpression = "30 4 * * *"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/scheduled-job/api-request-logs/cleanup"
+                        , RequestMethod = "POST"
+                        , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
+                        , RequestBody = "{\"days\":30}"
+                        , Remark
+                            = "Drop the daily API request log tables older than the number of days given by the days field of the request body. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                        , TimeoutSeconds = 300
+                        , IsEnabled = false
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

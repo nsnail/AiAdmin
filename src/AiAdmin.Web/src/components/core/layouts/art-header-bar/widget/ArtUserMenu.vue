@@ -53,7 +53,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/store/modules/user'
-import { mittBus } from '@/utils/sys'
+import { lockScreen as lockWithPassword } from '@/utils/lock'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 
 defineOptions({ name: 'ArtUserMenu' })
@@ -74,10 +74,22 @@ const goUserCenter = (): void => {
 }
 
 /**
- * 打开锁屏功能
+ * 锁定屏幕：输入解锁密码后移走令牌并显示解锁遮罩
  */
-const lockScreen = (): void => {
-    mittBus.emit('openLockScreen')
+const lockScreen = async (): Promise<void> => {
+    closeUserMenu()
+    try {
+        const { value } = await ElMessageBox.prompt(t('lockScreen.lock.inputPlaceholder'), t('topBar.user.lockScreen'), {
+            confirmButtonText: t('lockScreen.lock.btnText'),
+            cancelButtonText: t('common.cancel'),
+            inputType: 'password',
+            inputPattern: /\S+/,
+            inputErrorMessage: t('lockScreen.lock.inputPlaceholder'),
+        })
+        await lockWithPassword(value)
+    } catch {
+        // 用户取消输入
+    }
 }
 
 /**

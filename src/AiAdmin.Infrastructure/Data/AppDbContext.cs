@@ -431,6 +431,7 @@ public sealed partial class AppDbContext(
                 _ = entity.HasKey(x => x.Id);
                 _ = entity.Property(x => x.Id).ValueGeneratedNever();
                 _ = entity.HasIndex(x => new { x.Method, x.Path }).IsUnique();
+                _ = entity.HasIndex(x => x.PathCrc32);
                 _ = entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
                 _ = entity.Property(x => x.AllowAnonymous).HasDefaultValue(false);
                 _ = entity.Property(x => x.Method).HasMaxLength(20).IsRequired();

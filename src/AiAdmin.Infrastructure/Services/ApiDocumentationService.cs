@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Globalization;
 using System.Reflection;
 using System.Security.Claims;
 using System.Xml.Linq;
@@ -108,6 +109,33 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
     }
 
     /// <summary>
+    ///     枚举类型的属性在描述末尾追加全部取值（数字取值与说明），枚举按数字序列化，没有说明的取值只列数字和名称
+    /// </summary>
+    /// <param name="description">属性原有描述</param>
+    /// <param name="propertyType">属性类型，可空枚举同样处理</param>
+    /// <param name="xml">XML 文档成员映射</param>
+    /// <returns>追加取值后的描述，非枚举类型原样返回</returns>
+    private static string AppendEnumValues(
+        string description
+        , Type propertyType
+        , Dictionary<string, string> xml
+    ) {
+        var actual = Nullable.GetUnderlyingType(propertyType) ?? propertyType;
+        if (!actual.IsEnum) {
+            return description;
+        }
+
+        var values = actual
+            .GetFields(BindingFlags.Public | BindingFlags.Static)
+            .Select(x => Convert.ToInt64(x.GetRawConstantValue(), CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture)
+                         + "="
+                         + (ReadSummary(xml, "F:" + actual.FullName + "." + x.Name) ?? x.Name)
+            );
+        var list = "取值：" + string.Join("；", values);
+        return string.IsNullOrEmpty(description) ? list : description + "。" + list;
+    }
+
+    /// <summary>
     ///     根据控制器操作和 XML 注释构建接口文档项
     /// </summary>
     /// <param name="action">控制器操作描述符</param>
@@ -197,7 +225,7 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
 
                         return new ApiDocumentationProperty(
                             x.Name, ToType(x.PropertyType), x.PropertyType.IsValueType && Nullable.GetUnderlyingType(x.PropertyType) is null
-                            , ReadSummary(xml, "P:" + owner.FullName + "." + x.Name) ?? string.Empty, children
+                            , AppendEnumValues(ReadSummary(xml, "P:" + owner.FullName + "." + x.Name) ?? string.Empty, x.PropertyType, xml), children
                         );
                     }
                 )

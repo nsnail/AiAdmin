@@ -21,13 +21,15 @@ public static class MenuAuthListFilter
         , IReadOnlySet<(long MenuId, string AuthMark)> granted
     ) {
         var node = JsonNode.Parse(string.IsNullOrWhiteSpace(metaJson) ? "{}" : metaJson)!.AsObject();
-        if (node["authList"] is JsonArray list) {
-            var kept = list
-                .Where(x => x?["authMark"]?.GetValue<string>() is { } mark && granted.Contains((menuId, mark)))
-                .Select(x => x!.DeepClone())
-                .ToArray();
-            node["authList"] = new JsonArray(kept);
+        if (node["authList"] is not JsonArray list) {
+            return JsonSerializer.SerializeToElement(node);
         }
+
+        var kept = list
+            .Where(x => x?["authMark"]?.GetValue<string>() is { } mark && granted.Contains((menuId, mark)))
+            .Select(x => x!.DeepClone())
+            .ToArray();
+        node["authList"] = new JsonArray(kept);
 
         return JsonSerializer.SerializeToElement(node);
     }

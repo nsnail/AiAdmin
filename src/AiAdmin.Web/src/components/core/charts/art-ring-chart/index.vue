@@ -9,12 +9,17 @@ import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
 
 defineOptions({ name: 'ArtRingChart' })
 
+/** 转义提示框中的文本，名称和说明来自接口数据，不能当作 HTML 直接拼接 */
+const escapeHtml = (text: string): string =>
+    text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+
 interface ArtRingChartProps {
     height?: string
     loading?: boolean
     isEmpty?: boolean
     colors?: string[]
-    data: Array<{ name: string; value: number }>
+    /** 数据项，tip 为可选的提示框附加说明，显示在名称和数量下面一行 */
+    data: Array<{ name: string; value: number; tip?: string }>
     radius?: string[]
     borderRadius?: number
     centerText?: string
@@ -73,7 +78,10 @@ const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle } 
         const option: EChartsOption = {
             tooltip: props.showTooltip
                 ? getTooltipStyle('item', {
-                      formatter: '{b}: {c} ({d}%)',
+                      formatter: (params: { name: string; value: number; percent: number; data?: { tip?: string } }) => {
+                          const tip = params.data?.tip
+                          return `${escapeHtml(params.name)}: ${params.value} (${params.percent}%)${tip ? `<br/><span style="opacity:0.7">${escapeHtml(tip)}</span>` : ''}`
+                      },
                   })
                 : undefined,
             legend: props.showLegend ? getLegendStyle(props.legendPosition) : undefined,
@@ -95,6 +103,9 @@ const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle } 
                         position: 'outside',
                         color: isDark.value ? '#ccc' : '#999',
                         fontSize: 12,
+                        // 名称过长时截断，完整名称和路径在鼠标提示里，避免和图例、相邻标签重叠
+                        width: 110,
+                        overflow: 'truncate',
                     },
                     emphasis: {
                         label: {

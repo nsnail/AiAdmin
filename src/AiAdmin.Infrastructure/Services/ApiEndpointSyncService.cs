@@ -48,6 +48,7 @@ public sealed class ApiEndpointSyncService(
                 endpoint.Name = item.Name;
                 endpoint.Method = item.Method;
                 endpoint.Path = item.Path;
+                endpoint.PathCrc32 = item.PathCrc32;
                 endpoint.Controller = item.Controller;
                 endpoint.ControllerName = item.ControllerName;
                 endpoint.Action = item.Action;
@@ -107,6 +108,7 @@ public sealed class ApiEndpointSyncService(
                     , AllowAnonymous = action.MethodInfo.GetCustomAttribute<AllowAnonymousAttribute>(true) is not null
                     , Method = method.ToUpperInvariant()
                     , Path = normalizedPath
+                    , PathCrc32 = ApiEndpointKey.ComputePathCrc32(normalizedPath)
                     , Controller = action.ControllerName
                     , ControllerName = controllerDescription
                     , Action = action.MethodInfo.Name

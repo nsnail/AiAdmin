@@ -36,7 +36,6 @@
  * - openSetting: 打开设置面板
  * - openSearchDialog: 打开搜索对话框
  * - openChat: 打开聊天窗口
- * - openLockScreen: 打开锁屏
  * - realtimeSystemInfo: 实时连接推送的后端系统信息
  * - realtimeUnread: 实时连接推送的站内信未读数
  * - realtimeSupportMessage: 实时连接推送的客服消息
@@ -59,8 +58,6 @@ type Events = {
     openSearchDialog: void
     // 打开聊天窗口事件 - 无参数
     openChat: void
-    // 打开锁屏事件 - 无参数
-    openLockScreen: void
     refreshNotifications: void
     // 实时连接推送的后端系统信息（版本号、更新内容）
     realtimeSystemInfo: DashboardSystemInfo

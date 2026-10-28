@@ -47,7 +47,7 @@
                         </div>
 
                         <div class="flex-cb mt-2 text-sm">
-                            <ElCheckbox v-model="formData.rememberPassword">{{ $t('login.rememberPwd') }}</ElCheckbox>
+                            <ElCheckbox v-model="formData.rememberUsername">{{ $t('login.rememberUsername') }}</ElCheckbox>
                             <RouterLink :to="{ name: 'ForgetPassword' }" class="text-theme">{{ $t('login.forgetPwd') }}</RouterLink>
                         </div>
 
@@ -104,12 +104,13 @@ const loginProof = ref('')
 const isClickPass = ref(false)
 
 const formRef = ref<FormInstance>()
+/** 只记住用户名；历史版本曾以明文保存密码，同一个键下的旧数据加载时会被清掉密码 */
 const REMEMBER_LOGIN_KEY = 'aiadmin-remember-login'
 
 const formData = reactive({
     username: '',
     password: '',
-    rememberPassword: true,
+    rememberUsername: true,
 })
 
 const rules = computed<FormRules>(() => ({
@@ -157,8 +158,8 @@ const handleSubmit = async () => {
         // 存储 token 和登录状态
         userStore.setToken(token, refreshToken)
         userStore.setLoginStatus(true)
-        if (formData.rememberPassword) {
-            localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({ username, password }))
+        if (formData.rememberUsername) {
+            localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({ username }))
         } else {
             localStorage.removeItem(REMEMBER_LOGIN_KEY)
         }
@@ -198,7 +199,8 @@ onMounted(async () => {
         try {
             const credentials = JSON.parse(remembered) as { username?: string; password?: string }
             formData.username = credentials.username ?? ''
-            formData.password = credentials.password ?? ''
+            // 清掉旧版本留下的明文密码，只保留用户名
+            if (credentials.password !== undefined) localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({ username: formData.username }))
         } catch {
             localStorage.removeItem(REMEMBER_LOGIN_KEY)
         }

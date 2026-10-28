@@ -3,6 +3,7 @@
         <Project Path="src/AiAdmin.Api/AiAdmin.Api.csproj"/>
         <Project Path="src/AiAdmin.Core/AiAdmin.Core.csproj"/>
         <Project Path="src/AiAdmin.Infrastructure/AiAdmin.Infrastructure.csproj"/>
+        <Project Path="tests/AiAdmin.Tests/AiAdmin.Tests.csproj"/>
     </Folder>
     <Folder Name="/.github/workflows/">
         <File Path=".github/workflows/README.md"/>

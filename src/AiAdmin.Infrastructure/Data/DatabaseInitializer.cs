@@ -139,6 +139,7 @@ public static class DatabaseInitializer
         await EnsureScheduledJobMenuAsync(db).ConfigureAwait(false);
         await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
         await EnsureLoginLogMenuAsync(db).ConfigureAwait(false);
+        await EnsureApiRequestLogMenuAsync(db).ConfigureAwait(false);
         await EnsureMessageMenuAsync(db).ConfigureAwait(false);
         await EnsureSupportChatMenuAsync(db).ConfigureAwait(false);
 
@@ -196,6 +197,41 @@ public static class DatabaseInitializer
                     }
                 )
                 .ConfigureAwait(false);
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保请求日志菜单存在，兼容已有数据库和旧菜单种子，菜单仅超级管理员可见
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureApiRequestLogMenuAsync(AppDbContext db) {
+        if (await db.Menus.AnyAsync(x => x.Name == "ApiRequestLog").ConfigureAwait(false)) {
+            return;
+        }
+
+        var parent = await db.Menus.SingleOrDefaultAsync(x => x.Name == "LogManagement").ConfigureAwait(false);
+        if (parent is null) {
+            return;
+        }
+
+        var menu = new Menu
+        {
+            Name = "ApiRequestLog"
+            , Path = "api-request-log"
+            , Component = "/system/api-request-log"
+            , ParentName = parent.Name
+            , Sort = 2
+            , IsEnabled = true
+            , MetaJson = /*lang=json,strict*/
+                "{\"title\":\"menus.log.apiRequestLog\",\"icon\":\"ri:route-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\"]}"
+        };
+        _ = await db.Menus.AddAsync(menu).ConfigureAwait(false);
+        var roles = await db.Roles.Where(x => x.Code == "R_SUPER").ToListAsync().ConfigureAwait(false);
+        foreach (var role in roles) {
+            role.RoleMenus.Add(new RoleMenu { Role = role, Menu = menu });
         }
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);

@@ -15,7 +15,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     是否启用 Elasticsearch 日志输出
     /// </summary>
-    public bool Enabled { get; set; }
+    public bool Enabled { get; init; }
 
     /// <summary>
     ///     后台任务消费间隔
@@ -25,7 +25,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     日志索引前缀，写入时追加日志发生时的 UTC 日期后缀 yyyy.MM.dd
     /// </summary>
-    public string Index { get; set; } = "aiadmin-logs";
+    public string Index { get; init; } = "aiadmin-logs";
 
     /// <summary>
     ///     Elasticsearch 密码
@@ -45,7 +45,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     Elasticsearch 服务地址
     /// </summary>
-    public string Uri { get; set; } = "http://localhost:9200";
+    public string Uri { get; init; } = "http://localhost:9200";
 
     /// <summary>
     ///     Elasticsearch 用户名

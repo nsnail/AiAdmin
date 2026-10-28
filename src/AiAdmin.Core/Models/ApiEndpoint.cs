@@ -62,6 +62,11 @@ public sealed class ApiEndpoint : EntityBase, IUpdatedAt
     public string Path { get; set; } = string.Empty;
 
     /// <summary>
+    ///     规范化路径的 CRC32，请求日志只记录该整数，查询时据此还原接口，由接口同步时计算
+    /// </summary>
+    public int PathCrc32 { get; set; }
+
+    /// <summary>
     ///     角色接口关联集合
     /// </summary>
     public ICollection<RoleApi> RoleApis { get; init; } = [];

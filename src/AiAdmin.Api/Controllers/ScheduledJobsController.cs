@@ -43,6 +43,30 @@ public sealed class ScheduledJobsController(
     }
 
     /// <summary>
+    ///     清理过期的 API 请求日志，按天分表整张删除早于保留天数的分表，供计划作业定时调用，天数通过请求体 days 传入
+    /// </summary>
+    /// <param name="request">包含保留天数的请求体</param>
+    /// <param name="tables">请求日志分表服务</param>
+    /// <returns>保留天数和本次删除的分表名称</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpPost("api-request-logs/cleanup")]
+    [ApiDescription("Cleanup API request log tables")]
+    public async Task<ActionResult<ApiResponse<CleanupApiRequestLogsResult>>> CleanupApiRequestLogsAsync(
+        [FromBody] CleanupApiRequestLogsRequest request
+        , [FromServices] ApiRequestLogTableService tables
+    ) {
+        // 删除分表会清除所有用户的请求日志，因此只允许全部数据权限调用
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        // 含当天共保留 Days 天：保留天数为 1 时只保留今天的分表
+        var cutoff = DateTime.UtcNow.Date.AddDays(1 - request.Days);
+        var dropped = await tables.DropTablesBeforeAsync(cutoff, HttpContext.RequestAborted).ConfigureAwait(false);
+        return Ok(ApiResponse<CleanupApiRequestLogsResult>.Ok(new CleanupApiRequestLogsResult(request.Days, dropped)));
+    }
+
+    /// <summary>
     ///     清理超过保留时长的数据库审计日志
     /// </summary>
     /// <param name="request">清理参数</param>

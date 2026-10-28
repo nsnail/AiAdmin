@@ -97,3 +97,33 @@ export interface DashboardSystemInfo {
 export function fetchGetDashboardSystemInfo() {
     return request.get<DashboardSystemInfo>({ url: '/api/dashboard/system-info' })
 }
+
+/** 接口请求占比的一个扇区 */
+export interface DashboardApiShare {
+    /** 接口路径，接口表里找不到时为路径 CRC32 的数值文本，合并的其他项为空 */
+    path: string
+    /** 接口说明的英文原文，需要按当前语言翻译，找不到接口或合并的其他项为空 */
+    name: string
+    value: number
+}
+
+/** 操作日志统计：今日与昨日按小时的访问量对比，以及今日各接口的请求占比 */
+export interface DashboardRequestStats {
+    /** 按本地小时（00 到 23）的访问量，primary 为今日，secondary 为昨日 */
+    hourlyTrend: DashboardTrendPoint[]
+    /** 今日按接口统计的请求数，路径和说明都为空表示合并的其他接口 */
+    apiDistribution: DashboardApiShare[]
+    todayTotal: number
+    yesterdayTotal: number
+    generatedAt: string
+}
+
+/**
+ * 查询操作日志统计，只扫描今天和昨天的日表
+ */
+export function fetchGetDashboardRequestStats() {
+    return request.get<DashboardRequestStats>({
+        url: '/api/dashboard/request-stats',
+        params: { offsetMinutes: -new Date().getTimezoneOffset() },
+    })
+}

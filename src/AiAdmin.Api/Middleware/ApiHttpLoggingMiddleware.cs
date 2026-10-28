@@ -5,7 +5,9 @@ using System.Text;
 using System.Text.Json;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Logging;
+using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
+using Microsoft.Extensions.Options;
 
 namespace AiAdmin.Api.Middleware;
 
@@ -14,8 +16,16 @@ namespace AiAdmin.Api.Middleware;
 /// </summary>
 /// <param name="next">下一个请求处理委托</param>
 /// <param name="logger">HTTP 日志记录器</param>
-public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHttpLoggingMiddleware> logger)
+/// <param name="storageOptions">请求日志入库配置</param>
+public sealed class ApiHttpLoggingMiddleware(
+    RequestDelegate next
+    , ILogger<ApiHttpLoggingMiddleware> logger
+    , IOptions<ApiLogStorageOptions> storageOptions)
 {
+    private static readonly Action<ILogger, Exception?> _logEnqueueFailure = LoggerMessage.Define(
+        LogLevel.Warning, new EventId(3402, "ApiLogStorageEnqueueFailure"), "Failed to enqueue the API request log for database storage"
+    );
+
     /// <summary>
     ///     记录 API 请求并继续执行请求管道
     /// </summary>
@@ -64,6 +74,7 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
                 ? parsedUserId
                 : (long?)null;
             var relativeUrl = $"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+            EnqueueDatabaseLog(context, traceId, stopwatch.ElapsedMilliseconds, userId, TryGetBusinessCode(responseBody));
             if (logger.IsEnabled(LogLevel.Information)) {
                 var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
                 {
@@ -158,5 +169,56 @@ public sealed class ApiHttpLoggingMiddleware(RequestDelegate next, ILogger<ApiHt
         catch (JsonException) {
             return null;
         }
+    }
+
+    /// <summary>
+    ///     把请求元数据放入入库队列，入队是脱离请求线程的后台工作并登记到安全停机闸门，失败只记录警告不影响请求
+    /// </summary>
+    /// <param name="context">HTTP 上下文</param>
+    /// <param name="traceId">链路主键</param>
+    /// <param name="elapsedMilliseconds">请求耗时毫秒数</param>
+    /// <param name="userId">用户主键</param>
+    /// <param name="apiResponseCode">业务码</param>
+    private void EnqueueDatabaseLog(
+        HttpContext context
+        , long traceId
+        , long elapsedMilliseconds
+        , long? userId
+        , int? apiResponseCode
+    ) {
+        if (!storageOptions.Value.Enabled) {
+            return;
+        }
+
+        var queue = context.RequestServices.GetService<ApiLogStorageQueue>();
+        if (queue is null) {
+            return;
+        }
+
+        var log = new ApiRequestLog
+        {
+            Method = ApiRequestLogMapper.ToMethod(context.Request.Method)
+            , PathCrc32 = ApiRequestLogMapper.ToPathCrc32($"{context.Request.PathBase}{context.Request.Path}")
+            , StatusCode = (short)context.Response.StatusCode
+            , ApiResponseCode = ApiRequestLogMapper.ToApiResponseCode(apiResponseCode)
+            , ElapsedMilliseconds = ApiRequestLogMapper.ToElapsedMilliseconds(elapsedMilliseconds)
+            , UserId = userId
+            , DepartmentId = userId.HasValue ? context.RequestServices.GetService<DataScopeContext>()?.DefaultOwnerDepartmentId : null
+            , ClientIp = ApiRequestLogMapper.ToIpv4(context.Connection.RemoteIpAddress)
+            , ServerIp = ApiRequestLogMapper.ToIpv4(context.Connection.LocalIpAddress)
+            , TraceId = traceId
+            , WorkerId = (short)SnowflakeIdGenerator.WorkerId
+        };
+        ShutdownGate.Track(
+            ShutdownActivity.Background, async () =>
+            {
+                try {
+                    await queue.EnqueueAsync(log).ConfigureAwait(false);
+                }
+                catch (Exception exception) {
+                    _logEnqueueFailure(logger, exception);
+                }
+            }
+        );
     }
 }

@@ -76,6 +76,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 );
 builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
 builder.Services.Configure<ElasticsearchLogOptions>(builder.Configuration.GetSection("Elasticsearch"));
+builder.Services.Configure<ApiLogStorageOptions>(builder.Configuration.GetSection("ApiLogStorage"));
+builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ApiLogStorageOptions>>().Value);
 builder.Services.AddSingleton(sp => sp.GetRequiredService<IOptions<ElasticsearchLogOptions>>().Value);
 builder.Services.AddSingleton<ILoggerProvider, ElasticsearchLoggerProvider>();
 builder.Services.Configure<FileLogOptions>(builder.Configuration.GetSection("FileLogging"));
@@ -116,6 +118,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     }
 );
 builder.Services.AddSingleton<ElasticsearchLogQueue>();
+builder.Services.AddSingleton<ApiLogStorageQueue>();
 builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
@@ -144,10 +147,14 @@ if (enabledHostedServices) {
     _ = builder.Services.AddHostedService<ScheduledJobHostedService>();
     _ = builder.Services.AddHostedService<ScheduledJobReleaseHostedService>();
     _ = builder.Services.AddHostedService<ElasticsearchLogBackgroundService>();
+    _ = builder.Services.AddHostedService<ApiLogStorageBackgroundService>();
 }
 
 var connectionString = builder.Configuration.GetConnectionString(provider)
                        ?? throw new InvalidOperationException($"Missing connection string for provider '{provider}'.");
+
+// 请求日志按天分表，建表、批量写入和删除过期分表都使用与主库相同的提供方和连接串
+builder.Services.AddSingleton(new ApiRequestLogTableService(provider, connectionString));
 
 builder.Services.AddDbContext<AppDbContext>((
         serviceProvider

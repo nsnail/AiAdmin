@@ -189,7 +189,7 @@
         "sliderText": "按住滑块拖动",
         "sliderSuccessText": "验证成功",
         "proofExpired": "登录验证已过期，请重新验证",
-        "rememberPwd": "记住密码",
+        "rememberUsername": "记住用户名",
         "forgetPwd": "忘记密码",
         "btnText": "登录",
         "noAccount": "还没有账号？",
@@ -266,8 +266,9 @@
     },
     "lockScreen": {
         "pwdError": "密码错误",
+        "locked": "屏幕已锁定，请先解锁",
         "lock": {
-            "inputPlaceholder": "请输入锁屏密码",
+            "inputPlaceholder": "请输入解锁密码",
             "btnText": "锁定"
         },
         "unlock": {
@@ -337,7 +338,8 @@
         "log": {
             "title": "日志管理",
             "systemLog": "系统日志",
-            "loginLog": "登录日志"
+            "loginLog": "登录日志",
+            "apiRequestLog": "操作日志"
         },
         "marketing": {
             "title": "营销管理",
@@ -598,6 +600,42 @@
             "saved": "缓存已保存",
             "deleted": "缓存已删除",
             "confirmDelete": "确定删除缓存键“{key}”吗？"
+        }
+    },
+    "apiRequestLog": {
+        "fields": {
+            "createdAt": "创建时间",
+            "method": "请求方法",
+            "api": "接口",
+            "path": "请求路径",
+            "apiName": "接口名称",
+            "user": "用户",
+            "userId": "ID",
+            "departmentId": "所属部门 ID",
+            "clientIp": "客户端 IP",
+            "serverIp": "服务端 IP",
+            "statusCode": "状态码",
+            "apiResponseCode": "业务码",
+            "elapsedMilliseconds": "耗时",
+            "traceId": "链路编号",
+            "workerId": "实例编号",
+            "actions": "操作"
+        },
+        "method": { "other": "其他" },
+        "placeholder": { "clientIp": "请输入 IPv4 地址", "api": "请选择接口", "traceId": "请输入链路编号" },
+        "unknownApi": "未知接口",
+        "detail": {
+            "title": "操作日志详情",
+            "view": "查看",
+            "close": "关闭",
+            "tabs": { "basic": "基本信息", "trace": "链路日志", "rawData": "原始数据" }
+        },
+        "trace": {
+            "empty": "没有找到该请求的链路日志，可能日志已过期或 Elasticsearch 未启用",
+            "count": "共 {count} 条",
+            "truncated": "仅展示前 100 条",
+            "loadFailed": "链路日志加载失败",
+            "retry": "重新加载"
         }
     },
     "loginLog": {
@@ -1049,12 +1087,23 @@
         "noFailures": "近期没有异常的执行记录",
         "unknownRegion": "未知地区",
         "series": {
+            "today": "今日",
+            "yesterday": "昨日",
             "logins": "登录次数",
             "loginUsers": "登录用户数",
             "success": "成功",
             "failed": "失败"
         },
+        "others": "其他",
+        "requestTotals": "今日 {today} · 昨日 {yesterday}",
+        "requestToday": "共 {total} 次",
         "widgets": {
+            "requestTrend": {
+                "title": "访问量趋势（今日 / 昨日）"
+            },
+            "requestApiDistribution": {
+                "title": "今日接口请求占比"
+            },
             "statUsers": {
                 "title": "用户总数",
                 "desc": "启用 {enabled} · 今日新增 {added}"

@@ -12,6 +12,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="Controller">控制器名称</param>
 /// <param name="ControllerName">控制器显示名称</param>
 /// <param name="Action">操作名称</param>
+/// <param name="PathCrc32">规范化路径的 CRC32，与请求日志中的接口编号对应</param>
 public sealed record ApiEndpointResult(
     long Id
     , DateTimeOffset CreatedAt
@@ -21,4 +22,5 @@ public sealed record ApiEndpointResult(
     , string Path
     , string Controller
     , string ControllerName
-    , string Action);
+    , string Action
+    , int PathCrc32 = 0);

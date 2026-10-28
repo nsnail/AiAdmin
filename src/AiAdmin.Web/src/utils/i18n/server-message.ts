@@ -132,6 +132,12 @@ const zhTranslations: Record<string, string> = {
     'File management': '文件管理',
     'Get file download URL': '获取文件下载地址',
     'Login log management': '登录日志管理',
+    'API request log management': '操作日志管理',
+    'Query API request log filter fields': '查询操作日志筛选字段',
+    'Query API request log list': '查询操作日志列表',
+    'Cleanup API request log tables': '清理操作日志分表',
+    'Query Elasticsearch logs by trace id': '按链路编号查询日志',
+    'Query dashboard request statistics': '查询仪表盘操作日志统计',
     'Mark all notifications as read': '将所有通知标记为已读',
     'Mark notification as read': '将通知标记为已读',
     'Query API documentation': '查询接口文档',
@@ -213,8 +219,23 @@ const zhTranslations: Record<string, string> = {
     ...businessZhTranslations,
 }
 
+/** 当前界面语言是否为中文，服务端英文文本只在中文界面下翻译 */
+const isChinese = (): boolean => String(i18n.global.locale.value).startsWith('zh')
+
 /** 将服务端稳定英文文本转换为当前界面语言 */
 export function translateServerMessage(message?: string): string | undefined {
-    if (!message || !String(i18n.global.locale.value).startsWith('zh')) return message
+    if (!message || !isChinese()) return message
     return zhTranslations[message] || message
+}
+
+/**
+ * 按关键字反查接口说明的英文原文：关键字命中中文翻译时返回对应的英文原文，供后端按英文说明匹配；
+ * 英文界面不翻译，返回空集合
+ */
+export function findServerMessagesByTranslation(keyword: string): string[] {
+    const text = keyword.trim().toLowerCase()
+    if (!text || !isChinese()) return []
+    return Object.entries(zhTranslations)
+        .filter(([, translated]) => translated.toLowerCase().includes(text))
+        .map(([original]) => original)
 }

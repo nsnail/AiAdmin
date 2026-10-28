@@ -189,7 +189,7 @@
         "sliderText": "Please slide to verify",
         "sliderSuccessText": "Verification successful",
         "proofExpired": "Login verification expired, please try again",
-        "rememberPwd": "Remember password",
+        "rememberUsername": "Remember username",
         "forgetPwd": "Forgot password",
         "btnText": "Login",
         "noAccount": "No account yet?",
@@ -266,8 +266,9 @@
     },
     "lockScreen": {
         "pwdError": "Password error",
+        "locked": "The screen is locked, please unlock first",
         "lock": {
-            "inputPlaceholder": "Please input lock screen password",
+            "inputPlaceholder": "Please input unlock password",
             "btnText": "Lock"
         },
         "unlock": {
@@ -337,7 +338,8 @@
         "log": {
             "title": "Log Management",
             "systemLog": "System Logs",
-            "loginLog": "Login Logs"
+            "loginLog": "Login Logs",
+            "apiRequestLog": "Operation Logs"
         },
         "marketing": {
             "title": "Marketing Management",
@@ -602,6 +604,42 @@
             "saved": "Cache saved",
             "deleted": "Cache deleted",
             "confirmDelete": "Delete cache key \"{key}\"?"
+        }
+    },
+    "apiRequestLog": {
+        "fields": {
+            "createdAt": "Created at",
+            "method": "Method",
+            "api": "API",
+            "path": "Request path",
+            "apiName": "API name",
+            "user": "User",
+            "userId": "ID",
+            "departmentId": "Department ID",
+            "clientIp": "Client IP",
+            "serverIp": "Server IP",
+            "statusCode": "Status code",
+            "apiResponseCode": "Business code",
+            "elapsedMilliseconds": "Elapsed",
+            "traceId": "Trace ID",
+            "workerId": "Worker ID",
+            "actions": "Actions"
+        },
+        "method": { "other": "Other" },
+        "placeholder": { "clientIp": "Enter an IPv4 address", "api": "Select an API", "traceId": "Enter a trace ID" },
+        "unknownApi": "Unknown API",
+        "detail": {
+            "title": "Operation log details",
+            "view": "View",
+            "close": "Close",
+            "tabs": { "basic": "Basic info", "trace": "Trace logs", "rawData": "Raw data" }
+        },
+        "trace": {
+            "empty": "No trace logs were found for this request. They may have expired or Elasticsearch is disabled",
+            "count": "{count} in total",
+            "truncated": "Only the first 100 are shown",
+            "loadFailed": "Failed to load trace logs",
+            "retry": "Reload"
         }
     },
     "loginLog": {
@@ -1058,12 +1096,23 @@
         "noFailures": "No recent failed executions",
         "unknownRegion": "Unknown region",
         "series": {
+            "today": "Today",
+            "yesterday": "Yesterday",
             "logins": "Logins",
             "loginUsers": "Login users",
             "success": "Success",
             "failed": "Failed"
         },
+        "others": "Others",
+        "requestTotals": "Today {today} · Yesterday {yesterday}",
+        "requestToday": "{total} requests",
         "widgets": {
+            "requestTrend": {
+                "title": "Request trend (today / yesterday)"
+            },
+            "requestApiDistribution": {
+                "title": "API request share today"
+            },
             "statUsers": {
                 "title": "Total users",
                 "desc": "Enabled {enabled} · New today {added}"

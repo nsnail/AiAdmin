@@ -22,6 +22,7 @@ import { $t } from '@/locales'
 import { translateServerMessage } from '@/utils/i18n/server-message'
 import { BaseResponse } from '@/types'
 import { bindRequestButton, releaseRequestButton } from './button-loading'
+import { isScreenLocked } from '@/utils/lock/state'
 
 /** 请求配置常量 */
 const REQUEST_TIMEOUT = 15000
@@ -87,6 +88,8 @@ const axiosInstance = axios.create({
 /** 请求拦截器 */
 axiosInstance.interceptors.request.use(
     (request: InternalAxiosRequestConfig) => {
+        // 锁屏期间凭证已被移走，直接拒绝请求，避免收到 401 后被登出
+        if (isScreenLocked.value) return Promise.reject(createHttpError($t('lockScreen.locked'), ApiStatus.unauthorized))
         bindRequestButton(request)
         const { accessToken } = useUserStore()
         if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)

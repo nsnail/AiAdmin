@@ -9,13 +9,13 @@
     <ItemGroup>
         <FrameworkReference Include="Microsoft.AspNetCore.App"/>
         <PackageReference Include="BCrypt.Net-Next" Version="4.2.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.13"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13"/>
-        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13"/>
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.14" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
         <PackageReference Include="SharpCompress" Version="0.50.7"/>
         <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" Condition="'$(OS)' != 'Windows_NT'"/>
-        <PackageReference Include="StackExchange.Redis" Version="3.4.5"/>
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.13"/>
+        <PackageReference Include="StackExchange.Redis" Version="3.4.20" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.14" />
         <PackageReference Include="Minio" Version="7.0.0"/>
         <PackageReference Include="MySql.EntityFrameworkCore" Version="10.0.12"/>
         <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3"/>

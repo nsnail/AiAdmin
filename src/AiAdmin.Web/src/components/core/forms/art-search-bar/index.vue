@@ -271,6 +271,7 @@ import {
     type SavedQuery,
 } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
+import ArtApiSelect from '../art-api-select/index.vue'
 import ArtUserSelect from '../art-user-select/index.vue'
 
 defineOptions({ name: 'ArtSearchBar' })
@@ -295,6 +296,7 @@ const componentMap = {
     timeselect: ElTimeSelect, // 时间选择
     treeselect: ElTreeSelect, // 树选择器
     'user-select': ArtUserSelect,
+    'api-select': ArtApiSelect,
 }
 
 const { width } = useWindowSize()
@@ -964,14 +966,16 @@ const backendFormItems = computed<SearchFormItem[]>(() =>
             type:
                 field.control === 'user-select'
                     ? 'user-select'
-                    : field.control === 'select'
-                      ? 'select'
-                      : field.control === 'date'
-                        ? 'date'
-                        : field.control === 'number'
-                          ? 'number'
-                          : 'input',
-            render: field.control === 'user-select' ? ArtUserSelect : undefined,
+                    : field.control === 'api-select'
+                      ? 'api-select'
+                      : field.control === 'select'
+                        ? 'select'
+                        : field.control === 'date'
+                          ? 'date'
+                          : field.control === 'number'
+                            ? 'number'
+                            : 'input',
+            render: field.control === 'user-select' ? ArtUserSelect : field.control === 'api-select' ? ArtApiSelect : undefined,
             span: field.span,
             placeholder: fieldPlaceholder,
             props: controlProps,

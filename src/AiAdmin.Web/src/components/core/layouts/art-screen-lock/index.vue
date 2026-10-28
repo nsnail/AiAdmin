@@ -1,439 +1,105 @@
-<!-- 锁屏 -->
+<!-- 锁屏：仅负责解锁遮罩，令牌的移走与还原见 utils/lock -->
 <template>
-    <div class="layout-lock-screen">
-        <!-- 开发者工具警告覆盖层 -->
-        <div
-            v-if="showDevToolsWarning"
-            class="fixed top-0 left-0 z-[999999] flex-cc w-full h-full text-white bg-gradient-to-br from-[#1e1e1e] to-black animate-fade-in">
-            <div class="p-5 text-center select-none">
-                <div class="mb-7.5 text-5xl">🔒</div>
-                <h1 class="m-0 mb-5 text-3xl font-semibold text-danger">系统已锁定</h1>
-                <p class="max-w-125 m-0 text-lg leading-relaxed text-white">
-                    检测到开发者工具已打开<br />
-                    为了系统安全，请关闭开发者工具后继续使用
-                </p>
-                <div class="mt-7.5 text-sm text-gray-400">Security Lock Activated</div>
-            </div>
-        </div>
-
-        <!-- 锁屏弹窗 -->
-        <div v-if="!isLock">
-            <ElDrawer v-model="visible" :show-close="false" :width="370" @open="handleDialogOpen">
-                <div class="flex-c flex-col">
-                    <ElAvatar :size="64" :src="userInfo.avatar" aria-label="用户头像">
-                        <ArtSvgIcon icon="ri:user-line" />
-                    </ElAvatar>
-                    <div class="mt-7.5 mb-3.5 text-base font-medium">{{ userInfo.userName }}</div>
-                    <ElForm :model="formData" :rules="rules" @submit.prevent="handleLock" class="w-[90%]" ref="formRef">
-                        <ElFormItem prop="password">
-                            <ElInput
-                                v-model="formData.password"
-                                :placeholder="$t('lockScreen.lock.inputPlaceholder')"
-                                :show-password="true"
-                                @keyup.enter="handleLock"
-                                autocomplete="new-password"
-                                class="w-full mt-9"
-                                ref="lockInputRef"
-                                type="password">
-                                <template #suffix>
-                                    <ElIcon @click="handleLock" class="c-p">
-                                        <Lock />
-                                    </ElIcon>
-                                </template>
-                            </ElInput>
-                        </ElFormItem>
-                        <ElButton v-ripple @click="handleLock" class="w-full mt-0.5" type="primary">
-                            {{ $t('lockScreen.lock.btnText') }}
-                        </ElButton>
-                    </ElForm>
-                </div>
-            </ElDrawer>
-        </div>
-
-        <!-- 解锁界面 -->
-        <div v-else class="unlock-content">
-            <div class="flex-c flex-col w-80">
-                <ElAvatar :size="64" :src="userInfo.avatar" aria-label="用户头像" class="mt-5">
-                    <ArtSvgIcon icon="ri:user-line" />
-                </ElAvatar>
-                <div class="mt-3 mb-3.5 text-base font-medium">
-                    {{ userInfo.userName }}
-                </div>
-                <ElForm :model="unlockForm" :rules="rules" @submit.prevent="handleUnlock" class="w-full !px-2.5" ref="unlockFormRef">
-                    <ElFormItem prop="password">
-                        <ElInput
-                            v-model="unlockForm.password"
-                            :placeholder="$t('lockScreen.unlock.inputPlaceholder')"
-                            :show-password="true"
-                            autocomplete="new-password"
-                            class="mt-5"
-                            ref="unlockInputRef"
-                            type="password">
-                            <template #suffix>
-                                <ElIcon @click="handleUnlock" class="c-p">
-                                    <Unlock />
-                                </ElIcon>
-                            </template>
-                        </ElInput>
-                    </ElFormItem>
-
-                    <ElButton v-ripple @click="handleUnlock" class="w-full mt-2" type="primary">
-                        {{ $t('lockScreen.unlock.btnText') }}
+    <div v-if="isScreenLocked" @contextmenu.prevent class="unlock-content">
+        <div class="flex-c flex-col w-80">
+            <ElAvatar :size="64" :src="userInfo.avatar" aria-label="avatar" class="mt-5">
+                <ArtSvgIcon icon="ri:user-line" />
+            </ElAvatar>
+            <div class="mt-3 mb-3.5 text-base font-medium">{{ userInfo.userName }}</div>
+            <ElForm :model="form" :rules="rules" @submit.prevent="handleUnlock" class="w-full !px-2.5" ref="formRef">
+                <ElFormItem prop="password">
+                    <ElInput
+                        v-model="form.password"
+                        :placeholder="$t('lockScreen.unlock.inputPlaceholder')"
+                        :show-password="true"
+                        autocomplete="new-password"
+                        class="mt-5"
+                        ref="inputRef"
+                        type="password">
+                        <template #suffix>
+                            <ElIcon @click="handleUnlock" class="c-p">
+                                <Unlock />
+                            </ElIcon>
+                        </template>
+                    </ElInput>
+                </ElFormItem>
+                <ElButton v-ripple :loading="submitting" @click="handleUnlock" class="w-full mt-2" type="primary">
+                    {{ $t('lockScreen.unlock.btnText') }}
+                </ElButton>
+                <div class="w-full text-center">
+                    <ElButton @click="abandonLock" class="mt-2.5 !text-g-600 hover:!text-theme hover:!bg-transparent" text>
+                        {{ $t('lockScreen.unlock.backBtnText') }}
                     </ElButton>
-                    <div class="w-full text-center">
-                        <ElButton @click="toLogin" class="mt-2.5 !text-g-600 hover:!text-theme hover:!bg-transparent" text>
-                            {{ $t('lockScreen.unlock.backBtnText') }}
-                        </ElButton>
-                    </div>
-                </ElForm>
-            </div>
+                </div>
+            </ElForm>
         </div>
     </div>
 </template>
 
 <script lang="ts" setup>
-import { Lock, Unlock } from '@element-plus/icons-vue'
+import { Unlock } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import CryptoJS from 'crypto-js'
 import { useUserStore } from '@/store/modules/user'
-import { mittBus } from '@/utils/sys'
+import { abandonLock, isScreenLocked, unlockScreen } from '@/utils/lock'
 
-// 国际化
+defineOptions({ name: 'ArtScreenLock' })
+
 const { t } = useI18n()
-
-// 环境变量
-const ENCRYPT_KEY = import.meta.env.VITE_LOCK_ENCRYPT_KEY
-
-// Store
-const userStore = useUserStore()
-const { info: userInfo, lockPassword, isLock } = storeToRefs(userStore)
-
-// 响应式数据
-const visible = ref<boolean>(false)
-const lockInputRef = ref<any>(null)
-const unlockInputRef = ref<any>(null)
-const showDevToolsWarning = ref<boolean>(false)
-
-// 表单相关
+const { info: userInfo } = storeToRefs(useUserStore())
 const formRef = ref<FormInstance>()
-const unlockFormRef = ref<FormInstance>()
-
-const formData = reactive({
-    password: '',
-})
-
-const unlockForm = reactive({
-    password: '',
-})
-
-// 表单验证规则
+const inputRef = ref<{ input?: HTMLInputElement }>()
+const submitting = ref(false)
+const form = reactive({ password: '' })
 const rules = computed<FormRules>(() => ({
-    password: [
-        {
-            required: true,
-            message: t('lockScreen.lock.inputPlaceholder'),
-            trigger: 'blur',
-        },
-    ],
+    password: [{ required: true, message: t('lockScreen.unlock.inputPlaceholder'), trigger: 'blur' }],
 }))
 
-// 检测是否为移动设备
-const isMobile = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+/** 需要拦截的键盘事件类型 */
+const KEY_EVENTS = ['keydown', 'keyup', 'keypress'] as const
+
+/**
+ * 锁定期间拦截所有按键：只放行解锁框内的普通输入、回车和粘贴，其余按键与组合键一律屏蔽
+ * @param event 键盘事件
+ */
+const blockKeys = (event: KeyboardEvent): void => {
+    if (!isScreenLocked.value) return
+    const inside = !!(event.target as HTMLElement | null)?.closest('.unlock-content')
+    const isPaste = (event.ctrlKey || event.metaKey) && !event.altKey && event.key.toLowerCase() === 'v'
+    const isCombo = (event.ctrlKey || event.metaKey || event.altKey) && !isPaste
+    if (inside && !isCombo && !/^F\d{1,2}$/.test(event.key)) return
+    event.preventDefault()
+    event.stopImmediatePropagation()
 }
 
-// 添加禁用控制台的函数
-const disableDevTools = () => {
-    // 禁用右键菜单
-    const handleContextMenu = (e: Event) => {
-        if (isLock.value) {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-    }
-    document.addEventListener('contextmenu', handleContextMenu, true)
-
-    // 禁用开发者工具相关快捷键
-    const handleKeyDown = (e: KeyboardEvent) => {
-        if (!isLock.value) return
-
-        // 禁用 F12
-        if (e.key === 'F12') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+Shift+I/J/C/K (开发者工具)
-        if (e.ctrlKey && e.shiftKey) {
-            const key = e.key.toLowerCase()
-            if (['i', 'j', 'c', 'k'].includes(key)) {
-                e.preventDefault()
-                e.stopPropagation()
-                return false
-            }
-        }
-
-        // 禁用 Ctrl+U (查看源代码)
-        if (e.ctrlKey && e.key.toLowerCase() === 'u') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+S (保存页面)
-        if (e.ctrlKey && e.key.toLowerCase() === 's') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+A (全选)
-        if (e.ctrlKey && e.key.toLowerCase() === 'a') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+P (打印)
-        if (e.ctrlKey && e.key.toLowerCase() === 'p') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+F (查找)
-        if (e.ctrlKey && e.key.toLowerCase() === 'f') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Alt+Tab (切换窗口)
-        if (e.altKey && e.key === 'Tab') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+Tab (切换标签页)
-        if (e.ctrlKey && e.key === 'Tab') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+W (关闭标签页)
-        if (e.ctrlKey && e.key.toLowerCase() === 'w') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+R 和 F5 (刷新页面)
-        if ((e.ctrlKey && e.key.toLowerCase() === 'r') || e.key === 'F5') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-
-        // 禁用 Ctrl+Shift+R (强制刷新)
-        if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'r') {
-            e.preventDefault()
-            e.stopPropagation()
-            return false
-        }
-    }
-    document.addEventListener('keydown', handleKeyDown, true)
-
-    // 禁用选择文本
-    const handleSelectStart = (e: Event) => {
-        if (isLock.value) {
-            e.preventDefault()
-            return false
-        }
-    }
-    document.addEventListener('selectstart', handleSelectStart, true)
-
-    // 禁用拖拽
-    const handleDragStart = (e: Event) => {
-        if (isLock.value) {
-            e.preventDefault()
-            return false
-        }
-    }
-    document.addEventListener('dragstart', handleDragStart, true)
-
-    // 监听开发者工具打开状态（仅在桌面端启用）
-    let devtools = { open: false }
-    const threshold = 160
-    let devToolsInterval: ReturnType<typeof setInterval> | null = null
-
-    const checkDevTools = () => {
-        if (!isLock.value || isMobile()) return
-
-        const isDevToolsOpen = window.outerHeight - window.innerHeight > threshold || window.outerWidth - window.innerWidth > threshold
-
-        if (isDevToolsOpen && !devtools.open) {
-            devtools.open = true
-            showDevToolsWarning.value = true
-        } else if (!isDevToolsOpen && devtools.open) {
-            devtools.open = false
-            showDevToolsWarning.value = false
-        }
-    }
-
-    // 仅在桌面端启用开发者工具检测
-    if (!isMobile()) {
-        devToolsInterval = setInterval(checkDevTools, 500)
-    }
-
-    // 返回清理函数
-    return () => {
-        document.removeEventListener('contextmenu', handleContextMenu, true)
-        document.removeEventListener('keydown', handleKeyDown, true)
-        document.removeEventListener('selectstart', handleSelectStart, true)
-        document.removeEventListener('dragstart', handleDragStart, true)
-        if (devToolsInterval) {
-            clearInterval(devToolsInterval)
-        }
-    }
-}
-
-// 工具函数
-const verifyPassword = (inputPassword: string, storedPassword: string): boolean => {
+/** 校验解锁密码，错误时清空输入并提示 */
+const handleUnlock = async (): Promise<void> => {
+    if (!formRef.value || submitting.value) return
+    if (!(await formRef.value.validate().catch(() => false))) return
+    submitting.value = true
     try {
-        const decryptedPassword = CryptoJS.AES.decrypt(storedPassword, ENCRYPT_KEY).toString(CryptoJS.enc.Utf8)
-        return inputPassword === decryptedPassword
-    } catch (error) {
-        console.error('密码解密失败:', error)
-        return false
+        if (!(await unlockScreen(form.password))) ElMessage.error(t('lockScreen.pwdError'))
+        form.password = ''
+    } finally {
+        submitting.value = false
     }
 }
 
-// 事件处理函数
-const handleKeydown = (event: KeyboardEvent) => {
-    if (event.altKey && event.key.toLowerCase() === '¬') {
-        event.preventDefault()
-        visible.value = true
-    }
-}
-
-const handleDialogOpen = () => {
-    setTimeout(() => {
-        lockInputRef.value?.input?.focus()
-    }, 100)
-}
-
-const handleLock = async () => {
-    if (!formRef.value) return
-
-    await formRef.value.validate((valid, fields) => {
-        if (valid) {
-            const encryptedPassword = CryptoJS.AES.encrypt(formData.password, ENCRYPT_KEY).toString()
-            userStore.setLockStatus(true)
-            userStore.setLockPassword(encryptedPassword)
-            visible.value = false
-            formData.password = ''
-        } else {
-            console.error('表单验证失败:', fields)
-        }
-    })
-}
-
-const handleUnlock = async () => {
-    if (!unlockFormRef.value) return
-
-    await unlockFormRef.value.validate((valid, fields) => {
-        if (valid) {
-            const isValid = verifyPassword(unlockForm.password, lockPassword.value)
-
-            if (isValid) {
-                try {
-                    userStore.setLockStatus(false)
-                    userStore.setLockPassword('')
-                    unlockForm.password = ''
-                    visible.value = false
-                    showDevToolsWarning.value = false
-                } catch (error) {
-                    console.error('更新store失败:', error)
-                }
-            } else {
-                // 触发抖动动画
-                const inputElement = unlockInputRef.value?.$el
-                if (inputElement) {
-                    inputElement.classList.add('shake-animation')
-                    setTimeout(() => {
-                        inputElement.classList.remove('shake-animation')
-                    }, 300)
-                }
-                ElMessage.error(t('lockScreen.pwdError'))
-                unlockForm.password = ''
-            }
-        } else {
-            console.error('表单验证失败:', fields)
-        }
-    })
-}
-
-const toLogin = () => {
-    userStore.logOut()
-}
-
-const openLockScreen = () => {
-    visible.value = true
-}
-
-// 监听锁屏状态变化
-watch(isLock, (newValue) => {
-    if (newValue) {
-        document.body.style.overflow = 'hidden'
-        setTimeout(() => {
-            unlockInputRef.value?.input?.focus()
-        }, 100)
-    } else {
-        document.body.style.overflow = 'auto'
-        showDevToolsWarning.value = false
-    }
+watch(isScreenLocked, (locked) => {
+    document.body.style.overflow = locked ? 'hidden' : 'auto'
+    if (locked) setTimeout(() => inputRef.value?.input?.focus(), 100)
 })
 
-// 存储清理函数
-let cleanupDevTools: (() => void) | null = null
-
-// 生命周期钩子
 onMounted(() => {
-    mittBus.on('openLockScreen', openLockScreen)
-    document.addEventListener('keydown', handleKeydown)
-
-    if (isLock.value) {
-        visible.value = true
-        setTimeout(() => {
-            unlockInputRef.value?.input?.focus()
-        }, 100)
-    }
-
-    // 初始化禁用开发者工具功能
-    cleanupDevTools = disableDevTools()
+    KEY_EVENTS.forEach((type) => window.addEventListener(type, blockKeys, true))
 })
-
 onUnmounted(() => {
-    document.removeEventListener('keydown', handleKeydown)
+    KEY_EVENTS.forEach((type) => window.removeEventListener(type, blockKeys, true))
     document.body.style.overflow = 'auto'
-    // 清理禁用开发者工具的事件监听器
-    if (cleanupDevTools) {
-        cleanupDevTools()
-        cleanupDevTools = null
-    }
 })
 </script>
 
 <style lang="scss" scoped>
-.layout-lock-screen :deep(.el-dialog) {
-    border-radius: 10px;
-}
-
 .unlock-content {
     position: fixed;
     inset: 0;
@@ -445,54 +111,9 @@ onUnmounted(() => {
     background-color: #fff;
     background-image: url('@imgs/lock/bg_light.webp');
     background-size: cover;
-    transition: transform 0.3s ease-in-out;
 }
 
-.dark {
-    .unlock-content {
-        background-image: url('@imgs/lock/bg_dark.webp');
-    }
-}
-
-@keyframes fade-in {
-    from {
-        opacity: 0;
-        transform: scale(0.9);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-.animate-fade-in {
-    animation: fade-in 0.3s ease-in-out;
-}
-
-@keyframes shake {
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: translateX(-10px);
-    }
-
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: translateX(10px);
-    }
-}
-
-.shake-animation {
-    animation: shake 0.5s ease-in-out;
+.dark .unlock-content {
+    background-image: url('@imgs/lock/bg_dark.webp');
 }
 </style>

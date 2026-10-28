@@ -51,6 +51,7 @@ import { useWorktabStore } from '@/store/modules/worktab'
 import { fetchGetUserInfo } from '@/api/auth'
 import { ApiStatus } from '@/utils/http/status'
 import { isHttpError } from '@/utils/http/error'
+import { isScreenLocked } from '@/utils/lock/state'
 import { RouteRegistry, MenuProcessor, IframeRouteManager, RoutePermissionValidator } from '../core'
 
 // 路由注册器实例
@@ -216,8 +217,8 @@ function clearWorktabsAfterReload(to: RouteLocationNormalized): void {
  * @returns true 表示可以继续，false 表示已处理跳转
  */
 function handleLoginStatus(to: RouteLocationNormalized, userStore: ReturnType<typeof useUserStore>, next: NavigationGuardNext): boolean {
-    // 已登录或访问登录页或静态路由，直接放行
-    if (userStore.isLogin || to.path === RoutesAlias.Login || isStaticRoute(to.path)) {
+    // 已登录、锁屏中（凭证由锁屏模块暂存在内存）、访问登录页或静态路由，直接放行
+    if (userStore.isLogin || isScreenLocked.value || to.path === RoutesAlias.Login || isStaticRoute(to.path)) {
         return true
     }
 

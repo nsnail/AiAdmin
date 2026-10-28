@@ -18,6 +18,7 @@ export interface BusinessListFilterResources {}
 
 export type ListFilterResource =
     | 'api-endpoint'
+    | 'api-request-log'
     | 'department'
     | 'dictionary'
     | 'login-log'
@@ -48,7 +49,7 @@ export interface SavedQuery {
 export interface ListFilterField {
     field: string
     label: string
-    control: 'input' | 'select' | 'date' | 'number' | 'user-select'
+    control: 'input' | 'select' | 'date' | 'number' | 'user-select' | 'api-select'
     span: number
     sort: number
     placeholder: string
@@ -70,6 +71,26 @@ export interface ListFilterGroup {
     valueType: 'string' | 'number' | 'boolean' | 'date'
     total: number
     options: ListFilterGroupOption[]
+}
+
+/** API 请求日志列表项，路径、用户、IP 和方法已由后端还原为可读值 */
+export interface ApiRequestLogRecord {
+    id: string
+    createdAt: string
+    method: string
+    path: string | null
+    apiName: string | null
+    pathCrc32: number
+    statusCode: number
+    apiResponseCode: number | null
+    elapsedMilliseconds: number
+    userId: string | null
+    userName: string | null
+    departmentId: string | null
+    clientIp: string | null
+    serverIp: string | null
+    traceId: string
+    workerId: number
 }
 
 export interface LoginLogRecord {
@@ -224,6 +245,15 @@ export function fetchGetListFilterGroups(resource: ListFilterResource, dynamicFi
 
 export function fetchGetDictionaryFilterGroups(categoryId: string, dynamicFilter?: DynamicFilter) {
     return request.post<ListFilterGroup[]>({ url: '/api/dictionary/filter-groups', params: { categoryId }, data: { dynamicFilter } })
+}
+
+/** 按链路编号查询 Elasticsearch 中同一次请求产生的全部日志，按时间升序，最多 100 条 */
+export function fetchGetApiRequestLogTraceLogs(traceId: string) {
+    return request.post<Api.Common.PaginatedResponse<Api.SystemManage.SystemLogItem>>({ url: '/api/api-request-log/trace-logs', data: { traceId } })
+}
+
+export function fetchGetApiRequestLogList(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<ApiRequestLogRecord>>({ url: '/api/api-request-log/list', data: params })
 }
 
 export function fetchGetLoginLogList(params: DynamicTableQuery) {

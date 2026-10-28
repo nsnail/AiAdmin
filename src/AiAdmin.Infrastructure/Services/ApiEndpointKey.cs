@@ -1,3 +1,5 @@
+using AiAdmin.Api.Data;
+
 namespace AiAdmin.Api.Services;
 
 /// <summary>
@@ -5,6 +7,16 @@ namespace AiAdmin.Api.Services;
 /// </summary>
 public static class ApiEndpointKey
 {
+    /// <summary>
+    ///     计算接口路径的 CRC32，路径先规范化再计算，请求日志与接口表使用同一规则，便于用日志中的整数还原接口
+    /// </summary>
+    /// <param name="path">接口路径，可以带查询字符串，查询字符串会被忽略</param>
+    /// <returns>规范化路径的有符号 CRC32</returns>
+    public static int ComputePathCrc32(string path) {
+        var queryIndex = path.IndexOf('?', StringComparison.Ordinal);
+        return Crc32.Compute(NormalizePath(queryIndex >= 0 ? path[..queryIndex] : path));
+    }
+
     /// <summary>
     ///     生成接口唯一键
     /// </summary>

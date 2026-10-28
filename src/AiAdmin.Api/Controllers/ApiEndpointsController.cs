@@ -56,6 +56,7 @@ public sealed class ApiEndpointsController(AppDbContext db, ApiEndpointSyncServi
             .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ApiEndpoint.CreatedAt), true)
             .Select(x => new ApiEndpointResult(
                     x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.AllowAnonymous, x.Method, x.Path, x.Controller, x.ControllerName, x.Action
+                    , x.PathCrc32
                 )
             )
             .ToListAsync()

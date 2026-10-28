@@ -55,10 +55,6 @@ export const useUserStore = defineStore(
         const language = ref(LanguageEnum.ZH)
         // 登录状态
         const isLogin = ref(false)
-        // 锁屏状态
-        const isLock = ref(false)
-        // 锁屏密码
-        const lockPassword = ref('')
         // 用户信息
         const info = ref<Partial<Api.Auth.UserInfo>>({})
         // 搜索历史记录
@@ -109,22 +105,6 @@ export const useUserStore = defineStore(
         }
 
         /**
-         * 设置锁屏状态
-         * @param status 锁屏状态
-         */
-        const setLockStatus = (status: boolean) => {
-            isLock.value = status
-        }
-
-        /**
-         * 设置锁屏密码
-         * @param password 锁屏密码
-         */
-        const setLockPassword = (password: string) => {
-            lockPassword.value = password
-        }
-
-        /**
          * 设置令牌
          * @param newAccessToken 访问令牌
          * @param newRefreshToken 刷新令牌（可选）
@@ -152,10 +132,6 @@ export const useUserStore = defineStore(
             info.value = {}
             // 重置登录状态
             isLogin.value = false
-            // 重置锁屏状态
-            isLock.value = false
-            // 清空锁屏密码
-            lockPassword.value = ''
             // 清空访问令牌
             accessToken.value = ''
             // 清空刷新令牌
@@ -207,8 +183,6 @@ export const useUserStore = defineStore(
         return {
             language,
             isLogin,
-            isLock,
-            lockPassword,
             info,
             searchHistory,
             accessToken,
@@ -220,8 +194,6 @@ export const useUserStore = defineStore(
             setLoginStatus,
             setLanguage,
             setSearchHistory,
-            setLockStatus,
-            setLockPassword,
             setToken,
             logOut,
             checkAndClearWorktabs,

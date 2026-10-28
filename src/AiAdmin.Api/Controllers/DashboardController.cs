@@ -14,11 +14,14 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
 /// <param name="systemInfo">系统信息服务</param>
+/// <param name="requestLogs">操作日志分表服务</param>
 [ApiController]
 [Route("api/dashboard")]
 [ApiDescription("Dashboard statistics")]
-public sealed class DashboardController(AppDbContext db, SystemInfoService systemInfo) : ControllerBase
+public sealed class DashboardController(AppDbContext db, SystemInfoService systemInfo, ApiRequestLogTableService requestLogs) : ControllerBase
 {
+    private const int _MAX_API_SLICES = 8;
+
     /// <summary>
     ///     查询仪表盘总览数据
     /// </summary>
@@ -164,6 +167,46 @@ public sealed class DashboardController(AppDbContext db, SystemInfoService syste
     }
 
     /// <summary>
+    ///     查询操作日志统计：今日与昨日按小时的访问量对比，以及今日各接口的请求占比，只扫描今天和昨天两天的日表
+    /// </summary>
+    /// <param name="offsetMinutes">客户端相对 UTC 的时区偏移分钟数，用于按本地日期和小时分组</param>
+    /// <returns>操作日志统计结果</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpGet("request-stats")]
+    [ApiDescription("Query dashboard request statistics")]
+    public async Task<ActionResult<ApiResponse<DashboardRequestStatsResult>>> RequestStatsAsync([FromQuery] int offsetMinutes = 0) {
+        // 操作日志包含全部用户的访问记录，与操作日志页一致，只允许全部数据权限查看
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        offsetMinutes = Math.Clamp(offsetMinutes, -840, 840);
+        var offset = TimeSpan.FromMinutes(offsetMinutes);
+        var now = ServerTime.UtcNow;
+        var todayStart = (now + offset).Date - offset;
+        var yesterdayStart = todayStart.AddDays(-1);
+        var tomorrowStart = todayStart.AddDays(1);
+        var byHour = await requestLogs.CountByHourAsync(yesterdayStart, tomorrowStart, HttpContext.RequestAborted).ConfigureAwait(false);
+        var byApi = await requestLogs.CountByApiAsync(todayStart, tomorrowStart, HttpContext.RequestAborted).ConfigureAwait(false);
+
+        // 小时对齐到本地：把 UTC 整点换成本地小时，今日尚未到达的小时记 0
+        var trend = Enumerable
+            .Range(0, 24)
+            .Select(hour => new DashboardTrendPoint(
+                    hour.ToString("00", CultureInfo.InvariantCulture), byHour.GetValueOrDefault(todayStart.AddHours(hour))
+                    , byHour.GetValueOrDefault(yesterdayStart.AddHours(hour))
+                )
+            )
+            .ToList();
+        var distribution = await BuildApiDistributionAsync(byApi).ConfigureAwait(false);
+        return Ok(
+            ApiResponse<DashboardRequestStatsResult>.Ok(
+                new DashboardRequestStatsResult(trend, distribution, trend.Sum(x => x.Primary), trend.Sum(x => x.Secondary), ServerTime.ToOffset(now))
+            )
+        );
+    }
+
+    /// <summary>
     ///     查询系统信息，名称和版本号读取自当前程序集元数据，更新内容读取自嵌入的 CHANGELOG
     /// </summary>
     /// <returns>系统名称、版本号与最近一次版本的更新内容</returns>
@@ -201,5 +244,36 @@ public sealed class DashboardController(AppDbContext db, SystemInfoService syste
     /// <returns>固定区域性的日期文本</returns>
     private static string FormatDate(DateTime date) {
         return date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
+    ///     取请求数最多的若干个接口，其余合并为一项，名称使用接口路径，接口表里找不到时使用路径 CRC32 的数值
+    /// </summary>
+    /// <param name="byApi">以路径 CRC32 为键的请求数</param>
+    /// <returns>按请求数倒序的接口分布，路径和说明都为空表示合并的其他项</returns>
+    private async Task<IReadOnlyList<DashboardApiShare>> BuildApiDistributionAsync(Dictionary<int, int> byApi) {
+        var top = byApi.OrderByDescending(x => x.Value).ThenBy(x => x.Key).Take(_MAX_API_SLICES).ToList();
+        List<int> crcs = [.. top.Select(x => x.Key)];
+        var paths = await db
+            .ApiEndpoints.AsNoTracking()
+            .Where(x => crcs.Contains(x.PathCrc32))
+            .Select(x => new { x.PathCrc32, x.Path, x.Name })
+            .ToListAsync(HttpContext.RequestAborted)
+            .ConfigureAwait(false);
+        var apiByCrc = new Dictionary<int, (string Path, string Name)>();
+        foreach (var item in paths) {
+            _ = apiByCrc.TryAdd(item.PathCrc32, (item.Path, item.Name));
+        }
+
+        var result = top.ConvertAll(x => apiByCrc.TryGetValue(x.Key, out var api)
+            ? new DashboardApiShare(api.Path, api.Name, x.Value)
+            : new DashboardApiShare(x.Key.ToString(CultureInfo.InvariantCulture), string.Empty, x.Value)
+        );
+        var others = byApi.Values.Sum() - top.Sum(x => x.Value);
+        if (others > 0) {
+            result.Add(new DashboardApiShare(string.Empty, string.Empty, others));
+        }
+
+        return result;
     }
 }
