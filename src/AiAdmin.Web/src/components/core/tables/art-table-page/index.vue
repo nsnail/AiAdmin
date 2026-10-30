@@ -57,6 +57,7 @@ import {
 import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import type { ColumnOption } from '@/types/component'
 import { useI18n } from 'vue-i18n'
+import { resolveBasicOperator } from '@/utils/json/dynamic-query-value'
 
 defineOptions({ name: 'ArtTablePage' })
 
@@ -155,11 +156,7 @@ const groupSelections = computed<Record<string, unknown>>(() => {
 const fieldMetadata = (field: string): ListFilterField | undefined =>
     allFilterFields.value.find((item) => item.field === field || (field === 'UpdatedAt' && item.field === 'CreatedAt'))
 
-const defaultOperator = (field: ListFilterField, value: unknown): string => {
-    if (Array.isArray(value)) return field.valueType === 'date' ? 'DateRange' : 'Any'
-    if (field.control === 'select' || field.valueType === 'boolean' || field.valueType === 'number') return 'Equal'
-    return field.valueType === 'date' ? 'DateRange' : 'Contains'
-}
+const defaultOperator = (field: ListFilterField, value: unknown): string => resolveBasicOperator(field, value)
 
 const combineFilters = (filters: Array<DynamicFilter | undefined>): DynamicFilter | undefined => {
     const values = filters.filter((filter): filter is DynamicFilter => Boolean(filter))

@@ -56,6 +56,8 @@
         "type": "Type",
         "required": "Required",
         "yes": "Yes",
+        "requiredYes": "Required",
+        "optional": "Optional",
         "description": "Description",
         "noParameters": "No parameters",
         "requestBody": "Request body",

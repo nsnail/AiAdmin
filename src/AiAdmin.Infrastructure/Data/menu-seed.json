@@ -48,6 +48,10 @@
             {
               "title": "Impersonate",
               "authMark": "impersonate"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
             }
           ]
         }
@@ -59,7 +63,13 @@
         "meta": {
           "title": "menus.system.role",
           "icon": "ri:user-settings-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Enable",
+              "authMark": "enable"
+            }
+          ]
         }
       },
       {
@@ -82,6 +92,10 @@
             {
               "title": "Delete",
               "authMark": "delete"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
             }
           ]
         }
@@ -106,6 +120,10 @@
             {
               "title": "Delete",
               "authMark": "delete"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
             }
           ]
         }
@@ -218,6 +236,10 @@
             {
               "title": "Delete",
               "authMark": "delete"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
             }
           ]
         }

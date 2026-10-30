@@ -62,6 +62,22 @@ public sealed class ScheduledJobHostedService(
     }
 
     /// <summary>
+    ///     判断作业在当前时间是否仍应触发：已启用、未在运行、到达触发时间且本触发窗口内未触发过
+    /// </summary>
+    /// <param name="job">计划作业</param>
+    /// <param name="now">当前时间</param>
+    /// <returns>应触发返回 true</returns>
+    private static bool ShouldTrigger(
+        ScheduledJob job
+        , DateTime now
+    ) {
+        return job.IsEnabled
+               && job.Status != ScheduledJobStatus.Running
+               && CronMatcher.IsDue(job.CronExpression, now)
+               && !(job.LastTriggeredAt.HasValue && CronMatcher.IsSameTriggerWindow(job.CronExpression, job.LastTriggeredAt.Value, now));
+    }
+
+    /// <summary>
     ///     执行指定计划作业并保存执行结果
     /// </summary>
     /// <param name="jobId">作业编号</param>
@@ -98,6 +114,39 @@ public sealed class ScheduledJobHostedService(
             , RequestBody = body
         };
         _ = await db.ScheduledJobExecutions.AddAsync(execution, cancellationToken).ConfigureAwait(false);
+        await SendJobRequestAsync(job, execution, url, headers, body, cancellationToken).ConfigureAwait(false);
+
+        await using var jobLock = await lockService.TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None).ConfigureAwait(false)
+                                  ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
+
+        await db.Entry(job).ReloadAsync(CancellationToken.None).ConfigureAwait(false);
+        if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt) {
+            job.Status = execution.Status;
+            job.LastFinishedAt = DateTime.UtcNow;
+            job.LastError = execution.ErrorMessage;
+        }
+
+        _ = await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     发送作业配置的 HTTP 请求并把响应、超时或异常结果写入执行记录
+    /// </summary>
+    /// <param name="job">计划作业</param>
+    /// <param name="execution">本次执行记录</param>
+    /// <param name="url">占位符替换后的请求地址</param>
+    /// <param name="headers">占位符替换后的请求头 JSON</param>
+    /// <param name="body">占位符替换后的请求体</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>异步发送任务</returns>
+    private async Task SendJobRequestAsync(
+        ScheduledJob job
+        , ScheduledJobExecution execution
+        , string url
+        , string headers
+        , string body
+        , CancellationToken cancellationToken
+    ) {
         try {
             using var request = new HttpRequestMessage(new HttpMethod(job.RequestMethod), url);
             if (!string.IsNullOrWhiteSpace(body) && job.RequestMethod is not "GET" and not "HEAD") {
@@ -129,18 +178,6 @@ public sealed class ScheduledJobHostedService(
             execution.Status = ScheduledJobStatus.Failed;
             execution.ErrorMessage = exception.Message;
         }
-
-        await using var jobLock = await lockService.TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None).ConfigureAwait(false)
-                                  ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
-
-        await db.Entry(job).ReloadAsync(CancellationToken.None).ConfigureAwait(false);
-        if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt) {
-            job.Status = execution.Status;
-            job.LastFinishedAt = DateTime.UtcNow;
-            job.LastError = execution.ErrorMessage;
-        }
-
-        _ = await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -162,10 +199,7 @@ public sealed class ScheduledJobHostedService(
             .ScheduledJobs.Where(x => x.IsEnabled && x.Status != ScheduledJobStatus.Running)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        foreach (var job in jobs.Where(x =>
-                     CronMatcher.IsDue(x.CronExpression, now)
-                     && (!x.LastTriggeredAt.HasValue || !CronMatcher.IsSameTriggerWindow(x.CronExpression, x.LastTriggeredAt.Value, now))
-                 )) {
+        foreach (var job in jobs.Where(x => ShouldTrigger(x, now))) {
             await using (var jobLock = await lockService.TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken).ConfigureAwait(false)) {
                 if (jobLock is null) {
                     continue;
@@ -173,10 +207,7 @@ public sealed class ScheduledJobHostedService(
 
                 await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
                 now = DateTime.UtcNow;
-                if (!job.IsEnabled
-                    || job.Status == ScheduledJobStatus.Running
-                    || !CronMatcher.IsDue(job.CronExpression, now)
-                    || (job.LastTriggeredAt.HasValue && CronMatcher.IsSameTriggerWindow(job.CronExpression, job.LastTriggeredAt.Value, now))) {
+                if (!ShouldTrigger(job, now)) {
                     continue;
                 }
 

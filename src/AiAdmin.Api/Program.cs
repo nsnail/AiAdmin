@@ -21,21 +21,7 @@ _ = builder.Configuration.AddJsonFile("appsettings.Local.json", true, true);
 
 // 仅在显式启用后台服务时注册相关后台服务
 var enabledHostedServices = applicationArgs.Any(argument => argument.Equals("--enabled-hosted-services", StringComparison.OrdinalIgnoreCase));
-var replaceUrlArgumentIndex = Array.FindIndex(
-    applicationArgs
-    , argument => argument.Equals("--replace-job-request-url", StringComparison.OrdinalIgnoreCase)
-                  || argument.StartsWith("--replace-job-request-url=", StringComparison.OrdinalIgnoreCase)
-);
-string? replaceUrl = null;
-if (replaceUrlArgumentIndex >= 0) {
-    if (applicationArgs[replaceUrlArgumentIndex].Contains('=', StringComparison.Ordinal)) {
-        replaceUrl = applicationArgs[replaceUrlArgumentIndex]["--replace-job-request-url=".Length..];
-    }
-    else if (replaceUrlArgumentIndex + 1 < applicationArgs.Length) {
-        replaceUrl = applicationArgs[replaceUrlArgumentIndex + 1];
-    }
-}
-
+var replaceUrl = ReadReplaceUrl(applicationArgs);
 if (!string.IsNullOrWhiteSpace(replaceUrl)) {
     builder.Configuration["replace-url"] = replaceUrl;
 }
@@ -164,20 +150,7 @@ builder.Services.AddDbContext<AppDbContext>((
         _ = options.AddInterceptors(
             serviceProvider.GetRequiredService<DatabaseCommandAuditInterceptor>(), serviceProvider.GetRequiredService<DatabaseShutdownInterceptor>()
         );
-        _ = provider switch
-        {
-            "sqlite" => options.UseSqlite(
-                connectionString, sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-            )
-            , "sqlserver" => options.UseSqlServer(
-                connectionString, sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-            )
-            , "postgresql" or "postgres" => options.UseNpgsql(
-                connectionString, npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
-            )
-            , "mysql" => options.UseMySQL(connectionString, mysqlOptions => mysqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-            , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
-        };
+        ConfigureProvider(options, provider, connectionString);
     }
 );
 
@@ -187,18 +160,7 @@ builder
     .AddJwtBearer(options =>
         {
             // 浏览器 WebSocket 无法携带请求头，实时连接端点允许通过查询参数传递令牌
-            options.Events = new JwtBearerEvents
-            {
-                OnMessageReceived = context =>
-                {
-                    if (context.Request.Path.Equals(RealtimeWebSocketMiddleware.PATH, StringComparison.OrdinalIgnoreCase)
-                        && context.Request.Query.TryGetValue("access_token", out var token)) {
-                        context.Token = token;
-                    }
-
-                    return Task.CompletedTask;
-                }
-            };
+            options.Events = new JwtBearerEvents { OnMessageReceived = ReadRealtimeTokenAsync };
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true
@@ -241,7 +203,17 @@ _ = app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 // 仅开发和测试环境自动初始化数据库，其他环境不自动执行初始化
 var shouldInitializeDatabase = app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Test");
 if (shouldInitializeDatabase) {
-    var shouldClearDatabase = args.Any(argument =>
+    await InitializeDatabaseAsync(app, args).ConfigureAwait(false);
+}
+
+await app.RunAsync().ConfigureAwait(false);
+return;
+
+static async Task InitializeDatabaseAsync(
+    WebApplication app
+    , string[] arguments
+) {
+    var shouldClearDatabase = arguments.Any(argument =>
         string.Equals(argument, "--clear-database", StringComparison.OrdinalIgnoreCase)
         || string.Equals(argument, "--delete-all-tables", StringComparison.OrdinalIgnoreCase)
     );
@@ -262,8 +234,49 @@ if (shouldInitializeDatabase) {
     await DatabaseInitializer.InitializeRoleApisAsync(app.Services).ConfigureAwait(false);
 }
 
-await app.RunAsync().ConfigureAwait(false);
-return;
+static void ConfigureProvider(
+    DbContextOptionsBuilder options
+    , string provider
+    , string connectionString
+) {
+    _ = provider switch
+    {
+        "sqlite" => options.UseSqlite(connectionString, sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+        , "sqlserver" => options.UseSqlServer(connectionString, sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+        , "postgresql" or "postgres" => options.UseNpgsql(
+            connectionString, npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+        )
+        , "mysql" => options.UseMySQL(connectionString, mysqlOptions => mysqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+        , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
+    };
+}
+
+static Task ReadRealtimeTokenAsync(MessageReceivedContext context) {
+    // 浏览器 WebSocket 无法携带请求头，实时连接端点允许通过查询参数传递令牌
+    if (context.Request.Path.Equals(RealtimeWebSocketMiddleware.PATH, StringComparison.OrdinalIgnoreCase)
+        && context.Request.Query.TryGetValue("access_token", out var token)) {
+        context.Token = token;
+    }
+
+    return Task.CompletedTask;
+}
+
+static string? ReadReplaceUrl(string[] arguments) {
+    var index = Array.FindIndex(
+        arguments
+        , argument => argument.Equals("--replace-job-request-url", StringComparison.OrdinalIgnoreCase)
+                      || argument.StartsWith("--replace-job-request-url=", StringComparison.OrdinalIgnoreCase)
+    );
+    if (index < 0) {
+        return null;
+    }
+
+    if (arguments[index].Contains('=', StringComparison.Ordinal)) {
+        return arguments[index]["--replace-job-request-url=".Length..];
+    }
+
+    return index + 1 < arguments.Length ? arguments[index + 1] : null;
+}
 
 static Dictionary<string, object?> GetEnvironmentInfo() {
     var ret = typeof(Environment)

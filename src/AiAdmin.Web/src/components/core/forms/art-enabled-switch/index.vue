@@ -1,21 +1,22 @@
 <template>
     <ElPopconfirm
         v-if="modelValue"
-        :disabled="disabled"
+        :disabled="isDisabled"
         @confirm="updateEnabled(false)"
         cancel-button-text="取消"
         confirm-button-text="确定禁用"
         title="确定要禁用当前记录吗？"
         width="220">
         <template #reference>
-            <ElSwitch :disabled="disabled" :loading="loading" :model-value="modelValue" />
+            <ElSwitch :disabled="isDisabled" :loading="loading" :model-value="modelValue" />
         </template>
     </ElPopconfirm>
-    <ElSwitch v-else :disabled="disabled" :loading="loading" :model-value="modelValue" @change="updateEnabled(true)" />
+    <ElSwitch v-else :disabled="isDisabled" :loading="loading" :model-value="modelValue" @change="updateEnabled(true)" />
 </template>
 
 <script lang="ts" setup>
 import { ElMessage } from 'element-plus'
+import { useRouteAuth } from '@/hooks/core/useRouteAuth'
 import { fetchUpdateEnabledState, type EnabledStateResource } from '@/api/system-manage'
 
 defineOptions({ name: 'ArtEnabledSwitch' })
@@ -23,6 +24,10 @@ defineOptions({ name: 'ArtEnabledSwitch' })
 const props = defineProps<{ id: string; modelValue: boolean; resource: EnabledStateResource | 'email-account'; disabled?: boolean }>()
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 const loading = ref(false)
+const { hasAuth } = useRouteAuth()
+
+/** 没有当前菜单的 enable 按钮权限时置灰，权限在角色的菜单按钮权限里勾选；嵌入其他页面的列表沿用宿主路由的权限 */
+const isDisabled = computed(() => props.disabled || !hasAuth('enable'))
 
 const updateEnabled = async (isEnabled: boolean): Promise<void> => {
     loading.value = true

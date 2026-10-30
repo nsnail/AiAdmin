@@ -46,41 +46,59 @@ public sealed partial class SystemInfoService
         }
 
         using var reader = new StreamReader(stream);
-        string? releaseDate = null;
-        var started = false;
-        List<string>? items = null;
-        while (reader.ReadLine() is { } line) {
-            if (_releaseHeading().IsMatch(line)) {
-                if (started) {
-                    break;
-                }
 
-                started = true;
-                var dateMatch = _releaseDate().Match(line);
-                releaseDate = dateMatch.Success ? dateMatch.Groups[1].Value : null;
-                continue;
-            }
-
-            if (!started) {
-                continue;
-            }
-
-            if (line.StartsWith("### ", StringComparison.Ordinal)) {
-                items = [];
-                notes.Add(new DashboardReleaseNoteSection(line[4..].Trim(), items));
-                continue;
-            }
-
-            // 条目行以星号开头，换行产生的缩进续行（提交链接）直接忽略
-            if (items is not null && line.StartsWith("* ", StringComparison.Ordinal)) {
-                var text = _commitLink().Replace(line[2..], string.Empty).Replace("**", string.Empty, StringComparison.Ordinal).Trim();
-                if (text.Length > 0) {
-                    items.Add(text);
-                }
+        // 跳过第一个版本标题之前的内容，取到下一个版本标题为止
+        string? headingLine = null;
+        while (reader.ReadLine() is { } head) {
+            if (_releaseHeading().IsMatch(head)) {
+                headingLine = head;
+                break;
             }
         }
 
+        if (headingLine is null) {
+            return (null, notes);
+        }
+
+        var dateMatch = _releaseDate().Match(headingLine);
+        var releaseDate = dateMatch.Success ? dateMatch.Groups[1].Value : null;
+        List<string>? items = null;
+        while (reader.ReadLine() is { } line && !_releaseHeading().IsMatch(line)) {
+            items = ReadReleaseLine(line, items, notes);
+        }
+
         return (releaseDate, notes.FindAll(x => x.Items.Count > 0));
+    }
+
+    /// <summary>
+    ///     处理版本标题之后的一行内容：小节标题开启新分组，条目行追加到当前分组
+    /// </summary>
+    /// <param name="line">CHANGELOG 中的一行</param>
+    /// <param name="items">当前分组的条目集合，尚未遇到小节标题时为空</param>
+    /// <param name="notes">已解析的更新内容分组</param>
+    /// <returns>处理后的当前分组条目集合</returns>
+    private static List<string>? ReadReleaseLine(
+        string line
+        , List<string>? items
+        , List<DashboardReleaseNoteSection> notes
+    ) {
+        if (line.StartsWith("### ", StringComparison.Ordinal)) {
+            var section = new List<string>();
+            notes.Add(new DashboardReleaseNoteSection(line[4..].Trim(), section));
+            return section;
+        }
+
+        // 条目行以星号开头，换行产生的缩进续行（提交链接）直接忽略
+        if (items is null || !line.StartsWith("* ", StringComparison.Ordinal)) {
+            return items;
+        }
+
+        var text = _commitLink().Replace(line[2..], string.Empty).Replace("**", string.Empty, StringComparison.Ordinal).Trim();
+        if (text.Length > 0) {
+            items.Add(text);
+        }
+
+        return items;
     }
 
     /// <summary>

@@ -1,4 +1,7 @@
+using System.Globalization;
 using System.Net;
+using System.Reflection;
+using System.Text.Json;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
@@ -19,16 +22,15 @@ namespace AiAdmin.Api.Controllers;
 [ApiController]
 [Route("api/api-request-log")]
 [ApiDescription("API request log management")]
-public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTableService tables, ElasticsearchLogQueryService elasticsearch) : ControllerBase
+public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTableService tables, ElasticsearchLogQueryService elasticsearch)
+    : ControllerBase
 {
     /// <summary>
     ///     列表展示列到实体字段的排序别名：用户列展示用户名，实际按用户主键排序；接口列展示路径，实际按路径 CRC32 排序
     /// </summary>
     private static readonly Dictionary<string, string> _sortAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        ["userName"] = nameof(ApiRequestLog.UserId)
-        , ["path"] = nameof(ApiRequestLog.PathCrc32)
-        , ["apiName"] = nameof(ApiRequestLog.PathCrc32)
+        ["userName"] = nameof(ApiRequestLog.UserId), ["path"] = nameof(ApiRequestLog.PathCrc32), ["apiName"] = nameof(ApiRequestLog.PathCrc32)
     };
 
     /// <summary>
@@ -62,41 +64,14 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
             await using var context = tables.OpenQueryContext(name);
 
             // 每张表取全量分组值，合并后再截断，否则各表各取前几项会使合并后的计数不准
-            perTable.Add(await ListFilterGroupingService.GetGroupsAsync(context.Logs.AsNoTracking(), filter, null, int.MaxValue).ConfigureAwait(false));
+            perTable.Add(
+                await ListFilterGroupingService.GetGroupsAsync(context.Logs.AsNoTracking(), filter, null, int.MaxValue).ConfigureAwait(false)
+            );
         }
 
         var maxOptions = request.MaxOptions is > 0 ? request.MaxOptions.Value : 10;
         var groups = MergeGroups(perTable, [.. ListFilterMetadataService.GetFields<ApiRequestLog>().Where(x => x.GroupCount)], maxOptions);
         return Ok(ApiResponse<IReadOnlyList<ListFilterGroupResult>>.Ok(await RestoreGroupLabelsAsync(groups).ConfigureAwait(false)));
-    }
-
-    /// <summary>
-    ///     按链路编号查询 Elasticsearch 中同一次请求产生的全部日志（HTTP 快照、SQL、外部请求、应用日志），按时间升序返回，最多 100 条
-    /// </summary>
-    /// <param name="request">包含链路编号的请求体</param>
-    /// <returns>该链路的日志，Elasticsearch 未启用或没有记录时返回空集合</returns>
-    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
-    [HttpPost("trace-logs")]
-    [ApiDescription("Query Elasticsearch logs by trace id")]
-    public async Task<ActionResult<ApiResponse<PagedResponse<SystemLogItem>>>> TraceLogsAsync([FromBody] ApiRequestLogTraceRequest request) {
-        // Elasticsearch 日志含请求体、请求头和 SQL，与系统日志页一致，只允许全部数据权限查看
-        if (!db.DataScope.HasAllData) {
-            throw new DataAccessDeniedException();
-        }
-
-        var query = new DynamicQueryRequest
-        {
-            Current = 1
-            , Size = 100
-            , SortField = nameof(SystemLogItem.Timestamp)
-            , SortOrder = "asc"
-            , DynamicFilter = new DynamicFilter
-            {
-                Field = nameof(SystemLogItem.TraceId), Operator = "Equal", Value = System.Text.Json.JsonSerializer.SerializeToElement(request.TraceId)
-            }
-        };
-        var (records, total) = await elasticsearch.SearchAsync(query, HttpContext.RequestAborted).ConfigureAwait(false);
-        return Ok(ApiResponse<PagedResponse<SystemLogItem>>.Ok(new PagedResponse<SystemLogItem>(records, 1, 100, total)));
     }
 
     /// <summary>
@@ -125,15 +100,94 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
             total += await query.CountAsync(HttpContext.RequestAborted).ConfigureAwait(false);
 
             // 每张日表只取排在前 current*size 行，合并后的前 current*size 行一定包含在这些行中
-            var sorted = (IOrderedQueryable<ApiRequestLog>)query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ApiRequestLog.CreatedAt), true, _sortAliases);
-            candidates.AddRange(
-                await sorted.ThenBy(x => x.Id).Take(take).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false)
+            var sorted = (IOrderedQueryable<ApiRequestLog>)query.ApplyDynamicSort(
+                request.SortField, request.SortOrder, nameof(ApiRequestLog.CreatedAt), true, _sortAliases
             );
+            candidates.AddRange(await sorted.ThenBy(x => x.Id).Take(take).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false));
         }
 
         var page = SortAndPage(candidates, ResolveSortField(request.SortField), request.SortOrder, request.Current, request.Size);
         var results = await ToResultsAsync(page).ConfigureAwait(false);
-        return Ok(ApiResponse<PagedResponse<ApiRequestLogResult>>.Ok(new PagedResponse<ApiRequestLogResult>(results, request.Current, request.Size, total)));
+        return Ok(
+            ApiResponse<PagedResponse<ApiRequestLogResult>>.Ok(new PagedResponse<ApiRequestLogResult>(results, request.Current, request.Size, total))
+        );
+    }
+
+    /// <summary>
+    ///     按链路编号查询 Elasticsearch 中同一次请求产生的全部日志（HTTP 快照、SQL、外部请求、应用日志），按时间升序返回，最多 100 条
+    /// </summary>
+    /// <param name="request">包含链路编号的请求体</param>
+    /// <returns>该链路的日志，Elasticsearch 未启用或没有记录时返回空集合</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpPost("trace-logs")]
+    [ApiDescription("Query Elasticsearch logs by trace id")]
+    public async Task<ActionResult<ApiResponse<PagedResponse<SystemLogItem>>>> TraceLogsAsync([FromBody] ApiRequestLogTraceRequest request) {
+        // Elasticsearch 日志含请求体、请求头和 SQL，与系统日志页一致，只允许全部数据权限查看
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        var query = new DynamicQueryRequest
+        {
+            Current = 1
+            , Size = 100
+            , SortField = nameof(SystemLogItem.Timestamp)
+            , SortOrder = "asc"
+            , DynamicFilter = new DynamicFilter
+            {
+                Field = nameof(SystemLogItem.TraceId), Operator = "Equal", Value = JsonSerializer.SerializeToElement(request.TraceId)
+            }
+        };
+        var (records, total) = await elasticsearch.SearchAsync(query, HttpContext.RequestAborted).ConfigureAwait(false);
+        return Ok(ApiResponse<PagedResponse<SystemLogItem>>.Ok(new PagedResponse<SystemLogItem>(records, 1, 100, total)));
+    }
+
+    /// <summary>
+    ///     比较两个排序键，空值排在最小，其余按可比较类型比较
+    /// </summary>
+    /// <param name="left">左值</param>
+    /// <param name="right">右值</param>
+    /// <returns>比较结果</returns>
+    private static int CompareValues(
+        object? left
+        , object? right
+    ) {
+        return left is null
+            ? right is null ? 0 : -1
+            : right is null
+                ? 1
+                : ((IComparable)left).CompareTo(right);
+    }
+
+    /// <summary>
+    ///     把各日表的分组结果按字段和分组值合并，计数相加，再按数量倒序、名称升序截断
+    /// </summary>
+    /// <param name="perTable">每张日表的分组结果</param>
+    /// <param name="fields">需要分组的字段元数据，决定输出顺序，即使没有日表也输出空分组</param>
+    /// <param name="maxOptions">每个分组最多保留的选项数量</param>
+    /// <returns>合并后的分组结果</returns>
+    private static List<ListFilterGroupResult> MergeGroups(
+        List<IReadOnlyList<ListFilterGroupResult>> perTable
+        , ListFilterFieldResult[] fields
+        , int maxOptions
+    ) {
+        return
+        [
+            .. fields.Select(field =>
+                {
+                    var groups = perTable.Select(tableGroups => tableGroups.Single(x => x.Field == field.Field)).ToArray();
+                    var merged = groups
+                        .SelectMany(x => x.Options)
+                        .GroupBy(x => Convert.ToString(x.Value, CultureInfo.InvariantCulture) ?? string.Empty)
+                        .Select(g => new ListFilterGroupOptionResult(g.First().Value, g.First().Label, g.Sum(x => x.Count)))
+                        .OrderByDescending(x => x.Count)
+                        .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
+                        .Take(maxOptions)
+                        .ToArray();
+                    return new ListFilterGroupResult(field.Field, field.Label, field.ValueType, groups.Sum(x => x.Total), merged);
+                }
+            )
+        ];
     }
 
     /// <summary>
@@ -165,52 +219,13 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
     ) {
         var descending = string.IsNullOrWhiteSpace(sortField) || string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
         var property = typeof(ApiRequestLog).GetProperty(
-            string.IsNullOrWhiteSpace(sortField) ? nameof(ApiRequestLog.CreatedAt) : sortField.Trim()
-            , System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase
-        ) ?? throw new DynamicFilterValidationException($"Dynamic sort field '{sortField}' is not available.");
+                           string.IsNullOrWhiteSpace(sortField) ? nameof(ApiRequestLog.CreatedAt) : sortField.Trim()
+                           , BindingFlags.Instance | BindingFlags.Public | BindingFlags.IgnoreCase
+                       )
+                       ?? throw new DynamicFilterValidationException($"Dynamic sort field '{sortField}' is not available.");
         var comparer = Comparer<object?>.Create(CompareValues);
         var ordered = descending ? candidates.OrderByDescending(property.GetValue, comparer) : candidates.OrderBy(property.GetValue, comparer);
         return [.. ordered.ThenBy(x => x.Id).Skip((current - 1) * size).Take(size)];
-    }
-
-    /// <summary>
-    ///     把各日表的分组结果按字段和分组值合并，计数相加，再按数量倒序、名称升序截断
-    /// </summary>
-    /// <param name="perTable">每张日表的分组结果</param>
-    /// <param name="fields">需要分组的字段元数据，决定输出顺序，即使没有日表也输出空分组</param>
-    /// <param name="maxOptions">每个分组最多保留的选项数量</param>
-    /// <returns>合并后的分组结果</returns>
-    private static List<ListFilterGroupResult> MergeGroups(
-        List<IReadOnlyList<ListFilterGroupResult>> perTable
-        , ListFilterFieldResult[] fields
-        , int maxOptions
-    ) {
-        return
-        [
-            .. fields.Select(field =>
-                {
-                    var groups = perTable.Select(tableGroups => tableGroups.Single(x => x.Field == field.Field)).ToArray();
-                    var merged = groups
-                        .SelectMany(x => x.Options)
-                        .GroupBy(x => Convert.ToString(x.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)
-                        .Select(g => new ListFilterGroupOptionResult(g.First().Value, g.First().Label, g.Sum(x => x.Count)))
-                        .OrderByDescending(x => x.Count)
-                        .ThenBy(x => x.Label, StringComparer.OrdinalIgnoreCase)
-                        .Take(maxOptions)
-                        .ToArray();
-                    return new ListFilterGroupResult(field.Field, field.Label, field.ValueType, groups.Sum(x => x.Total), merged);
-                }
-            )
-        ];
-    }
-
-    /// <summary>
-    ///     把方法编号还原为方法名称
-    /// </summary>
-    /// <param name="method">方法编号</param>
-    /// <returns>方法名称，未知方法返回 Other</returns>
-    private static string ToMethodName(ApiRequestMethod method) {
-        return method == ApiRequestMethod.Other ? "Other" : method.ToString().ToUpperInvariant();
     }
 
     /// <summary>
@@ -223,16 +238,12 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
     }
 
     /// <summary>
-    ///     比较两个排序键，空值排在最小，其余按可比较类型比较
+    ///     把方法编号还原为方法名称
     /// </summary>
-    /// <param name="left">左值</param>
-    /// <param name="right">右值</param>
-    /// <returns>比较结果</returns>
-    private static int CompareValues(
-        object? left
-        , object? right
-    ) {
-        return left is null ? right is null ? 0 : -1 : right is null ? 1 : ((IComparable)left).CompareTo(right);
+    /// <param name="method">方法编号</param>
+    /// <returns>方法名称，未知方法返回 Other</returns>
+    private static string ToMethodName(ApiRequestMethod method) {
+        return method == ApiRequestMethod.Other ? "Other" : method.ToString().ToUpperInvariant();
     }
 
     /// <summary>
@@ -246,7 +257,7 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
             return groups;
         }
 
-        var crcs = apiGroup.Options.Select(x => Convert.ToInt32(x.Value, System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        var crcs = apiGroup.Options.Select(x => Convert.ToInt32(x.Value, CultureInfo.InvariantCulture)).ToList();
         var apis = await db
             .ApiEndpoints.AsNoTracking()
             .Where(x => crcs.Contains(x.PathCrc32))
@@ -254,10 +265,10 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
             .ToListAsync(HttpContext.RequestAborted)
             .ConfigureAwait(false);
         var pathByCrc = apis.GroupBy(x => x.PathCrc32).ToDictionary(x => x.Key, x => x.First().Path);
-        var restored = apiGroup.Options
-            .Select(option =>
+        var restored = apiGroup
+            .Options.Select(option =>
                 {
-                    var crc = Convert.ToInt32(option.Value, System.Globalization.CultureInfo.InvariantCulture);
+                    var crc = Convert.ToInt32(option.Value, CultureInfo.InvariantCulture);
                     return option with { Label = pathByCrc.TryGetValue(crc, out var path) ? path : option.Label };
                 }
             )
@@ -294,11 +305,12 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
                     _ = apiByCrc.TryGetValue(log.PathCrc32, out var api);
                     var userName = log.UserId.HasValue && userNames.TryGetValue(log.UserId.Value, out var name) ? name : null;
                     return new ApiRequestLogResult(
-                        log.Id.ToString(System.Globalization.CultureInfo.InvariantCulture), ServerTime.ToOffset(log.CreatedAt), ToMethodName(log.Method), api?.Path
-                        , api?.Name, log.PathCrc32, log.StatusCode, log.ApiResponseCode, log.ElapsedMilliseconds
-                        , log.UserId?.ToString(System.Globalization.CultureInfo.InvariantCulture), userName
-                        , log.DepartmentId?.ToString(System.Globalization.CultureInfo.InvariantCulture), ToIpText(log.ClientIp), ToIpText(log.ServerIp)
-                        , log.TraceId.ToString(System.Globalization.CultureInfo.InvariantCulture), log.WorkerId
+                        log.Id.ToString(CultureInfo.InvariantCulture), ServerTime.ToOffset(log.CreatedAt), ToMethodName(log.Method), api?.Path
+                        , api?.Name
+                        , log.PathCrc32, log.StatusCode, log.ApiResponseCode, log.ElapsedMilliseconds
+                        , log.UserId?.ToString(CultureInfo.InvariantCulture)
+                        , userName, log.DepartmentId?.ToString(CultureInfo.InvariantCulture), ToIpText(log.ClientIp), ToIpText(log.ServerIp)
+                        , log.TraceId.ToString(CultureInfo.InvariantCulture), log.WorkerId
                     );
                 }
             )

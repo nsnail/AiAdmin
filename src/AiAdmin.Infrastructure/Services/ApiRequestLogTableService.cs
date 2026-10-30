@@ -287,6 +287,36 @@ public sealed class ApiRequestLogTableService(string provider, string connection
     }
 
     /// <summary>
+    ///     依次执行建表和建索引语句，多个实例同时建表时后到者忽略已存在错误
+    /// </summary>
+    /// <param name="connection">已打开的数据库连接</param>
+    /// <param name="tableName">日分表名称</param>
+    /// <param name="cancellationToken">取消操作令牌</param>
+    /// <returns>异步任务</returns>
+    /// <exception cref="DbException">建表失败且表仍不存在时引发</exception>
+    private async Task CreateTableAsync(
+        DbConnection connection
+        , string tableName
+        , CancellationToken cancellationToken
+    ) {
+        foreach (var statement in BuildCreateStatements(tableName)) {
+            await using var command = connection.CreateCommand();
+            command.CommandText = statement;
+            try {
+                _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (DbException) {
+                // 后到者会收到已存在错误，表已就绪则忽略，索引语句由先到者负责，其他错误继续抛出
+                if (!await TableExistsAsync(connection, tableName, cancellationToken).ConfigureAwait(false)) {
+                    throw;
+                }
+
+                break;
+            }
+        }
+    }
+
+    /// <summary>
     ///     确保日分表存在，已确认存在的表缓存在内存中，之后不再查询数据库
     /// </summary>
     /// <param name="tableName">日分表名称</param>
@@ -310,21 +340,7 @@ public sealed class ApiRequestLogTableService(string provider, string connection
             await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             var existing = await ListTablesAsync(connection, cancellationToken).ConfigureAwait(false);
             if (!existing.Contains(tableName, StringComparer.Ordinal)) {
-                foreach (var statement in BuildCreateStatements(tableName)) {
-                    await using var command = connection.CreateCommand();
-                    command.CommandText = statement;
-                    try {
-                        _ = await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
-                    }
-                    catch (DbException) {
-                        // 多个实例同时建表时后到者会收到已存在错误，表已就绪则忽略，索引语句由先到者负责，其他错误继续抛出
-                        if (!await TableExistsAsync(connection, tableName, cancellationToken).ConfigureAwait(false)) {
-                            throw;
-                        }
-
-                        break;
-                    }
-                }
+                await CreateTableAsync(connection, tableName, cancellationToken).ConfigureAwait(false);
             }
 
             _ = _knownTables.Add(tableName);

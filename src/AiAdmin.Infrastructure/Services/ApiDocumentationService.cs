@@ -1,7 +1,10 @@
 using System.Collections;
+using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Security.Claims;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
@@ -224,7 +227,7 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
                         }
 
                         return new ApiDocumentationProperty(
-                            x.Name, ToType(x.PropertyType), x.PropertyType.IsValueType && Nullable.GetUnderlyingType(x.PropertyType) is null
+                            x.Name, ToType(x.PropertyType), IsRequiredProperty(x)
                             , AppendEnumValues(ReadSummary(xml, "P:" + owner.FullName + "." + x.Name) ?? string.Empty, x.PropertyType, xml), children
                         );
                     }
@@ -422,6 +425,18 @@ public sealed class ApiDocumentationService(IActionDescriptorCollectionProvider 
                && type != typeof(string)
                && type != typeof(object)
                && type.Namespace?.StartsWith("System", StringComparison.Ordinal) != true;
+    }
+
+    /// <summary>
+    ///     判断属性是否为必填：声明了 required 关键字、[Required] 或 [JsonRequired] 特性，或为不可空值类型
+    /// </summary>
+    /// <param name="property">待判断的属性</param>
+    /// <returns>必填时返回 true</returns>
+    private static bool IsRequiredProperty(PropertyInfo property) {
+        return property.GetCustomAttribute<RequiredMemberAttribute>() is not null
+               || property.GetCustomAttribute<RequiredAttribute>() is not null
+               || property.GetCustomAttribute<JsonRequiredAttribute>() is not null
+               || (property.PropertyType.IsValueType && Nullable.GetUnderlyingType(property.PropertyType) is null);
     }
 
     /// <summary>

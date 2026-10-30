@@ -62,11 +62,9 @@ public static class ApiRequestLogQueryRange
             return ReadRange(value);
         }
 
-        if (!string.Equals(node.Logic, "And", StringComparison.OrdinalIgnoreCase)) {
-            return null;
-        }
-
-        return node.Filters.Select(FindCreatedAtRange).FirstOrDefault(x => x is not null);
+        return !string.Equals(node.Logic, "And", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : node.Filters.Select(FindCreatedAtRange).FirstOrDefault(x => x is not null);
     }
 
     /// <summary>

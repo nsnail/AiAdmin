@@ -1,5 +1,6 @@
 using System.Globalization;
 using Minio;
+using Minio.DataModel;
 using Minio.DataModel.Args;
 
 namespace AiAdmin.Api.Services;
@@ -114,35 +115,16 @@ public sealed class MinioStorageService
         await foreach (var item in _client
                            .ListObjectsEnumAsync(new ListObjectsArgs().WithBucket(_options.Bucket).WithPrefix(prefix).WithRecursive(true))
                            .ConfigureAwait(false)) {
-            var key = item.Key;
-            if (!key.StartsWith(prefix, StringComparison.Ordinal)) {
-                continue;
+            var entry = ToDirectChild(item, prefix);
+            if (entry is not null) {
+                entries[entry.Name] = entry;
             }
-
-            var remainder = key[prefix.Length..];
-            if (string.IsNullOrEmpty(remainder)) {
-                continue;
-            }
-
-            var separator = remainder.IndexOf('/');
-            var entryName = separator < 0 ? remainder : remainder[..(separator + 1)];
-            var entryKey = prefix + entryName;
-            var isDirectory = separator >= 0 || item.IsDir;
-            entries[entryKey] = isDirectory
-                ? new MinioObject(entryKey, 0, DateTime.Parse(item.LastModified, CultureInfo.InvariantCulture), true)
-                : new MinioObject(entryKey, checked((long)item.Size), DateTime.Parse(item.LastModified, CultureInfo.InvariantCulture));
         }
 
         result.AddRange(
             entries.Values.Where(x => string.IsNullOrWhiteSpace(keyword) || x.Name.Contains(keyword.Trim(), StringComparison.OrdinalIgnoreCase))
         );
-        IEnumerable<MinioObject> ordered = sortField.ToLowerInvariant() switch
-        {
-            "size" => descending ? result.OrderByDescending(x => x.Size) : result.OrderBy(x => x.Size)
-            , "lastmodified" => descending ? result.OrderByDescending(x => x.LastModified) : result.OrderBy(x => x.LastModified)
-            , _ => descending ? result.OrderByDescending(x => x.Name, StringComparer.Ordinal) : result.OrderBy(x => x.Name, StringComparer.Ordinal)
-        };
-        return [.. ordered];
+        return [.. OrderObjects(result, sortField, descending)];
     }
 
     /// <summary>
@@ -170,6 +152,55 @@ public sealed class MinioStorageService
                     .WithContentType(contentType)
             )
             .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     按字段对文件和目录排序，未识别的字段按名称排序
+    /// </summary>
+    /// <param name="items">文件和目录列表</param>
+    /// <param name="sortField">排序字段，支持 Size、LastModified 和 Name</param>
+    /// <param name="descending">是否倒序</param>
+    /// <returns>排序后的文件和目录</returns>
+    private static IEnumerable<MinioObject> OrderObjects(
+        List<MinioObject> items
+        , string sortField
+        , bool descending
+    ) {
+        return sortField.ToLowerInvariant() switch
+        {
+            "size" => descending ? items.OrderByDescending(x => x.Size) : items.OrderBy(x => x.Size)
+            , "lastmodified" => descending ? items.OrderByDescending(x => x.LastModified) : items.OrderBy(x => x.LastModified)
+            , _ => descending ? items.OrderByDescending(x => x.Name, StringComparer.Ordinal) : items.OrderBy(x => x.Name, StringComparer.Ordinal)
+        };
+    }
+
+    /// <summary>
+    ///     把前缀下的任一对象折叠为其所在层级的直接子项，位于子目录内的对象折叠为目录项
+    /// </summary>
+    /// <param name="item">MinIO 返回的对象</param>
+    /// <param name="prefix">用户目录前缀</param>
+    /// <returns>直接子项，对象不在前缀下或与前缀本身相同时返回 null</returns>
+    private static MinioObject? ToDirectChild(
+        Item item
+        , string prefix
+    ) {
+        var key = item.Key;
+        if (!key.StartsWith(prefix, StringComparison.Ordinal)) {
+            return null;
+        }
+
+        var remainder = key[prefix.Length..];
+        if (string.IsNullOrEmpty(remainder)) {
+            return null;
+        }
+
+        var separator = remainder.IndexOf('/');
+        var entryName = separator < 0 ? remainder : remainder[..(separator + 1)];
+        var entryKey = prefix + entryName;
+        var lastModified = DateTime.Parse(item.LastModified, CultureInfo.InvariantCulture);
+        return separator >= 0 || item.IsDir
+            ? new MinioObject(entryKey, 0, lastModified, true)
+            : new MinioObject(entryKey, checked((long)item.Size), lastModified);
     }
 
     /// <summary>

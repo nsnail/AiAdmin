@@ -364,7 +364,7 @@ public static class DatabaseInitializer
                     , Sort = 30
                     , IsEnabled = true
                     , MetaJson = /*lang=json,strict*/
-                        "{\"title\":\"menus.system.scheduledJob\",\"icon\":\"ri:timer-line\",\"keepAlive\":true,\"roles\":[\"R_SUPER\"]}"
+                        "{\"title\":\"menus.system.scheduledJob\",\"icon\":\"ri:timer-line\",\"keepAlive\":true,\"authList\":[{\"title\":\"Enable\",\"authMark\":\"enable\"}],\"roles\":[\"R_SUPER\"]}"
                 }
             )
             .ConfigureAwait(false);

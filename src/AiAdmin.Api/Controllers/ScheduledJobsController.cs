@@ -348,38 +348,14 @@ public sealed class ScheduledJobsController(
         await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.ReadUncommitted).ConfigureAwait(false);
         var query = db.ScheduledJobs.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter);
         var total = await query.CountAsync().ConfigureAwait(false);
-        List<ScheduledJob> rows;
-        if (string.Equals(request.SortField, "executionDuration", StringComparison.OrdinalIgnoreCase)) {
-            // 时长是两个时间字段的计算值；仅取排序所需字段，再按分页结果读取完整作业
-            var durations = await query.Select(x => new { x.Id, x.LastTriggeredAt, x.LastFinishedAt }).ToListAsync().ConfigureAwait(false);
-            var ascending = request.SortOrder?.Equals("asc", StringComparison.OrdinalIgnoreCase) == true
-                            || request.SortOrder?.Equals("ascending", StringComparison.OrdinalIgnoreCase) == true;
-            var ordered = ascending
-                ? durations
-                    .OrderBy(x => x.LastTriggeredAt.HasValue && x.LastFinishedAt.HasValue
-                        ? Math.Max(0, (x.LastFinishedAt.Value - x.LastTriggeredAt.Value).Ticks)
-                        : 0
-                    )
-                    .ThenBy(x => x.Id)
-                : durations
-                    .OrderByDescending(x =>
-                        x.LastTriggeredAt.HasValue && x.LastFinishedAt.HasValue
-                            ? Math.Max(0, (x.LastFinishedAt.Value - x.LastTriggeredAt.Value).Ticks)
-                            : 0
-                    )
-                    .ThenBy(x => x.Id);
-            var pageIds = ordered.Skip((request.Current - 1) * request.Size).Take(request.Size).Select(x => x.Id).ToArray();
-            var pageRows = await query.Where(x => pageIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id).ConfigureAwait(false);
-            rows = [.. pageIds.Select(id => pageRows[id])];
-        }
-        else {
-            rows = await query
+        var rows = string.Equals(request.SortField, "executionDuration", StringComparison.OrdinalIgnoreCase)
+            ? await ListOrderedByDurationAsync(query, request).ConfigureAwait(false)
+            : await query
                 .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ScheduledJob.CreatedAt), true)
                 .Skip((request.Current - 1) * request.Size)
                 .Take(request.Size)
                 .ToListAsync()
                 .ConfigureAwait(false);
-        }
 
         await transaction.CommitAsync().ConfigureAwait(false);
         return Ok(
@@ -455,6 +431,25 @@ public sealed class ScheduledJobsController(
     }
 
     /// <summary>
+    ///     更新计划作业的启用状态
+    /// </summary>
+    /// <param name="request">启用状态请求</param>
+    /// <returns>状态更新结果</returns>
+    [HttpPost("enabled")]
+    [ApiDescription("Update scheduled job enabled state")]
+    public async Task<ActionResult<ApiResponse<object>>> SetEnabledAsync([FromBody] SetEnabledRequest request) {
+        var affected = await db
+            .ScheduledJobs.Where(x => x.Id == request.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+            .ConfigureAwait(false);
+        if (affected == 0) {
+            return NotFound(new ApiResponse<object>(404, "Resource not found", null));
+        }
+
+        return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));
+    }
+
+    /// <summary>
     ///     修改计划作业
     /// </summary>
     /// <param name="request">作业保存请求</param>
@@ -463,6 +458,30 @@ public sealed class ScheduledJobsController(
     [ApiDescription("Update scheduled job")]
     public Task<ActionResult<ApiResponse<ScheduledJobResult>>> UpdateAsync([FromBody] SaveScheduledJobRequest request) {
         return SaveAsync(request.Id, request);
+    }
+
+    /// <summary>
+    ///     按执行时长排序并取出当前页的计划作业，时长是两个时间字段的计算值，因此先取排序所需字段，再按分页结果读取完整作业
+    /// </summary>
+    /// <param name="query">已应用动态筛选的作业查询</param>
+    /// <param name="request">包含排序方向和分页信息的请求体</param>
+    /// <returns>当前页的计划作业，顺序与排序结果一致</returns>
+    private static async Task<List<ScheduledJob>> ListOrderedByDurationAsync(
+        IQueryable<ScheduledJob> query
+        , DynamicQueryRequest request
+    ) {
+        var durations = await query.Select(x => new { x.Id, x.LastTriggeredAt, x.LastFinishedAt }).ToListAsync().ConfigureAwait(false);
+        var ascending = request.SortOrder?.Equals("asc", StringComparison.OrdinalIgnoreCase) == true
+                        || request.SortOrder?.Equals("ascending", StringComparison.OrdinalIgnoreCase) == true;
+        var keyed = durations.Select(x => (x.Id
+            , Ticks: x.LastTriggeredAt.HasValue && x.LastFinishedAt.HasValue
+                ? Math.Max(0, (x.LastFinishedAt.Value - x.LastTriggeredAt.Value).Ticks)
+                : 0)
+        );
+        var ordered = ascending ? keyed.OrderBy(x => x.Ticks).ThenBy(x => x.Id) : keyed.OrderByDescending(x => x.Ticks).ThenBy(x => x.Id);
+        var pageIds = ordered.Skip((request.Current - 1) * request.Size).Take(request.Size).Select(x => x.Id).ToList();
+        var pageRows = await query.Where(x => pageIds.Contains(x.Id)).ToDictionaryAsync(x => x.Id).ConfigureAwait(false);
+        return [.. pageIds.Select(id => pageRows[id])];
     }
 
     /// <summary>

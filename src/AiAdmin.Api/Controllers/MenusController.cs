@@ -15,10 +15,11 @@ namespace AiAdmin.Api.Controllers;
 ///     菜单管理控制器
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
+/// <param name="permissionCache">接口权限缓存</param>
 [ApiController]
 [ApiDescription("Menu management")]
 [Route("api/menu")]
-public sealed class MenusController(AppDbContext db) : ControllerBase
+public sealed class MenusController(AppDbContext db, ApiPermissionCache permissionCache) : ControllerBase
 {
     /// <summary>
     ///     创建菜单
@@ -166,6 +167,27 @@ public sealed class MenusController(AppDbContext db) : ControllerBase
             .ToListAsync()
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<MenuItemResult>>.Ok(BuildTree(menus)));
+    }
+
+    /// <summary>
+    ///     更新菜单的启用状态
+    /// </summary>
+    /// <param name="request">启用状态请求</param>
+    /// <returns>状态更新结果</returns>
+    [HttpPost("enabled")]
+    [ApiDescription("Update menu enabled state")]
+    public async Task<ActionResult<ApiResponse<object>>> SetEnabledAsync([FromBody] SetEnabledRequest request) {
+        var affected = await db
+            .Menus.Where(x => x.Id == request.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+            .ConfigureAwait(false);
+        if (affected == 0) {
+            return NotFound(new ApiResponse<object>(404, "Resource not found", null));
+        }
+
+        permissionCache.Invalidate();
+
+        return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));
     }
 
     /// <summary>

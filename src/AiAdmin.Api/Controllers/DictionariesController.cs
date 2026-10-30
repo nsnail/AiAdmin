@@ -208,6 +208,25 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     }
 
     /// <summary>
+    ///     更新字典项的启用状态
+    /// </summary>
+    /// <param name="request">启用状态请求</param>
+    /// <returns>状态更新结果</returns>
+    [HttpPost("items/enabled")]
+    [ApiDescription("Update dictionary item enabled state")]
+    public async Task<ActionResult<ApiResponse<object>>> SetEnabledAsync([FromBody] SetEnabledRequest request) {
+        var affected = await db
+            .DictionaryItems.Where(x => x.Id == request.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+            .ConfigureAwait(false);
+        if (affected == 0) {
+            return NotFound(new ApiResponse<object>(404, "Resource not found", null));
+        }
+
+        return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));
+    }
+
+    /// <summary>
     ///     修改字典目录
     /// </summary>
     /// <param name="request">目录保存请求</param>

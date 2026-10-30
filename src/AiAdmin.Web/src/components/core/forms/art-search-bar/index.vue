@@ -259,6 +259,7 @@ import {
     type FormInstance,
 } from 'element-plus'
 import { calculateResponsiveSpan, type ResponsiveBreakpoint } from '@/utils/form/responsive'
+import { convertDynamicQueryValue, resolveBasicOperator } from '@/utils/json/dynamic-query-value'
 import ArtDynamicQueryDrawer from '../art-dynamic-query-drawer/index.vue'
 import ArtJsonEditor from '../art-json-editor/index.vue'
 import type { DynamicFilter, DynamicQueryField } from '../art-dynamic-query-drawer/types'
@@ -422,6 +423,8 @@ const isGroupSelected = (field: string, value: unknown): boolean =>
     (JSON.stringify(props.groupSelections[field]) === JSON.stringify(value) ||
         (typeof props.groupSelections[field] !== 'object' && typeof value !== 'object' && String(props.groupSelections[field]) === String(value)))
 const translateGroupOption = (label: string): string => {
+    // 分组值为空字符串时（如未知区号的账号）显示占位符，避免出现没有文字的按钮
+    if (!label) return '-'
     const translated = t(label)
     return translated === label ? label : translated
 }
@@ -738,17 +741,20 @@ const queryPreviewToFilter = (query: Record<string, any>): DynamicFilter | undef
     if (query.dynamicFilter && typeof query.dynamicFilter === 'object') return query.dynamicFilter
     const filters = Object.entries(query)
         .filter(([key, value]) => key !== 'dynamicFilter' && value !== undefined && value !== null && value !== '')
-        .map(([field, value]) => ({
-            field,
-            operator: Array.isArray(value)
-                ? props.filterFields?.find((item) => item.field === field)?.valueType === 'date'
-                    ? 'DateRange'
-                    : 'Any'
-                : typeof value === 'string'
-                  ? 'Contains'
-                  : 'Equal',
-            value,
-        }))
+        .map(([field, value]) => {
+            const valueType = props.filterFields?.find((item) => item.field === field)?.valueType
+            return {
+                field,
+                operator: resolveBasicOperator(
+                    props.filterFields?.find((item) => item.field === field),
+                    value,
+                ),
+                // 数值、枚举和布尔按字段类型转换，超出安全整数范围的 ID 保持字符串交由后端精确转换
+                value: Array.isArray(value)
+                    ? value.map((item) => convertDynamicQueryValue(item, valueType))
+                    : convertDynamicQueryValue(value, valueType),
+            }
+        })
     return filters.length ? { logic: 'And', filters } : undefined
 }
 const applyQueryPreview = () => {

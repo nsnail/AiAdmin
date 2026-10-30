@@ -12,10 +12,12 @@ namespace AiAdmin.Api.Controllers;
 ///     部门管理控制器
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
+/// <param name="permissionCache">接口权限缓存</param>
+/// <param name="dataScopeCache">数据权限缓存</param>
 [ApiController]
 [ApiDescription("Department management")]
 [Route("api/department")]
-public sealed class DepartmentsController(AppDbContext db) : ControllerBase
+public sealed class DepartmentsController(AppDbContext db, ApiPermissionCache permissionCache, DataScopeCache dataScopeCache) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> _sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -120,6 +122,28 @@ public sealed class DepartmentsController(AppDbContext db) : ControllerBase
         return Ok(
             ApiResponse<PagedResponse<DepartmentTreeItem>>.Ok(new PagedResponse<DepartmentTreeItem>(treeRows, request.Current, request.Size, total))
         );
+    }
+
+    /// <summary>
+    ///     更新部门的启用状态
+    /// </summary>
+    /// <param name="request">启用状态请求</param>
+    /// <returns>状态更新结果</returns>
+    [HttpPost("enabled")]
+    [ApiDescription("Update department enabled state")]
+    public async Task<ActionResult<ApiResponse<object>>> SetEnabledAsync([FromBody] SetEnabledRequest request) {
+        var affected = await db
+            .Departments.Where(x => x.Id == request.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+            .ConfigureAwait(false);
+        if (affected == 0) {
+            return NotFound(new ApiResponse<object>(404, "Resource not found", null));
+        }
+
+        permissionCache.Invalidate();
+        dataScopeCache.InvalidateInBackground();
+
+        return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));
     }
 
     /// <summary>

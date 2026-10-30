@@ -376,6 +376,25 @@ public sealed class UsersController(
     }
 
     /// <summary>
+    ///     更新用户的启用状态
+    /// </summary>
+    /// <param name="request">启用状态请求</param>
+    /// <returns>状态更新结果</returns>
+    [HttpPost("enabled")]
+    [ApiDescription("Update user enabled state")]
+    public async Task<ActionResult<ApiResponse<object>>> SetEnabledAsync([FromBody] SetEnabledRequest request) {
+        var affected = await db
+            .Users.Where(x => x.Id == request.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+            .ConfigureAwait(false);
+        if (affected == 0) {
+            return NotFound(new ApiResponse<object>(404, "Resource not found", null));
+        }
+
+        return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));
+    }
+
+    /// <summary>
     ///     更新用户
     /// </summary>
     /// <param name="request">用户修改请求</param>
@@ -405,13 +424,7 @@ public sealed class UsersController(
         user.Phone = request.Phone.Trim();
         user.Gender = request.Gender;
         user.IsEnabled = request.IsEnabled;
-        if (request.Avatar is not null) {
-            user.Avatar = string.IsNullOrWhiteSpace(request.Avatar) ? null : request.Avatar.Trim();
-        }
-        else if (request.RemoveAvatar == true) {
-            user.Avatar = null;
-        }
-
+        ApplyAvatar(user, request);
         if (!string.IsNullOrWhiteSpace(request.Password)) {
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
         }
@@ -423,20 +436,7 @@ public sealed class UsersController(
 
         db.UserRoles.RemoveRange(user.UserRoles);
         user.UserRoles = [.. roles.Select(role => new UserRole { User = user, Role = role })];
-        var personalDepartment = user.UserDepartments.SingleOrDefault(x => x.Department.Code == $"USER_{user.Id}");
-        var selectedDepartmentIds = departments.Select(x => x.Id).ToHashSet();
-        var removedDepartments
-            = user.UserDepartments.Where(x => x != personalDepartment && !selectedDepartmentIds.Contains(x.DepartmentId)).ToArray();
-        db.UserDepartments.RemoveRange(removedDepartments);
-        foreach (var removedDepartment in removedDepartments) {
-            _ = user.UserDepartments.Remove(removedDepartment);
-        }
-
-        var existingDepartmentIds = user.UserDepartments.Select(x => x.DepartmentId).ToHashSet();
-        foreach (var department in departments.Where(x => !existingDepartmentIds.Contains(x.Id))) {
-            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
-        }
-
+        SyncDepartments(user, departments);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<UserListItem>.Ok(ToListItem(user), "User updated"));
     }
@@ -555,6 +555,23 @@ public sealed class UsersController(
     }
 
     /// <summary>
+    ///     按请求更新头像：传入新地址时替换，传入空白或要求移除时清空，未传时保持不变
+    /// </summary>
+    /// <param name="user">待更新的用户</param>
+    /// <param name="request">用户修改请求</param>
+    private static void ApplyAvatar(
+        User user
+        , UpdateUserRequest request
+    ) {
+        if (request.Avatar is not null) {
+            user.Avatar = string.IsNullOrWhiteSpace(request.Avatar) ? null : request.Avatar.Trim();
+        }
+        else if (request.RemoveAvatar == true) {
+            user.Avatar = null;
+        }
+    }
+
+    /// <summary>
     ///     对用户列表应用统一排序规则
     /// </summary>
     /// <param name="query">用户列表查询</param>
@@ -662,5 +679,29 @@ public sealed class UsersController(
         var distinct = codes.Distinct().ToArray();
         var roles = await db.Roles.Where(x => Enumerable.Contains(distinct, x.Code)).ToListAsync().ConfigureAwait(false);
         return roles.Count == distinct.Length ? roles : null;
+    }
+
+    /// <summary>
+    ///     同步用户所属部门：移除未选中的部门，保留个人部门，补充新选中的部门
+    /// </summary>
+    /// <param name="user">待更新的用户，需已加载所属部门</param>
+    /// <param name="departments">请求选中的部门</param>
+    private void SyncDepartments(
+        User user
+        , List<Department> departments
+    ) {
+        var personalDepartment = user.UserDepartments.SingleOrDefault(x => x.Department.Code == $"USER_{user.Id}");
+        var selectedDepartmentIds = departments.Select(x => x.Id).ToHashSet();
+        var removedDepartments
+            = user.UserDepartments.Where(x => x != personalDepartment && !selectedDepartmentIds.Contains(x.DepartmentId)).ToArray();
+        db.UserDepartments.RemoveRange(removedDepartments);
+        foreach (var removedDepartment in removedDepartments) {
+            _ = user.UserDepartments.Remove(removedDepartment);
+        }
+
+        var existingDepartmentIds = user.UserDepartments.Select(x => x.DepartmentId).ToHashSet();
+        foreach (var department in departments.Where(x => !existingDepartmentIds.Contains(x.Id))) {
+            user.UserDepartments.Add(new UserDepartment { User = user, Department = department });
+        }
     }
 }

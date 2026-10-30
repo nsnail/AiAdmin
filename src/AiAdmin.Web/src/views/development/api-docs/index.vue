@@ -30,7 +30,9 @@
                                     <el-table-column :label="$t('apiDocs.type')" prop="type" width="130" />
                                     <el-table-column :label="$t('apiDocs.required')" width="90"
                                         ><template #default="scope"
-                                            ><el-tag v-if="scope.row.required" size="small" type="danger">{{ $t('apiDocs.yes') }}</el-tag></template
+                                            ><el-tag :type="scope.row.required ? 'danger' : 'info'" size="small">{{
+                                                $t(scope.row.required ? 'apiDocs.requiredYes' : 'apiDocs.optional')
+                                            }}</el-tag></template
                                         ></el-table-column
                                     >
                                     <el-table-column :label="$t('apiDocs.description')" prop="description" />
@@ -115,13 +117,15 @@
 <script lang="ts" setup>
 import { ArrowDown, ArrowRight, Promotion, Refresh } from '@element-plus/icons-vue'
 import { computed, defineComponent, h, onMounted, reactive, ref } from 'vue'
-import { ElMessage, ElTable, ElTableColumn } from 'element-plus'
+import { ElMessage, ElTable, ElTableColumn, ElTag } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { fetchGetApiDocumentation } from '@/api/system-manage'
 import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 import request, { type DebugExchange } from '@/utils/http'
 import ExchangeBlock from './exchange-block.vue'
 
 /** 为嵌套属性逐层生成唯一路径作为表格行键，避免不同层级的同名字段冲突 */
+const { t } = useI18n()
 const withPath = (properties: Api.SystemManage.ApiDocumentationProperty[], prefix = ''): Array<Record<string, unknown>> =>
     properties.map((x) => {
         const path = prefix ? `${prefix}.${x.name}` : x.name
@@ -150,6 +154,16 @@ const TypePreview = defineComponent({
                               default: () => [
                                   h(ElTableColumn, { prop: 'name', label: 'Name' }),
                                   h(ElTableColumn, { prop: 'type', label: 'Type' }),
+                                  h(
+                                      ElTableColumn,
+                                      { label: t('apiDocs.required'), width: 90 },
+                                      {
+                                          default: ({ row }: { row: { required: boolean } }) =>
+                                              h(ElTag, { size: 'small', type: row.required ? 'danger' : 'info' }, () =>
+                                                  t(row.required ? 'apiDocs.requiredYes' : 'apiDocs.optional'),
+                                              ),
+                                      },
+                                  ),
                                   h(ElTableColumn, { prop: 'description', label: 'Description' }),
                               ],
                           },

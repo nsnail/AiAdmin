@@ -27,28 +27,42 @@ public sealed class ApiLogStorageBackgroundService(
     /// <returns>后台任务</returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken) {
         while (!stoppingToken.IsCancellationRequested) {
-            var wrote = false;
-            try {
-                wrote = await WriteBatchAsync(stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
-                break;
-            }
-            catch (Exception exception) {
-                _logWriteFailure(logger, exception);
-            }
-
             // 有数据时立即取下一批，队列为空或写入失败时按间隔等待，避免空转和对故障数据库的连续冲击
-            if (wrote) {
-                continue;
+            if (!await TryWriteBatchAsync(stoppingToken).ConfigureAwait(false)) {
+                await DelayBeforeNextPollAsync(stoppingToken).ConfigureAwait(false);
             }
+        }
+    }
 
-            try {
-                await Task.Delay(options.Value.PollInterval, stoppingToken).ConfigureAwait(false);
-            }
-            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
-                break;
-            }
+    /// <summary>
+    ///     等待下一次轮询，应用停止导致的取消直接结束等待
+    /// </summary>
+    /// <param name="stoppingToken">应用停止令牌</param>
+    /// <returns>异步任务</returns>
+    private async Task DelayBeforeNextPollAsync(CancellationToken stoppingToken) {
+        try {
+            await Task.Delay(options.Value.PollInterval, stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
+            // Ignore
+        }
+    }
+
+    /// <summary>
+    ///     写入一批日志，写入失败时记录错误并视为未写入，应用停止导致的取消不算失败
+    /// </summary>
+    /// <param name="stoppingToken">应用停止令牌</param>
+    /// <returns>本批取到并写入日志时为 true，队列为空、写入失败或应用已停止时为 false</returns>
+    private async Task<bool> TryWriteBatchAsync(CancellationToken stoppingToken) {
+        try {
+            return await WriteBatchAsync(stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
+            return false;
+        }
+        catch (Exception exception) {
+            _logWriteFailure(logger, exception);
+            return false;
         }
     }
 

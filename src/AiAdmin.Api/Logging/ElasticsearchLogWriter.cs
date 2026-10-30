@@ -151,6 +151,33 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
     }
 
     /// <summary>
+    ///     读取 JSON 对象中的属性文本，不存在时返回问号
+    /// </summary>
+    /// <param name="element">JSON 对象</param>
+    /// <param name="name">属性名称</param>
+    /// <returns>属性文本或问号</returns>
+    private static string ReadText(
+        JsonElement element
+        , string name
+    ) {
+        return element.TryGetProperty(name, out var value) ? value.ToString() : "?";
+    }
+
+    /// <summary>
+    ///     生成单个失败项的状态、索引、错误类型与原因摘要
+    /// </summary>
+    /// <param name="body">Bulk 响应中带 error 的操作结果</param>
+    /// <returns>失败项摘要</returns>
+    private static string SummarizeFailedItem(JsonElement body) {
+        var error = body.GetProperty("error");
+        var status = ReadText(body, "status");
+        var index = ReadText(body, "_index");
+        var type = ReadText(error, "type");
+        var reason = ReadText(error, "reason");
+        return $"[status={status}, index={index}, type={type}, reason={reason}]";
+    }
+
+    /// <summary>
     ///     从 Bulk 响应中提取前几个失败项的状态、索引、错误类型与原因，便于排查
     /// </summary>
     /// <param name="responseBody">Bulk 响应正文</param>
@@ -163,29 +190,14 @@ public sealed class ElasticsearchLogWriter(HttpClient httpClient, IOptions<Elast
                 return Truncate(responseBody);
             }
 
-            var summaries = new List<string>();
-            var total = 0;
-            foreach (var item in items.EnumerateArray()) {
-                // 每个 item 形如 {"index":{...,"error":{...}}}
-                foreach (var body in item.EnumerateObject().Select(operation => operation.Value)) {
-                    if (!body.TryGetProperty("error", out var error)) {
-                        continue;
-                    }
-
-                    ++total;
-                    if (summaries.Count >= maxItems) {
-                        continue;
-                    }
-
-                    var status = body.TryGetProperty("status", out var s) ? s.ToString() : "?";
-                    var index = body.TryGetProperty("_index", out var i) ? i.ToString() : "?";
-                    var type = error.TryGetProperty("type", out var t) ? t.ToString() : "?";
-                    var reason = error.TryGetProperty("reason", out var r) ? r.ToString() : "?";
-                    summaries.Add($"[status={status}, index={index}, type={type}, reason={reason}]");
-                }
-            }
-
-            return $"{total} failed item(s), first {summaries.Count}: {string.Join(' ', summaries)}";
+            // 每个 item 形如 {"index":{...,"error":{...}}}
+            var failed = items
+                .EnumerateArray()
+                .SelectMany(item => item.EnumerateObject().Select(operation => operation.Value))
+                .Where(body => body.TryGetProperty("error", out _))
+                .ToList();
+            var summaries = failed.Take(maxItems).Select(SummarizeFailedItem).ToList();
+            return $"{failed.Count} failed item(s), first {summaries.Count}: {string.Join(' ', summaries)}";
         }
         catch (JsonException) {
             return Truncate(responseBody);

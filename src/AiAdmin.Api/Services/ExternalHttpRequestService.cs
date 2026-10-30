@@ -2,6 +2,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using AiAdmin.Api.Logging;
 
 namespace AiAdmin.Api.Services;
@@ -12,7 +13,7 @@ namespace AiAdmin.Api.Services;
 /// <param name="httpClientFactory">HTTP 客户端工厂</param>
 /// <param name="httpContextAccessor">当前 HTTP 请求上下文访问器</param>
 /// <param name="logger">外部请求日志记录器</param>
-public sealed class ExternalHttpRequestService(
+public sealed partial class ExternalHttpRequestService(
     IHttpClientFactory httpClientFactory
     , IHttpContextAccessor httpContextAccessor
     , ILogger<ExternalHttpRequestService> logger)
@@ -24,6 +25,15 @@ public sealed class ExternalHttpRequestService(
     [
         with(StringComparer.OrdinalIgnoreCase), "X-API-Key", "Authorization", "Proxy-Authorization", "Cookie", "Set-Cookie"
     ];
+
+    /// <summary>
+    ///     把请求地址查询串中的密钥类参数值以 *** 替代，避免只能通过地址传递的密钥写入日志
+    /// </summary>
+    /// <param name="url">请求地址</param>
+    /// <returns>脱敏后的请求地址</returns>
+    public static string MaskUrl(string url) {
+        return SensitiveQueryRegex().Replace(url, "$1=***");
+    }
 
     /// <summary>
     ///     发送外部 HTTP 请求并返回完整快照
@@ -61,7 +71,7 @@ public sealed class ExternalHttpRequestService(
         var responseHeaders = SerializeHeaders(response.Headers, response.Content.Headers);
         var result = new ExternalHttpResponse
         {
-            RequestUrl = request.RequestUri?.ToString() ?? string.Empty
+            RequestUrl = MaskUrl(request.RequestUri?.ToString() ?? string.Empty)
             , RequestMethod = request.Method.Method
             , RequestHeaders = requestHeaders
             , RequestBody = requestBody
@@ -116,6 +126,13 @@ public sealed class ExternalHttpRequestService(
                    || mediaType.Contains("javascript", StringComparison.OrdinalIgnoreCase)
                    || mediaType.Contains("x-www-form-urlencoded", StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>
+    ///     匹配查询串中的 apiKey、api_key、key、token、access_token、secret、password 参数
+    /// </summary>
+    /// <returns>查询参数匹配正则</returns>
+    [GeneratedRegex("(?<=[?&])(apiKey|api_key|key|token|access_token|secret|password)=[^&#]*", RegexOptions.IgnoreCase)]
+    private static partial Regex SensitiveQueryRegex();
 
     /// <summary>
     ///     将请求或响应头序列化为 JSON，密钥和凭据类消息头的值以 *** 替代

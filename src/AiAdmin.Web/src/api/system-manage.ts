@@ -127,10 +127,17 @@ export interface BusinessEnabledStateResources {}
 export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job' | keyof BusinessEnabledStateResources
 
 /**
- * 使用字符串主键的启用状态资源名集合，请求时主键放在 key 字段而不是 id 字段
- * 业务系统在 business-manage.ts 中向其登记资源名，框架不感知具体业务资源
+ * 启用状态资源对应的接口地址，每个资源使用自己的接口，便于在角色里单独授权
+ * 业务系统在 business-manage.ts 中向其登记业务资源，框架不感知具体业务资源
  */
-export const stringKeyEnabledStateResources = new Set<string>()
+export const enabledStateUrls: Record<string, string> = {
+    user: '/api/user/enabled',
+    role: '/api/role/enabled',
+    menu: '/api/menu/enabled',
+    department: '/api/department/enabled',
+    'dictionary-item': '/api/dictionary/items/enabled',
+    'scheduled-job': '/api/scheduled-job/enabled',
+}
 
 export interface RedisServerInfo {
     endpoint: string
@@ -229,10 +236,7 @@ export function fetchDeleteRedisValue(key: string) {
 }
 
 export function fetchUpdateEnabledState(resource: EnabledStateResource, id: string, isEnabled: boolean) {
-    return request.post<void>({
-        url: '/api/enabled-state',
-        data: stringKeyEnabledStateResources.has(resource) ? { resource, key: id, isEnabled } : { resource, id, isEnabled },
-    })
+    return request.post<void>({ url: enabledStateUrls[resource], data: { id, isEnabled } })
 }
 
 export function fetchGetListFilterFields(resource: ListFilterResource) {

@@ -15,11 +15,16 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">应用数据库上下文</param>
 /// <param name="permissionCache">接口权限缓存</param>
+/// <param name="dataScopeCache">数据权限缓存</param>
 /// <param name="exportLimitService">列表导出上限服务</param>
 [ApiController]
 [ApiDescription("Role management")]
 [Route("api/role")]
-public sealed class RolesController(AppDbContext db, ApiPermissionCache permissionCache, ExportLimitService exportLimitService) : ControllerBase
+public sealed class RolesController(
+    AppDbContext db
+    , ApiPermissionCache permissionCache
+    , DataScopeCache dataScopeCache
+    , ExportLimitService exportLimitService) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> _sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -302,6 +307,28 @@ public sealed class RolesController(AppDbContext db, ApiPermissionCache permissi
         role.RoleMenuAuths = [.. auths.Select(item => new RoleMenuAuth { Role = role, MenuId = item.MenuId, AuthMark = item.AuthMark })];
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "Menu permissions saved"));
+    }
+
+    /// <summary>
+    ///     更新角色的启用状态
+    /// </summary>
+    /// <param name="request">启用状态请求</param>
+    /// <returns>状态更新结果</returns>
+    [HttpPost("enabled")]
+    [ApiDescription("Update role enabled state")]
+    public async Task<ActionResult<ApiResponse<object>>> SetEnabledAsync([FromBody] SetEnabledRequest request) {
+        var affected = await db
+            .Roles.Where(x => x.Id == request.Id)
+            .ExecuteUpdateAsync(x => x.SetProperty(row => row.IsEnabled, request.IsEnabled))
+            .ConfigureAwait(false);
+        if (affected == 0) {
+            return NotFound(new ApiResponse<object>(404, "Resource not found", null));
+        }
+
+        permissionCache.Invalidate();
+        dataScopeCache.InvalidateInBackground();
+
+        return Ok(ApiResponse<object>.Ok(new { request.IsEnabled }, "Enabled state updated"));
     }
 
     /// <summary>

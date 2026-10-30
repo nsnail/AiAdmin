@@ -38,23 +38,6 @@ public static class ApiRequestLogFilterTranslator
     }
 
     /// <summary>
-    ///     翻译 IP 筛选值，支持单个文本、数字以及集合操作符使用的文本数组
-    /// </summary>
-    /// <param name="value">原筛选值</param>
-    /// <returns>整数筛选值</returns>
-    /// <exception cref="DynamicFilterValidationException">IP 文本无法转换为 IPv4 时引发</exception>
-    private static JsonElement TranslateIpValue(JsonElement value) {
-        return value.ValueKind switch
-        {
-            JsonValueKind.String => ToElement(ParseIp(value.GetString()))
-            , JsonValueKind.Array => ToElement(
-                value.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.String ? ParseIp(item.GetString()) : item.GetInt32()).ToArray()
-            )
-            , _ => value
-        };
-    }
-
-    /// <summary>
     ///     把 IPv4 文本转换为 32 位整数
     /// </summary>
     /// <param name="text">IP 文本</param>
@@ -64,7 +47,8 @@ public static class ApiRequestLogFilterTranslator
         var trimmed = text?.Trim();
 
         // 纯数字文本按整数原值处理，便于从详情里复制整数值精确查询
-        if (int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number) && trimmed?.Contains('.', StringComparison.Ordinal) == false) {
+        if (int.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+            && !trimmed.Contains('.', StringComparison.Ordinal)) {
             return number;
         }
 
@@ -81,5 +65,22 @@ public static class ApiRequestLogFilterTranslator
     private static JsonElement ToElement(object value) {
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(value));
         return document.RootElement.Clone();
+    }
+
+    /// <summary>
+    ///     翻译 IP 筛选值，支持单个文本、数字以及集合操作符使用的文本数组
+    /// </summary>
+    /// <param name="value">原筛选值</param>
+    /// <returns>整数筛选值</returns>
+    /// <exception cref="DynamicFilterValidationException">IP 文本无法转换为 IPv4 时引发</exception>
+    private static JsonElement TranslateIpValue(JsonElement value) {
+        return value.ValueKind switch
+        {
+            JsonValueKind.String => ToElement(ParseIp(value.GetString()))
+            , JsonValueKind.Array => ToElement(
+                value.EnumerateArray().Select(item => item.ValueKind == JsonValueKind.String ? ParseIp(item.GetString()) : item.GetInt32()).ToArray()
+            )
+            , _ => value
+        };
     }
 }

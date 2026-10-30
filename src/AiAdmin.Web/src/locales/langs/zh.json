@@ -56,6 +56,8 @@
         "type": "类型",
         "required": "必填",
         "yes": "是",
+        "requiredYes": "必填",
+        "optional": "可选",
         "description": "说明",
         "noParameters": "无参数",
         "requestBody": "请求体",
