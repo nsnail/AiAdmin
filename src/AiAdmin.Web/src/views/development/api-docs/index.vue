@@ -207,7 +207,8 @@ const toggle = (item: Api.SystemManage.ApiDocumentationItem) => {
     if (!debug[item.path]) debug[item.path] = { url: item.path, params: '{}', body: '{}', loading: false, exchange: null, exchangeTab: 'request' }
 }
 const isOpen = (item: Api.SystemManage.ApiDocumentationItem) => open.value === item.method + item.path
-const methodType = (method: string) => ({ GET: 'success', POST: '', PUT: 'warning', DELETE: 'danger', PATCH: 'info' })[method] as any
+// GET 用绿色、POST 用橙色，两者色相差异明显；系统只允许 GET 和 POST，其余方法仅作兜底
+const methodType = (method: string) => ({ GET: 'success', POST: 'warning', PUT: '', DELETE: 'danger', PATCH: 'info' })[method] as any
 
 const parseJson = (value: string, field: string): unknown => {
     try {
@@ -275,6 +276,14 @@ onMounted(load)
 }
 .endpoint-head code {
     min-width: 260px;
+    font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
+}
+
+/* 调试面板里的 URL、参数 JSON 输入框，以及自定义类型预览的类型名，统一使用等宽字体 */
+.debug-form :deep(.el-input__inner),
+.debug-form :deep(.el-textarea__inner),
+.type-preview code {
+    font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
 }
 .endpoint-name {
     color: var(--el-text-color-secondary);

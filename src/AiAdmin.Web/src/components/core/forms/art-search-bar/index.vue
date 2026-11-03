@@ -15,7 +15,7 @@
                     :class="{ expanded: isGroupExpanded(group.field) }"
                     :ref="(element) => setGroupOptionsRef(group.field, element)"
                     class="filter-group-options">
-                    <ElBadge :hidden="group.total === 0" :max="Number.MAX_SAFE_INTEGER" :value="group.total" class="filter-group-badge">
+                    <ElBadge :hidden="group.total === 0" :value="formatGroupCount(group.total)" class="filter-group-badge">
                         <button
                             :class="{ active: !hasGroupSelection(group.field) }"
                             @click="selectGroup(group.field, undefined)"
@@ -28,8 +28,7 @@
                         v-for="option in group.options"
                         :hidden="option.count === 0"
                         :key="groupOptionKey(option.value)"
-                        :max="Number.MAX_SAFE_INTEGER"
-                        :value="option.count"
+                        :value="formatGroupCount(option.count)"
                         class="filter-group-badge">
                         <button
                             :class="{ active: isGroupSelected(group.field, option.value) }"
@@ -38,6 +37,9 @@
                             type="button">
                             {{ translateGroupOption(option.label) }}
                         </button>
+                        <span v-if="option.count > 0 && option.count < group.total" class="filter-group-percent">
+                            {{ formatGroupPercent(option.count, group.total) }}
+                        </span>
                     </ElBadge>
                 </div>
             </div>
@@ -428,6 +430,28 @@ const translateGroupOption = (label: string): string => {
     const translated = t(label)
     return translated === label ? label : translated
 }
+/**
+ * 分组选项占该分组总数的百分比文本，不足 1% 显示为 <1%，小于 10% 保留一位小数；
+ * 占比为 100%（全部）的不显示角标，调用方需先排除，四舍五入到 100% 但并非全部的（如 99.7%）显示为 99.9%
+ * @param count 选项数量
+ * @param total 分组总数
+ * @returns 百分比文本
+ */
+const formatGroupPercent = (count: number, total: number): string => {
+    const percent = (count / total) * 100
+    if (percent < 1) return '<1%'
+    if (percent > 99.9) return '99.9%'
+    return `${percent < 10 ? percent.toFixed(1).replace(/\.0$/, '') : Math.round(percent)}%`
+}
+/**
+ * 数量角标的紧凑文本：1000 以上用 k 代替 000，保留一位小数，整数不带 .0，如 9802 显示 9.8k
+ * @param count 数量
+ * @returns 紧凑文本
+ */
+const formatGroupCount = (count: number): string => (count < 1000 ? String(count) : `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`)
+
+/** 选项容器上下为角标预留的空间（px），折叠高度和溢出判断都要计入 */
+const GROUP_BADGE_SPACE = 6
 const selectGroup = (field: string, value: unknown): void => emit('group-select', field, value)
 const isGroupExpanded = (field: string): boolean => expandedGroups.value[field] === true
 const hasGroupOverflow = (field: string): boolean => overflowGroups.value[field] === true
@@ -444,7 +468,7 @@ const measureGroupOverflow = async (): Promise<void> => {
     const result: Record<string, boolean> = {}
     props.filterGroups.forEach((group) => {
         const element = groupOptionsRefs.get(group.field)
-        result[group.field] = element ? element.scrollHeight > 28 : false
+        result[group.field] = element ? element.scrollHeight > 28 + GROUP_BADGE_SPACE * 2 : false
         if (!result[group.field]) delete expandedGroups.value[group.field]
     })
     overflowGroups.value = result
@@ -1204,7 +1228,10 @@ const { span, gutter, labelPosition, labelWidth } = toRefs(props)
     gap: 8px 12px;
     align-items: center;
     min-width: 0;
-    max-height: 28px;
+    /* 上下各留 6px 放角标，否则角标超出按钮的部分会被 overflow 裁掉；负 margin 抵消，行高不变 */
+    max-height: 40px;
+    padding: 6px 8px;
+    margin: -6px -8px;
     overflow: hidden;
     transition: max-height 0.2s ease;
 }
@@ -1214,6 +1241,8 @@ const { span, gutter, labelPosition, labelWidth } = toRefs(props)
 }
 
 .filter-group-option {
+    min-width: 64px;
+    text-align: center;
     min-height: 28px;
     padding: 4px 13px;
     color: var(--el-text-color-primary);
@@ -1235,16 +1264,36 @@ const { span, gutter, labelPosition, labelWidth } = toRefs(props)
     display: inline-flex;
     align-items: center;
     padding-right: 4px;
+    padding-left: 4px;
 }
 
+/* 数量角标放在按钮左上 */
 .filter-group-badge :deep(.el-badge__content) {
     position: absolute;
     top: 0;
-    right: 4px;
+    right: auto;
+    left: 10px;
     margin: 0;
-    transform: translate(50%, 0);
+    transform: translate(-50%, 0);
     font-size: 11px;
     pointer-events: none;
+}
+
+/* 百分比角标放在按钮右下，灰色 */
+.filter-group-percent {
+    position: absolute;
+    right: 4px;
+    bottom: 0;
+    padding: 0 5px;
+    color: var(--el-text-color-secondary);
+    font-size: 11px;
+    line-height: 16px;
+    white-space: nowrap;
+    pointer-events: none;
+    background: var(--el-fill-color);
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 8px;
+    transform: translate(50%, 0);
 }
 
 @media (max-width: 1100px) {

@@ -5,6 +5,7 @@
             :columns="columns"
             :data="data"
             :default-filter="defaultFilter"
+            :initial-filter="initialFilter"
             :loading="loading"
             :pagination="pagination"
             :table-props="{ showPaginationWhenEmpty: true }"
@@ -14,6 +15,7 @@
             @reset="resetSearchParams"
             @size-change="handleSizeChange"
             @sort-change="handleSortChange"
+            ref="tablePageRef"
             resource="api-request-log" />
         <ElDrawer v-model="detailVisible" :title="t('apiRequestLog.detail.title')" append-to-body destroy-on-close width="760px">
             <ElTabs v-if="selectedLog" v-model="activeDetailTab" type="card">
@@ -67,7 +69,8 @@
 
 <script lang="ts" setup>
 import { ElAlert, ElButton, ElCollapse, ElCollapseItem, ElDescriptions, ElDescriptionsItem, ElDrawer, ElEmpty, ElTag } from 'element-plus'
-import { h } from 'vue'
+import { h, onActivated, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { type ApiRequestLogRecord, fetchGetApiRequestLogList, fetchGetApiRequestLogTraceLogs } from '@/api/system-manage'
 import { formatDateTime } from '@/utils/date'
@@ -122,6 +125,32 @@ const getTodayRange = (): string[] => {
     return [toLocalIsoString(start), toLocalIsoString(end)]
 }
 const defaultFilter: DynamicFilter = { field: 'CreatedAt', operator: 'DateRange', value: getTodayRange() }
+
+const route = useRoute()
+const router = useRouter()
+const tablePageRef = ref<{ setFilter?: (filter: DynamicFilter | undefined) => void }>()
+
+/** 路由参数 hour（0 到 23）和 dayOffset（0 今日，-1 昨日）对应的一小时创建时间范围，左闭右开；没有有效参数返回空 */
+const buildHourFilter = (): DynamicFilter | undefined => {
+    const hour = Number(route.query.hour)
+    if (route.query.hour === undefined || !Number.isInteger(hour) || hour < 0 || hour > 23) return undefined
+    const start = new Date()
+    start.setHours(hour, 0, 0, 0)
+    start.setDate(start.getDate() + (route.query.dayOffset === '-1' ? -1 : 0))
+    const end = new Date(start)
+    end.setHours(end.getHours() + 1)
+    return { field: 'CreatedAt', operator: 'DateRange', value: [toLocalIsoString(start), toLocalIsoString(end)] }
+}
+
+/** 路由参数携带接口编号或小时（如从仪表盘跳转）时，在默认的今日范围上套用对应筛选；没有参数返回空 */
+const buildRouteFilter = (): DynamicFilter | undefined => {
+    const crc = Number(route.query.pathCrc32)
+    const timeFilter = buildHourFilter()
+    const pathFilter: DynamicFilter[] = Number.isInteger(crc) && crc !== 0 ? [{ field: 'PathCrc32', operator: 'Equal', value: crc }] : []
+    if (!timeFilter && pathFilter.length === 0) return undefined
+    return { logic: 'And', filters: [timeFilter ?? { ...defaultFilter }, ...pathFilter] }
+}
+const initialFilter = buildRouteFilter() ?? defaultFilter
 
 const statusType = (code: number) => (code >= 500 ? 'danger' : code >= 400 ? 'warning' : code >= 300 ? 'info' : 'success')
 
@@ -218,7 +247,7 @@ const {
 } = useTable({
     core: {
         apiFn: fetchGetApiRequestLogList,
-        apiParams: { current: 1, size: 20, dynamicFilter: defaultFilter },
+        apiParams: { current: 1, size: 20, dynamicFilter: initialFilter },
         columnsFactory: () => [
             {
                 prop: 'id',
@@ -334,6 +363,25 @@ const {
             },
         ],
     },
+})
+
+/** 清掉已消费的路由参数，避免刷新页面或再次进入时重复套用 */
+const clearRouteQuery = (): Promise<unknown> => router.replace({ path: route.path, query: {} })
+
+let firstActivated = true
+// 页面带缓存：首次进入的参数已在初始化时套用，之后再次从仪表盘跳转时需要重新应用筛选并查询
+onActivated(async () => {
+    const filter = buildRouteFilter()
+    if (firstActivated) {
+        firstActivated = false
+        if (filter) await clearRouteQuery()
+        return
+    }
+    if (!filter) return
+    await clearRouteQuery()
+    tablePageRef.value?.setFilter?.(filter)
+    replaceSearchParams({ dynamicFilter: filter })
+    await getData()
 })
 
 // 接口说明由 formatter 在渲染时翻译，切换语言后需要重建列才能刷新

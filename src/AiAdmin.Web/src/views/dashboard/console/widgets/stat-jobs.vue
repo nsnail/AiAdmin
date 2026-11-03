@@ -11,7 +11,8 @@
         :loading="loading"
         :title="t('dashboard.widgets.statJobs.title')"
         :value="summary?.totalJobs ?? 0"
-        icon="ri:timer-line" />
+        icon="ri:timer-line"
+        to="/system-management/scheduled-job" />
 </template>
 
 <script lang="ts" setup>

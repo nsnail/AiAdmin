@@ -18,6 +18,20 @@
         word-break: keep-all;
     }
 
+    // 单元格内多个标签（flex 容器）宽度不够时不换行，超出部分隐藏
+    :deep(.el-table__body-wrapper .el-table__body .cell),
+    :deep(.el-table__fixed-body-wrapper .el-table__body .cell) {
+        .flex-wrap {
+            flex-wrap: nowrap !important;
+            overflow: hidden;
+        }
+
+        .el-tag {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+    }
+
     :deep(.el-loading-mask) {
         z-index: 100;
         background-color: var(--default-box-color) !important;

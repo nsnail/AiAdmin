@@ -58,6 +58,8 @@ export interface UseChartOptions {
     threshold?: number
     /** 是否自动响应主题变化 */
     autoTheme?: boolean
+    /** 图表实例创建后的回调，用于绑定点击等交互事件 */
+    onInit?: (chart: import('echarts').ECharts) => void
 }
 
 // 基础图表 Props 接口 - 统一所有图表的基础属性

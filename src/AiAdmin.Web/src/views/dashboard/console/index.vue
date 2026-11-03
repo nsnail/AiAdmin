@@ -85,7 +85,7 @@ const loading = ref(false)
 const editing = ref(false)
 const overview = ref<DashboardOverview | null>(null)
 
-provide(dashboardContextKey, { overview, loading, days })
+provide(dashboardContextKey, { overview, loading, days, editing })
 
 const definitionMap = Object.fromEntries(dashboardWidgets.map((x) => [x.id, x])) as Record<string, DashboardWidgetDefinition>
 

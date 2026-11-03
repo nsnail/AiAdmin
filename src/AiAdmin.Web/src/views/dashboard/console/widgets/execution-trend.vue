@@ -1,6 +1,6 @@
 <!-- 作业执行趋势：成功与失败次数堆叠柱状图 -->
 <template>
-    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.executionTrend.title')">
+    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.executionTrend.title')" to="/system-management/scheduled-job">
         <ArtBarChart
             :colors="['#67C23A', '#F56C6C']"
             :data="series"

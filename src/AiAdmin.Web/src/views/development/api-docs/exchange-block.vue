@@ -70,6 +70,7 @@ const handleCopy = async (): Promise<void> => {
     max-height: 360px;
     overflow: auto;
     background: var(--el-fill-color-light);
+    font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
     white-space: pre-wrap;
     word-break: break-all;
     overflow-wrap: anywhere;
@@ -80,7 +81,7 @@ const handleCopy = async (): Promise<void> => {
     white-space: inherit;
     word-break: inherit;
     overflow-wrap: inherit;
-    font-family: inherit;
+    font-family: 'Cascadia Code', 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
 }
 </style>
 

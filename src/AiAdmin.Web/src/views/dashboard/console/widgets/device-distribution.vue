@@ -1,6 +1,6 @@
 <!-- 登录设备类型分布 -->
 <template>
-    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.deviceDistribution.title')">
+    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.deviceDistribution.title')" to="/log-management/login-log">
         <ArtRingChart :data="data" :loading="loading" :show-legend="true" height="100%" legend-position="right" />
     </WidgetCard>
 </template>

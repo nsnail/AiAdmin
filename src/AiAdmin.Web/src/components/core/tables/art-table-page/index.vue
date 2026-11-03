@@ -75,6 +75,8 @@ interface Props {
     loading?: boolean
     pagination?: PaginationState
     defaultFilter?: DynamicFilter
+    /** 首次加载使用的筛选，缺省为 defaultFilter；重置仍恢复 defaultFilter */
+    initialFilter?: DynamicFilter
     filterFields?: ListFilterField[]
     filterGroupsFn?: (dynamicFilter?: DynamicFilter) => Promise<ListFilterGroup[]>
     treeProps?: Record<string, unknown>
@@ -114,7 +116,7 @@ const tableRef = ref()
 const cloneFilter = (filter: DynamicFilter | undefined): DynamicFilter | undefined =>
     filter ? (JSON.parse(JSON.stringify(filter)) as DynamicFilter) : undefined
 // 将默认动态筛选放入初始模型，确保搜索栏首屏预览即显示完整 dynamicFilter 树。
-const formModel = ref<Record<string, unknown>>(props.defaultFilter ? { dynamicFilter: cloneFilter(props.defaultFilter) } : {})
+const formModel = ref<Record<string, unknown>>(props.defaultFilter ? { dynamicFilter: cloneFilter(props.initialFilter ?? props.defaultFilter) } : {})
 const allFilterFields = ref<ListFilterField[]>(props.filterFields || [])
 const filterFields = ref<ListFilterField[]>(allFilterFields.value.filter((field) => field.isVisible !== false))
 const filterGroups = ref<ListFilterGroup[]>([])
@@ -273,7 +275,7 @@ onMounted(async () => {
         allFilterFields.value = props.filterFields || (await fetchGetListFilterFields(props.resource))
         filterFields.value = allFilterFields.value.filter((field) => field.isVisible !== false)
         await nextTick()
-        synchronizeFilter(props.defaultFilter)
+        synchronizeFilter(props.initialFilter ?? props.defaultFilter)
         await refreshFilterGroups(currentFilter.value)
     } catch (error) {
         console.error('[ArtTablePage] 筛选元数据加载失败:', error)
@@ -293,7 +295,16 @@ watch(
     },
 )
 
-defineExpose({ tableRef, refreshFilterGroups })
+/**
+ * 由外部（如路由参数）设置筛选：同步搜索栏和筛选状态，不触发查询，由调用方自行刷新数据
+ * @param filter 完整的动态筛选树
+ */
+const setFilter = (filter: DynamicFilter | undefined): void => {
+    groupSelectionOverrides.value = {}
+    synchronizeFilter(filter)
+}
+
+defineExpose({ tableRef, refreshFilterGroups, setFilter })
 </script>
 
 <style scoped>

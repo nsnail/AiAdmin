@@ -13,28 +13,11 @@
             @size-change="handleSizeChange"
             @sort-change="handleSortChange"
             resource="login-log" />
-        <ElDrawer v-model="detailVisible" :title="t('loginLog.detail.title')" destroy-on-close width="850px">
-            <ElTabs v-if="selectedLog" v-model="activeDetailTab" type="card">
-                <ElTabPane :label="t('loginLog.detail.tabs.details')" name="details">
-                    <ElDescriptions :column="2" :label-width="150" border>
-                        <ElDescriptionsItem v-for="field in detailFields" :key="field" :label="t(`loginLog.fields.${field}`)">
-                            <span class="detail-value">{{ formatValue(selectedLog[field]) }}</span>
-                        </ElDescriptionsItem>
-                    </ElDescriptions>
-                </ElTabPane>
-                <ElTabPane :label="t('loginLog.detail.tabs.rawData')" name="rawData">
-                    <ArtRawData :data="selectedLog" />
-                </ElTabPane>
-            </ElTabs>
-            <template #footer
-                ><ElButton @click="detailVisible = false">{{ t('loginLog.detail.close') }}</ElButton></template
-            >
-        </ElDrawer>
+        <LoginLogDetailDrawer v-model:visible="detailVisible" :log="selectedLog" />
     </div>
 </template>
 
 <script lang="ts" setup>
-import { ElButton, ElDescriptions, ElDescriptionsItem, ElDrawer } from 'element-plus'
 import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchGetLoginLogList, type LoginLogRecord } from '@/api/system-manage'
@@ -42,35 +25,13 @@ import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-dr
 import { useTable } from '@/hooks/core/useTable'
 import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
-import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
+import LoginLogDetailDrawer from './modules/login-log-detail-drawer.vue'
 
 defineOptions({ name: 'LoginLog' })
 const { t } = useI18n()
 const detailVisible = ref(false)
 const selectedLog = ref<LoginLogRecord>()
-const activeDetailTab = ref('details')
-const detailFields = [
-    'userName',
-    'ownerId',
-    'ownerDepartmentId',
-    'clientIp',
-    'region',
-    'operatingSystem',
-    'browser',
-    'deviceType',
-    'platform',
-    'language',
-    'timeZone',
-    'screenResolution',
-    'viewportSize',
-    'colorDepth',
-    'pixelRatio',
-    'touchPoints',
-    'userAgent',
-    'clientHints',
-    'createdAt',
-] as const
 const {
     columns,
     columnChecks,
@@ -185,16 +146,6 @@ const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Pro
 }
 const openDetail = (row: LoginLogRecord) => {
     selectedLog.value = row
-    activeDetailTab.value = 'details'
     detailVisible.value = true
 }
-const formatValue = (value: unknown) =>
-    value === undefined || value === null || value === '' ? '-' : typeof value === 'string' ? value : JSON.stringify(value)
 </script>
-
-<style scoped>
-.detail-value {
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-</style>

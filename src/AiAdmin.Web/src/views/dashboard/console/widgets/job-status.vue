@@ -1,6 +1,6 @@
 <!-- 计划作业状态分布 -->
 <template>
-    <WidgetCard :title="t('dashboard.widgets.jobStatus.title')">
+    <WidgetCard :title="t('dashboard.widgets.jobStatus.title')" to="/system-management/scheduled-job">
         <ArtRingChart :data="data" :loading="loading" :show-legend="true" height="100%" legend-position="right" />
     </WidgetCard>
 </template>

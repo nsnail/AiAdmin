@@ -1,6 +1,6 @@
 <!-- 登录浏览器分布 -->
 <template>
-    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.browserDistribution.title')">
+    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.browserDistribution.title')" to="/log-management/login-log">
         <ArtRingChart :data="data" :loading="loading" :show-legend="true" height="100%" legend-position="right" />
     </WidgetCard>
 </template>

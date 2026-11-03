@@ -75,7 +75,7 @@ const MENU_RESIZE_DELAYS = [50, 100, 200] as const
 const RESIZE_DEBOUNCE_DELAY = 100
 
 export function useChart(options: UseChartOptions = {}) {
-    const { initOptions, initDelay = 0, threshold = 0.1, autoTheme = true } = options
+    const { initOptions, initDelay = 0, threshold = 0.1, autoTheme = true, onInit } = options
 
     const settingStore = useSettingStore()
     const { isDark, menuOpen, menuType } = storeToRefs(settingStore)
@@ -380,6 +380,7 @@ export function useChart(options: UseChartOptions = {}) {
                                     // 元素变为可见，初始化图表
                                     if (!chart) {
                                         chart = echarts.init(entry.target as HTMLElement)
+                                        onInit?.(chart)
                                     }
 
                                     // 触发自定义事件，让组件处理动画逻辑
@@ -422,6 +423,7 @@ export function useChart(options: UseChartOptions = {}) {
     const performChartInit = (options: EChartsOption) => {
         if (!chart && chartRef.value && !isDestroyed) {
             chart = echarts.init(chartRef.value)
+            onInit?.(chart)
             // 图表创建后立即设置监听器
             setupMenuWatchers()
             setupThemeWatcher()

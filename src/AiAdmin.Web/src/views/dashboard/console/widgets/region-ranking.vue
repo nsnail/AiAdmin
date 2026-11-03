@@ -1,6 +1,6 @@
 <!-- 登录地区排行 -->
 <template>
-    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.regionRanking.title')">
+    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.regionRanking.title')" to="/log-management/login-log">
         <div v-if="!rows.length" class="flex-cc h-full text-sm text-g-500">{{ t('dashboard.empty') }}</div>
         <div v-else class="flex h-full flex-col justify-around gap-2">
             <div v-for="item in rows" :key="item.name">

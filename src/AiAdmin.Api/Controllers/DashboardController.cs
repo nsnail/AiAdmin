@@ -126,7 +126,8 @@ public sealed class DashboardController(AppDbContext db, SystemInfoService syste
             .Take(8)
             .Select(x => new
                 {
-                    x.UserName
+                    x.Id
+                    , x.UserName
                     , x.ClientIp
                     , x.Region
                     , x.Browser
@@ -158,7 +159,7 @@ public sealed class DashboardController(AppDbContext db, SystemInfoService syste
             , Distribute(loginRows.Select(x => x.Browser), 6), Distribute(loginRows.Select(x => x.Region), 8)
             , [.. jobStatusGroups.Select(x => new DashboardNameValue(x.Status.ToString(), x.Count))]
             , recentLogins.ConvertAll(x => new DashboardRecentLoginResult(
-                    x.UserName, x.ClientIp, x.Region, x.Browser, ServerTime.ToOffset(x.CreatedAt)
+                    x.Id, x.UserName, x.ClientIp, x.Region, x.Browser, ServerTime.ToOffset(x.CreatedAt)
                 )
             ), recentFailures.ConvertAll(x => new DashboardFailedExecutionResult(x.Id, x.ScheduledJobId, x.JobName, x.Status, x.ErrorMessage, ServerTime.ToOffset(x.StartedAt)))
             , ServerTime.ToOffset(now)
@@ -266,8 +267,8 @@ public sealed class DashboardController(AppDbContext db, SystemInfoService syste
         }
 
         var result = top.ConvertAll(x => apiByCrc.TryGetValue(x.Key, out var api)
-            ? new DashboardApiShare(api.Path, api.Name, x.Value)
-            : new DashboardApiShare(x.Key.ToString(CultureInfo.InvariantCulture), string.Empty, x.Value)
+            ? new DashboardApiShare(api.Path, api.Name, x.Value, x.Key)
+            : new DashboardApiShare(x.Key.ToString(CultureInfo.InvariantCulture), string.Empty, x.Value, x.Key)
         );
         var others = byApi.Values.Sum() - top.Sum(x => x.Value);
         if (others > 0) {

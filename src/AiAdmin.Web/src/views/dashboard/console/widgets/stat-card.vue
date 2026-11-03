@@ -1,6 +1,12 @@
 <!-- 仪表盘指标卡片：主数值、图标和辅助说明 -->
 <template>
-    <div v-loading="loading" class="art-card relative flex h-full flex-col justify-center px-5 py-4">
+    <div
+        v-loading="loading"
+        :class="[
+            'art-card relative flex h-full flex-col justify-center px-5 py-4',
+            linkable() ? 'cursor-pointer transition-shadow hover:shadow-md' : '',
+        ]"
+        @click="go(query)">
         <span class="text-sm text-g-700">{{ title }}</span>
         <ArtCountTo :decimals="decimals" :duration="1000" :target="value" class="mt-2 text-[26px] font-medium" />
         <span class="mt-1 truncate text-xs text-g-600">{{ description }}</span>
@@ -11,9 +17,11 @@
 </template>
 
 <script lang="ts" setup>
+import { useWidgetLink } from './context'
+
 defineOptions({ name: 'DashboardStatCard' })
 
-withDefaults(
+const props = withDefaults(
     defineProps<{
         title: string
         value: number
@@ -21,7 +29,12 @@ withDefaults(
         icon: string
         decimals?: number
         loading?: boolean
+        /** 点击后跳转的页面路径 */
+        to?: string
+        /** 跳转时附带的路由查询参数，由目标页面据此预设标签页或筛选 */
+        query?: Record<string, string>
     }>(),
     { decimals: 0, loading: false },
 )
+const { linkable, go } = useWidgetLink(() => props.to)
 </script>

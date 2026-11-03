@@ -1,6 +1,6 @@
 <!-- 新增用户趋势 -->
 <template>
-    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.newUserTrend.title')">
+    <WidgetCard :extra="t('dashboard.lastDays', { days })" :title="t('dashboard.widgets.newUserTrend.title')" to="/permission/user">
         <ArtBarChart :data="data" :loading="loading" :x-axis-data="labels" height="100%" />
     </WidgetCard>
 </template>

@@ -38,6 +38,8 @@ export interface DashboardSummary {
 
 /** 最近登录记录 */
 export interface DashboardRecentLogin {
+    /** 登录日志主键，用于查询完整记录 */
+    id: string
     userName: string
     clientIp: string
     region: string
@@ -105,6 +107,8 @@ export interface DashboardApiShare {
     /** 接口说明的英文原文，需要按当前语言翻译，找不到接口或合并的其他项为空 */
     name: string
     value: number
+    /** 路径 CRC32，与操作日志中的接口编号对应，合并的其他项为 0 */
+    pathCrc32: number
 }
 
 /** 操作日志统计：今日与昨日按小时的访问量对比，以及今日各接口的请求占比 */

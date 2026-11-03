@@ -5,7 +5,8 @@
         :loading="loading"
         :title="t('dashboard.widgets.statLogins.title')"
         :value="summary?.loginsToday ?? 0"
-        icon="ri:login-circle-line" />
+        icon="ri:login-circle-line"
+        to="/log-management/login-log" />
 </template>
 
 <script lang="ts" setup>

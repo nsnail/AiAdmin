@@ -6,7 +6,8 @@
         :loading="loading"
         :title="t('dashboard.widgets.statWallet.title')"
         :value="summary?.availableBalance ?? 0"
-        icon="ri:wallet-3-line" />
+        icon="ri:wallet-3-line"
+        to="/finance/wallet" />
 </template>
 
 <script lang="ts" setup>

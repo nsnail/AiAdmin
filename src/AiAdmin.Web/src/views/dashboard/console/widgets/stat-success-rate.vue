@@ -4,9 +4,11 @@
         :decimals="1"
         :description="t('dashboard.widgets.statSuccessRate.desc', { days, count: summary?.executionsToday ?? 0 })"
         :loading="loading"
+        :query="{ tab: 'executions' }"
         :title="t('dashboard.widgets.statSuccessRate.title')"
         :value="summary?.executionSuccessRate ?? 0"
-        icon="ri:checkbox-circle-line" />
+        icon="ri:checkbox-circle-line"
+        to="/system-management/scheduled-job" />
 </template>
 
 <script lang="ts" setup>

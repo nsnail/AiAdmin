@@ -5,6 +5,7 @@
 
 <script lang="ts" setup>
 import { graphic, type EChartsOption } from '@/plugins/echarts'
+import type { ECharts } from 'echarts'
 import { getCssVar, hexToRgba } from '@/utils/ui'
 import { useChartOps, useChartComponent } from '@/hooks/core/useChart'
 import type { LineDataItem, SymbolType } from '@/types/component/chart'
@@ -31,6 +32,8 @@ interface ArtLineChartProps {
     showTooltip?: boolean
     showLegend?: boolean
     legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+    /** 是否可点击取点：点击绘图区时按横坐标定位最近的类目，多条线时再按纵向距离定位最近的一条 */
+    clickable?: boolean
 }
 
 const props = withDefaults(defineProps<ArtLineChartProps>(), {
@@ -59,7 +62,42 @@ const props = withDefaults(defineProps<ArtLineChartProps>(), {
     showTooltip: true,
     showLegend: false,
     legendPosition: 'bottom',
+    clickable: false,
 })
+
+const emit = defineEmits<{
+    /** 点击绘图区，参数为最近的类目序号、最近的线序号和线名称 */
+    (e: 'point-click', payload: { dataIndex: number; seriesIndex: number; seriesName: string }): void
+}>()
+
+/**
+ * 绑定画布点击与悬停手型：symbol 为 none 时系列点击不可靠，所以直接按像素坐标换算
+ * @param instance ECharts 实例
+ */
+const bindPointClick = (instance: ECharts) => {
+    const zr = instance.getZr()
+    const inGrid = (x: number, y: number) => instance.containPixel({ gridIndex: 0 }, [x, y])
+    zr.on('mousemove', (event: { offsetX: number; offsetY: number }) => {
+        zr.setCursorStyle(props.clickable && inGrid(event.offsetX, event.offsetY) ? 'pointer' : 'default')
+    })
+    zr.on('click', (event: { offsetX: number; offsetY: number }) => {
+        if (!props.clickable || !inGrid(event.offsetX, event.offsetY)) return
+        const categoryIndex = instance.convertFromPixel({ xAxisIndex: 0 }, event.offsetX) as number
+        const value = instance.convertFromPixel({ yAxisIndex: 0 }, event.offsetY) as number
+        const dataIndex = Math.min(Math.max(Math.round(categoryIndex), 0), Math.max(props.xAxisData.length - 1, 0))
+        const lines = (props.data as Array<number | LineDataItem>).every((x) => typeof x === 'number') ? [] : (props.data as LineDataItem[])
+        let seriesIndex = 0
+        let best = Number.POSITIVE_INFINITY
+        lines.forEach((line, index) => {
+            const distance = Math.abs((line.data[dataIndex] ?? 0) - value)
+            if (distance < best) {
+                best = distance
+                seriesIndex = index
+            }
+        })
+        emit('point-click', { dataIndex, seriesIndex, seriesName: lines[seriesIndex]?.name ?? '' })
+    })
+}
 
 // 动画状态管理
 const isAnimating = ref(false)
@@ -347,6 +385,7 @@ const {
     isEmpty,
 } = useChartComponent({
     props,
+    chartOptions: { onInit: bindPointClick },
     checkEmpty: checkIsEmpty,
     watchSources: [() => props.data, () => props.xAxisData, () => props.colors],
     onVisible: () => {

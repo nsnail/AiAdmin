@@ -19,7 +19,7 @@ interface ArtRingChartProps {
     isEmpty?: boolean
     colors?: string[]
     /** 数据项，tip 为可选的提示框附加说明，显示在名称和数量下面一行 */
-    data: Array<{ name: string; value: number; tip?: string }>
+    data: Array<{ name: string; value: number; tip?: string; [key: string]: unknown }>
     radius?: string[]
     borderRadius?: number
     centerText?: string
@@ -27,6 +27,8 @@ interface ArtRingChartProps {
     showTooltip?: boolean
     showLegend?: boolean
     legendPosition?: 'bottom' | 'top' | 'left' | 'right'
+    /** 扇区是否可点击，可点击时鼠标悬停显示手型 */
+    clickable?: boolean
 }
 
 const props = withDefaults(defineProps<ArtRingChartProps>(), {
@@ -47,11 +49,26 @@ const props = withDefaults(defineProps<ArtRingChartProps>(), {
     showTooltip: true,
     showLegend: false,
     legendPosition: 'right',
+    clickable: false,
 })
+
+const emit = defineEmits<{
+    /** 点击扇区，参数为该扇区的数据项 */
+    (e: 'item-click', item: ArtRingChartProps['data'][number]): void
+}>()
 
 // 使用新的图表组件抽象
 const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle } = useChartComponent({
     props,
+    chartOptions: {
+        onInit: (instance) => {
+            instance.on('click', (params) => {
+                if (props.clickable && params.componentType === 'series') {
+                    emit('item-click', params.data as ArtRingChartProps['data'][number])
+                }
+            })
+        },
+    },
     checkEmpty: () => {
         return !props.data?.length || props.data.every((item) => item.value === 0)
     },
@@ -92,6 +109,7 @@ const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle } 
                     radius: props.radius,
                     center: getCenterPosition(),
                     avoidLabelOverlap: false,
+                    cursor: props.clickable ? 'pointer' : 'default',
                     itemStyle: {
                         borderRadius: props.borderRadius,
                         borderColor: isDark.value ? '#2c2c2c' : '#fff',

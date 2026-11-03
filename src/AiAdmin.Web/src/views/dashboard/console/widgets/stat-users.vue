@@ -5,7 +5,8 @@
         :loading="loading"
         :title="t('dashboard.widgets.statUsers.title')"
         :value="summary?.totalUsers ?? 0"
-        icon="ri:group-line" />
+        icon="ri:group-line"
+        to="/permission/user" />
 </template>
 
 <script lang="ts" setup>

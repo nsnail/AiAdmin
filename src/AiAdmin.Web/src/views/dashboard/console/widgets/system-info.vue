@@ -1,7 +1,7 @@
 <!-- 系统信息卡片：展示系统 logo、名称、版本号和最近一次版本更新内容，数据由后端程序集元数据与 CHANGELOG 提供 -->
 <template>
     <div class="art-card flex h-full flex-col gap-3 px-5 py-4">
-        <div class="flex items-center gap-4">
+        <div :class="['flex items-center gap-4', linkable() ? 'cursor-pointer' : '']" @click="go()">
             <ArtLogo :size="48" class="shrink-0" />
             <div class="min-w-0 flex-1">
                 <div class="truncate text-lg font-medium">{{ info?.name ?? AppConfig.systemInfo.name }}</div>
@@ -30,11 +30,13 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { fetchGetDashboardSystemInfo, type DashboardSystemInfo } from '@/api/dashboard'
 import AppConfig from '@/config'
+import { useWidgetLink } from './context'
 import ReleaseNotes from './release-notes.vue'
 
 defineOptions({ name: 'DashboardSystemInfo' })
 
 const { t } = useI18n()
+const { linkable, go } = useWidgetLink(() => '/development/change-log')
 /** 后端返回的系统信息 */
 const info = ref<DashboardSystemInfo | null>(null)
 /** 更新内容容器 */

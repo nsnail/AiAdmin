@@ -54,7 +54,8 @@
 <script lang="ts" setup>
 import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { h } from 'vue'
+import { h, onActivated } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ArtButtonMore, { type ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
@@ -84,7 +85,18 @@ const currentJob = ref<ScheduledJob>()
 const executionJob = ref<ScheduledJob>()
 const executionVisible = ref(false)
 const scheduledJobTablePage = ref<{ refreshFilterGroups: (filter?: DynamicFilter) => Promise<void> }>()
+const route = useRoute()
+const router = useRouter()
 const activeTab = ref('jobs')
+
+/** 路由参数 tab=executions 时切到“全部执行记录”页签（如从仪表板成功率卡片跳转），用完即清，页面带缓存所以每次激活都要检查 */
+const applyRouteTab = async (): Promise<void> => {
+    if (route.query.tab !== 'executions') return
+    activeTab.value = 'executions'
+    await router.replace({ path: route.path, query: {} })
+}
+void applyRouteTab()
+onActivated(applyRouteTab)
 const selectedRows = ref<ScheduledJob[]>([])
 const remarkDialogVisible = ref(false)
 const batchRemark = ref('')
