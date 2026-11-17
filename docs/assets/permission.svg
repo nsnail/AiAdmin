@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="340" viewBox="0 0 1280 340" font-family="'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1"><stop offset="0" stop-color="#0f172a"/><stop offset="1" stop-color="#1e1b4b"/></linearGradient>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#22d3ee"/></marker>
+  </defs>
+  <rect width="1280" height="340" rx="22" fill="url(#bg)"/>
+  <text x="640" y="48" text-anchor="middle" font-size="26" font-weight="800" fill="#fff">一个请求，要闯过三道关</text>
+  <g font-weight="700" text-anchor="middle">
+    <rect x="40" y="110" width="150" height="120" rx="16" fill="#334155"/><text x="115" y="165" font-size="34">👤</text><text x="115" y="205" font-size="18" fill="#e2e8f0">用户请求</text>
+    <rect x="270" y="90" width="230" height="160" rx="16" fill="#7c5cff"/><text x="385" y="145" font-size="34">🔑</text><text x="385" y="185" font-size="20" fill="#fff">① 菜单 / 按钮</text><text x="385" y="215" font-size="14" fill="#ddd6fe" font-weight="400">R_SUPER · R_ADMIN · R_USER</text>
+    <rect x="550" y="90" width="230" height="160" rx="16" fill="#0891b2"/><text x="665" y="145" font-size="34">🚧</text><text x="665" y="185" font-size="20" fill="#fff">② 接口权限</text><text x="665" y="215" font-size="14" fill="#cffafe" font-weight="400">ApiPermissionMiddleware</text>
+    <rect x="830" y="90" width="230" height="160" rx="16" fill="#059669"/><text x="945" y="145" font-size="34">🎯</text><text x="945" y="185" font-size="20" fill="#fff">③ 数据范围</text><text x="945" y="215" font-size="14" fill="#d1fae5" font-weight="400">全部 / 本部门 / 含下级 / 仅本人</text>
+    <rect x="1110" y="110" width="130" height="120" rx="16" fill="#334155"/><text x="1175" y="165" font-size="34">✅</text><text x="1175" y="205" font-size="18" fill="#e2e8f0">安全放行</text>
+  </g>
+  <g stroke="#22d3ee" stroke-width="3" marker-end="url(#a)" stroke-dasharray="8 6">
+    <line x1="192" y1="170" x2="266" y2="170"><animate attributeName="stroke-dashoffset" values="28;0" dur="1.2s" repeatCount="indefinite"/></line>
+    <line x1="502" y1="170" x2="546" y2="170"/><line x1="782" y1="170" x2="826" y2="170"/><line x1="1062" y1="170" x2="1106" y2="170"/>
+  </g>
+  <text x="640" y="300" text-anchor="middle" font-size="16" fill="#94a3b8">DataScopeMiddleware 自动为查询注入过滤条件，业务代码无需手写权限判断</text>
+</svg>

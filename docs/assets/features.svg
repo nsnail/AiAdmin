@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="510" viewBox="0 0 1280 510" font-family="'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <linearGradient id="c1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#4338ca"/></linearGradient>
+    <linearGradient id="c2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#0369a1"/></linearGradient>
+    <linearGradient id="c3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#047857"/></linearGradient>
+    <linearGradient id="c4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f472b6"/><stop offset="1" stop-color="#9d174d"/></linearGradient>
+    <linearGradient id="c5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbbf24"/><stop offset="1" stop-color="#b45309"/></linearGradient>
+    <linearGradient id="c6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#1e3a8a"/></linearGradient>
+  </defs>
+  <g fill="#fff">
+    <g><rect width="410" height="240" rx="20" fill="url(#c1)"/><text x="28" y="70" font-size="44">🛡️</text><text x="28" y="125" font-size="26" font-weight="800">三层权限 · 层层设防</text><text x="28" y="165" font-size="16" opacity=".9">菜单按钮 + 接口鉴权 + 数据范围</text><text x="28" y="192" font-size="16" opacity=".9">自动同步接口表，越权无处可钻</text></g>
+    <g transform="translate(435,0)"><rect width="410" height="240" rx="20" fill="url(#c2)"/><text x="28" y="70" font-size="44">🔍</text><text x="28" y="125" font-size="26" font-weight="800">一套协议 · 通吃列表</text><text x="28" y="165" font-size="16" opacity=".9">And/Or 无限嵌套，类型感知操作符</text><text x="28" y="192" font-size="16" opacity=".9">右键单元格即可筛选，所见即所得</text></g>
+    <g transform="translate(870,0)"><rect width="410" height="240" rx="20" fill="url(#c3)"/><text x="28" y="70" font-size="44">🚀</text><text x="28" y="125" font-size="26" font-weight="800">零中断 · 滚动发布</text><text x="28" y="165" font-size="16" opacity=".9">ShutdownGate 排空在途请求</text><text x="28" y="192" font-size="16" opacity=".9">发布时用户无感知，告别半夜上线</text></g>
+    <g transform="translate(0,270)"><rect width="410" height="240" rx="20" fill="url(#c4)"/><text x="28" y="70" font-size="44">🗄️</text><text x="28" y="125" font-size="26" font-weight="800">四库切换 · 一行配置</text><text x="28" y="165" font-size="16" opacity=".9">MySQL / SQL Server / PostgreSQL / SQLite</text><text x="28" y="192" font-size="16" opacity=".9">EF Core 11 统一抽象，业务零改动</text></g>
+    <g transform="translate(435,270)"><rect width="410" height="240" rx="20" fill="url(#c5)"/><text x="28" y="70" font-size="44">🔔</text><text x="28" y="125" font-size="26" font-weight="800">实时推送 · 跨节点</text><text x="28" y="165" font-size="16" opacity=".9">WebSocket + Redis 总线</text><text x="28" y="192" font-size="16" opacity=".9">站内信、客服会话开箱即用</text></g>
+    <g transform="translate(870,270)"><rect width="410" height="240" rx="20" fill="url(#c6)"/><text x="28" y="70" font-size="44">📜</text><text x="28" y="125" font-size="26" font-weight="800">全链路 · 可观测</text><text x="28" y="165" font-size="16" opacity=".9">请求日志按天分表，外部调用全记录</text><text x="28" y="192" font-size="16" opacity=".9">ES 日志 + Prometheus 指标</text></g>
+  </g>
+</svg>

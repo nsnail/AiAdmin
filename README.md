@@ -1,127 +1,264 @@
-# AiAdmin
+<div align="center">
 
-AiAdmin 是基于 .NET 11 + Vue 3 的通用后台权限管理框架，前后端分离，可在其上构建具体业务项目。
+<img src="docs/assets/banner.svg" alt="AiAdmin" width="100%"/>
 
-- **框架部分**：登录与鉴权、用户 / 角色 / 部门 / 菜单 / 数据权限、字典、计划作业、文件、日志、站内信与客服会话、实时推送、统一的动态列表查询等，说明见本文档与各目录
-  `README.md`
-- **业务部分**：基于本框架构建的具体业务，设计与说明写在 [docs](docs/README.md)
+<br/>
 
-开发约定（后端、前端、统一列表页、导出、质量与提交流程）见 [AGENTS.md](AGENTS.md)。
+**别再重复造后台了。**
+**AiAdmin 把权限、列表、日志、发布这些「每个项目都要做、做起来又特别烦」的事，一次做到极致。**
 
-## 技术栈
+<br/>
 
-| 层   | 技术                                                                                                                 |
-|------|----------------------------------------------------------------------------------------------------------------------|
-| 后端 | .NET 11、ASP.NET Core、EF Core（MySQL / SQL Server / PostgreSQL / SQLite）、Redis（StackExchange.Redis）、MinIO、JWT |
-| 前端 | Vue 3、Vite、TypeScript、Element Plus、Pinia、vue-router、vue-i18n、Tailwind CSS、ECharts、Ace / WangEditor          |
-| 日志 | 控制台、文件、Elasticsearch，以及按天分表入库的 API 请求日志                                                         |
-| 部署 | Docker、Docker Compose、Nginx 网关、Gitea Actions 滚动发布                                                           |
+![.NET](https://img.shields.io/badge/.NET-11-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)
+![Vue](https://img.shields.io/badge/Vue-3.5-4FC08D?style=for-the-badge&logo=vuedotjs&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-## 目录结构
+[🚀 三分钟启动](#-三分钟启动) &nbsp;·&nbsp; [✨ 为什么选它](#-为什么选-aiadmin) &nbsp;·&nbsp; [🏛️ 架构](#️-架构一眼看懂) &nbsp;·&nbsp; [📁 目录](#-目录结构) &nbsp;·&nbsp; [📐 开发约定](AGENTS.md) &nbsp;·&nbsp; [📝 更新日志](CHANGELOG.md)
 
-| 目录                                                               | 说明                                                       |
-|--------------------------------------------------------------------|------------------------------------------------------------|
-| [src/AiAdmin.Core](src/AiAdmin.Core/README.md)                     | 实体模型、契约、特性、雪花 ID 等共享类型，不依赖其他项目   |
-| [src/AiAdmin.Infrastructure](src/AiAdmin.Infrastructure/README.md) | 数据库、动态查询、权限与数据范围、令牌、对象存储等基础设施 |
-| [src/AiAdmin.Api](src/AiAdmin.Api/README.md)                       | 应用宿主：控制器、中间件、日志、计划作业、实时推送         |
-| [src/AiAdmin.Web](src/AiAdmin.Web/README.md)                       | 前端应用                                                   |
-| [tests](tests/README.md)                                           | 后端 xUnit 测试                                            |
-| [build](build/README.md)                                           | 代码清理、质量规则、版本标签脚本                           |
-| [docker](docker/README.md)                                         | 镜像构建、编排、网关与滚动发布                             |
-| [.gitea/workflows](.gitea/workflows/README.md)                     | Gitea Actions 发布流水线                                   |
-| [.github/workflows](.github/workflows/README.md)                   | GitHub Actions（暂未使用）                                 |
-| [docs](docs/README.md)                                             | 业务设计与设计稿                                           |
-| [scripts](scripts/README.md)                                       | 辅助脚本目录（暂无脚本）                                   |
+</div>
 
-## 快速开始
+<br/>
 
-环境要求：.NET SDK 10（见 `global.json`）、Node.js 20.19 及以上、MySQL 8.4、Redis。
+## 🔥 一眼看懂
+
+<div align="center">
+<img src="docs/assets/features.svg" alt="核心特性" width="100%"/>
+</div>
+
+<br/>
+
+## ✨ 为什么选 AiAdmin
+
+> 大多数后台模板只给你一堆页面，剩下的权限、查询、发布、日志都要自己啃。
+> AiAdmin 反过来：**先把难的做成基础设施，再让业务只写业务。**
+
+### 🛡️ 权限：三层叠加，业务代码零判断
+
+菜单按钮、接口、数据范围各管一层，**越权请求在到达控制器之前就已被拦下**。启动时自动扫描并同步接口表，新增接口无需手工登记。
+
+<div align="center">
+<img src="docs/assets/permission.svg" alt="三层权限" width="100%"/>
+</div>
+
+### 🔍 列表：一套协议，写一次用一辈子
+
+新增一个列表页，**后端只需声明实体特性，前端只需配置列**。基础筛选、高级嵌套查询、保存查询、右键单元格筛选、服务端排序、分页、导出——全部开箱即用，且共享同一棵 `dynamicFilter` 树，永不「界面和请求不一致」。
+
+<div align="center">
+<img src="docs/assets/list-ui.svg" alt="统一列表页" width="100%"/>
+</div>
+
+<details>
+<summary><b>👀 看看请求长什么样</b></summary>
+
+```jsonc
+// POST /{resource}/list
+{
+  "current": 1,
+  "size": 20,
+  "sortField": "CreatedAt",
+  "sortOrder": "desc",
+  "dynamicFilter": {
+    "logic": "And",
+    "filters": [
+      { "field": "CreatedAt", "operator": "DateRange", "value": ["2026-01-01", "2026-02-01"] },
+      { "logic": "Or", "filters": [
+        { "field": "UserName", "operator": "Contains", "value": "admin" },
+        { "field": "IsEnabled", "operator": "Equals", "value": true }
+      ]}
+    ]
+  }
+}
+```
+
+- 无效字段 / 操作符 / 值类型一律返回明确错误，**绝不悄悄忽略条件后返回「看起来正常」的错误数据**
+- `GET {resource}/filter-fields` 由实体 `ListFilterAttribute` 驱动，前端不硬编码任何筛选控件
+- 日期范围统一左闭右开，布尔 / 数值保持原生 JSON 类型
+
+</details>
+
+### 🚀 发布：上线不再是一场冒险
+
+`ShutdownGate` 记录所有在途的 HTTP、计划作业、数据库与外部请求；滚动发布时网关先摘流，**排空后才真正停机**，`/health` 就绪后再接入流量。
+
+<div align="center">
+<img src="docs/assets/rolling-release.svg" alt="滚动发布" width="100%"/>
+</div>
+
+### 🧰 还有这些，别人要装一堆插件才有的
+
+| | 能力 | 你得到什么 |
+|:-:|------|------------|
+| 🗄️ | **四库一键切换** | MySQL / SQL Server / PostgreSQL / SQLite，改 `Database:Provider` 即可 |
+| 🔔 | **实时推送** | WebSocket + Redis 总线跨节点转发，内置站内信与客服会话 |
+| 📜 | **日志体系** | 控制台 / 文件 / Elasticsearch 三路输出；API 请求日志经 Redis 队列**按天分表**入库 |
+| 🔭 | **外呼可追溯** | 所有对外 HTTP 必经 `ExternalHttpRequestService`，地址、请求体、响应、耗时全记录 |
+| 📈 | **监控就绪** | 内置 Prometheus 指标、ECharts 仪表盘、Redis 条目查看 |
+| 🆔 | **雪花主键** | 52 位 Snowflake ID，十进制约 15 位，**前端 JS 数字零精度丢失** |
+| ⏰ | **计划作业** | Redis 分布式锁，多实例部署也不会重复触发 |
+| 🌏 | **中英双语** | 界面文案、服务端消息、接口描述全接入 i18n；框架与业务分文件，**合并上游不冲突** |
+| 🧪 | **工程化门禁** | 0 警告 0 错误、xUnit 测试、认知复杂度阈值、Prettier + ReSharper 一键清理 |
+
+<br/>
+
+## 🧱 技术栈
+
+<table>
+<tr><td><b>⚙️ 后端</b></td><td>
+
+`.NET 11` · `ASP.NET Core` · `EF Core 11` · `StackExchange.Redis` · `JWT Bearer` · `BCrypt` · `MinIO` · `MailKit` · `Magick.NET` · `prometheus-net`
+
+</td></tr>
+<tr><td><b>🎨 前端</b></td><td>
+
+`Vue 3.5` · `Vite 8` · `TypeScript 7` · `Element Plus` · `Pinia` · `vue-router` · `vue-i18n 11` · `Tailwind CSS` · `ECharts 6` · `Ace` / `WangEditor`
+
+</td></tr>
+<tr><td><b>💾 数据</b></td><td>
+
+`MySQL 8.4` · `SQL Server` · `PostgreSQL` · `SQLite` · `Redis` · `Elasticsearch`
+
+</td></tr>
+<tr><td><b>📦 部署</b></td><td>
+
+`Docker` · `Docker Compose` · `Nginx 网关` · `Gitea Actions 滚动发布`
+
+</td></tr>
+</table>
+
+## 🏛️ 架构一眼看懂
+
+```mermaid
+flowchart LR
+    subgraph Web["🎨 AiAdmin.Web · Vue 3"]
+        A[ArtSearchBar] --> B[useTable] --> C[ArtTable]
+    end
+    subgraph Api["⚙️ AiAdmin.Api · 宿主"]
+        M1[ApiPermission<br/>Middleware] --> M2[DataScope<br/>Middleware] --> Ctl[Controllers]
+        Ctl --> RT[WebSocket 推送]
+        Ctl --> Job[计划作业]
+    end
+    subgraph Infra["🧱 AiAdmin.Infrastructure"]
+        DQ[动态查询] --- DB[(EF Core<br/>多数据库)]
+        Cache[(Redis)] --- Obj[(MinIO)]
+    end
+    Core["💎 AiAdmin.Core<br/>实体 · 契约 · 特性"]
+    Web == "GET / POST" ==> Api
+    Api --> Infra --> Core
+```
+
+三个后端项目**单向引用** `Api → Infrastructure → Core`，天然形成增量编译边界：只改 API 层，不会重编 Core 与 Infrastructure。
+
+## 🚀 三分钟启动
+
+**环境要求**：.NET SDK 11（见 `global.json`）· Node.js 20.19+ · MySQL 8.4 · Redis
 
 ```powershell
-# 后端
+# 1️⃣ 后端  →  http://localhost:5678
 dotnet run --project src/AiAdmin.Api --launch-profile dev
 
-# 前端
+# 2️⃣ 前端  →  http://localhost:5679
 cd src/AiAdmin.Web
 cnpm install
 cnpm run dev -- --no-open
 ```
 
-- 后端：http://localhost:5678
-- 前端：http://localhost:5679（开发环境通过 Vite 代理把请求转发到后端，代理目标见 `src/AiAdmin.Web/.env.development`）
-- 种子账号：`root`、`job`、`admin`、`user`，初始密码均为 `1234qwer`，首次登录后请立即修改
+> 🔑 种子账号：`root` / `job` / `admin` / `user`，初始密码均为 `1234qwer`，**首次登录后请立即修改**。
 
-### 数据库与配置
+开发环境首次启动会**自动建表并写入角色、菜单和用户种子数据**，无需手工初始化。
 
-- 默认使用 MySQL，通过 `Database:Provider` 切换，可选 `sqlserver`、`postgresql`、`sqlite`；开发环境需先创建 `utf8mb4` 字符集的数据库和用户
-- 真实连接串、Redis、MinIO、SMTP 等敏感配置不要提交，写入 `src/AiAdmin.Api/appsettings.Local.json`（已排除 Git 跟踪，格式参考同目录的
-  `appsettings.Local.example.json`）或环境变量（如 `ConnectionStrings__MySQL`）；系统设置类种子参数仅在对应字典项不存在时写入数据库
-- 开发与测试环境（`Development`、`Test`）首次启动自动建表并写入角色、菜单和用户种子数据；生产环境（`Production`
-  ）不会自动初始化，数据库结构与种子数据需另行准备，见 [docker/README.md](docker/README.md)
-- 部署前必须通过配置中心或环境变量覆盖 `Jwt:Key` 和各类密码，切换已有数据库不会自动迁移旧数据，应先备份并单独迁移
+<details>
+<summary><b>⚙️ 配置要点</b></summary>
 
-### 启动参数
+- 默认 MySQL，通过 `Database:Provider` 切换 `sqlserver` / `postgresql` / `sqlite`；开发环境需先创建 `utf8mb4` 数据库和用户
+- 敏感配置（连接串、Redis、MinIO、SMTP）写入 `src/AiAdmin.Api/appsettings.Local.json`（已排除 Git，参考 `appsettings.Local.example.json`）或环境变量，如 `ConnectionStrings__MySQL`
+- `Production` 不自动初始化，见 [docker/README.md](docker/README.md)
+- 部署前**必须**覆盖 `Jwt:Key` 与各类密码；多实例必须为每个实例设置不同的 `Snowflake:WorkerId`（0–31）
 
-| 参数                        | 作用                                                                          |
-|-----------------------------|-------------------------------------------------------------------------------|
-| `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志和 API 请求日志入库等后台服务                 |
-| `--clear-database`          | 仅开发 / 测试环境：清空所有表后重新初始化（`--delete-all-tables` 为同义参数） |
-| `--replace-job-request-url` | 覆盖计划作业的请求地址                                                        |
+</details>
 
-`launchSettings.json` 已提供对应的启动配置。多实例部署时只由部分实例启用后台服务，作业执行通过 Redis 锁避免重复触发。
+<details>
+<summary><b>🏁 启动参数</b></summary>
 
-## 架构要点
+| 参数 | 作用 |
+|------|------|
+| `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志、API 请求日志入库等后台服务 |
+| `--clear-database` | 仅开发 / 测试：清空所有表后重新初始化（同义：`--delete-all-tables`） |
+| `--replace-job-request-url` | 覆盖计划作业的请求地址 |
 
-### 后端分层
+多实例部署时只让部分实例启用后台服务，作业执行通过 Redis 锁避免重复触发。
 
-三个项目单向引用：`Api` → `Infrastructure` → `Core`，形成增量编译边界，只修改 API 层不会重新编译 Core 和 Infrastructure。
+</details>
 
-- **主键**：系统数字主键使用 52 位 Snowflake ID（十进制约 15 位，起算 2025-01-01，可用约 17.4 年，单实例每毫秒最多 256 个）。多实例部署必须在每个实例设置不同的
-  `Snowflake:WorkerId`（0 到 31，最多 32 个实例）
-- **缓存**：一律使用 Redis（`IDistributedCache` / `IConnectionMultiplexer`），键前缀 `aiadmin:`，不使用 `IMemoryCache`
-- **接口约定**：只使用 GET / POST；每个控制器和公开方法必须标注 `ApiDescriptionAttribute`，启动时据此同步接口表，作为接口权限的依据
-- **权限**：菜单与按钮权限（`R_SUPER`、`R_ADMIN`、`R_USER` 等角色）、接口权限（`ApiPermissionMiddleware`）、数据范围（全部 / 本部门 / 本部门及下级 / 仅本人，
-  由 `DataScopeMiddleware` 构造查询过滤）三层叠加
-- **外部请求**：所有对外 HTTP 调用必须经过 `ExternalHttpRequestService`，统一记录地址、请求体、响应、状态码和耗时
-- **日志**：控制台、文件、Elasticsearch 三路输出；API 请求日志经 Redis 队列批量写入按天分表，由后台服务消费
-- **安全停机**：`ShutdownGate` 记录在途的 HTTP、作业、数据库、外部请求等活动，滚动发布时先排空再停止，配合 `/health` 与网关摘除节点实现无中断发布
-- **实时推送**：WebSocket 连接由 `RealtimeConnectionManager` 管理，多实例间通过 Redis 总线转发
+## 🧩 开箱即用的功能
 
-### 动态列表查询
+<div align="center">
 
-所有表格列表共用同一套协议，是框架最核心的约定：
+`👥 用户` `🎭 角色` `🏢 部门` `📋 菜单` `🔌 接口` `🎯 数据权限` `📚 字典` `⏰ 计划作业` `📁 文件`
+`✉️ 站内信` `💬 客服会话` `⚙️ 系统设置` `🔐 登录日志` `📜 系统日志` `🌐 请求日志` `🧠 Redis 条目` `🙋 个人中心` `📊 仪表盘`
 
-- 后端：`POST {resource}/list`，请求体 `DynamicQueryRequest`（`current`、`size`、`dynamicFilter`、`sortField`、`sortOrder`），返回 `PagedResponse<T>`；
-  `GET {resource}/filter-fields` 返回由实体属性上 `ListFilterAttribute` 驱动的筛选元数据；`ApplyDynamicFilter` / `ApplyDynamicSort` 统一处理 `And / Or`
-  嵌套筛选和排序
-- 前端：`ArtSearchBar + ArtTable + useTable`，基础筛选、高级查询、已保存查询、右键筛选统一汇总为一棵 `dynamicFilter` JSON 树
-- 用户管理页是标准模板，详细规则见 [AGENTS.md](AGENTS.md) 第 5 节
+</div>
 
-### 前端结构
+## 📁 目录结构
+
+| 目录 | 说明 |
+|------|------|
+| [src/AiAdmin.Core](src/AiAdmin.Core/README.md) | 实体模型、契约、特性、雪花 ID 等共享类型，不依赖其他项目 |
+| [src/AiAdmin.Infrastructure](src/AiAdmin.Infrastructure/README.md) | 数据库、动态查询、权限与数据范围、令牌、对象存储 |
+| [src/AiAdmin.Api](src/AiAdmin.Api/README.md) | 应用宿主：控制器、中间件、日志、计划作业、实时推送 |
+| [src/AiAdmin.Web](src/AiAdmin.Web/README.md) | 前端应用 |
+| [tests](tests/README.md) | 后端 xUnit 测试 |
+| [build](build/README.md) | 代码清理、质量规则、版本标签脚本 |
+| [docker](docker/README.md) | 镜像构建、编排、网关与滚动发布 |
+| [.gitea/workflows](.gitea/workflows/README.md) | Gitea Actions 发布流水线 |
+| [docs](docs/README.md) | 业务设计与设计稿 |
+
+<details>
+<summary><b>🎨 前端目录结构</b></summary>
 
 ```
 src/AiAdmin.Web/src
-├─ api/            接口函数与类型（框架 system-manage、业务 business-manage 分文件）
+├─ api/            接口函数与类型（system-manage 框架 / business-manage 业务）
 ├─ components/     core（框架通用组件）、business（业务组件）
 ├─ hooks/core/     组合式函数，useTable 是列表页核心
-├─ locales/        框架语言包 langs，业务语言包 business
+├─ locales/        langs（框架语言包）、business（业务语言包）
 ├─ router/         静态路由、动态路由注册、守卫
 ├─ store/          Pinia 状态
-├─ utils/          http、i18n、table、json（动态查询）、realtime、socket 等
-└─ views/          页面，system 为框架页面，business 为业务页面
+├─ utils/          http、i18n、table、json（动态查询）、realtime、socket
+└─ views/          system（框架页面）、business（业务页面）
 ```
 
-菜单由后端菜单种子（`menu-seed.json`）下发，`component` 字段对应 `views` 下的目录；新增页面需同步菜单种子、路由权限与 i18n。
+菜单由后端 `menu-seed.json` 下发，`component` 对应 `views` 下目录；新增页面需同步菜单种子、路由权限与 i18n。
 
-## 构建、测试与发布
+</details>
+
+## 🛠️ 构建、测试与发布
 
 ```powershell
-dotnet build                                   # 要求 0 警告 0 错误
-dotnet test tests/AiAdmin.Tests                # 后端测试
-cd src/AiAdmin.Web; npx vite build             # 前端构建验证
-./build/code.clean.full.ps1                    # 提交前必须运行
+dotnet build                          # 要求 0 警告 0 错误
+dotnet test tests/AiAdmin.Tests       # 后端测试
+cd src/AiAdmin.Web; npx vite build    # 前端构建验证
+./build/code.clean.full.ps1           # 提交前必须运行（Prettier + ReSharper + 换行整理）
 ```
 
-- 版本：使用 `standard-version` 生成 `CHANGELOG.md` 并打 `v*` 标签，`./build/new.version.tag.ps1` 提供交互式升级
-- 发布：推送标签（版本脚本生成 `v*` 标签）触发 Gitea 流水线，构建 API 与 Web 镜像并滚动部署，见 [.gitea/workflows/README.md](.gitea/workflows/README.md) 与
-  [docker/README.md](docker/README.md)
+- **版本**：`standard-version` 生成 `CHANGELOG.md` 并打 `v*` 标签，`./build/new.version.tag.ps1` 提供交互式升级
+- **发布**：推送 `v*` 标签触发 Gitea 流水线，构建 API 与 Web 镜像并滚动部署，见 [.gitea/workflows/README.md](.gitea/workflows/README.md)
+
+## 📖 约定与文档
+
+- 📐 开发约定（后端 / 前端 / 统一列表页 / 导出 / 提交流程）：[AGENTS.md](AGENTS.md)
+- 🧭 业务设计：[docs](docs/README.md)
+- 📝 变更历史：[CHANGELOG.md](CHANGELOG.md)
+
+<br/>
+
+<div align="center">
+
+**如果 AiAdmin 帮你省下了时间，欢迎点一个 ⭐ Star**
+
+<sub>Built with ❤️ on .NET 11 & Vue 3</sub>
+
+</div>
