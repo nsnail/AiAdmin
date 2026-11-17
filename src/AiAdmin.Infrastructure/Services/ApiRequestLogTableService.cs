@@ -36,7 +36,7 @@ public sealed class ApiRequestLogTableService(string provider, string connection
     );
 
     private readonly SemaphoreSlim _createLock = new(1, 1);
-    private readonly HashSet<string> _knownTables = [with(StringComparer.Ordinal)];
+    private readonly HashSet<string> _knownTables = new(StringComparer.Ordinal);
 
     /// <summary>
     ///     根据日期生成分表名称
@@ -258,6 +258,34 @@ public sealed class ApiRequestLogTableService(string provider, string connection
     }
 
     /// <summary>
+    ///     生成幂等的批量插入语句：主键已存在的行被跳过，使放回队列重试的批次不会因重复主键反复失败
+    /// </summary>
+    /// <param name="tableName">日分表名称</param>
+    /// <param name="rows">各行的参数占位符列表，如 (@p0_0, @p0_1)</param>
+    /// <returns>插入语句</returns>
+    private string BuildInsertStatement(
+        string tableName
+        , IReadOnlyCollection<string> rows
+    ) {
+        var table = Quote(tableName);
+        var columns = string.Join(", ", _columns.Select(Quote));
+        var values = string.Join(", ", rows);
+        var key = Quote(nameof(ApiRequestLog.Id));
+
+        // 表名和列名无法参数化，Quote 已用正则校验标识符，值全部为参数
+        #pragma warning disable S2077
+        return provider switch
+        {
+            "mysql" => $"INSERT IGNORE INTO {table} ({columns}) VALUES {values}"
+            , "sqlserver" =>
+                $"INSERT INTO {table} ({columns}) SELECT {columns} FROM (VALUES {values}) AS v ({columns}) WHERE NOT EXISTS (SELECT 1 FROM {table} AS t WHERE t.{key} = v.{key})"
+            , "postgresql" or "postgres" => $"INSERT INTO {table} ({columns}) VALUES {values} ON CONFLICT DO NOTHING"
+            , _ => $"INSERT OR IGNORE INTO {table} ({columns}) VALUES {values}"
+        };
+        #pragma warning restore S2077
+    }
+
+    /// <summary>
     ///     按提供方创建原生数据库连接
     /// </summary>
     /// <returns>未打开的数据库连接</returns>
@@ -384,9 +412,7 @@ public sealed class ApiRequestLogTableService(string provider, string connection
                 rows.Add("(" + string.Join(", ", names) + ")");
             }
 
-            #pragma warning disable S2077 // 表名和列名无法参数化，Quote 已用正则校验标识符，值全部为参数
-            command.CommandText = $"INSERT INTO {Quote(tableName)} ({string.Join(", ", _columns.Select(Quote))}) VALUES {string.Join(", ", rows)}";
-            #pragma warning restore S2077
+            command.CommandText = BuildInsertStatement(tableName, rows);
             total += await command.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
 

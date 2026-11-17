@@ -20,7 +20,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     后台任务消费间隔
     /// </summary>
-    public TimeSpan FlushInterval { get; set; } = TimeSpan.FromSeconds(1);
+    public TimeSpan FlushInterval { get; init; } = TimeSpan.FromSeconds(1);
 
     /// <summary>
     ///     日志索引前缀，写入时追加日志发生时的 UTC 日期后缀 yyyy.MM.dd
@@ -40,7 +40,7 @@ public sealed class ElasticsearchLogOptions
     /// <summary>
     ///     Redis 日志队列键名
     /// </summary>
-    public string QueueKey { get; set; } = RedisKeyPrefix.VALUE + "logs:elasticsearch";
+    public string QueueKey { get; init; } = RedisKeyPrefix.VALUE + "logs:elasticsearch";
 
     /// <summary>
     ///     Elasticsearch 服务地址

@@ -37,6 +37,7 @@ import { useRoute } from 'vue-router'
 import { useAutoLayoutHeight } from '@/hooks/core/useLayoutHeight'
 import { useSettingStore } from '@/store/modules/setting'
 import { useWorktabStore } from '@/store/modules/worktab'
+import { useAutoRefresh } from '@/hooks/core/useAutoRefresh'
 
 defineOptions({ name: 'ArtPageContent' })
 
@@ -55,6 +56,12 @@ const isFirstLoad = ref(true)
 // 检查当前路由是否需要使用无基础布局模式
 const isFullPage = computed(() => route.matched.some((r) => r.meta?.isFullPage))
 const prevIsFullPage = ref(isFullPage.value)
+
+// 定时刷新：倒计时与提示消息，全屏页面不启用
+useAutoRefresh(
+    computed(() => route.path),
+    computed(() => !isFullPage.value),
+)
 
 // 切换动画名称：首次加载、从全屏返回时不使用动画
 const actualTransition = computed(() => {

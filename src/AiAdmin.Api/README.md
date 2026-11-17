@@ -4,13 +4,13 @@
 
 ## 目录
 
-| 目录          | 内容                                                                                                              |
-|---------------|-------------------------------------------------------------------------------------------------------------------|
-| `Controllers` | 框架控制器：认证、用户、角色、部门、菜单、字典、文件、计划作业、站内信、客服、日志、缓存、仪表盘、安全停机等    |
-| `Middleware`  | 请求管道中间件与异常处理                                                                                          |
-| `Services`    | 外部请求、计划作业、实时推送、字典快照、导出限制、系统信息等宿主服务                                              |
-| `Logging`     | 控制台 / 文件 / Elasticsearch 日志提供程序，API 请求日志入库队列与后台服务                                        |
-| `Properties`  | `launchSettings.json` 启动配置                                                                                    |
+| 目录          | 内容                                                                                                         |
+|---------------|--------------------------------------------------------------------------------------------------------------|
+| `Controllers` | 框架控制器：认证、用户、角色、部门、菜单、字典、文件、计划作业、站内信、客服、日志、缓存、仪表盘、安全停机等 |
+| `Middleware`  | 请求管道中间件与异常处理                                                                                     |
+| `Services`    | 外部请求、计划作业、实时推送、字典快照、导出限制、系统信息等宿主服务                                         |
+| `Logging`     | 控制台 / 文件 / Elasticsearch 日志提供程序，API 请求日志入库队列与后台服务                                   |
+| `Properties`  | `launchSettings.json` 启动配置                                                                               |
 
 ## 请求管道
 
@@ -28,27 +28,30 @@
 
 ## 配置
 
-| 文件                           | 说明                                                                                   |
-|--------------------------------|----------------------------------------------------------------------------------------|
-| `appsettings.json`             | 通用默认配置                                                                           |
-| `appsettings.Development.json` | 开发环境                                                                               |
-| `appsettings.Test.json`        | 测试环境                                                                               |
-| `appsettings.Remote.json`      | 远程环境                                                                               |
+| 文件                           | 说明                                                                                                |
+|--------------------------------|-----------------------------------------------------------------------------------------------------|
+| `appsettings.json`             | 通用默认配置                                                                                        |
+| `appsettings.Development.json` | 开发环境                                                                                            |
+| `appsettings.Test.json`        | 测试环境                                                                                            |
+| `appsettings.Remote.json`      | 远程环境                                                                                            |
 | `appsettings.Local.json`       | 本地覆盖，**已排除 Git 跟踪**，存放真实连接串、密钥和 SMTP；格式见 `appsettings.Local.example.json` |
 
-配置优先级：`appsettings.json` < 环境配置 < `appsettings.Local.json` < 环境变量（双下划线表示层级，如 `ConnectionStrings__MySQL`）。仓库中的配置文件只放占位或开发用值，**不得提交真实密码、密钥和令牌**，部署前必须覆盖 `Jwt:Key` 与各类密码。
+配置优先级：`appsettings.json` < 环境配置 < `appsettings.Local.json` < 环境变量（双下划线表示层级，如 `ConnectionStrings__MySQL`）。仓库中的配置文件只放占位或开发用值，
+**不得提交真实密码、密钥和令牌**，部署前必须覆盖 `Jwt:Key` 与各类密码。
 
-主要配置节：`Database`、`ConnectionStrings`、`Snowflake`、`Jwt`、`Smtp`、`Minio`、`IpLocation`、`Elasticsearch`、`FileLogging`、`ApiLogStorage`、`Cors`。多实例部署时每个实例的 `Snowflake:WorkerId` 必须唯一。
+主要配置节：`Database`、`ConnectionStrings`、`Snowflake`、`Jwt`、`Smtp`、`Minio`、`IpLocation`、`Elasticsearch`、`FileLogging`、`ApiLogStorage`、`Cors`
+。多实例部署时每个实例的 `Snowflake:WorkerId` 必须唯一。
 
 ## 启动参数与启动配置
 
-| 参数                        | 作用                                                                       |
-|-----------------------------|----------------------------------------------------------------------------|
+| 参数                        | 作用                                                                                |
+|-----------------------------|-------------------------------------------------------------------------------------|
 | `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志和 API 请求日志入库后台服务（容器镜像默认带此参数） |
-| `--clear-database`          | 仅 `Development` / `Test`：清空所有表后重新初始化（`--delete-all-tables` 同义） |
-| `--replace-job-request-url` | 覆盖计划作业的请求地址，支持 `=` 和空格两种写法                            |
+| `--clear-database`          | 仅 `Development` / `Test`：清空所有表后重新初始化（`--delete-all-tables` 同义）     |
+| `--replace-job-request-url` | 覆盖计划作业的请求地址，支持 `=` 和空格两种写法                                     |
 
-`launchSettings.json` 提供 `dev`、`dev --enabled-hosted-services`、`dev --clear-database` 等配置，端口 5678。`Development`、`Test` 环境启动时自动初始化数据库，`Production` 不会。
+`launchSettings.json` 提供 `dev`、`dev --enabled-hosted-services`、`dev --clear-database` 等配置，端口 5678。`Development`、`Test` 环境启动时自动初始化数据库，
+`Production` 不会。
 
 ## 后台服务
 
@@ -61,11 +64,14 @@
 
 ## 安全停机
 
-`ShutdownGate`（在 Core 中）登记在途的 HTTP、计划作业（`Job`）、外部请求（`Outbound`）、后台批处理（`Background`）和数据库（`Database`）等活动。滚动发布时 `POST /api/system/shutdown/prepare` 关闭闸门并等待在途工作归零，`POST /api/system/shutdown/cancel` 重新打开。主机停机超时为 40 秒，必须小于容器的 `stop_grace_period`。
+`ShutdownGate`（在 Core 中）登记在途的 HTTP、计划作业（`Job`）、外部请求（`Outbound`）、后台批处理（`Background`）和数据库（`Database`）等活动。滚动发布时
+`POST /api/system/shutdown/prepare` 关闭闸门并等待在途工作归零，`POST /api/system/shutdown/cancel` 重新打开。主机停机超时为 40 秒，必须小于容器的
+`stop_grace_period`。
 
 ## 外部请求
 
-所有对外 HTTP 调用必须经过 `ExternalHttpRequestService`，由它统一记录请求地址、请求体、响应、状态码和耗时。禁止直接使用 `HttpClient` 或 `IHttpClientFactory`。
+所有对外 HTTP 调用必须经过 `ExternalHttpRequestService`，由它统一记录请求地址、请求体、响应、状态码和耗时。禁止直接使用 `HttpClient` 或
+`IHttpClientFactory`。
 
 ## 新增接口的检查清单
 

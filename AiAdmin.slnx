@@ -15,8 +15,10 @@
         <File Path="docker/api.Dockerfile"/>
         <File Path="docker/docker-compose.prod.yml"/>
         <File Path="docker/docker-compose.test.yml"/>
+        <File Path="docker/gate-upstream.sh"/>
         <File Path="docker/nginx.conf"/>
         <File Path="docker/README.md"/>
+        <File Path="docker/rolling-deploy.sh"/>
         <File Path="docker/web.Dockerfile"/>
     </Folder>
     <Folder Name="/build/">

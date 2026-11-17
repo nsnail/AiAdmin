@@ -67,25 +67,10 @@ public sealed class ScheduledJobsController(
     }
 
     /// <summary>
-    ///     清理超过保留时长的数据库审计日志
+    ///     清理指定小时数之前的计划作业执行记录，供计划作业定时调用，小时数通过请求体 hours 传入
     /// </summary>
-    /// <param name="request">清理参数</param>
-    /// <returns>清理结果</returns>
-    [HttpPost("database-audit-logs/cleanup")]
-    [ApiDescription("Cleanup database audit logs")]
-    public async Task<ActionResult<ApiResponse<CleanupDatabaseAuditLogsResult>>> CleanupDatabaseAuditLogsAsync(
-        CleanupDatabaseAuditLogsRequest request
-    ) {
-        var cutoff = DateTime.UtcNow.AddHours(-request.Hours);
-        var deletedCount = await db.DatabaseAuditLogs.Where(x => x.CreatedAt < cutoff).ExecuteDeleteAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<CleanupDatabaseAuditLogsResult>.Ok(new CleanupDatabaseAuditLogsResult(deletedCount, ServerTime.ToOffset(cutoff))));
-    }
-
-    /// <summary>
-    ///     清理指定天数之前的计划作业执行记录，供计划作业定时调用，天数通过请求体 days 传入
-    /// </summary>
-    /// <param name="request">包含保留天数的请求体</param>
-    /// <returns>保留天数和本次删除的执行记录数量</returns>
+    /// <param name="request">包含保留小时数的请求体</param>
+    /// <returns>保留小时数和本次删除的执行记录数量</returns>
     /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
     [HttpPost("executions/cleanup")]
     [ApiDescription("Cleanup scheduled job executions")]
@@ -96,12 +81,12 @@ public sealed class ScheduledJobsController(
         }
 
         // 仍在执行中的记录没有结束结果，即使开始时间过早也不删除
-        var cutoff = DateTime.UtcNow.AddDays(-request.Days);
+        var cutoff = DateTime.UtcNow.AddHours(-request.Hours);
         var deleted = await db
             .ScheduledJobExecutions.Where(x => x.StartedAt < cutoff && x.Status != ScheduledJobStatus.Running)
             .ExecuteDeleteAsync()
             .ConfigureAwait(false);
-        return Ok(ApiResponse<CleanupExecutionsResult>.Ok(new CleanupExecutionsResult(request.Days, deleted)));
+        return Ok(ApiResponse<CleanupExecutionsResult>.Ok(new CleanupExecutionsResult(request.Hours, deleted)));
     }
 
     /// <summary>

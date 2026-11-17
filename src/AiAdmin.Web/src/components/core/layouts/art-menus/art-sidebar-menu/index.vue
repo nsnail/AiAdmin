@@ -66,7 +66,7 @@
                     {{ AppConfig.systemInfo.name }}
                 </p>
             </div>
-            <ElScrollbar :style="scrollbarStyle">
+            <ElScrollbar :style="scrollbarStyle" @contextmenu="handleContextMenu">
                 <ElMenu
                     :background-color="getMenuTheme.background"
                     :class="'el-menu-' + getMenuTheme.theme"
@@ -95,6 +95,16 @@
                 @click="toggleMenuVisibility"
                 class="menu-model" />
         </div>
+
+        <!-- 菜单右键菜单 -->
+        <Teleport to="body">
+            <ul v-if="ctxMenu.visible" :style="{ left: ctxMenu.x + 'px', top: ctxMenu.y + 'px' }" @click.stop class="sidebar-ctx-menu">
+                <li :class="{ disabled: !canMoveUp }" @click="canMoveUp && runCtxAction('up')">{{ t('menus.customize.moveUp') }}</li>
+                <li :class="{ disabled: !canMoveDown }" @click="canMoveDown && runCtxAction('down')">{{ t('menus.customize.moveDown') }}</li>
+                <li :class="{ disabled: !canHideCurrent }" @click="canHideCurrent && runCtxAction('hide')">{{ t('menus.customize.hide') }}</li>
+                <li v-if="hasCustomize" @click="runCtxAction('reset')" class="reset">{{ t('menus.customize.reset') }}</li>
+            </ul>
+        </Teleport>
     </div>
 </template>
 
@@ -108,6 +118,8 @@ import { handleMenuJump } from '@/utils/navigation'
 import SidebarSubmenu from './widget/SidebarSubmenu.vue'
 import { useCommon } from '@/hooks/core/useCommon'
 import { useWindowSize, useTimeoutFn } from '@vueuse/core'
+import { useMenuCustomize } from '@/hooks/core/useMenuCustomize'
+import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ArtSidebarMenu' })
 
@@ -146,13 +158,67 @@ const firstLevelMenuPath = computed(() => route.matched[0]?.path)
 const routerPath = computed(() => String(route.meta.activePath || route.path))
 
 // 菜单数据
+const { hasCustomize, applyCustomize, hideMenu, moveMenu, canMove, canHide, resetCustomize } = useMenuCustomize()
+const { t } = useI18n()
+
+/** 应用本地个性化设置后的完整菜单 */
+const customizedMenus = computed(() => applyCustomize(useMenuStore().menuList))
+
+// 右键菜单状态
+const ctxMenu = reactive({ visible: false, x: 0, y: 0, key: '' })
+
+/**
+ * 在菜单项上右键时弹出自定义菜单
+ * @param e 鼠标事件
+ */
+const handleContextMenu = (e: MouseEvent): void => {
+    const el = (e.target as HTMLElement).closest('[data-menu-key]') as HTMLElement | null
+    if (!el) return
+    e.preventDefault()
+    Object.assign(ctxMenu, { visible: true, x: e.clientX, y: e.clientY, key: el.dataset.menuKey ?? '' })
+}
+
+/**
+ * 关闭右键菜单
+ */
+const closeCtxMenu = (): void => {
+    ctxMenu.visible = false
+}
+
+/**
+ * 执行右键菜单操作
+ * @param action 操作类型
+ */
+const runCtxAction = (action: 'up' | 'down' | 'hide' | 'reset'): void => {
+    const raw = useMenuStore().menuList
+    if (action === 'up') moveMenu(raw, ctxMenu.key, -1)
+    else if (action === 'down') moveMenu(raw, ctxMenu.key, 1)
+    else if (action === 'hide') hideMenu(ctxMenu.key)
+    else resetCustomize()
+    closeCtxMenu()
+}
+
+const canHideCurrent = computed(() => canHide(useMenuStore().menuList, ctxMenu.key))
+const canMoveUp = computed(() => canMove(useMenuStore().menuList, ctxMenu.key, -1))
+const canMoveDown = computed(() => canMove(useMenuStore().menuList, ctxMenu.key, 1))
+
+onMounted(() => {
+    document.addEventListener('click', closeCtxMenu)
+    document.addEventListener('contextmenu', closeCtxMenu, true)
+    window.addEventListener('blur', closeCtxMenu)
+})
+onBeforeUnmount(() => {
+    document.removeEventListener('click', closeCtxMenu)
+    document.removeEventListener('contextmenu', closeCtxMenu, true)
+    window.removeEventListener('blur', closeCtxMenu)
+})
+
 const firstLevelMenus = computed(() => {
-    return useMenuStore().menuList.filter((menu) => !menu.meta.isHide)
+    return customizedMenus.value.filter((menu) => !menu.meta.isHide)
 })
 
 const menuList = computed(() => {
-    const menuStore = useMenuStore()
-    const allMenus = menuStore.menuList
+    const allMenus = customizedMenus.value
 
     // 如果不是顶部左侧菜单或双列菜单，直接返回完整菜单列表
     if (!isTopLeftMenu.value && !isDualMenu.value) {
@@ -306,6 +372,39 @@ watch(menuOpen, (isMenuOpen: boolean) => {
 
 <style lang="scss">
 @use './theme';
+
+.sidebar-ctx-menu {
+    position: fixed;
+    z-index: 3000;
+    min-width: 140px;
+    padding: 4px 0;
+    margin: 0;
+    list-style: none;
+    background: var(--default-box-color, #fff);
+    border: 1px solid var(--art-gray-300, #e5e7eb);
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 15%);
+
+    li {
+        padding: 7px 16px;
+        font-size: 13px;
+        cursor: pointer;
+
+        &:hover:not(.disabled) {
+            background: var(--art-gray-200, #f3f4f6);
+        }
+
+        &.disabled {
+            color: var(--art-gray-500, #9ca3af);
+            cursor: not-allowed;
+        }
+
+        &.reset {
+            margin-top: 4px;
+            border-top: 1px solid var(--art-gray-300, #e5e7eb);
+        }
+    }
+}
 
 .layout-sidebar {
     // 展开的宽度

@@ -99,6 +99,8 @@ export interface WorkTab {
     icon?: string
     /** 是否激活 */
     isActive?: boolean
+    /** 定时刷新间隔（秒），未设置或为 0 表示不自动刷新 */
+    autoRefreshSeconds?: number
 }
 
 // 用户Store状态

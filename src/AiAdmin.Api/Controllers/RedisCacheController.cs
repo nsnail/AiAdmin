@@ -1,6 +1,8 @@
 using System.Collections.Concurrent;
+using System.Globalization;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
+using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using StackExchange.Redis;
 
@@ -31,6 +33,33 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         return deleted
             ? Ok(ApiResponse<object>.Ok(new { }, "Redis cache deleted"))
             : NotFound(new ApiResponse<object>(404, "Redis cache key not found", null));
+    }
+
+    /// <summary>
+    ///     分页读取 List、Set、Hash、SortedSet、Stream 类型缓存键的元素，大容量数据不会一次取回
+    /// </summary>
+    /// <param name="key">缓存键</param>
+    /// <param name="cursor">游标，为空表示从头开始，使用上一页返回的 NextCursor 继续读取</param>
+    /// <param name="pageSize">每页元素数量，范围 1 到 500</param>
+    /// <returns>一页元素；键不存在返回 404，类型不是集合类型返回 400</returns>
+    [HttpGet("items")]
+    [ApiDescription("Query Redis cache items")]
+    public async Task<ActionResult<ApiResponse<RedisCacheItemsResult>>> ItemsAsync(
+        [FromQuery] string key
+        , [FromQuery] string? cursor = null
+        , [FromQuery] int pageSize = 100
+    ) {
+        var database = connectionMultiplexer.GetDatabase();
+        var redisKey = new RedisKey(key);
+        var type = await database.KeyTypeAsync(redisKey).ConfigureAwait(false);
+        if (type == RedisType.None) {
+            return NotFound(new ApiResponse<object>(404, "Redis cache key not found", null));
+        }
+
+        var result = await RedisItemReader.ReadAsync(database, redisKey, type, cursor, pageSize).ConfigureAwait(false);
+        return result is null
+            ? BadRequest(new ApiResponse<object>(400, "Redis cache type has no items", null))
+            : Ok(ApiResponse<RedisCacheItemsResult>.Ok(result));
     }
 
     /// <summary>
@@ -132,9 +161,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         }
 
         var type = await database.KeyTypeAsync(redisKey).ConfigureAwait(false);
-        var value = type == RedisType.String
-            ? await database.StringGetAsync(redisKey).ConfigureAwait(false)
-            : new RedisValue($"Redis type {type} is not editable by this client");
+        var value = type == RedisType.String ? await database.StringGetAsync(redisKey).ConfigureAwait(false) : RedisValue.EmptyString;
         var text = value.ToString();
         if (text.Length > _MAX_VALUE_LENGTH) {
             text = text[.._MAX_VALUE_LENGTH];
@@ -186,7 +213,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
         IReadOnlyDictionary<string, string> info
         , string key
     ) {
-        return double.TryParse(GetInfo(info, key), out var value) ? value : 0;
+        return double.TryParse(GetInfo(info, key), CultureInfo.InvariantCulture, out var value) ? value : 0;
     }
 
     /// <summary>
@@ -223,6 +250,7 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
             , RedisType.Set => await database.SetLengthAsync(key).ConfigureAwait(false)
             , RedisType.Hash => await database.HashLengthAsync(key).ConfigureAwait(false)
             , RedisType.SortedSet => await database.SortedSetLengthAsync(key).ConfigureAwait(false)
+            , RedisType.Stream => await database.StreamLengthAsync(key).ConfigureAwait(false)
             , _ => 0
         };
     }

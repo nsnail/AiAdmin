@@ -1,13 +1,16 @@
 using System.Data.Common;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.Extensions.Options;
 
 namespace AiAdmin.Api.Data;
 
 /// <summary>
-///     记录数据库读取和写入命令审计信息
+///     记录数据库读取和写入命令审计信息，只记录耗时达到慢 SQL 阈值的命令，避免每条 SQL 都进入日志管道拖慢请求
 /// </summary>
 /// <param name="logger">日志记录器</param>
-public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAuditInterceptor> logger) : DbCommandInterceptor
+/// <param name="options">数据库审计配置</param>
+public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAuditInterceptor> logger, IOptions<DatabaseAuditOptions> options)
+    : DbCommandInterceptor
 {
     private static readonly Action<ILogger, string, string, string, long, Exception?> _logCommand
         = LoggerMessage.Define<string, string, string, long>(
@@ -126,6 +129,11 @@ public sealed class DatabaseCommandAuditInterceptor(ILogger<DatabaseCommandAudit
         DbCommand command
         , CommandExecutedEventData eventData
     ) {
-        _logCommand(logger, "Sql", "SQL", command.CommandText, (long)eventData.Duration.TotalMilliseconds, null);
+        var elapsed = (long)eventData.Duration.TotalMilliseconds;
+        if (elapsed < options.Value.SlowThresholdMilliseconds) {
+            return;
+        }
+
+        _logCommand(logger, "Sql", "SQL", command.CommandText, elapsed, null);
     }
 }

@@ -1,4 +1,4 @@
-<!-- 版本升级提示：后端版本变化时在右上角弹出浮窗，展示版本号和更新内容，倒计时结束无操作则自动刷新页面升级 -->
+<!-- 版本升级提示：后端版本变化且前端资源也已发布到该版本后，在右上角弹出浮窗，展示版本号和更新内容，倒计时结束无操作则自动刷新页面升级 -->
 <template>
     <Transition name="version-upgrade">
         <div v-if="info" @mouseenter="paused = true" @mouseleave="paused = false" class="version-upgrade">
@@ -40,6 +40,10 @@ defineOptions({ name: 'ArtVersionUpgrade' })
 const COUNTDOWN_MS = 5000
 /** 倒计时刷新间隔（毫秒） */
 const TICK_MS = 100
+/** 等待前端发布完成时，两次检查 version.json 的间隔（毫秒） */
+const FRONTEND_POLL_MS = 5000
+/** 等待前端发布完成的最长时间（毫秒），超时后仍然提示，避免前端发布失败时永远不提示 */
+const FRONTEND_WAIT_MAX_MS = 10 * 60 * 1000
 
 const { t } = useI18n()
 /** 需要升级到的新版本信息，为空时不显示浮窗 */
@@ -85,8 +89,58 @@ function startTimer() {
     }, TICK_MS)
 }
 
+/** 等待前端发布的轮询定时器 */
+let waitTimer: ReturnType<typeof setTimeout> | undefined
+
+/** 停止等待前端发布的轮询 */
+function stopWaiting() {
+    if (waitTimer) clearTimeout(waitTimer)
+    waitTimer = undefined
+}
+
 /**
- * 处理后端推送的系统信息：首次记录基准版本，之后版本发生变化则弹出升级提示
+ * 读取服务器上最新前端的发布版本，绕过浏览器和网关缓存
+ * @returns 前端发布版本；文件不存在、读取失败或格式不对时返回 null
+ */
+async function fetchFrontendVersion(): Promise<string | null> {
+    try {
+        const response = await fetch(`${import.meta.env.BASE_URL}version.json?t=${Date.now()}`, { cache: 'no-store' })
+        if (!response.ok) return null
+        const data = (await response.json()) as { version?: unknown }
+        return typeof data.version === 'string' ? data.version : null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * 弹出升级提示并开始倒计时
+ * @param latest 后端当前系统信息
+ */
+function showUpgrade(latest: DashboardSystemInfo) {
+    paused.value = false
+    info.value = latest
+    startTimer()
+}
+
+/**
+ * 等前端也发布到后端的新版本后再提示：发布顺序是先后端后前端，后端上线时前端可能还是旧的，此时刷新页面拿不到新版本
+ * 本地构建没有版本号、读不到 version.json 或等待超时时直接提示，不阻塞升级
+ * @param latest 后端当前系统信息
+ * @param startedAt 开始等待的时间戳（毫秒）
+ */
+async function waitFrontendThenNotify(latest: DashboardSystemInfo, startedAt: number) {
+    const frontend = await fetchFrontendVersion()
+    const timedOut = Date.now() - startedAt >= FRONTEND_WAIT_MAX_MS
+    if (frontend === null || frontend === latest.version || timedOut) {
+        showUpgrade(latest)
+        return
+    }
+    waitTimer = setTimeout(() => void waitFrontendThenNotify(latest, startedAt), FRONTEND_POLL_MS)
+}
+
+/**
+ * 处理后端推送的系统信息：首次记录基准版本，之后版本发生变化则等前端就绪后弹出升级提示
  * @param latest 后端当前系统信息
  */
 function onSystemInfo(latest: DashboardSystemInfo) {
@@ -96,15 +150,15 @@ function onSystemInfo(latest: DashboardSystemInfo) {
     }
     if (latest.version === baseline || latest.version === notified) return
     notified = latest.version
-    paused.value = false
-    info.value = latest
-    startTimer()
+    stopWaiting()
+    void waitFrontendThenNotify(latest, Date.now())
 }
 
 onMounted(() => mittBus.on('realtimeSystemInfo', onSystemInfo))
 onBeforeUnmount(() => {
     mittBus.off('realtimeSystemInfo', onSystemInfo)
     stopTimer()
+    stopWaiting()
 })
 </script>
 

@@ -74,8 +74,12 @@ public static class ApiRequestLogQueryRange
     /// <returns>UTC 时间</returns>
     /// <exception cref="DynamicFilterValidationException">日期格式无效时引发</exception>
     private static DateTime ParseUtc(JsonElement item) {
-        return item.ValueKind == JsonValueKind.String
-               && DateTimeOffset.TryParse(item.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
+        var text = item.ValueKind == JsonValueKind.String ? item.GetString() : null;
+        if (text is not null && DateExpression.TryResolve(text, DateTimeOffset.Now, out var evaluated)) {
+            return evaluated.UtcDateTime;
+        }
+
+        return text is not null && DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var parsed)
             ? parsed.UtcDateTime
             : throw new DynamicFilterValidationException("The created time range contains an invalid date.");
     }

@@ -7,6 +7,7 @@
         :default-filter="defaultFilter"
         :loading="loading"
         :pagination="pagination"
+        :row-actions="rowActions"
         :row-key="'path'"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
         @filter-change="handleFilterChange"
@@ -40,7 +41,7 @@
 <script lang="ts" setup>
 import { formatMenuTitle } from '@/utils/router'
 import { formatDateTime } from '@/utils/date'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import type { RowAction } from '@/types/component'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
@@ -183,44 +184,6 @@ const { columnChecks, columns } = useTableColumns(() => [
                           void getMenuList()
                       },
                   }),
-    },
-    {
-        prop: 'operation',
-        label: '操作',
-        width: 180,
-        align: 'right',
-        formatter: (row: AppRouteRecord) => {
-            const buttonStyle = { style: 'text-align: right' }
-
-            if (row.meta?.isAuthButton) {
-                return h('div', buttonStyle, [
-                    h(ArtButtonTable, {
-                        type: 'edit',
-                        onClick: () => handleEditAuth(row),
-                    }),
-                    h(ArtButtonTable, {
-                        type: 'delete',
-                        onClick: () => handleDeleteAuth(row),
-                    }),
-                ])
-            }
-
-            return h('div', buttonStyle, [
-                h(ArtButtonTable, {
-                    type: 'add',
-                    onClick: () => handleAddAuth(row),
-                    title: '新增权限',
-                }),
-                h(ArtButtonTable, {
-                    type: 'edit',
-                    onClick: () => handleEditMenu(row),
-                }),
-                h(ArtButtonTable, {
-                    type: 'delete',
-                    onClick: () => handleDeleteMenu(row),
-                }),
-            ])
-        },
     },
 ])
 
@@ -483,6 +446,31 @@ const handleSubmit = async (formData: MenuFormData): Promise<void> => {
         dialogSaving.value = false
     }
 }
+
+/** 行右键菜单操作：权限按钮只能编辑、删除，菜单可新增权限、编辑、删除 */
+const rowActions = (row: AppRouteRecord): RowAction[] =>
+    row.meta?.isAuthButton
+        ? [
+              { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => handleEditAuth(row) },
+              {
+                  key: 'delete',
+                  label: t('common.rowAction.delete'),
+                  icon: 'ri:delete-bin-5-line',
+                  danger: true,
+                  onClick: () => handleDeleteAuth(row),
+              },
+          ]
+        : [
+              { key: 'addAuth', shortcut: 'A', label: '新增权限', icon: 'ri:add-fill', onClick: () => handleAddAuth(row) },
+              { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => handleEditMenu(row) },
+              {
+                  key: 'delete',
+                  label: t('common.rowAction.delete'),
+                  icon: 'ri:delete-bin-5-line',
+                  danger: true,
+                  onClick: () => handleDeleteMenu(row),
+              },
+          ]
 
 /**
  * 删除菜单

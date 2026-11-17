@@ -13,6 +13,7 @@
             :default-filter="defaultFilter"
             :loading="loading"
             :pagination="pagination"
+            :row-actions="rowActions"
             @filter-change="handleFilterChange"
             @page-change="handleCurrentChange"
             @refresh="refreshData"
@@ -52,11 +53,11 @@
 </template>
 
 <script lang="ts" setup>
-import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { ElMessage, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { h, onActivated } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import ArtButtonMore, { type ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
+import type { RowAction } from '@/types/component'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
@@ -428,29 +429,6 @@ const {
                 sortable: true,
                 showOverflowTooltip: true,
             },
-            {
-                prop: 'operation',
-                queryField: false,
-                label: t('scheduledJob.actions.operation'),
-                width: 70,
-                fixed: 'right',
-                formatter: (row) =>
-                    h(ArtButtonMore, {
-                        list: [
-                            {
-                                key: 'run',
-                                label: t('scheduledJob.actions.run'),
-                                icon: 'ri:play-circle-line',
-                                disabled: row.status === 1,
-                            },
-                            { key: 'executions', label: t('scheduledJob.actions.executions'), icon: 'ri:history-line' },
-                            { key: 'edit', label: t('scheduledJob.actions.edit'), icon: 'ri:edit-2-line' },
-                            { key: 'copy', label: t('scheduledJob.actions.copy'), icon: 'ri:file-copy-line' },
-                            { key: 'delete', label: t('scheduledJob.actions.delete'), icon: 'ri:delete-bin-4-line', color: '#f56c6c' },
-                        ],
-                        onClick: (item: ButtonMoreItem) => handleAction(item, row),
-                    }),
-            },
         ],
     },
 })
@@ -480,29 +458,41 @@ const saveJob = async (form: SaveScheduledJob): Promise<void> => {
         saving.value = false
     }
 }
-const handleAction = async (item: ButtonMoreItem, job: ScheduledJob): Promise<void> => {
-    if (item.key === 'edit') {
-        openDialog(job)
-        return
-    }
-    if (item.key === 'run') {
-        await fetchRunScheduledJob(job.id)
-        ElMessage.success('作业已加入执行队列')
-        await refreshUpdate()
-        return
-    }
-    if (item.key === 'copy') {
-        await fetchCopyScheduledJob(job.id)
-        ElMessage.success(t('scheduledJob.messages.copySuccess'))
-        await refreshCreate()
-        return
-    }
-    if (item.key === 'executions') {
-        executionJob.value = job
-        executionVisible.value = true
-        return
-    }
-    await ElMessageBox.confirm(`确定删除作业“${job.name}”吗？`, '删除确认', { type: 'warning' })
+/** 行右键菜单操作 */
+const rowActions = (job: ScheduledJob): RowAction[] => [
+    { key: 'run', label: t('scheduledJob.actions.run'), icon: 'ri:play-circle-line', disabled: job.status === 1, onClick: () => runJob(job) },
+    {
+        key: 'executions',
+        shortcut: 'H',
+        label: t('scheduledJob.actions.executions'),
+        icon: 'ri:history-line',
+        onClick: () => {
+            executionJob.value = job
+            executionVisible.value = true
+        },
+    },
+    { key: 'edit', label: t('scheduledJob.actions.edit'), icon: 'ri:edit-2-line', onClick: () => openDialog(job) },
+    { key: 'copy', shortcut: 'Y', label: t('scheduledJob.actions.copy'), icon: 'ri:file-copy-line', onClick: () => copyJob(job) },
+    {
+        key: 'delete',
+        label: t('scheduledJob.actions.delete'),
+        icon: 'ri:delete-bin-4-line',
+        danger: true,
+        confirm: `确定删除作业“${job.name}”吗？`,
+        onClick: () => deleteJob(job),
+    },
+]
+const runJob = async (job: ScheduledJob): Promise<void> => {
+    await fetchRunScheduledJob(job.id)
+    ElMessage.success('作业已加入执行队列')
+    await refreshUpdate()
+}
+const copyJob = async (job: ScheduledJob): Promise<void> => {
+    await fetchCopyScheduledJob(job.id)
+    ElMessage.success(t('scheduledJob.messages.copySuccess'))
+    await refreshCreate()
+}
+const deleteJob = async (job: ScheduledJob): Promise<void> => {
     await fetchDeleteScheduledJob(job.id)
     await refreshRemove()
 }

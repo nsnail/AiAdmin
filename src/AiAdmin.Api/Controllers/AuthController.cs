@@ -7,6 +7,7 @@ using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
+using MailKit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using Microsoft.AspNetCore.Authorization;
@@ -327,17 +328,17 @@ public sealed class AuthController(
         mail.To.Add(MailboxAddress.Parse(request.Email.Trim()));
         mail.Subject = "Registration verification code";
         mail.Body = new TextPart("plain") { Text = $"Your verification code is {code}. It expires in 10 minutes." };
-        using var client = new SmtpClient();
+        await using var client = new SmtpClient();
         var socket = smtp.Port == 465 ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
         await client.ConnectAsync(smtp.Host, smtp.Port, socket, HttpContext.RequestAborted).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(smtp.User)) {
             await client.AuthenticateAsync(smtp.User, smtp.Password, HttpContext.RequestAborted).ConfigureAwait(false);
         }
 
-        var smtpResponse = await client.SendAsync(mail, HttpContext.RequestAborted).ConfigureAwait(false);
+        var smtpResponse = await client.SendAsync(new SendRequest(mail), HttpContext.RequestAborted).ConfigureAwait(false);
         await client.DisconnectAsync(true, HttpContext.RequestAborted).ConfigureAwait(false);
         if (logger.IsEnabled(LogLevel.Information)) {
-            _logSmtpAccepted(logger, mail.MessageId, request.Email.Trim(), smtpResponse, null);
+            _logSmtpAccepted(logger, mail.MessageId, request.Email.Trim(), smtpResponse.ResponseText, null);
         }
 
         await cache
@@ -632,14 +633,14 @@ public sealed class AuthController(
         mail.From.Add(MailboxAddress.Parse(sender));
         mail.To.Add(MailboxAddress.Parse(recipient));
         mail.Body = new TextPart("plain") { Text = body };
-        using var client = new SmtpClient();
+        await using var client = new SmtpClient();
         var socket = smtp.Port == 465 || smtp.EnableSsl ? SecureSocketOptions.SslOnConnect : SecureSocketOptions.StartTls;
         await client.ConnectAsync(smtp.Host, smtp.Port, socket, HttpContext.RequestAborted).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(smtp.User)) {
             await client.AuthenticateAsync(smtp.User, smtp.Password, HttpContext.RequestAborted).ConfigureAwait(false);
         }
 
-        _ = await client.SendAsync(mail, HttpContext.RequestAborted).ConfigureAwait(false);
+        _ = await client.SendAsync(new SendRequest(mail), HttpContext.RequestAborted).ConfigureAwait(false);
         await client.DisconnectAsync(true, HttpContext.RequestAborted).ConfigureAwait(false);
     }
 

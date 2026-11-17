@@ -30,6 +30,7 @@
                     :data="data"
                     :loading="loading"
                     :pagination="pagination"
+                    :row-actions="rowActions"
                     :row-key="rowKey"
                     :tree-props="treeProps"
                     @cell-query="handleCellQuery"
@@ -55,7 +56,7 @@ import {
     type ListFilterResource,
 } from '@/api/system-manage'
 import type { DynamicFilter, DynamicQueryField } from '@/components/core/forms/art-dynamic-query-drawer/types'
-import type { ColumnOption } from '@/types/component'
+import type { ColumnOption, RowAction } from '@/types/component'
 import { useI18n } from 'vue-i18n'
 import { resolveBasicOperator } from '@/utils/json/dynamic-query-value'
 
@@ -85,6 +86,8 @@ interface Props {
     filterGroupMaxOptions?: number
     reserveFilterGroups?: boolean
     tableProps?: Record<string, unknown>
+    /** 行右键菜单操作，替代表格操作列 */
+    rowActions?: (row: any) => RowAction[]
 }
 
 const props = withDefaults(defineProps<Props>(), {

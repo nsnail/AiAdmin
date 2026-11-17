@@ -174,7 +174,7 @@ public sealed class RealtimeConnectionManager(
     ) {
         var buffer = new byte[_RECEIVE_BUFFER_SIZE];
         while (connection.Socket.State == WebSocketState.Open) {
-            var result = await connection.Socket.ReceiveAsync([with(buffer)], cancellationToken).ConfigureAwait(false);
+            var result = await connection.Socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken).ConfigureAwait(false);
             switch (result.MessageType) {
                 case WebSocketMessageType.Close:
                     await connection

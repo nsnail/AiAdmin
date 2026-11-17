@@ -4,85 +4,69 @@
         :title="t(dialogType === 'add' ? 'userManagement.dialog.addTitle' : 'userManagement.dialog.editTitle')"
         align-center
         width="520px">
-        <ElTabs v-model="activeTab">
-            <ElTabPane :label="t('userManagement.dialog.basicInfo')" name="form">
-                <ElForm :model="formData" :rules="rules" label-width="90px" ref="formRef">
-                    <ElFormItem label="头像">
-                        <div class="avatar-field">
-                            <ElAvatar :size="64" :src="avatarPreview || defaultAvatar" @error="handleAvatarError" />
-                            <ElUpload :auto-upload="false" :on-change="handleAvatarChange" :show-file-list="false" accept="image/*">
-                                <ElButton><ArtSvgIcon icon="ri:image-add-line" />选择图片</ElButton>
-                            </ElUpload>
-                            <ElButton
-                                v-if="avatarFile || (dialogType === 'edit' && props.userData?.avatar)"
-                                @click="clearAvatar"
-                                link
-                                type="danger"
-                                >{{ avatarFile ? '移除' : '删除头像' }}</ElButton
-                            >
+        <ElForm :model="formData" :rules="rules" label-width="90px" ref="formRef">
+            <ElFormItem label="头像">
+                <div class="avatar-field">
+                    <ElAvatar :size="64" :src="avatarPreview || defaultAvatar" @error="handleAvatarError" />
+                    <ElUpload :auto-upload="false" :on-change="handleAvatarChange" :show-file-list="false" accept="image/*">
+                        <ElButton><ArtSvgIcon icon="ri:image-add-line" />选择图片</ElButton>
+                    </ElUpload>
+                    <ElButton v-if="avatarFile || (dialogType === 'edit' && props.userData?.avatar)" @click="clearAvatar" link type="danger">{{
+                        avatarFile ? '移除' : '删除头像'
+                    }}</ElButton>
+                </div>
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.userName')" prop="userName">
+                <ElInput v-model.trim="formData.userName" :disabled="dialogType === 'edit'" :placeholder="t('userManagement.placeholder.userName')" />
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.password')" prop="password">
+                <div class="password-field">
+                    <ElInput
+                        v-model="formData.password"
+                        :placeholder="t(dialogType === 'edit' ? 'userManagement.dialog.passwordKeep' : 'userManagement.dialog.passwordNew')"
+                        show-password
+                        type="password" />
+                    <div v-if="formData.password" class="password-strength">
+                        <div aria-hidden="true" class="password-strength-bars">
+                            <span v-for="level in 3" :class="{ active: level <= passwordStrengthLevel }" :key="level" class="password-strength-bar" />
                         </div>
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.userName')" prop="userName">
-                        <ElInput
-                            v-model.trim="formData.userName"
-                            :disabled="dialogType === 'edit'"
-                            :placeholder="t('userManagement.placeholder.userName')" />
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.password')" prop="password">
-                        <div class="password-field">
-                            <ElInput
-                                v-model="formData.password"
-                                :placeholder="t(dialogType === 'edit' ? 'userManagement.dialog.passwordKeep' : 'userManagement.dialog.passwordNew')"
-                                show-password
-                                type="password" />
-                            <div v-if="formData.password" class="password-strength">
-                                <div aria-hidden="true" class="password-strength-bars">
-                                    <span
-                                        v-for="level in 3"
-                                        :class="{ active: level <= passwordStrengthLevel }"
-                                        :key="level"
-                                        class="password-strength-bar" />
-                                </div>
-                                <span class="password-strength-text">{{ passwordStrengthText }}</span>
-                            </div>
-                        </div>
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.email')" prop="email">
-                        <ElInput v-model.trim="formData.email" :placeholder="t('userManagement.placeholder.email')" />
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.phone')" prop="phone">
-                        <ElInput v-model.trim="formData.phone" :placeholder="t('userManagement.placeholder.phone')" />
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.gender')" prop="gender">
-                        <ElSegmented v-model="formData.gender" :options="genderOptions" />
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.roles')" prop="roles">
-                        <ElSelect v-model="formData.roles" class="w-full" filterable multiple>
-                            <ElOption v-for="role in roleList" :key="role.roleCode" :label="role.roleName" :value="role.roleCode" />
-                        </ElSelect>
-                    </ElFormItem>
-                    <ElFormItem :label="t('userManagement.fields.departments')" prop="departmentIds">
-                        <ElTreeSelect
-                            v-model="formData.departmentIds"
-                            :data="localizedDepartments"
-                            :props="{ label: 'name', children: 'children' }"
-                            check-strictly
-                            class="w-full"
-                            clearable
-                            filterable
-                            multiple
-                            node-key="id" />
-                    </ElFormItem>
-                    <ElFormItem :label="t('listFilter.common.status')">
-                        <ElSwitch
-                            v-model="formData.isEnabled"
-                            :active-text="t('userManagement.status.enabled')"
-                            :inactive-text="t('userManagement.status.disabled')" />
-                    </ElFormItem>
-                </ElForm>
-            </ElTabPane>
-            <ElTabPane v-if="props.type === 'edit'" :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
-        </ElTabs>
+                        <span class="password-strength-text">{{ passwordStrengthText }}</span>
+                    </div>
+                </div>
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.email')" prop="email">
+                <ElInput v-model.trim="formData.email" :placeholder="t('userManagement.placeholder.email')" />
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.phone')" prop="phone">
+                <ElInput v-model.trim="formData.phone" :placeholder="t('userManagement.placeholder.phone')" />
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.gender')" prop="gender">
+                <ElSegmented v-model="formData.gender" :options="genderOptions" />
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.roles')" prop="roles">
+                <ElSelect v-model="formData.roles" class="w-full" filterable multiple>
+                    <ElOption v-for="role in roleList" :key="role.roleCode" :label="role.roleName" :value="role.roleCode" />
+                </ElSelect>
+            </ElFormItem>
+            <ElFormItem :label="t('userManagement.fields.departments')" prop="departmentIds">
+                <ElTreeSelect
+                    v-model="formData.departmentIds"
+                    :data="localizedDepartments"
+                    :props="{ label: 'name', children: 'children' }"
+                    check-strictly
+                    class="w-full"
+                    clearable
+                    filterable
+                    multiple
+                    node-key="id" />
+            </ElFormItem>
+            <ElFormItem :label="t('listFilter.common.status')">
+                <ElSwitch
+                    v-model="formData.isEnabled"
+                    :active-text="t('userManagement.status.enabled')"
+                    :inactive-text="t('userManagement.status.disabled')" />
+            </ElFormItem>
+        </ElForm>
         <template #footer>
             <ElButton :disabled="props.saving" @click="dialogVisible = false">{{ t('common.cancel') }}</ElButton>
             <ElButton :loading="props.saving" @click="handleSubmit" type="primary">{{ t('userManagement.actions.save') }}</ElButton>
@@ -94,7 +78,6 @@
 import { fetchGetDepartmentTree, fetchGetUserRoles } from '@/api/system-manage'
 import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import defaultAvatar from '@/assets/images/user/avatar.png'
 
 const props = defineProps<{
@@ -115,7 +98,6 @@ const dialogVisible = computed({
 })
 const dialogType = computed(() => props.type)
 const formRef = ref<FormInstance>()
-const activeTab = ref('form')
 const roleList = ref<Api.SystemManage.RoleListItem[]>([])
 const departmentList = ref<Api.SystemManage.DepartmentTreeItem[]>([])
 const avatarFile = ref<File>()
@@ -159,7 +141,6 @@ const passwordStrengthText = computed(() => {
     const keys = ['', 'weak', 'medium', 'strong']
     return passwordStrengthLevel.value ? t(`register.passwordStrength.${keys[passwordStrengthLevel.value]}`) : ''
 })
-const rawData = computed(() => (props.type === 'edit' ? props.userData : formData))
 const rules = computed<FormRules>(() => ({
     userName: [
         { required: true, message: t('userManagement.validation.userNameRequired'), trigger: 'blur' },
@@ -195,7 +176,6 @@ watch(
     () => props.visible,
     async (visible) => {
         if (!visible) return
-        activeTab.value = 'form'
         if (!roleList.value.length) roleList.value = await fetchGetUserRoles()
         if (!departmentList.value.length) departmentList.value = await fetchGetDepartmentTree()
         const row = props.userData

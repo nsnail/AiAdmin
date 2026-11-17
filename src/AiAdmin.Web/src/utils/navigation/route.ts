@@ -83,3 +83,16 @@ export const getFirstMenuPath = (menuList: AppRouteRecord[]): string => {
 
     return ''
 }
+
+/**
+ * 判断路径是否存在于菜单中，相对路径的子菜单按父级路径拼接后比较
+ * @param path 完整页面路径
+ * @param list 菜单列表
+ * @param parent 父级完整路径
+ * @returns 存在于菜单中时为 true
+ */
+export const existsInMenu = (path: string, list: AppRouteRecord[], parent = ''): boolean =>
+    list.some((item) => {
+        const full = item.path?.startsWith('/') ? item.path : `${parent}/${item.path ?? ''}`.replace(/\/{2,}/g, '/')
+        return full === path || (item.children?.length ? existsInMenu(path, item.children, full) : false)
+    })

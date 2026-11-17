@@ -4,30 +4,41 @@
 
 ## 目录
 
-| 目录            | 内容                                                                                                     |
-|-----------------|----------------------------------------------------------------------------------------------------------|
-| `Data`          | `AppDbContext`（框架实体）与 `AppDbContext.Business`（业务实体）、数据库初始化与种子、SQL 审计与停机拦截器 |
-| `Services`      | 动态查询、列表分组与筛选元数据、权限与数据范围缓存、令牌、对象存储、加密、IP 归属地、日表服务等           |
+| 目录       | 内容                                                                                                       |
+|------------|------------------------------------------------------------------------------------------------------------|
+| `Data`     | `AppDbContext`（框架实体）与 `AppDbContext.Business`（业务实体）、数据库初始化与种子、SQL 审计与停机拦截器 |
+| `Services` | 动态查询、列表分组与筛选元数据、权限与数据范围缓存、令牌、对象存储、加密、IP 归属地、日表服务等            |
 
 ## 数据库
 
 - **数据库上下文**：`AppDbContext` 同时承载框架实体和业务实体，业务实体的映射放在 `AppDbContext.Business.cs`，避免与框架文件产生合并冲突
 - **提供方**：通过 `Database:Provider` 选择 MySQL、SQL Server、PostgreSQL 或 SQLite；所有提供方统一启用拆分查询
-- **自动维护**：保存时新增实体写入 `CreatedAt`，修改时更新 `UpdatedAt`（`IUpdatedAt`）且禁止改写 `CreatedAt`，`IVersion` 实体的版本号随每次修改自增并作为并发令牌；为 `IOwner` 实体补齐当前操作者和部门；每次写入还会生成数据库审计日志
+- **自动维护**：保存时新增实体写入 `CreatedAt`，修改时更新 `UpdatedAt`（`IUpdatedAt`）且禁止改写 `CreatedAt`，`IVersion` 实体的版本号随每次修改自增并作为并发令牌；为
+  `IOwner` 实体补齐当前操作者和部门；每次写入还会生成数据库审计日志
 - **数据权限过滤**：对所有实现 `IOwner` 的实体统一追加全局查询过滤。未登录场景（后台任务等）和拥有全部数据权限的用户不过滤，其余用户只能看到所有者是自己或所有者部门在授权范围内的数据。业务实体无需自行声明过滤
 - **拦截器**：`DatabaseCommandAuditInterceptor` 把每条 SQL 作为结构化日志输出，`DatabaseShutdownInterceptor` 把数据库调用登记为安全停机的在途活动
-- **初始化**：`DatabaseInitializer` 分阶段初始化，系统数据（角色、菜单、字典、用户）和业务种子分开，便于只重建业务数据；菜单种子来自 `Data/menu-seed.json`，其 `component` 字段对应前端 `views` 下的目录。生产环境不会自动执行
+- **初始化**：`DatabaseInitializer` 分阶段初始化，系统数据（角色、菜单、字典、用户）和业务种子分开，便于只重建业务数据；菜单种子来自 `Data/menu-seed.json`，其
+  `component` 字段对应前端 `views` 下的目录。生产环境不会自动执行
 - **API 请求日志**：按天分表，建表、批量写入和过期清理由 `ApiRequestLogTableService` 负责，使用与主库相同的提供方和连接串
 
 ## 动态查询
 
 这是框架最核心的公共能力，业务代码不得绕开它自行解析筛选字段。
 
-- `DynamicFilterExtensions.ApplyDynamicFilter`：把 `And / Or` 嵌套的 `DynamicFilter` 转换为表达式，统一验证字段、操作符和值类型，无效输入抛出 `DynamicFilterValidationException`（映射为明确的 400 错误），不会静默忽略条件
+- `DynamicFilterExtensions.ApplyDynamicFilter`：把 `And / Or` 嵌套的 `DynamicFilter` 转换为表达式，统一验证字段、操作符和值类型，无效输入抛出
+  `DynamicFilterValidationException`（映射为明确的 400 错误），不会静默忽略条件
 - `DynamicFilterExtensions.ApplyDynamicSort`：按 `sortField`、`sortOrder` 排序，支持别名映射，非法字段抛出异常，默认排序必须显式指定
 - `ListFilterMetadataService.GetFields<T>()`：读取实体属性上的 `ListFilterAttribute`，生成 `filter-fields` 接口的元数据
 - `ListFilterGroupingService`：生成分组筛选栏的数量统计
 - 操作符定义必须与前端一致；新增操作符需同时更新前端操作符列表、动态查询编辑器、`DynamicFilterExtensions` 和测试
+- 字符串字段的 `Equal`、`NotEqual` 未提供 `value` 时按“为空”处理（空字符串和 null 都算空，`NotEqual` 则为“不为空”），用于必填字符串列
+  （空值存为空字符串）的“为空”筛选；非字符串字段未提供 `value` 的 `Equal` 仍按 null 比较，其他操作符未提供 `value` 仍报错
+- `DateExpression`：日期类字段的筛选值除 ISO 日期文本外，还支持 C# 风格的日期表达式，如 `DateTime.Now.Date`（今日零点）、
+  `DateTime.Now.Date.AddDays(-7)`、`DateTime.Now.AddHours(-2)`，用于已保存查询和默认条件中表达“今天”“最近 7 天”这类相对时间；
+  `DateRange` 的 `["DateTime.Now.Date", "DateTime.Now.Date.AddDays(1)"]` 即今日（左闭右开）。表达式只按白名单解析，不编译也不执行代码：
+  根为 `DateTime` 或 `DateTimeOffset` 的 `Now`、`UtcNow`、`Today`，后接 `Date` 属性和 `AddYears`、`AddMonths`、`AddDays`、`AddHours`、
+  `AddMinutes`、`AddSeconds` 方法（参数为数字字面量），其他内容抛出 `DynamicFilterValidationException`。`Now` 与 `Today` 取服务器本地时间，
+  实体查询、Elasticsearch 查询和请求日志分表范围解析都已接入
 
 标准用法（先筛选，再统计总数，然后排序，最后分页）：
 
@@ -48,15 +59,15 @@ var rows = await query
 
 ## 其他服务
 
-| 服务                        | 说明                                                             |
-|-----------------------------|------------------------------------------------------------------|
-| `TokenService`              | JWT 签发与校验                                                   |
-| `EncryptionService`、`CredentialProtectionService` | 加解密与凭据保护                          |
-| `MinioStorageService`       | MinIO 对象存储，配置见 `MinioOptions`                            |
-| `IpLocationService`         | IP 归属地查询                                                    |
-| `ServerTime`                | 服务器时区与 UTC 时间转换，列表时间字段统一经它输出              |
-| `*JsonConverter`            | `long` 序列化为字符串、`DateTime` / `DateTimeOffset` 统一为 UTC  |
-| `ApiDocumentationService`   | 根据 `ApiDocumentedAttribute` 生成开放接口文档                   |
+| 服务                                               | 说明                                                            |
+|----------------------------------------------------|-----------------------------------------------------------------|
+| `TokenService`                                     | JWT 签发与校验                                                  |
+| `EncryptionService`、`CredentialProtectionService` | 加解密与凭据保护                                                |
+| `MinioStorageService`                              | MinIO 对象存储，配置见 `MinioOptions`                           |
+| `IpLocationService`                                | IP 归属地查询                                                   |
+| `ServerTime`                                       | 服务器时区与 UTC 时间转换，列表时间字段统一经它输出             |
+| `*JsonConverter`                                   | `long` 序列化为字符串、`DateTime` / `DateTimeOffset` 统一为 UTC |
+| `ApiDocumentationService`                          | 根据 `ApiDocumentedAttribute` 生成开放接口文档                  |
 
 ## 约定
 

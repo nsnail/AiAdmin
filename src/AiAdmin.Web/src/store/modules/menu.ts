@@ -31,8 +31,10 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { AppRouteRecord } from '@/types/router'
-import { getFirstMenuPath } from '@/utils'
+import { existsInMenu, getFirstMenuPath } from '@/utils'
 import { HOME_PAGE_PATH } from '@/router'
+import { getCustomHomePage, setCustomHomePage } from '@/hooks/core/useCustomHomePage'
+import { useUserStore } from './user'
 
 /**
  * 菜单状态管理
@@ -58,10 +60,36 @@ export const useMenuStore = defineStore('menuStore', () => {
     }
 
     /**
-     * 获取首页路径
+     * 当前用户的存储标识，未登录时使用匿名标识
+     * @returns 用户标识
+     */
+    const currentUserKey = (): string => String(useUserStore().info?.userId ?? 'anonymous')
+
+    /**
+     * 获取用户自定义的首页路径，菜单未加载或该页面已不在可访问菜单中时返回空字符串
+     * @returns 自定义首页路径
+     */
+    const getCustomHomePath = (): string => {
+        const custom = getCustomHomePage(currentUserKey())
+        return custom && existsInMenu(custom, menuList.value) ? custom : ''
+    }
+
+    /**
+     * 获取首页路径：优先使用用户自定义首页，其次使用默认首页
      * @returns 首页路径字符串
      */
-    const getHomePath = () => homePath.value
+    const getHomePath = () => getCustomHomePath() || homePath.value
+
+    /**
+     * 把指定页面设为自定义首页，仅保存在本地存储
+     * @param path 页面路径
+     */
+    const setCustomHomePath = (path: string) => setCustomHomePage(currentUserKey(), path)
+
+    /**
+     * 清除自定义首页，恢复默认首页
+     */
+    const clearCustomHomePath = () => setCustomHomePage(currentUserKey(), '')
 
     /**
      * 设置主页路径
@@ -101,6 +129,9 @@ export const useMenuStore = defineStore('menuStore', () => {
         removeRouteFns,
         setMenuList,
         getHomePath,
+        getCustomHomePath,
+        setCustomHomePath,
+        clearCustomHomePath,
         setHomePath,
         addRemoveRouteFns,
         removeAllDynamicRoutes,

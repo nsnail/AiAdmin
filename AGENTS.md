@@ -4,35 +4,36 @@
 
 ## 1. 项目概览
 
-AiAdmin 是基于 .NET 10 + Vue 3 的通用后台权限管理框架，前后端分离，后端三层单向引用：
+AiAdmin 是基于 .NET 11 + Vue 3 的通用后台权限管理框架，前后端分离，后端三层单向引用：
 
-| 目录                       | 职责                                                           | 依赖                                        |
-|----------------------------|----------------------------------------------------------------|---------------------------------------------|
-| `src/AiAdmin.Core`         | 实体模型、请求与结果契约、特性、雪花 ID 等共享类型             | 无                                          |
-| `src/AiAdmin.Infrastructure` | 数据库上下文与种子、缓存、令牌、对象存储、动态查询等基础设施 | `AiAdmin.Core`                              |
-| `src/AiAdmin.Api`          | 应用宿主、控制器、中间件、日志、计划作业、实时推送             | `AiAdmin.Core`、`AiAdmin.Infrastructure`    |
-| `src/AiAdmin.Web`          | 前端（Vue 3 + Vite + Element Plus + Pinia + vue-i18n）         | 通过 HTTP 调用后端                          |
-| `tests/AiAdmin.Tests`      | 后端 xUnit 测试                                                | 引用以上三个后端项目                        |
-| `build`                    | 代码清理脚本、质量规则、版本标签脚本                           | -                                           |
-| `docker`                   | 镜像构建、编排与滚动发布脚本                                   | -                                           |
+| 目录                         | 职责                                                         | 依赖                                     |
+|------------------------------|--------------------------------------------------------------|------------------------------------------|
+| `src/AiAdmin.Core`           | 实体模型、请求与结果契约、特性、雪花 ID 等共享类型           | 无                                       |
+| `src/AiAdmin.Infrastructure` | 数据库上下文与种子、缓存、令牌、对象存储、动态查询等基础设施 | `AiAdmin.Core`                           |
+| `src/AiAdmin.Api`            | 应用宿主、控制器、中间件、日志、计划作业、实时推送           | `AiAdmin.Core`、`AiAdmin.Infrastructure` |
+| `src/AiAdmin.Web`            | 前端（Vue 3 + Vite + Element Plus + Pinia + vue-i18n）       | 通过 HTTP 调用后端                       |
+| `tests/AiAdmin.Tests`        | 后端 xUnit 测试                                              | 引用以上三个后端项目                     |
+| `build`                      | 代码清理脚本、质量规则、版本标签脚本                         | -                                        |
+| `docker`                     | 镜像构建、编排与滚动发布脚本                                 | -                                        |
 
 各目录的详细说明见对应目录下的 `README.md`。
 
 ### 常用命令
 
-| 目的               | 命令                                                                                                            |
-|--------------------|-----------------------------------------------------------------------------------------------------------------|
-| 后端运行           | `dotnet run --project src/AiAdmin.Api --launch-profile dev`                                                     |
-| 前端安装与运行     | 在 `src/AiAdmin.Web` 下执行 `cnpm install`、`cnpm run dev -- --no-open`                                         |
-| 后端编译           | `dotnet build`（要求 0 警告 0 错误）                                                                            |
-| 后端测试           | `dotnet test tests/AiAdmin.Tests`                                                                               |
-| 前端构建验证       | 在 `src/AiAdmin.Web` 下执行 `npx vite build`                                                                    |
-| 前端工具函数测试   | 在 `src/AiAdmin.Web` 下对 `tests/*.test.ts` 使用 `node --import tsx --test`                                     |
-| 代码清理（提交前） | `./build/code.clean.full.ps1`，包含 Prettier、ReSharper cleanup 与 `dot` 换行整理                               |
-| 仅前端格式化       | `./build/code.clean.prettier.ps1`                                                                               |
-| ReSharper 检查     | `jb inspectcode AiAdmin.slnx -f=Xml -e=HINT --no-build --dotnetcore="C:\Program Files\dotnet\dotnet.exe" --dotnetcoresdk=10.0.400` |
+| 目的               | 命令                                                                                                                               |
+|--------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| 后端运行           | `dotnet run --project src/AiAdmin.Api --launch-profile dev`                                                                        |
+| 前端安装与运行     | 在 `src/AiAdmin.Web` 下执行 `cnpm install`、`cnpm run dev -- --no-open`                                                            |
+| 后端编译           | `dotnet build`（要求 0 警告 0 错误）                                                                                               |
+| 后端测试           | `dotnet test tests/AiAdmin.Tests`                                                                                                  |
+| 前端构建验证       | 在 `src/AiAdmin.Web` 下执行 `npx vite build`                                                                                       |
+| 前端工具函数测试   | 在 `src/AiAdmin.Web` 下对 `tests/*.test.ts` 使用 `node --import tsx --test`                                                        |
+| 代码清理（提交前） | `./build/code.clean.full.ps1`，包含 Prettier、ReSharper cleanup 与 `dot` 换行整理                                                  |
+| 仅前端格式化       | `./build/code.clean.prettier.ps1`                                                                                                  |
+| ReSharper 检查     | `jb inspectcode AiAdmin.slnx -f=Xml -e=HINT --no-build --dotnetcore="C:\Program Files\dotnet\dotnet.exe" --dotnetcoresdk=11.0.100` |
 
-`AiAdmin.Api` 进程运行时会锁住 `dist/` 下的输出文件。无需停止进程，编译与测试时用 `-p:BaseOutputPath` 指定其他输出目录即可（目录放在 `dist/` 之外会被 git 识别为改动，可用 `dist/verify/bin/`）：
+`AiAdmin.Api` 进程运行时会锁住 `dist/` 下的输出文件。无需停止进程，编译与测试时用 `-p:BaseOutputPath` 指定其他输出目录即可（目录放在 `dist/` 之外会被 git
+识别为改动，可用 `dist/verify/bin/`）：
 
 ```
 dotnet build -p:BaseOutputPath=D:/Work/SVN/Tao/AiAdmin/dist/verify/bin/
@@ -49,7 +50,8 @@ dotnet test tests/AiAdmin.Tests --no-build -p:BaseOutputPath=D:/Work/SVN/Tao/AiA
 - 前端依赖安装、脚本执行统一使用 `cnpm`，不要使用 `pnpm`
 - 所有新增或修改的用户界面文案必须接入 i18n，支持中英文切换
 - 框架与业务内容分文件维护，框架文件会定期与上游合并，业务内容不得混入：界面文案放 `locales/business/{zh,en}.json`，服务端消息与接口描述的中文翻译放
-  `utils/i18n/server-message.business.ts`，业务接口函数与类型放 `api/business-manage.ts`；框架文件（`locales/langs`、`server-message.ts`、`api/system-manage.ts`）
+  `utils/i18n/server-message.business.ts`，业务接口函数与类型放 `api/business-manage.ts`；框架文件（`locales/langs`、`server-message.ts`、
+  `api/system-manage.ts`）
   只放框架内容，业务键与框架键不得重名。拿不准归属时，看这条消息或接口只被业务控制器使用还是也被用户、文件等框架控制器使用，后者留在框架文件
 - 缓存只使用 Redis（`IDistributedCache` / `IConnectionMultiplexer`），禁止使用 `IMemoryCache`
 - 正式版发布前（仓库没有 `v1` 及以上版本 tag）不考虑旧版本兼容、数据迁移或历史数据回填，按当前模型直接开发
@@ -91,7 +93,8 @@ dotnet test tests/AiAdmin.Tests --no-build -p:BaseOutputPath=D:/Work/SVN/Tao/AiA
 
 ### 3.5 静态检查与抑制策略
 
-- 通过 `DispatchProxy` 等运行时生成的类型做的转换会被 ReSharper 误报为可疑类型转换，只在该行加 `// ReSharper disable once SuspiciousTypeConversion.Global`，
+- 通过 `DispatchProxy` 等运行时生成的类型做的转换会被 ReSharper 误报为可疑类型转换，只在该行加
+  `// ReSharper disable once SuspiciousTypeConversion.Global`，
   不放宽整个项目的检查
 - 请求 DTO 的集合属性由反序列化填充、响应 record 的位置参数由序列化读取，ReSharper 无法识别，已在 `AiAdmin.slnx.DotSettings` 关闭
   `CollectionNeverUpdated.Global`、`NotAccessedPositionalProperty.Global` 和 `UnusedAutoPropertyAccessor.Global`，不要为此把 `init` 改成 `set`
@@ -137,7 +140,8 @@ dotnet test tests/AiAdmin.Tests --no-build -p:BaseOutputPath=D:/Work/SVN/Tao/AiA
 
 ### 4.3 体积与清理
 
-- 删除无用前端文件前，必须同时检查路由、后端菜单种子（`menu-seed.json` 与 `Data/*.cs` 的 `Component`）、`import.meta.glob`、`vite.config.ts` 的 `additionalData` 注入、
+- 删除无用前端文件前，必须同时检查路由、后端菜单种子（`menu-seed.json` 与 `Data/*.cs` 的 `Component`）、`import.meta.glob`、`vite.config.ts` 的
+  `additionalData` 注入、
   `index.html` 引用和 `tests/` 目录，不能只看 `import` 图；清理后用 `vite build` 验证
 - 全局注册的指令、插件会在启动时进入主包，新增前先确认确有页面使用；大型库（如 `highlight.js`）必须使用 `lib/core` 加按需语言的方式引入，
   避免拖大首屏包

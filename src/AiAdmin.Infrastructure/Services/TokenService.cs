@@ -45,15 +45,14 @@ public sealed class TokenService(IConfiguration configuration)
     /// <returns>JWT 字符串</returns>
     public string Create(User user) {
         var roles = user.UserRoles.Where(x => x.Role.IsEnabled).Select(x => x.Role.Code).Order(StringComparer.Ordinal).ToArray();
-        var claims = new List<Claim>
-        {
+        List<Claim> claims =
+        [
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString(CultureInfo.InvariantCulture))
             , new(JwtRegisteredClaimNames.UniqueName, user.UserName)
-            , new(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture))
-            , new(ClaimTypes.Name, user.UserName)
+            , new(ClaimTypes.NameIdentifier, user.Id.ToString(CultureInfo.InvariantCulture)), new(ClaimTypes.Name, user.UserName)
             , new(IDENTITY_FINGERPRINT_CLAIM, CreateIdentityFingerprint(user.Id, user.UserName, user.PasswordHash, roles))
-        };
-        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+            , .. roles.Select(role => new Claim(ClaimTypes.Role, role))
+        ];
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:Key"]!));
         var token = new JwtSecurityToken(

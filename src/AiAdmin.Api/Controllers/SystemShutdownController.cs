@@ -44,14 +44,19 @@ public sealed class SystemShutdownController(RealtimeConnectionManager realtime)
         await realtime.CloseAllAsync().ConfigureAwait(false);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(request.TimeoutSeconds));
+
+        // 记录等待期间最后一次仍有在途工作的快照：超时后再取快照各类别已回到 0，无法看出是谁拖住了排空
+        Dictionary<string, int>? lastBusy = null;
         try {
-            if (!await ShutdownGate.WaitForIdleAsync(TimeSpan.FromSeconds(request.StableSeconds), timeout.Token).ConfigureAwait(false)) {
+            if (!await ShutdownGate
+                    .WaitForIdleAsync(TimeSpan.FromSeconds(request.StableSeconds), timeout.Token, snapshot => lastBusy = snapshot)
+                    .ConfigureAwait(false)) {
                 return Conflict(new ApiResponse<object>(409, "Shutdown was cancelled", null));
             }
         }
         catch (OperationCanceledException) {
             // 超时或调用方断开时保持闸门关闭，由调用方决定重试或调用 cancel
-            var pending = new SafeShutdownResult(stopwatch.ElapsedMilliseconds, ShutdownGate.Snapshot(), sampler.Sample());
+            var pending = new SafeShutdownResult(stopwatch.ElapsedMilliseconds, lastBusy ?? ShutdownGate.Snapshot(), sampler.Sample());
             return StatusCode(
                 cancellationToken.IsCancellationRequested ? 499 : StatusCodes.Status408RequestTimeout
                 , new ApiResponse<SafeShutdownResult>(cancellationToken.IsCancellationRequested ? 499 : 408, "Not idle yet", pending)

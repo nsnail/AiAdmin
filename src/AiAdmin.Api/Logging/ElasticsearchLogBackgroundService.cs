@@ -16,6 +16,10 @@ public sealed class ElasticsearchLogBackgroundService(
     , IOptions<ElasticsearchLogOptions> options
     , ILogger<ElasticsearchLogBackgroundService> logger) : BackgroundService
 {
+    private static readonly Action<ILogger, Exception?> _logDequeueFailure = LoggerMessage.Define(
+        LogLevel.Error, new EventId(3102, "ElasticsearchDequeueFailure"), "Failed to read the Elasticsearch log queue; the worker will retry"
+    );
+
     private static readonly Action<ILogger, Exception?> _logWriteFailure = LoggerMessage.Define(
         LogLevel.Error, new EventId(3101, "ElasticsearchWriteFailure"), "Failed to write Elasticsearch logs; the current batch will be discarded"
     );
@@ -54,7 +58,7 @@ public sealed class ElasticsearchLogBackgroundService(
         List<ElasticsearchLogEntry> batch
         , CancellationToken stoppingToken
     ) {
-        var first = await queue.DequeueAsync(stoppingToken).ConfigureAwait(false);
+        var first = await TryReadAsync(() => queue.DequeueAsync(stoppingToken), stoppingToken).ConfigureAwait(false);
         if (first is null) {
             return false;
         }
@@ -62,7 +66,8 @@ public sealed class ElasticsearchLogBackgroundService(
         batch.Add(first);
         var batchSize = Math.Max(1, options.Value.BatchSize);
         while (batch.Count < batchSize) {
-            var entry = await queue.TryDequeueAsync().ConfigureAwait(false);
+            // 读取中途失败时保留已取出的日志先写入，避免丢失
+            var entry = await TryReadAsync(queue.TryDequeueAsync, stoppingToken).ConfigureAwait(false);
             if (entry is null) {
                 break;
             }
@@ -81,6 +86,8 @@ public sealed class ElasticsearchLogBackgroundService(
     private async Task RunWorkerAsync(CancellationToken stoppingToken) {
         var batch = new List<ElasticsearchLogEntry>(Math.Max(1, options.Value.BatchSize));
         while (!stoppingToken.IsCancellationRequested) {
+            // 安全停机闸门关闭后不再取新批次，积压留在共享队列由其他实例消费，否则持续取到数据会让在途工作无法归零
+            await ShutdownGate.WaitWhileClosedAsync(options.Value.FlushInterval, stoppingToken).ConfigureAwait(false);
             batch.Clear();
             var hasData = await DequeueBatchAsync(batch, stoppingToken).ConfigureAwait(false);
             if (!hasData) {
@@ -103,6 +110,29 @@ public sealed class ElasticsearchLogBackgroundService(
             }
 
             await DelayBeforeNextBatchAsync(stoppingToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     读取队列并吞掉非取消异常：Redis 超时等短暂故障只记录日志并等待下一轮，不让异常逃出 Worker 导致宿主被停止
+    /// </summary>
+    /// <param name="read">读取队列的操作</param>
+    /// <param name="stoppingToken">应用停止令牌</param>
+    /// <returns>读取到的日志，队列为空或读取失败时返回 null</returns>
+    private async Task<ElasticsearchLogEntry?> TryReadAsync(
+        Func<Task<ElasticsearchLogEntry?>> read
+        , CancellationToken stoppingToken
+    ) {
+        try {
+            return await read().ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) {
+            return null;
+        }
+        catch (Exception exception) {
+            _logDequeueFailure(logger, exception);
+            await DelayBeforeNextBatchAsync(stoppingToken).ConfigureAwait(false);
+            return null;
         }
     }
 }

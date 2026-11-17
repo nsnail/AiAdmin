@@ -13,13 +13,9 @@ namespace AiAdmin.Api.Data;
 /// </summary>
 /// <param name="options">数据库上下文配置</param>
 /// <param name="dataScope">数据权限上下文</param>
-/// <param name="httpContextAccessor">HTTP 上下文访问器</param>
 /// <param name="dataScopeCache">数据权限缓存</param>
-public sealed partial class AppDbContext(
-    DbContextOptions<AppDbContext> options
-    , DataScopeContext dataScope
-    , IHttpContextAccessor httpContextAccessor
-    , DataScopeCache dataScopeCache) : DbContext(options)
+public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options, DataScopeContext dataScope, DataScopeCache dataScopeCache)
+    : DbContext(options)
 {
     /// <summary>
     ///     接口实体集合
@@ -27,19 +23,9 @@ public sealed partial class AppDbContext(
     public DbSet<ApiEndpoint> ApiEndpoints => Set<ApiEndpoint>();
 
     /// <summary>
-    ///     当前数据库操作审计用户主键
-    /// </summary>
-    public long? CurrentAuditActorUserId => dataScope.IsInitialized ? dataScope.UserId : null;
-
-    /// <summary>
     ///     当前请求的数据权限上下文，供全局查询过滤表达式访问
     /// </summary>
     public DataScopeContext DataScope => dataScope;
-
-    /// <summary>
-    ///     数据库写入审计日志集合
-    /// </summary>
-    public DbSet<DatabaseAuditLog> DatabaseAuditLogs => Set<DatabaseAuditLog>();
 
     /// <summary>
     ///     部门实体集合
@@ -490,22 +476,7 @@ public sealed partial class AppDbContext(
             }
         );
 
-        _ = modelBuilder.Entity<DatabaseAuditLog>(entity =>
-            {
-                _ = entity.ToTable("sys_database_audit_log");
-                _ = entity.HasKey(x => x.Id);
-                _ = entity.Property(x => x.Id).ValueGeneratedNever();
-                _ = entity.HasIndex(x => x.ActorUserId);
-                _ = entity.HasIndex(x => x.CreatedAt);
-                _ = entity.Property(x => x.EntityName).HasMaxLength(100).IsRequired();
-                _ = entity.Property(x => x.EntityId).HasMaxLength(200).IsRequired();
-                _ = entity.Property(x => x.Operation).HasMaxLength(20).IsRequired();
-                _ = entity.Property(x => x.Method).HasMaxLength(20).IsRequired();
-                _ = entity.Property(x => x.Path).HasMaxLength(500).IsRequired();
-            }
-        );
-
-        ConfigureBusinessModel(modelBuilder);
+        ConfigureBusinessModel();
         ApplyOwnerQueryFilters(modelBuilder);
     }
 
@@ -553,39 +524,22 @@ public sealed partial class AppDbContext(
     /// <summary>
     ///     业务实体模型配置扩展点，由 AppDbContext.Business.cs 实现
     /// </summary>
-    /// <param name="modelBuilder">实体模型构建器</param>
-    static partial void ConfigureBusinessModel(ModelBuilder modelBuilder);
+    static partial void ConfigureBusinessModel();
+
+    /// <summary>
+    ///     将数据权限开关包装为 EF.Constant，使其作为常量内联进 SQL 而不是参数：
+    ///     全部数据权限时整个过滤条件在翻译阶段被化简掉，避免 MySQL 因 OR 分支中的所有者列放弃索引范围扫描而退化为全表扫描
+    /// </summary>
+    /// <param name="flag">读取数据权限开关的布尔表达式</param>
+    /// <returns>以常量方式求值的布尔表达式</returns>
+    private static MethodCallExpression InlineConstant(Expression flag) {
+        return Expression.Call(typeof(EF).GetMethod(nameof(EF.Constant))!.MakeGenericMethod(typeof(bool)), flag);
+    }
 
     /// <summary>
     ///     业务保存前处理扩展点，由 AppDbContext.Business.cs 实现
     /// </summary>
     static partial void PrepareBusinessSaveChanges();
-
-    /// <summary>
-    ///     为本次数据库写入创建审计日志
-    /// </summary>
-    /// <param name="entries">本次保存的实体状态条目</param>
-    private void AddDatabaseAuditLogs(IReadOnlyList<EntityEntry> entries) {
-        var request = httpContextAccessor.HttpContext?.Request;
-        long? actorUserId = dataScope.IsInitialized ? dataScope.UserId : null;
-        foreach (var entry in entries) {
-            var primaryKey = entry.Metadata.FindPrimaryKey();
-            var entityId = primaryKey is null
-                ? string.Empty
-                : string.Join(",", primaryKey.Properties.Select(x => entry.Property(x.Name).CurrentValue?.ToString() ?? string.Empty));
-            _ = DatabaseAuditLogs.Add(
-                new DatabaseAuditLog
-                {
-                    ActorUserId = actorUserId
-                    , EntityName = entry.Metadata.ClrType.Name
-                    , EntityId = entityId
-                    , Operation = entry.State.ToString()
-                    , Method = request?.Method ?? "SYSTEM"
-                    , Path = request?.Path.Value ?? "SYSTEM"
-                }
-            );
-        }
-    }
 
     /// <summary>
     ///     为所有实现 IOwner 的实体统一追加数据权限查询过滤，业务实体无需再各自声明
@@ -637,7 +591,7 @@ public sealed partial class AppDbContext(
 
         // 本人数据：所有者非空且等于当前用户，可空比较在 SQL 中为空时不命中
         var self = Expression.AndAlso(
-            Expression.Property(scope, nameof(DataScopeContext.HasSelfData))
+            InlineConstant(Expression.Property(scope, nameof(DataScopeContext.HasSelfData)))
             , Expression.AndAlso(
                 Expression.NotEqual(ownerId, Expression.Constant(null, typeof(long?)))
                 , Expression.Equal(ownerId, Expression.Convert(Expression.Property(scope, nameof(DataScopeContext.UserId)), typeof(long?)))
@@ -655,8 +609,8 @@ public sealed partial class AppDbContext(
         );
 
         var body = Expression.OrElse(
-            Expression.Not(Expression.Property(scope, nameof(DataScopeContext.IsInitialized)))
-            , Expression.OrElse(Expression.Property(scope, nameof(DataScopeContext.HasAllData)), Expression.OrElse(self, department))
+            Expression.Not(InlineConstant(Expression.Property(scope, nameof(DataScopeContext.IsInitialized))))
+            , Expression.OrElse(InlineConstant(Expression.Property(scope, nameof(DataScopeContext.HasAllData))), Expression.OrElse(self, department))
         );
         return Expression.Lambda(body, entity);
     }
@@ -665,13 +619,9 @@ public sealed partial class AppDbContext(
     ///     根据实体状态维护创建时间和最后更新时间
     /// </summary>
     private void PrepareSaveChanges() {
-        var entries = ChangeTracker
-            .Entries()
-            .Where(x => x.Entity is not DatabaseAuditLog && x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
-            .ToList();
+        var entries = ChangeTracker.Entries().Where(x => x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted).ToList();
         PrepareBusinessSaveChanges();
         AssignOwners(entries);
-        AddDatabaseAuditLogs(entries);
         UpdateAuditTimes();
     }
 

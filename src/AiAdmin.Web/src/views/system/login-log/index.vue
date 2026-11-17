@@ -6,6 +6,7 @@
             :data="data"
             :loading="loading"
             :pagination="pagination"
+            :row-actions="rowActions"
             @filter-change="handleFilterChange"
             @page-change="handleCurrentChange"
             @refresh="refreshData"
@@ -23,7 +24,7 @@ import { useI18n } from 'vue-i18n'
 import { fetchGetLoginLogList, type LoginLogRecord } from '@/api/system-manage'
 import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import { useTable } from '@/hooks/core/useTable'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import type { RowAction } from '@/types/component'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import LoginLogDetailDrawer from './modules/login-log-detail-drawer.vue'
@@ -124,18 +125,6 @@ const {
                 label: t('loginLog.fields.timeZone'),
                 width: 170,
             },
-            {
-                prop: 'operation',
-                label: t('loginLog.fields.actions'),
-                width: 90,
-                fixed: 'right',
-                formatter: (row: LoginLogRecord) =>
-                    h(ArtButtonTable, {
-                        type: 'view',
-                        title: t('loginLog.detail.view'),
-                        onClick: () => openDetail(row),
-                    }),
-            },
         ],
     },
 })
@@ -144,6 +133,10 @@ const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Pro
     replaceSearchParams({ dynamicFilter })
     await getData()
 }
+/** 行右键菜单操作 */
+const rowActions = (row: LoginLogRecord): RowAction[] => [
+    { key: 'view', label: t('loginLog.detail.view'), icon: 'ri:eye-line', onClick: () => openDetail(row) },
+]
 const openDetail = (row: LoginLogRecord) => {
     selectedLog.value = row
     detailVisible.value = true

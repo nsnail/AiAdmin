@@ -37,6 +37,7 @@
     "common": {
         "tips": "Prompt",
         "edit": "Edit",
+        "rowAction": { "view": "View", "add": "Add", "edit": "Edit", "delete": "Delete" },
         "cancel": "Cancel",
         "confirm": "Confirm",
         "logOutTips": "Do you want to log out?",
@@ -161,6 +162,10 @@
         "deleteConfirm": "Delete this notification?"
     },
     "worktab": {
+        "homePage": {
+            "set": "Set as home page. The logo and login now open this page (saved in this browser only)",
+            "cancelled": "Restored the default home page"
+        },
         "btn": {
             "refresh": "Refresh",
             "fixed": "Fixed",
@@ -168,7 +173,19 @@
             "closeLeft": "Close left",
             "closeRight": "Close right",
             "closeOther": "Close other",
-            "closeAll": "Close all"
+            "closeAll": "Close all",
+            "setHomePage": "Set as home page",
+            "cancelHomePage": "Cancel home page"
+        },
+        "autoRefresh": {
+            "title": "Auto refresh",
+            "activeLabel": "Auto refresh ({seconds}s)",
+            "seconds": "{seconds} s",
+            "custom": "Custom interval…",
+            "off": "Turn off auto refresh",
+            "countdown": "The page will refresh automatically in {seconds} s",
+            "inputMessage": "Enter the refresh interval in seconds",
+            "inputInvalid": "Enter an integer between {min} and {max}"
         }
     },
     "login": {
@@ -293,6 +310,12 @@
         "500": "Sorry, there was an error on the server"
     },
     "menus": {
+        "customize": {
+            "moveUp": "Move up",
+            "moveDown": "Move down",
+            "hide": "Hide menu",
+            "reset": "Restore default menu"
+        },
         "login": {
             "title": "Login"
         },
@@ -307,7 +330,8 @@
         },
         "dashboard": {
             "title": "Dashboard",
-            "console": "Operations Dashboard"
+            "console": "System Overview",
+            "business": "Business Overview"
         },
         "exception": {
             "title": "Exception",
@@ -317,7 +341,9 @@
         },
         "development": {
             "title": "Development",
-            "apiDocs": "API Documentation"
+            "apiDocs": "API Documentation",
+            "integration": "Integration guide",
+            "systemComponents": "Open-source components"
         },
         "system": {
             "title": "System Settings",
@@ -527,6 +553,12 @@
             "exportFailed": "Export failed",
             "exportTruncated": "{total} records matched; this export is limited to {limit} by system settings"
         },
+        "detail": {
+            "title": "User details",
+            "view": "View details",
+            "close": "Close",
+            "tabs": { "basic": "Basic Info", "operationLog": "Operation Logs", "rawData": "Raw Data" }
+        },
         "defaultDepartment": "Default Department"
     },
     "referralManagement": {
@@ -566,6 +598,37 @@
         }
     },
     "rawData": "Raw Data",
+    "systemComponents": {
+        "refresh": "Refresh",
+        "search": "Search by name",
+        "count": "{count} in total",
+        "tabs": {
+            "frontend": "Frontend dependencies",
+            "backend": "Backend components"
+        },
+        "frontend": {
+            "runtime": "Runtime dependencies",
+            "dev": "Development dependencies"
+        },
+        "backend": {
+            "assemblies": "Loaded assemblies",
+            "packages": "NuGet packages"
+        },
+        "fields": {
+            "size": "Size",
+            "name": "Name",
+            "declared": "Declared version",
+            "installed": "Installed version",
+            "version": "Version",
+            "productVersion": "Product version",
+            "kind": "Kind"
+        },
+        "kind": {
+            "application": "Project",
+            "framework": "Framework",
+            "package": "NuGet package"
+        }
+    },
     "redisCache": {
         "server": {
             "title": "Redis Server",
@@ -600,6 +663,17 @@
             "delete": "Delete",
             "close": "Close",
             "save": "Save"
+        },
+        "items": {
+            "title": "{total} in total, {loaded} loaded",
+            "index": "No.",
+            "field": "Field",
+            "entryId": "Entry ID",
+            "score": "Score",
+            "loadMore": "Load more",
+            "allLoaded": "All loaded",
+            "empty": "No data",
+            "truncated": "Some values are too long and have been truncated"
         },
         "dialog": { "view": "View cache", "edit": "Edit cache", "add": "Add cache" },
         "messages": {
@@ -1096,6 +1170,8 @@
         "updatedAt": "Updated at {time}",
         "empty": "No data",
         "noFailures": "No recent failed executions",
+        "executionNotFound": "Execution record not found",
+        "loginLogNotFound": "Login log not found",
         "unknownRegion": "Unknown region",
         "series": {
             "today": "Today",
@@ -1186,7 +1262,7 @@
         "loadFailed": "Failed to load wallet"
     },
     "table": {
-        "contextMenu": { "copyHint": "Copy (C)" },
+        "contextMenu": { "copyHint": "Copy (C)", "filter": "Filter", "sort": "Sort", "sortAsc": "Ascending", "sortDesc": "Descending" },
         "form": {
             "reset": "Reset",
             "submit": "Submit"
@@ -1195,6 +1271,17 @@
             "reset": "Reset",
             "search": "Search",
             "advancedQuery": "Advanced query",
+            "autoApply": {
+                "title": "Auto apply",
+                "apply": "Apply",
+                "applyActive": "Apply ({seconds}s)",
+                "seconds": "{seconds} s",
+                "custom": "Custom interval…",
+                "off": "Turn off auto apply",
+                "countdown": "The query will be applied automatically in {seconds} s",
+                "inputMessage": "Enter the apply interval in seconds",
+                "inputInvalid": "Enter an integer between {min} and {max}"
+            },
             "saveQueryTitle": "Save query",
             "queryNamePlaceholder": "Enter query name",
             "queryNameRequired": "Enter query name",

@@ -4,14 +4,14 @@
 
 ## 目录
 
-| 目录          | 内容                                                                                                              |
-|---------------|-------------------------------------------------------------------------------------------------------------------|
-| `Models`      | 框架实体：用户、角色、部门、菜单、字典、计划作业、站内信、客服会话、日志等，以及实体基类与接口                    |
-| `Contracts`   | 框架的请求、结果和响应契约（`ApiResponse<T>`、`DynamicQueryRequest`、`PagedResponse<T>` 等）                      |
-| `Attributes`  | 公共特性：`ApiDescriptionAttribute`、`ApiDocumentedAttribute`、`ListFilterAttribute`                              |
-| `Data`        | `SnowflakeIdGenerator`（雪花 ID）、`Crc32`                                                                        |
-| `Services`    | 无外部依赖的公共服务：`ShutdownGate` 安全停机闸门及其活动类型、`JsonParsing`                                      |
-| `Caching`     | `RedisKeyPrefix`，所有 Redis 键统一使用 `aiadmin:` 前缀                                                           |
+| 目录         | 内容                                                                                           |
+|--------------|------------------------------------------------------------------------------------------------|
+| `Models`     | 框架实体：用户、角色、部门、菜单、字典、计划作业、站内信、客服会话、日志等，以及实体基类与接口 |
+| `Contracts`  | 框架的请求、结果和响应契约（`ApiResponse<T>`、`DynamicQueryRequest`、`PagedResponse<T>` 等）   |
+| `Attributes` | 公共特性：`ApiDescriptionAttribute`、`ApiDocumentedAttribute`、`ListFilterAttribute`           |
+| `Data`       | `SnowflakeIdGenerator`（雪花 ID）、`Crc32`                                                     |
+| `Services`   | 无外部依赖的公共服务：`ShutdownGate` 安全停机闸门及其活动类型、`JsonParsing`                   |
+| `Caching`    | `RedisKeyPrefix`，所有 Redis 键统一使用 `aiadmin:` 前缀                                        |
 
 ## 约定
 

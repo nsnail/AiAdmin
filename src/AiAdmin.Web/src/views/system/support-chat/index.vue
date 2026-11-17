@@ -1,7 +1,7 @@
 <!-- 在线客服工作台：左侧会话列表，右侧对话窗口，用户消息通过 WebSocket 实时到达 -->
 <template>
     <div class="support-chat art-full-height">
-        <ElCard class="support-card" shadow="never">
+        <ElCard class="support-card art-card-sm" shadow="never">
             <div class="support-layout">
                 <!-- 会话列表 -->
                 <aside class="conversation-pane">

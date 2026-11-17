@@ -19,6 +19,17 @@ public static class ElasticsearchDynamicQuery
     };
 
     /// <summary>
+    ///     索引模板中映射为 keyword 且取值必然很短的字段，直接查询真实字段，避免对每个文档执行脚本
+    /// </summary>
+    private static readonly HashSet<string> _shortKeywordFields =
+    [
+        with(StringComparer.Ordinal), nameof(SystemLogItem.Category), nameof(SystemLogItem.ClientIp), nameof(SystemLogItem.EventName)
+        , nameof(SystemLogItem.Level), nameof(SystemLogItem.LogType), nameof(SystemLogItem.RequestContentType)
+        , nameof(SystemLogItem.RequestMethod), nameof(SystemLogItem.ResponseContentType), nameof(SystemLogItem.ServerIp)
+        , nameof(SystemLogItem.Source)
+    ];
+
+    /// <summary>
     ///     校验查询并构建 Elasticsearch 请求正文
     /// </summary>
     /// <param name="request">公共分页筛选与排序请求</param>
@@ -266,7 +277,7 @@ public static class ElasticsearchDynamicQuery
         return type == typeof(string)
             ? value.GetString()
             : type == typeof(DateTimeOffset)
-                ? DateTimeOffset.Parse(value.GetString()!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind)
+                ? DateExpression.ParseDate(value.GetString()!)
                 : value.ValueKind == JsonValueKind.String
                     ? Convert.ChangeType(value.GetString(), type, CultureInfo.InvariantCulture)
                     : JsonSerializer.Deserialize(value.GetRawText(), type, JsonParsing.Options);
@@ -326,7 +337,7 @@ public static class ElasticsearchDynamicQuery
     }
 
     /// <summary>
-    ///     按需从原始文档暴露字符串，避免分词或 keyword 长度上限改变筛选语义
+    ///     按需从原始文档暴露字符串，避免分词或 keyword 长度上限改变筛选语义；短 keyword 字段直接使用索引字段，运行时脚本逐文档计算在大索引上要几十秒
     /// </summary>
     /// <param name="property">日志属性</param>
     /// <param name="runtimeFields">本次请求使用的运行时字段</param>
@@ -336,7 +347,7 @@ public static class ElasticsearchDynamicQuery
         , Dictionary<string, object> runtimeFields
     ) {
         var name = JsonNamingPolicy.CamelCase.ConvertName(property.Name);
-        if (property.PropertyType != typeof(string)) {
+        if (property.PropertyType != typeof(string) || _shortKeywordFields.Contains(property.Name)) {
             return name;
         }
 

@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using StackExchange.Redis;
 
 var applicationArgs = args.ToArray();
@@ -33,7 +34,7 @@ var provider = builder.Configuration["Database:Provider"]?.Trim().ToLowerInvaria
 var entryAssembly = Assembly.GetEntryAssembly();
 var assemblyName = entryAssembly!.GetName().ToString();
 Console.WriteLine($"{new string('-', 4)} {assemblyName} {new string('-', Math.Max(120 - 5 - assemblyName.Length, 1))}");
-foreach (var kv in GetEnvironmentInfo().OrderBy(x => x.Key)) {
+foreach (var kv in GetEnvironmentInfo().OrderBy(x => x.Key, StringComparer.Ordinal)) {
     Console.WriteLine($"<{kv.Key}> {kv.Value}");
 }
 
@@ -57,8 +58,16 @@ _ = builder
         }
     );
 builder.Services.AddProblemDetails();
+
+// 网关（Nginx）不在本机回环地址上，默认只信任回环代理会忽略 X-Forwarded-For，导致记录的都是网关内网 IP
+// 这里信任所有上游代理，只取最近一跳追加的地址（ForwardLimit=1），要求 API 端口只对网关开放
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+        options.ForwardLimit = 1;
+    }
 );
 builder.Services.AddExceptionHandler<DataAccessExceptionHandler>();
 builder.Services.Configure<ElasticsearchLogOptions>(builder.Configuration.GetSection("Elasticsearch"));
@@ -115,6 +124,7 @@ builder.Services.AddHostedService<RealtimeShutdownHostedService>();
 
 // 停机超时需小于容器 stop_grace_period，确保主机先于 SIGKILL 完成优雅停止
 builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(40));
+builder.Services.Configure<DatabaseAuditOptions>(builder.Configuration.GetSection("DatabaseAudit"));
 builder.Services.AddSingleton<DatabaseCommandAuditInterceptor>();
 builder.Services.AddSingleton<DatabaseShutdownInterceptor>();
 builder.Services.AddScoped<DataScopeContext>();
@@ -187,6 +197,9 @@ app.UseExceptionHandler();
 app.UseCors("Web");
 app.UseForwardedHeaders();
 app.UseRouting();
+
+// Prometheus 请求指标（请求数、耗时、进行中请求）；放在路由之后以便按路由模板打标签
+app.UseHttpMetrics();
 app.UseWebSockets(new WebSocketOptions { KeepAliveInterval = TimeSpan.FromSeconds(30) });
 app.UseAuthentication();
 app.UseMiddleware<RealtimeWebSocketMiddleware>();
@@ -199,6 +212,9 @@ app.MapControllers();
 
 // 健康检查：匿名可访问，不在 /api 下因此不产生请求日志；安全停机闸门关闭后由 ShutdownGateMiddleware 直接返回 503，网关据此摘除实例
 _ = app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
+// Prometheus 指标抓取端点：匿名可访问，不在 /api 下因此不产生请求日志，网关不应对公网转发该路径，仅允许内网 Prometheus 访问 API 端口抓取
+_ = app.MapMetrics();
 
 // 仅开发和测试环境自动初始化数据库，其他环境不自动执行初始化
 var shouldInitializeDatabase = app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Test");
@@ -243,10 +259,18 @@ static void ConfigureProvider(
     {
         "sqlite" => options.UseSqlite(connectionString, sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
         , "sqlserver" => options.UseSqlServer(connectionString, sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
+        , "mysql" => options.UseMySQL(
+            connectionString, mysqlOptions =>
+            {
+                _ = mysqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+
+                // 单条命令最多等待 30 秒，避免锁等待或慢查询长期占用连接池
+                _ = mysqlOptions.CommandTimeout(30);
+            }
+        )
         , "postgresql" or "postgres" => options.UseNpgsql(
             connectionString, npgsqlOptions => npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
         )
-        , "mysql" => options.UseMySQL(connectionString, mysqlOptions => mysqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
         , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'. Use sqlite, sqlserver, postgresql, or mysql.")
     };
 }

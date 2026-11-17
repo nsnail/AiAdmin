@@ -54,6 +54,7 @@
                 :key="selectedCategory?.id || 'empty'"
                 :loading="loading"
                 :pagination="pagination"
+                :row-actions="rowActions"
                 @filter-change="handleFilterChange"
                 @page-change="handleCurrentChange"
                 @refresh="refreshData"
@@ -133,7 +134,7 @@ import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import type { RowAction } from '@/types/component'
 import { useTable } from '@/hooks/core/useTable'
 import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import {
@@ -205,18 +206,6 @@ const columnsFactory = () => [
             h(ArtEnabledSwitch, { id: row.id, resource: 'dictionary-item', modelValue: row.isEnabled, 'onUpdate:modelValue': () => refreshData() }),
     },
     { prop: 'remark', label: '备注', queryField: 'Remark', minWidth: 180, showOverflowTooltip: true, sortable: 'custom' as const },
-    {
-        prop: 'operation',
-        label: '操作',
-        width: 110,
-        align: 'center' as const,
-        queryField: false,
-        formatter: (row: Item) =>
-            h('div', [
-                h(ArtButtonTable, { type: 'edit', onClick: () => openItemDialog(row) }),
-                h(ArtButtonTable, { type: 'delete', onClick: () => deleteItem(row) }),
-            ]),
-    },
 ]
 const tableState = useTable({
     core: {
@@ -330,6 +319,11 @@ const saveItem = async () => {
         saving.value = false
     }
 }
+/** 行右键菜单操作 */
+const rowActions = (row: Item): RowAction[] => [
+    { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => openItemDialog(row) },
+    { key: 'delete', label: t('common.rowAction.delete'), icon: 'ri:delete-bin-5-line', danger: true, onClick: () => deleteItem(row) },
+]
 const deleteItem = async (item: Pick<Item, 'id' | 'label'>) => {
     await ElMessageBox.confirm(`确定删除字典内容“${item.label}”吗？`, '删除确认', {
         type: 'warning',

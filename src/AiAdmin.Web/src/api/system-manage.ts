@@ -164,6 +164,31 @@ export interface RedisCacheValue extends RedisCacheKey {
     value: string
 }
 
+/** Redis 集合类缓存键中的单个元素 */
+export interface RedisCacheItem {
+    /** 元素序号：List 为下标，SortedSet 为排名，其他类型为本页中的位置 */
+    index: number
+    /** Hash 的字段名、Stream 的条目 ID，其他类型为 null */
+    field: string | null
+    /** 元素值，Stream 为条目字段的 JSON */
+    value: string
+    /** SortedSet 的分数，其他类型为 null */
+    score: number | null
+}
+
+/** Redis 集合类缓存键的一页元素 */
+export interface RedisCacheItems {
+    key: string
+    type: string
+    items: RedisCacheItem[]
+    /** 元素总数 */
+    total: number
+    /** 读取下一页的游标，没有更多数据时为 null */
+    nextCursor: string | null
+    /** 有元素超过长度上限被截断 */
+    truncated: boolean
+}
+
 export interface WalletInfo {
     id: string
     createdAt: string
@@ -225,6 +250,11 @@ export function fetchGetRedisKeys(pattern?: string, limit = 100) {
 
 export function fetchGetRedisValue(key: string) {
     return request.get<RedisCacheValue>({ url: '/api/redis-cache/value', params: { key } })
+}
+
+/** 分页读取 List、Set、Hash、SortedSet、Stream 类型缓存键的元素，cursor 为空表示从头开始 */
+export function fetchGetRedisItems(key: string, cursor?: string | null, pageSize = 100) {
+    return request.get<RedisCacheItems>({ url: '/api/redis-cache/items', params: { key, cursor: cursor || undefined, pageSize } })
 }
 
 export function fetchSaveRedisValue(data: SaveRedisCacheParams) {
@@ -567,6 +597,37 @@ export function fetchGetApiEndpointList(dynamicFilter?: DynamicFilter, sortField
 
 export function fetchGetChangeLog() {
     return request.get<{ content: string }>({ url: '/api/change-log/content' })
+}
+
+/** 后端已加载的程序集 */
+export interface SystemAssemblyItem {
+    name: string
+    version: string
+    productVersion: string
+    /** application 为本项目程序集，framework 为运行时与共享框架程序集，package 为 NuGet 包带来的程序集 */
+    kind: 'application' | 'framework' | 'package'
+    /** 程序集文件大小（字节），内存加载或文件不存在时为 null */
+    sizeBytes: number | null
+}
+
+/** 后端依赖的 NuGet 包 */
+export interface SystemPackageItem {
+    name: string
+    version: string
+    /** 包随应用部署的托管程序集文件大小之和（字节），没有可统计的文件时为 null */
+    sizeBytes: number | null
+}
+
+/** 系统组件：后端运行时、已加载程序集和 NuGet 包 */
+export interface SystemComponents {
+    runtimeVersion: string
+    assemblies: SystemAssemblyItem[]
+    packages: SystemPackageItem[]
+}
+
+/** 查询后端已加载的程序集和 NuGet 包 */
+export function fetchGetSystemComponents() {
+    return request.get<SystemComponents>({ url: '/api/system-components/backend' })
 }
 
 export function fetchGetApiDocumentation() {

@@ -8,8 +8,8 @@ namespace AiAdmin.Api.Contracts;
 public sealed class CleanupExecutionsRequest
 {
     /// <summary>
-    ///     保留天数，开始时间早于该天数之前的执行记录会被删除
+    ///     保留小时数，开始时间早于该小时数之前的执行记录会被删除
     /// </summary>
-    [Range(1, 3650)]
-    public int Days { get; init; } = 30;
+    [Range(1, 87600)]
+    public int Hours { get; init; } = 720;
 }

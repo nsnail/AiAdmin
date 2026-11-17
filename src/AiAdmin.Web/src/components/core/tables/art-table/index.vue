@@ -67,29 +67,66 @@
 
         <Teleport to="body">
             <div v-if="queryMenu.visible" :style="{ left: `${queryMenu.x}px`, top: `${queryMenu.y}px` }" @contextmenu.prevent class="cell-query-menu">
-                <div :class="{ 'opens-left': queryMenu.submenuLeft }" class="cell-query-submenu cell-query-title-submenu">
+                <div v-if="queryMenu.queryable" :class="{ 'opens-left': queryMenu.submenuLeft }" class="cell-query-submenu cell-query-title-submenu">
                     <button @click="copyQueryValue" aria-keyshortcuts="C" class="cell-query-title" type="button">
                         <span>{{ queryMenu.label }} ({{ queryMenu.valueType }})</span>
                         <span class="cell-query-shortcut">{{ t('table.contextMenu.copyHint') }}</span>
                     </button>
-                    <div v-if="queryMenu.sortable" class="cell-query-submenu-panel">
-                        <button @click="applyContextSort('ascending')" class="cell-query-operation" type="button">
-                            <span>顺序</span><span class="cell-query-symbol">↑</span>
-                        </button>
-                        <button @click="applyContextSort('descending')" class="cell-query-operation" type="button">
-                            <span>倒序</span><span class="cell-query-symbol">↓</span>
+                </div>
+                <div v-if="queryMenu.queryable && (menuActions.length || hasFilterOrSort)" class="cell-query-divider" />
+                <div v-if="menuActions.length" class="cell-query-actions">
+                    <button
+                        v-for="action in menuActions"
+                        :class="{ 'is-danger': action.danger }"
+                        :disabled="action.disabled"
+                        :key="action.key"
+                        @click="runRowAction(action)"
+                        class="cell-query-operation"
+                        type="button">
+                        <span>{{ action.label }}</span>
+                        <span class="cell-query-action-tail">
+                            <span v-if="action.shortcut" class="cell-query-shortcut">{{ action.shortcut }}</span>
+                            <ArtSvgIcon v-if="action.icon" :icon="action.icon" class="cell-query-symbol" />
+                        </span>
+                    </button>
+                </div>
+                <div v-if="menuActions.length && hasFilterOrSort" class="cell-query-divider" />
+                <div
+                    v-if="availableOperators.length"
+                    :class="{ 'opens-left': queryMenu.submenuLeft }"
+                    class="cell-query-submenu cell-query-filter-submenu">
+                    <button @click.stop class="cell-query-operation" type="button">
+                        <span>{{ t('table.contextMenu.filter') }}</span>
+                        <span class="cell-query-symbol">›</span>
+                    </button>
+                    <div class="cell-query-submenu-panel">
+                        <button
+                            v-for="operator in availableOperators"
+                            :key="operator.value"
+                            @click="openQueryDialog(operator.value)"
+                            class="cell-query-operation"
+                            type="button">
+                            <span>{{ operator.label }}</span>
+                            <span class="cell-query-symbol">{{ operator.symbol }}</span>
                         </button>
                     </div>
                 </div>
-                <button
-                    v-for="operator in availableOperators"
-                    :key="operator.value"
-                    @click="openQueryDialog(operator.value)"
-                    class="cell-query-operation"
-                    type="button">
-                    <span>{{ operator.label }}</span>
-                    <span class="cell-query-symbol">{{ operator.symbol }}</span>
-                </button>
+                <div v-if="queryMenu.sortable" :class="{ 'opens-left': queryMenu.submenuLeft }" class="cell-query-submenu cell-query-sort-submenu">
+                    <button @click.stop class="cell-query-operation" type="button">
+                        <span>{{ t('table.contextMenu.sort') }}</span>
+                        <span class="cell-query-symbol">›</span>
+                    </button>
+                    <div class="cell-query-submenu-panel">
+                        <button @click="applyContextSort('ascending')" class="cell-query-operation" type="button">
+                            <span>{{ t('table.contextMenu.sortAsc') }}</span
+                            ><span class="cell-query-symbol">↑</span>
+                        </button>
+                        <button @click="applyContextSort('descending')" class="cell-query-operation" type="button">
+                            <span>{{ t('table.contextMenu.sortDesc') }}</span
+                            ><span class="cell-query-symbol">↓</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </Teleport>
 
@@ -142,10 +179,12 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, computed, nextTick, watchEffect, getCurrentInstance, useAttrs, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, toRaw, watch, nextTick, watchEffect, getCurrentInstance, useAttrs, onMounted, onUnmounted } from 'vue'
 import type { ElTable, TableProps } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { ColumnOption } from '@/types'
+import type { RowAction } from '@/types/component'
+import { ElMessageBox } from 'element-plus'
 import { useTableStore } from '@/store/modules/table'
 import { useCommon } from '@/hooks/core/useCommon'
 import { useTableHeight } from '@/hooks/core/useTableHeight'
@@ -171,12 +210,18 @@ const queryMenu = reactive({
     field: '',
     sortField: '',
     sortable: false,
+    queryable: false,
+    row: null as Record<string, unknown> | null,
     submenuLeft: false,
     valueType: 'string' as QueryValueType,
     operators: undefined as string[] | undefined,
     initialValue: undefined as unknown,
 })
 const queryDialogVisible = ref(false)
+/** 保持高亮的目标行：右键菜单、确认框、操作执行、筛选对话框期间持续存在 */
+const highlightRow = ref<Record<string, unknown> | null>(null)
+/** 行操作进行中（含确认框），期间点击空白处关闭菜单不应清除高亮 */
+let actionRunning = false
 const queryOperator = ref('Contains')
 const queryValue = ref<any>('')
 const queryRangeValue = ref<any[]>([])
@@ -277,6 +322,8 @@ interface ArtTableProps extends /* @vue-ignore */ TableProps<Record<string, any>
     showTableHeader?: boolean
     /** 空数据时是否仍显示分页器 */
     showPaginationWhenEmpty?: boolean
+    /** 行操作：返回当前行在右键菜单中可用的操作，替代表格操作列 */
+    rowActions?: (row: any) => RowAction[]
 }
 
 const props = withDefaults(defineProps<ArtTableProps>(), {
@@ -396,9 +443,22 @@ const hasExplicitTableProp = (propName: string): boolean => {
     return propName in rawProps || kebabName in rawProps
 }
 
+/**
+ * 行类名：右键菜单打开期间给目标行追加 is-context-row，保持高亮，同时保留外部传入的 rowClassName
+ * @param scope 行与行索引
+ * @returns 行类名
+ */
+const resolveRowClassName = (scope: { row: Record<string, unknown>; rowIndex: number }): string => {
+    const custom = (attrs.rowClassName ?? attrs['row-class-name']) as unknown
+    const base = typeof custom === 'function' ? (custom(scope) as string | undefined) : (custom as string | undefined)
+    const active = highlightRow.value && toRaw(highlightRow.value) === toRaw(scope.row)
+    return [base, active ? 'is-context-row' : ''].filter(Boolean).join(' ')
+}
+
 const mergedTableProps = computed(() => ({
     ...attrs,
     ...props,
+    rowClassName: resolveRowClassName,
     height: height.value,
     stripe: stripe.value,
     border: border.value,
@@ -462,10 +522,30 @@ const handleCellContextMenu = (
         prop: column.prop || column.property,
     }
     const queryTarget = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-query-field]')
+    // 使用方自己监听了 row-contextmenu（如文件管理）时，由使用方负责右键菜单，这里不再弹出
+    if (instance?.vnode.props?.onRowContextmenu) return
     const hasCellQueryListener = Boolean(instance?.vnode.props?.onCellQuery)
     const hasSortListener = Boolean(instance?.vnode.props?.onSortChange)
-    if ((!hasCellQueryListener && !hasSortListener) || !definition?.prop || definition.prop === 'operation' || definition.queryField === false) return
+    const queryable = Boolean(
+        (hasCellQueryListener || hasSortListener) && definition?.prop && definition.prop !== 'operation' && definition.queryField !== false,
+    )
+    const hasActions = (props.rowActions?.(row) ?? []).length > 0
+    if (!queryable && !hasActions) return
     event.preventDefault()
+    if (!queryable) {
+        highlightRow.value = row
+        Object.assign(queryMenu, {
+            visible: true,
+            x: Math.min(event.clientX, window.innerWidth - 240),
+            y: Math.min(event.clientY, window.innerHeight - 420),
+            queryable: false,
+            row,
+            sortable: false,
+            operators: [],
+            initialValue: undefined,
+        })
+        return
+    }
     const valuePath = definition.queryValueField || definition.prop
     const rowValue = getRowValue(row, valuePath)
     const targetValueType = queryTarget?.dataset.queryValueType as QueryValueType | undefined
@@ -477,6 +557,7 @@ const handleCellContextMenu = (
               ? convertDynamicQueryValue(targetValue, targetValueType)
               : targetValue
         : rowValue
+    highlightRow.value = row
     Object.assign(queryMenu, {
         visible: true,
         x: Math.min(event.clientX, window.innerWidth - 240),
@@ -485,11 +566,58 @@ const handleCellContextMenu = (
         field: queryTarget?.dataset.queryField || definition.queryField || definition.prop,
         sortField: queryTarget?.dataset.queryField || definition.prop,
         sortable: hasSortListener && definition.sortable !== false,
+        queryable: true,
+        row,
         submenuLeft: event.clientX > window.innerWidth - 360,
         valueType: targetValueType || definition.queryValueType || inferValueType(value),
         operators: queryTarget?.dataset.queryOperators?.split(',').filter(Boolean) || definition.queryOperators,
         initialValue: value,
     })
+}
+
+/** 当前右键行可用的操作，右键时按行实时计算 */
+const hasFilterOrSort = computed(() => queryMenu.queryable && (queryMenu.sortable || availableOperators.value.length > 0))
+const DEFAULT_ACTION_SHORTCUTS: Record<string, string> = { view: 'V', edit: 'E', delete: 'D', add: 'A', retry: 'R', run: 'R' }
+const RESERVED_SHORTCUTS = new Set(['C'])
+
+/** 给行操作补全快捷键：显式指定优先，其次按 key 取默认值；与保留键（C 复制）或前面已占用的键冲突时不分配 */
+const withShortcuts = (actions: RowAction[]): RowAction[] => {
+    const used = new Set(RESERVED_SHORTCUTS)
+    return actions.map((action) => {
+        const shortcut = (action.shortcut ?? DEFAULT_ACTION_SHORTCUTS[action.key])?.toUpperCase()
+        if (!shortcut || used.has(shortcut)) return { ...action, shortcut: undefined }
+        used.add(shortcut)
+        return { ...action, shortcut }
+    })
+}
+
+const menuActions = computed<RowAction[]>(() => (queryMenu.visible && queryMenu.row ? withShortcuts(props.rowActions?.(queryMenu.row) ?? []) : []))
+
+/**
+ * 执行行操作：需要确认的操作先弹窗确认，取消则不执行
+ * @param action 行操作
+ */
+const runRowAction = async (action: RowAction): Promise<void> => {
+    if (action.disabled) return
+    queryMenu.visible = false
+    actionRunning = true
+    try {
+        if (action.confirm) {
+            try {
+                await ElMessageBox.confirm(typeof action.confirm === 'string' ? action.confirm : action.label, action.label, {
+                    type: action.danger ? 'warning' : 'info',
+                    confirmButtonText: t('common.confirm'),
+                    cancelButtonText: t('common.cancel'),
+                })
+            } catch {
+                return
+            }
+        }
+        await action.onClick()
+    } finally {
+        actionRunning = false
+        highlightRow.value = null
+    }
 }
 
 const openQueryDialog = (operator: string) => {
@@ -499,6 +627,10 @@ const openQueryDialog = (operator: string) => {
     queryMenu.visible = false
     queryDialogVisible.value = true
 }
+
+watch(queryDialogVisible, (visible) => {
+    if (!visible && !queryMenu.visible) highlightRow.value = null
+})
 
 const applyCellQuery = () => {
     const value =
@@ -522,13 +654,24 @@ const applyCellQuery = () => {
 
 const closeQueryMenu = () => {
     queryMenu.visible = false
+    // 菜单因点击空白处等原因关闭时，若没有后续的对话框则清除高亮
+    if (!queryDialogVisible.value && !actionRunning) highlightRow.value = null
 }
 
-/** 右键菜单打开时，按 C 快速复制当前单元格值 */
+/** 右键菜单打开时，按 C 快速复制当前单元格值，按行操作的快捷键触发对应操作 */
 const handleQueryMenuKeydown = (event: KeyboardEvent) => {
-    if (!queryMenu.visible || event.key.toLowerCase() !== 'c' || event.ctrlKey || event.metaKey || event.altKey) return
+    if (!queryMenu.visible || event.ctrlKey || event.metaKey || event.altKey) return
+    const key = event.key.toUpperCase()
+    if (key === 'C') {
+        if (!queryMenu.queryable) return
+        event.preventDefault()
+        void copyQueryValue()
+        return
+    }
+    const action = menuActions.value.find((item) => item.shortcut === key && !item.disabled)
+    if (!action) return
     event.preventDefault()
-    void copyQueryValue()
+    void runRowAction(action)
 }
 
 /** 从单元格右键菜单触发服务端字段排序 */
@@ -677,6 +820,32 @@ defineExpose({
     box-shadow: var(--el-box-shadow-light);
 }
 
+.cell-query-action-tail {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    margin-left: auto;
+}
+
+.art-table :deep(.el-table__body tr.is-context-row > td.el-table__cell) {
+    background-color: var(--el-table-row-hover-bg-color) !important;
+}
+
+.cell-query-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--el-border-color-lighter);
+}
+
+.cell-query-operation.is-danger {
+    color: var(--el-color-danger);
+}
+
+.cell-query-operation:disabled {
+    color: var(--el-text-color-disabled);
+    cursor: not-allowed;
+}
+
 .cell-query-title {
     display: flex;
     align-items: center;
@@ -693,7 +862,6 @@ defineExpose({
     text-overflow: ellipsis;
     white-space: normal;
     overflow-wrap: anywhere;
-    border-bottom: 1px solid var(--el-border-color-lighter);
 
     &:hover {
         color: var(--el-color-primary);
@@ -736,8 +904,6 @@ defineExpose({
 
 .cell-query-submenu {
     position: relative;
-    margin-top: 4px;
-    border-top: 1px solid var(--el-border-color-lighter);
 
     &:hover .cell-query-submenu-panel,
     &:focus-within .cell-query-submenu-panel {
@@ -768,6 +934,10 @@ defineExpose({
     border: 1px solid var(--el-border-color-light);
     border-radius: 4px;
     box-shadow: var(--el-box-shadow-light);
+}
+
+.cell-query-filter-submenu .cell-query-submenu-panel {
+    width: 180px;
 }
 
 .cell-query-symbol {

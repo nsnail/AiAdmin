@@ -210,7 +210,46 @@
                                             <ArtJsonEditor v-model="queryPreviewText" class="query-preview-ace" />
                                             <div class="query-preview-actions">
                                                 <span v-if="queryPreviewError" class="query-preview-error">{{ queryPreviewError }}</span>
-                                                <ElButton @click="applyQueryPreview" size="small" type="primary">应用</ElButton>
+                                                <ElDropdown
+                                                    :teleported="false"
+                                                    @command="handleAutoApplyCommand"
+                                                    placement="bottom-end"
+                                                    trigger="hover">
+                                                    <ElButton @click="applyQueryPreview" size="small" type="primary">
+                                                        {{
+                                                            autoApplyQuery.intervalSeconds.value > 0
+                                                                ? t('table.searchBar.autoApply.applyActive', {
+                                                                      seconds: autoApplyQuery.intervalSeconds.value,
+                                                                  })
+                                                                : t('table.searchBar.autoApply.apply')
+                                                        }}
+                                                    </ElButton>
+                                                    <template #dropdown>
+                                                        <ElDropdownMenu>
+                                                            <ElDropdownItem v-for="seconds in AUTO_APPLY_PRESETS" :command="seconds" :key="seconds">
+                                                                <ArtSvgIcon
+                                                                    :icon="
+                                                                        autoApplyQuery.intervalSeconds.value === seconds
+                                                                            ? 'ri:check-line'
+                                                                            : 'ri:time-line'
+                                                                    "
+                                                                    class="mr-1" />
+                                                                {{ t('table.searchBar.autoApply.seconds', { seconds }) }}
+                                                            </ElDropdownItem>
+                                                            <ElDropdownItem command="custom">
+                                                                <ArtSvgIcon class="mr-1" icon="ri:edit-line" />
+                                                                {{ t('table.searchBar.autoApply.custom') }}
+                                                            </ElDropdownItem>
+                                                            <ElDropdownItem
+                                                                :disabled="autoApplyQuery.intervalSeconds.value === 0"
+                                                                command="off"
+                                                                divided>
+                                                                <ArtSvgIcon class="mr-1" icon="ri:close-circle-line" />
+                                                                {{ t('table.searchBar.autoApply.off') }}
+                                                            </ElDropdownItem>
+                                                        </ElDropdownMenu>
+                                                    </template>
+                                                </ElDropdown>
                                                 <ElButton @click="saveQueryPreview" size="small">保存</ElButton>
                                             </div>
                                         </div>
@@ -239,6 +278,8 @@ import { ArrowUpBold, ArrowDownBold } from '@element-plus/icons-vue'
 import { useWindowSize } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
+import { AUTO_REFRESH_MAX_SECONDS, AUTO_REFRESH_MIN_SECONDS } from '@/store/modules/worktab'
+import { useAutoApplyQuery } from '@/hooks/core/useAutoApplyQuery'
 import { defineComponent, h, toRaw, type Component } from 'vue'
 import {
     ElCascader,
@@ -274,6 +315,7 @@ import {
     type SavedQuery,
 } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
+import { translateServerMessage } from '@/utils/i18n/server-message'
 import ArtApiSelect from '../art-api-select/index.vue'
 import ArtUserSelect from '../art-user-select/index.vue'
 
@@ -428,7 +470,8 @@ const translateGroupOption = (label: string): string => {
     // 分组值为空字符串时（如未知区号的账号）显示占位符，避免出现没有文字的按钮
     if (!label) return '-'
     const translated = t(label)
-    return translated === label ? label : translated
+    // 不是界面文案键时，可能是接口说明等服务端消息，按当前语言翻译
+    return translated === label ? (translateServerMessage(label) ?? label) : translated
 }
 /**
  * 分组选项占该分组总数的百分比文本，不足 1% 显示为 <1%，小于 10% 保留一位小数；
@@ -781,9 +824,11 @@ const queryPreviewToFilter = (query: Record<string, any>): DynamicFilter | undef
         })
     return filters.length ? { logic: 'And', filters } : undefined
 }
-const applyQueryPreview = () => {
-    const parsed = parseQueryPreview()
-    if (!parsed) return
+/**
+ * 应用已解析的查询：带 dynamicFilter 的走高级查询流程，否则把字段写回基础筛选并触发查询
+ * @param parsed 解析后的查询对象
+ */
+const applyParsedQuery = (parsed: Record<string, any>) => {
     const filter = queryPreviewToFilter(parsed)
     if (parsed.dynamicFilter) applyAdvancedFilter(filter)
     else {
@@ -793,6 +838,71 @@ const applyQueryPreview = () => {
         emit('search', getSanitizedOutput())
     }
 }
+const applyQueryPreview = () => {
+    const parsed = parseQueryPreview()
+    if (parsed) applyParsedQuery(parsed)
+}
+/** 定时应用查询的预设间隔（秒） */
+const AUTO_APPLY_PRESETS = [5, 10, 30, 60] as const
+/** 定时应用开启那一刻固定下来的查询，之后用户再改筛选控件或编辑框都不影响它 */
+let pinnedQuery: Record<string, any> | undefined
+
+/** 应用固定下来的查询，到点由定时器调用 */
+const applyPinnedQuery = () => {
+    if (pinnedQuery) applyParsedQuery(pinnedQuery)
+}
+const autoApplyQuery = useAutoApplyQuery(applyPinnedQuery)
+
+/**
+ * 校验自定义的定时应用间隔：必须是整数且在允许范围内
+ * @param input 输入框内容
+ * @returns 合法返回 true
+ */
+const isValidAutoApplySeconds = (input: string): boolean => {
+    const trimmed = input.trim()
+    if (!/^\d+$/.test(trimmed)) return false
+    const seconds = Number(trimmed)
+    return seconds >= AUTO_REFRESH_MIN_SECONDS && seconds <= AUTO_REFRESH_MAX_SECONDS
+}
+
+/**
+ * 以指定间隔开启定时应用：固定当前编辑框里的查询并立刻应用一次，JSON 不合法时不开启
+ * @param seconds 应用间隔（秒）
+ */
+const startAutoApply = (seconds: number) => {
+    const parsed = parseQueryPreview()
+    if (!parsed) return
+    pinnedQuery = JSON.parse(JSON.stringify(parsed))
+    applyParsedQuery(parsed)
+    autoApplyQuery.start(seconds)
+}
+
+/** 弹出输入框让用户填写自定义间隔 */
+const promptAutoApplySeconds = async () => {
+    try {
+        const { value } = await ElMessageBox.prompt(t('table.searchBar.autoApply.inputMessage'), t('table.searchBar.autoApply.title'), {
+            confirmButtonText: t('common.confirm'),
+            cancelButtonText: t('common.cancel'),
+            inputValue: String(autoApplyQuery.intervalSeconds.value || 15),
+            inputErrorMessage: t('table.searchBar.autoApply.inputInvalid', { min: AUTO_REFRESH_MIN_SECONDS, max: AUTO_REFRESH_MAX_SECONDS }),
+            inputValidator: isValidAutoApplySeconds,
+        })
+        startAutoApply(Number(value))
+    } catch {
+        // 用户取消输入
+    }
+}
+
+/**
+ * 处理定时应用菜单：预设秒数直接开启，custom 弹出输入框，off 停止
+ * @param command 菜单命令
+ */
+const handleAutoApplyCommand = (command: number | string) => {
+    if (command === 'off') autoApplyQuery.stop()
+    else if (command === 'custom') void promptAutoApplySeconds()
+    else startAutoApply(Number(command))
+}
+
 const saveQueryPreview = async () => {
     const parsed = parseQueryPreview()
     const dynamicFilter = parsed && queryPreviewToFilter(parsed)

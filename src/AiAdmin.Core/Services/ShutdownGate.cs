@@ -82,10 +82,12 @@ public static class ShutdownGate
     /// </summary>
     /// <param name="stable">要求在途工作连续为零的稳定时长</param>
     /// <param name="cancellationToken">取消令牌，超时由调用方通过它实现</param>
+    /// <param name="onBusy">每次发现仍有在途工作时回调，参数为各类别当前数量，可为空</param>
     /// <returns>空闲返回 true；等待期间闸门被重新打开返回 false</returns>
     public static async Task<bool> WaitForIdleAsync(
         TimeSpan stable
         , CancellationToken cancellationToken
+        , Action<Dictionary<string, int>>? onBusy = null
     ) {
         var zeroSince = (long?)null;
         var stableMilliseconds = (long)stable.TotalMilliseconds;
@@ -98,12 +100,36 @@ public static class ShutdownGate
             }
             else {
                 zeroSince = null;
+
+                // 有在途工作时把当前快照交给调用方，超时后才取快照会全是 0，无法判断是谁拖住了排空
+                onBusy?.Invoke(Snapshot());
             }
 
             await Task.Delay(50, cancellationToken).ConfigureAwait(false);
         }
 
         return false;
+    }
+
+    /// <summary>
+    ///     供共享队列的后台消费循环在每轮拉取前调用：闸门关闭期间不再取新批次，积压数据留在共享队列里由其他存活实例继续消费，
+    ///     本进程的在途工作才能归零；闸门重新打开（取消停机）或应用停止时返回
+    /// </summary>
+    /// <param name="pollInterval">闸门关闭期间的检查间隔</param>
+    /// <param name="cancellationToken">应用停止令牌</param>
+    /// <returns>异步任务，应用停止导致的取消不抛出异常</returns>
+    public static async Task WaitWhileClosedAsync(
+        TimeSpan pollInterval
+        , CancellationToken cancellationToken
+    ) {
+        try {
+            while (IsClosed) {
+                await Task.Delay(pollInterval, cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            // 应用停止，调用方的循环会随即退出
+        }
     }
 
     /// <summary>

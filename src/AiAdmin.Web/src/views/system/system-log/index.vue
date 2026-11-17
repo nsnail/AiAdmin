@@ -7,6 +7,7 @@
             :default-filter="defaultFilter"
             :loading="loading"
             :pagination="pagination"
+            :row-actions="rowActions"
             :table-props="{ showPaginationWhenEmpty: true }"
             @filter-change="handleFilterChange"
             @page-change="handleCurrentChange"
@@ -44,14 +45,13 @@
 <script lang="ts" setup>
 import { ElButton, ElMessage, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import { fetchGetSystemLogs } from '@/api/system-manage'
 import { useTable } from '@/hooks/core/useTable'
 import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import { formatDateTime } from '@/utils/date'
-import type { ColumnOption } from '@/types/component'
+import type { ColumnOption, RowAction } from '@/types/component'
 
 // 系统日志复用公共列表的动态筛选、保存查询和排序状态
 defineOptions({ name: 'SystemLog' })
@@ -77,10 +77,13 @@ const getTodayTimestampRange = (): string[] => {
     end.setDate(end.getDate() + 1)
     return [toLocalIsoString(start), toLocalIsoString(end)]
 }
+/** 默认筛选条件：当天的 Error 级别日志，重置时同样恢复 */
 const defaultFilter: DynamicFilter = {
-    field: 'Timestamp',
-    operator: 'DateRange',
-    value: getTodayTimestampRange(),
+    logic: 'And',
+    filters: [
+        { field: 'Timestamp', operator: 'DateRange', value: getTodayTimestampRange() },
+        { field: 'Level', operator: 'Equal', value: 'Error' },
+    ],
 }
 
 const levelType = (level: string) => {
@@ -370,23 +373,14 @@ const {
                     showOverflowTooltip: true,
                     formatter: (row: Api.SystemManage.SystemLogItem) => row.exception || '-',
                 },
-                {
-                    prop: 'operation',
-                    queryField: false,
-                    label: t('systemLog.detail.operation'),
-                    width: 110,
-                    align: 'center',
-                    fixed: 'right',
-                    formatter: (row: Api.SystemManage.SystemLogItem) =>
-                        h(ArtButtonTable, {
-                            type: 'view',
-                            title: t('systemLog.detail.view'),
-                            onClick: () => openDetail(row),
-                        }),
-                },
             ]),
     },
 })
+
+/** 行右键菜单操作 */
+const rowActions = (row: Api.SystemManage.SystemLogItem): RowAction[] => [
+    { key: 'view', label: t('systemLog.detail.view'), icon: 'ri:eye-line', onClick: () => openDetail(row) },
+]
 
 // 公共列表输出完整查询树，替换唯一筛选状态后从第一页查询
 async function handleFilterChange(dynamicFilter: DynamicFilter | undefined) {

@@ -60,9 +60,7 @@ public static class DynamicFilterExtensions
             field = mappedField;
         }
 
-        var descending = string.IsNullOrWhiteSpace(suppliedField)
-            ? defaultDescending
-            : string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        var descending = IsSortDescending(sortField, sortOrder, defaultDescending);
         if (!string.IsNullOrWhiteSpace(sortOrder)
             && !string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase)
             && !string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase)) {
@@ -81,6 +79,43 @@ public static class DynamicFilterExtensions
         var method = descending ? nameof(Queryable.OrderByDescending) : nameof(Queryable.OrderBy);
         var ordered = Expression.Call(typeof(Queryable), method, [typeof(T), member.Type], query.Expression, Expression.Quote(selector));
         return query.Provider.CreateQuery<T>(ordered);
+    }
+
+    /// <summary>
+    ///     判断动态排序是否为倒序，未指定排序字段时使用默认方向，供分页时让主键次级排序与主排序方向保持一致
+    /// </summary>
+    /// <param name="sortField">排序字段名称</param>
+    /// <param name="sortOrder">排序方向</param>
+    /// <param name="defaultDescending">未指定排序字段时默认是否倒序</param>
+    /// <returns>倒序时返回 true</returns>
+    public static bool IsSortDescending(
+        string? sortField
+        , string? sortOrder
+        , bool defaultDescending = false
+    ) {
+        return string.IsNullOrWhiteSpace(sortField) ? defaultDescending : string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    ///     追加次级排序键，方向与主排序一致：创建时间倒序时主键也倒序。
+    ///     方向混用（创建时间倒序加主键正序）时 (CreatedAt, Id) 索引无法同时满足两个方向，会退化为全表扫描加文件排序
+    /// </summary>
+    /// <typeparam name="T">查询实体类型</typeparam>
+    /// <typeparam name="TKey">次级排序键类型</typeparam>
+    /// <param name="sorted">已应用主排序的查询</param>
+    /// <param name="key">次级排序键，通常是主键</param>
+    /// <param name="sortField">排序字段名称</param>
+    /// <param name="sortOrder">排序方向</param>
+    /// <param name="defaultDescending">未指定排序字段时默认是否倒序，需与主排序使用的默认方向一致</param>
+    /// <returns>追加次级排序后的查询</returns>
+    public static IOrderedQueryable<T> ThenByKey<T, TKey>(
+        this IOrderedQueryable<T> sorted
+        , Expression<Func<T, TKey>> key
+        , string? sortField
+        , string? sortOrder
+        , bool defaultDescending = false
+    ) {
+        return IsSortDescending(sortField, sortOrder, defaultDescending) ? sorted.ThenByDescending(key) : sorted.ThenBy(key);
     }
 
     /// <summary>
@@ -190,6 +225,23 @@ public static class DynamicFilterExtensions
     }
 
     /// <summary>
+    ///     构建字符串字段“为空”条件，用于 Equal 或 NotEqual 未提供筛选值的场景：空字符串和 null 都视为空，
+    ///     避免必填字符串列（空值存为空字符串）被按 null 比较而永远查不到数据
+    /// </summary>
+    /// <param name="member">字符串字段表达式</param>
+    /// <param name="negate">为 true 时构建“不为空”条件</param>
+    /// <returns>字段为空或不为空的条件表达式</returns>
+    private static BinaryExpression BuildEmptyStringCondition(
+        MemberExpression member
+        , bool negate
+    ) {
+        var empty = Expression.Constant(string.Empty, typeof(string));
+        var isNull = Expression.Equal(member, Expression.Constant(null, typeof(string)));
+        var isEmpty = Expression.Equal(member, empty);
+        return negate ? Expression.AndAlso(Expression.Not(isNull), Expression.Not(isEmpty)) : Expression.OrElse(isNull, isEmpty);
+    }
+
+    /// <summary>
     ///     构建 BuildFieldCondition 方法对应的业务数据
     /// </summary>
     /// <param name="parameter">参数信息</param>
@@ -231,7 +283,14 @@ public static class DynamicFilterExtensions
         var operation = filter.Operator!.Trim();
         var operationName = operation.ToUpperInvariant();
         var value = filter.Value ?? default;
-        return filter.Value is null && operationName is not ("EQUAL" or "EQUALS" or "EQ" or "NOTEQUAL")
+        var isEqualityOperator = operationName is "EQUAL" or "EQUALS" or "EQ" or "NOTEQUAL";
+
+        // 字符串字段的相等比较未提供值时，按空字符串处理
+        if (filter.Value is null && isEqualityOperator && member.Type == typeof(string)) {
+            return BuildEmptyStringCondition(member, operationName == "NOTEQUAL");
+        }
+
+        return filter.Value is null && !isEqualityOperator
             ? throw new DynamicFilterValidationException("Dynamic filter value is required.")
             : operationName switch
             {
@@ -398,6 +457,10 @@ public static class DynamicFilterExtensions
     /// <exception cref="DynamicFilterValidationException">日期范围结束值缺失或格式无效时抛出</exception>
     private static JsonElement GetDateRangeEnd(JsonElement value) {
         var text = value.GetString() ?? throw new DynamicFilterValidationException("Dynamic filter DateRange end value is required.");
+        if (DateExpression.TryResolve(text, DateTimeOffset.Now, out var evaluated)) {
+            return CreateStringElement(evaluated.ToString("O", CultureInfo.InvariantCulture));
+        }
+
         if (DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var dateTimeOffset)) {
             return CreateStringElement(dateTimeOffset.ToString("O", CultureInfo.InvariantCulture));
         }
@@ -487,7 +550,7 @@ public static class DynamicFilterExtensions
     /// <exception cref="DynamicFilterValidationException">日期值缺失或格式无效时抛出</exception>
     private static DateTimeOffset ParseDate(JsonElement value) {
         var text = value.GetString() ?? throw new DynamicFilterValidationException("Dynamic filter DateRange date is required.");
-        return DateTimeOffset.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var result)
+        return DateExpression.TryParseDate(text, out var result)
             ? result
             : throw new DynamicFilterValidationException("Dynamic filter DateRange date format is invalid.");
     }
@@ -522,13 +585,8 @@ public static class DynamicFilterExtensions
             return targetType switch
             {
                 _ when targetType == typeof(string) => value.GetString() ?? string.Empty
-                , _ when targetType == typeof(DateTimeOffset) => DateTimeOffset.Parse(
-                    value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
-                )
-                , _ when targetType == typeof(DateTime) => DateTimeOffset.Parse(
-                        value.GetString() ?? string.Empty, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind
-                    )
-                    .UtcDateTime
+                , _ when targetType == typeof(DateTimeOffset) => DateExpression.ParseDate(value.GetString() ?? string.Empty)
+                , _ when targetType == typeof(DateTime) => DateExpression.ParseDate(value.GetString() ?? string.Empty).UtcDateTime
                 , _ when targetType.IsEnum && value.ValueKind == JsonValueKind.String => ParseEnumValue(targetType, value.GetString() ?? string.Empty)
                 , _ when IsNumericType(targetType) && value.ValueKind == JsonValueKind.String => Convert.ChangeType(
                     value.GetString() ?? string.Empty, targetType, CultureInfo.InvariantCulture

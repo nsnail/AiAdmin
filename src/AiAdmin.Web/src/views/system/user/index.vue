@@ -11,6 +11,7 @@
         :default-filter="defaultFilter"
         :loading="loading"
         :pagination="pagination"
+        :row-actions="rowActions"
         @filter-change="handleFilterChange"
         @page-change="handleCurrentChange"
         @refresh="refreshData"
@@ -43,11 +44,12 @@
             :type="dialogType"
             :user-data="currentUserData"
             @submit="handleDialogSubmit" />
+        <UserDetailDialog v-model:visible="detailVisible" :user="detailUser" />
     </ArtTablePage>
 </template>
 
 <script lang="ts" setup>
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import type { RowAction } from '@/types/component'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
@@ -62,8 +64,9 @@ import {
     fetchUploadUserAvatar,
 } from '@/api/system-manage'
 import UserDialog from './modules/user-dialog.vue'
-import { resolveDirective, withDirectives } from 'vue'
+import UserDetailDialog from './modules/user-detail-dialog.vue'
 import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
+import { useRouteAuth } from '@/hooks/core/useRouteAuth'
 import { useUserStore } from '@/store/modules/user'
 import { StorageConfig } from '@/utils/storage/storage-config'
 import { DialogType } from '@/types'
@@ -87,6 +90,8 @@ const currentUserData = ref<Partial<UserListItem>>({})
 const dialogSaving = ref(false)
 const selectedRows = ref<UserListItem[]>([])
 const exporting = ref(false)
+const detailVisible = ref(false)
+const detailUser = ref<UserListItem>()
 
 const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
 const roleName = (role: string): string => {
@@ -315,31 +320,6 @@ const {
                         },
                     }),
             },
-            {
-                prop: 'operation',
-                label: t('userManagement.fields.operation'),
-                width: 130, // 每个操作按钮占 46px，加单元格内边距 24px，两个按钮至少 116px
-                fixed: 'right', // 固定列
-                formatter: (row) => {
-                    return h('div', [
-                        h(ArtButtonTable, {
-                            type: 'edit',
-                            onClick: () => showDialog('edit', row),
-                        }),
-                        // 按钮权限由菜单 authList 中的 impersonate 控制（v-auth），且不能模拟自己和已禁用的用户
-                        row.id !== currentUserId.value && row.isEnabled
-                            ? withDirectives(
-                                  h(ArtButtonTable, {
-                                      icon: 'ri:user-shared-line',
-                                      iconClass: 'bg-warning/12 text-warning',
-                                      onClick: () => impersonate(row),
-                                  }),
-                                  [[resolveDirective('auth')!, 'impersonate']],
-                              )
-                            : null,
-                    ])
-                },
-            },
         ],
     },
 })
@@ -354,6 +334,26 @@ const currentUserId = computed(() => String(userStore.info.userId ?? ''))
  * 整页刷新让路由、菜单和用户信息按新身份重新初始化，该流程不经过登录接口，因此不会产生登录日志
  * @param row 被模拟的用户
  */
+const { hasAuth } = useRouteAuth()
+
+/** 行右键菜单操作，模拟登录需要 impersonate 按钮权限，且不能模拟自己和已禁用的用户 */
+const rowActions = (row: UserListItem): RowAction[] => {
+    const actions: RowAction[] = [
+        { key: 'view', label: t('userManagement.detail.view'), icon: 'ri:eye-line', onClick: () => openDetail(row) },
+        { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => showDialog('edit', row) },
+    ]
+    if (row.id !== currentUserId.value && row.isEnabled && hasAuth('impersonate')) {
+        actions.push({
+            key: 'impersonate',
+            shortcut: 'I',
+            label: t('userManagement.impersonate.title'),
+            icon: 'ri:user-shared-line',
+            onClick: () => impersonate(row),
+        })
+    }
+    return actions
+}
+
 const impersonate = async (row: UserListItem): Promise<void> => {
     try {
         await ElMessageBox.confirm(t('userManagement.impersonate.message', { name: row.userName }), t('userManagement.impersonate.title'), {
@@ -458,6 +458,15 @@ const handleExport = async (format: ExportFormat): Promise<void> => {
 const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {
     replaceSearchParams({ dynamicFilter })
     await getData()
+}
+
+/**
+ * 打开用户详情抽屉
+ * @param row 列表行
+ */
+const openDetail = (row: UserListItem): void => {
+    detailUser.value = row
+    detailVisible.value = true
 }
 
 /**

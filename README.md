@@ -1,36 +1,37 @@
 # AiAdmin
 
-AiAdmin 是基于 .NET 10 + Vue 3 的通用后台权限管理框架，前后端分离，可在其上构建具体业务项目。
+AiAdmin 是基于 .NET 11 + Vue 3 的通用后台权限管理框架，前后端分离，可在其上构建具体业务项目。
 
-- **框架部分**：登录与鉴权、用户 / 角色 / 部门 / 菜单 / 数据权限、字典、计划作业、文件、日志、站内信与客服会话、实时推送、统一的动态列表查询等，说明见本文档与各目录 `README.md`
+- **框架部分**：登录与鉴权、用户 / 角色 / 部门 / 菜单 / 数据权限、字典、计划作业、文件、日志、站内信与客服会话、实时推送、统一的动态列表查询等，说明见本文档与各目录
+  `README.md`
 - **业务部分**：基于本框架构建的具体业务，设计与说明写在 [docs](docs/README.md)
 
 开发约定（后端、前端、统一列表页、导出、质量与提交流程）见 [AGENTS.md](AGENTS.md)。
 
 ## 技术栈
 
-| 层   | 技术                                                                                                                  |
-|------|-----------------------------------------------------------------------------------------------------------------------|
-| 后端 | .NET 10、ASP.NET Core、EF Core（MySQL / SQL Server / PostgreSQL / SQLite）、Redis（StackExchange.Redis）、MinIO、JWT  |
-| 前端 | Vue 3、Vite、TypeScript、Element Plus、Pinia、vue-router、vue-i18n、Tailwind CSS、ECharts、Ace / WangEditor           |
-| 日志 | 控制台、文件、Elasticsearch，以及按天分表入库的 API 请求日志                                                          |
-| 部署 | Docker、Docker Compose、Nginx 网关、Gitea Actions 滚动发布                                                            |
+| 层   | 技术                                                                                                                 |
+|------|----------------------------------------------------------------------------------------------------------------------|
+| 后端 | .NET 11、ASP.NET Core、EF Core（MySQL / SQL Server / PostgreSQL / SQLite）、Redis（StackExchange.Redis）、MinIO、JWT |
+| 前端 | Vue 3、Vite、TypeScript、Element Plus、Pinia、vue-router、vue-i18n、Tailwind CSS、ECharts、Ace / WangEditor          |
+| 日志 | 控制台、文件、Elasticsearch，以及按天分表入库的 API 请求日志                                                         |
+| 部署 | Docker、Docker Compose、Nginx 网关、Gitea Actions 滚动发布                                                           |
 
 ## 目录结构
 
-| 目录                                                   | 说明                                                       |
-|--------------------------------------------------------|------------------------------------------------------------|
-| [src/AiAdmin.Core](src/AiAdmin.Core/README.md)         | 实体模型、契约、特性、雪花 ID 等共享类型，不依赖其他项目   |
+| 目录                                                               | 说明                                                       |
+|--------------------------------------------------------------------|------------------------------------------------------------|
+| [src/AiAdmin.Core](src/AiAdmin.Core/README.md)                     | 实体模型、契约、特性、雪花 ID 等共享类型，不依赖其他项目   |
 | [src/AiAdmin.Infrastructure](src/AiAdmin.Infrastructure/README.md) | 数据库、动态查询、权限与数据范围、令牌、对象存储等基础设施 |
-| [src/AiAdmin.Api](src/AiAdmin.Api/README.md)           | 应用宿主：控制器、中间件、日志、计划作业、实时推送         |
-| [src/AiAdmin.Web](src/AiAdmin.Web/README.md)           | 前端应用                                                   |
-| [tests](tests/README.md)                               | 后端 xUnit 测试                                            |
-| [build](build/README.md)                               | 代码清理、质量规则、版本标签脚本                           |
-| [docker](docker/README.md)                             | 镜像构建、编排、网关与滚动发布                             |
-| [.gitea/workflows](.gitea/workflows/README.md)         | Gitea Actions 发布流水线                                   |
-| [.github/workflows](.github/workflows/README.md)       | GitHub Actions（暂未使用）                                 |
-| [docs](docs/README.md)                                 | 业务设计与设计稿                                           |
-| [scripts](scripts/README.md)                           | 辅助脚本目录（暂无脚本）                                   |
+| [src/AiAdmin.Api](src/AiAdmin.Api/README.md)                       | 应用宿主：控制器、中间件、日志、计划作业、实时推送         |
+| [src/AiAdmin.Web](src/AiAdmin.Web/README.md)                       | 前端应用                                                   |
+| [tests](tests/README.md)                                           | 后端 xUnit 测试                                            |
+| [build](build/README.md)                                           | 代码清理、质量规则、版本标签脚本                           |
+| [docker](docker/README.md)                                         | 镜像构建、编排、网关与滚动发布                             |
+| [.gitea/workflows](.gitea/workflows/README.md)                     | Gitea Actions 发布流水线                                   |
+| [.github/workflows](.github/workflows/README.md)                   | GitHub Actions（暂未使用）                                 |
+| [docs](docs/README.md)                                             | 业务设计与设计稿                                           |
+| [scripts](scripts/README.md)                                       | 辅助脚本目录（暂无脚本）                                   |
 
 ## 快速开始
 
@@ -55,16 +56,17 @@ cnpm run dev -- --no-open
 - 默认使用 MySQL，通过 `Database:Provider` 切换，可选 `sqlserver`、`postgresql`、`sqlite`；开发环境需先创建 `utf8mb4` 字符集的数据库和用户
 - 真实连接串、Redis、MinIO、SMTP 等敏感配置不要提交，写入 `src/AiAdmin.Api/appsettings.Local.json`（已排除 Git 跟踪，格式参考同目录的
   `appsettings.Local.example.json`）或环境变量（如 `ConnectionStrings__MySQL`）；系统设置类种子参数仅在对应字典项不存在时写入数据库
-- 开发与测试环境（`Development`、`Test`）首次启动自动建表并写入角色、菜单和用户种子数据；生产环境（`Production`）不会自动初始化，数据库结构与种子数据需另行准备，见 [docker/README.md](docker/README.md)
+- 开发与测试环境（`Development`、`Test`）首次启动自动建表并写入角色、菜单和用户种子数据；生产环境（`Production`
+  ）不会自动初始化，数据库结构与种子数据需另行准备，见 [docker/README.md](docker/README.md)
 - 部署前必须通过配置中心或环境变量覆盖 `Jwt:Key` 和各类密码，切换已有数据库不会自动迁移旧数据，应先备份并单独迁移
 
 ### 启动参数
 
-| 参数                       | 作用                                                                         |
-|----------------------------|------------------------------------------------------------------------------|
-| `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志和 API 请求日志入库等后台服务               |
+| 参数                        | 作用                                                                          |
+|-----------------------------|-------------------------------------------------------------------------------|
+| `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志和 API 请求日志入库等后台服务                 |
 | `--clear-database`          | 仅开发 / 测试环境：清空所有表后重新初始化（`--delete-all-tables` 为同义参数） |
-| `--replace-job-request-url` | 覆盖计划作业的请求地址                                                       |
+| `--replace-job-request-url` | 覆盖计划作业的请求地址                                                        |
 
 `launchSettings.json` 已提供对应的启动配置。多实例部署时只由部分实例启用后台服务，作业执行通过 Redis 锁避免重复触发。
 

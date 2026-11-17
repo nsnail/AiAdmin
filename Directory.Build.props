@@ -18,11 +18,18 @@
         <MinVerDefaultPreReleaseIdentifiers>beta</MinVerDefaultPreReleaseIdentifiers>
         <MinVerTagPrefix>v</MinVerTagPrefix>
         <Nullable>enable</Nullable>
+
+        <!--
+            Npgsql.EntityFrameworkCore.PostgreSQL 目前只有 11.0.0-rc.3，它精确锁定 Microsoft.EntityFrameworkCore 为 11.0.0-rc.3，
+            而项目使用的是 11.0.0 正式版，因此恢复 NU1608（包版本超出依赖约束）。仅抑制这一条，Npgsql 发布 11.0.0 正式版后应移除本项并升级包版本
+        -->
+        <NoWarn>$(NoWarn);NU1608</NoWarn>
+        <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1608</WarningsNotAsErrors>
         <Product>AiAdmin</Product>
         <RepositoryType>git</RepositoryType>
         <RepositoryUrl>https://github.com/nsnail/AiAdmin.git</RepositoryUrl>
-        <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net10.0</TargetFramework>
-        <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net10.0-windows</TargetFramework>
+        <TargetFramework Condition="'$(OS)' != 'Windows_NT'">net11.0</TargetFramework>
+        <TargetFramework Condition="'$(OS)' == 'Windows_NT'">net11.0-windows</TargetFramework>
         <Title>$(AssemblyName)</Title>
         <UseWindowsForms Condition="'$(OS)' == 'Windows_NT'">true</UseWindowsForms>
     </PropertyGroup>

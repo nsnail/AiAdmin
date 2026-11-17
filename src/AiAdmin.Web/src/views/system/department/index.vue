@@ -6,6 +6,7 @@
         :default-filter="defaultFilter"
         :loading="loading"
         :pagination="pagination"
+        :row-actions="rowActions"
         :row-key="'id'"
         :tree-props="{ children: 'children' }"
         @filter-change="handleFilterChange"
@@ -42,7 +43,7 @@ import {
 } from '@/api/system-manage'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
+import type { RowAction } from '@/types/component'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import DepartmentDialog from './modules/department-dialog.vue'
@@ -115,24 +116,17 @@ const {
                         'onUpdate:modelValue': () => void getData(),
                     }),
             },
-            {
-                prop: 'operation',
-                queryField: false,
-                label: t('departmentManagement.fields.operation'),
-                width: 150,
-                fixed: 'right',
-                formatter: (row: Department) =>
-                    h('div', { class: 'flex justify-end' }, [
-                        h(ArtButtonTable, { type: 'add', onClick: () => showDialog('add', row) }),
-                        h(ArtButtonTable, { type: 'edit', onClick: () => showDialog('edit', row) }),
-                        h(ArtButtonTable, { type: 'delete', onClick: () => deleteDepartment(row) }),
-                    ]),
-            },
         ],
     },
 })
 
 watch(locale, () => resetColumns?.())
+/** 行右键菜单操作 */
+const rowActions = (row: Department): RowAction[] => [
+    { key: 'add', label: t('common.rowAction.add'), icon: 'ri:add-fill', onClick: () => showDialog('add', row) },
+    { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => showDialog('edit', row) },
+    { key: 'delete', label: t('common.rowAction.delete'), icon: 'ri:delete-bin-5-line', danger: true, onClick: () => deleteDepartment(row) },
+]
 const loadDepartments = async (): Promise<void> => {
     departments.value = await fetchGetDepartmentTree()
 }

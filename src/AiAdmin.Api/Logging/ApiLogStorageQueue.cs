@@ -15,7 +15,19 @@ public sealed class ApiLogStorageQueue(IConnectionMultiplexer connectionMultiple
     private const string _ENQUEUE_SCRIPT = "redis.call('rpush', KEYS[1], ARGV[1]); redis.call('ltrim', KEYS[1], -tonumber(ARGV[2]), -1); return 1";
     private readonly int _capacity = Math.Max(1000, options.QueueCapacity);
     private readonly IDatabase _database = connectionMultiplexer.GetDatabase();
+    private readonly RedisKey _deadKey = options.DeadLetterKey;
     private readonly RedisKey _key = options.QueueKey;
+
+    /// <summary>
+    ///     把反复写入失败的日志转入死信队列，不再参与主队列消费
+    /// </summary>
+    /// <param name="logs">无法写入的日志</param>
+    /// <returns>异步任务</returns>
+    public async Task DeadLetterAsync(IReadOnlyList<ApiRequestLog> logs) {
+        foreach (var log in logs) {
+            _ = await _database.ScriptEvaluateAsync(_ENQUEUE_SCRIPT, [_deadKey], [JsonSerializer.Serialize(log), _capacity]).ConfigureAwait(false);
+        }
+    }
 
     /// <summary>
     ///     从队列头部取出最多指定数量的日志，队列为空时返回空集合

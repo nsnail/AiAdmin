@@ -15,6 +15,12 @@ export const developmentRoutes: AppRouteRecord = {
             meta: { title: 'menus.development.apiDocs', icon: 'ri:file-text-line', keepAlive: true },
         },
         {
+            path: 'system-components',
+            name: 'SystemComponents',
+            component: '/development/system-components',
+            meta: { title: 'menus.development.systemComponents', icon: 'ri:stack-line', keepAlive: true },
+        },
+        {
             path: 'change-log',
             name: 'ChangeLog',
             component: '/change/log',

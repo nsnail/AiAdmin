@@ -211,7 +211,7 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
-        // 执行记录清理作业：每天凌晨 4 点删除 30 天前的执行记录，天数通过请求体 days 调整，默认未启用
+        // 执行记录清理作业：每天凌晨 4 点删除 720 小时（30 天）前的执行记录，小时数通过请求体 hours 调整，默认未启用
         const string cleanupExecutionsJobName = "Cleanup job executions";
         if (!await db.ScheduledJobs.AnyAsync(x => x.Name == cleanupExecutionsJobName).ConfigureAwait(false)) {
             _ = await db
@@ -223,9 +223,9 @@ internal static class SystemDataSeeder
                         , RequestUrl = "{{ApiBaseUrl}}/api/scheduled-job/executions/cleanup"
                         , RequestMethod = "POST"
                         , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
-                        , RequestBody = "{\"days\":30}"
+                        , RequestBody = "{\"hours\":720}"
                         , Remark
-                            = "Delete scheduled job execution records started more than the number of days given by the days field of the request body ago. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                            = "Delete scheduled job execution records started more than the number of hours given by the hours field of the request body ago. Fill the ApiBaseUrl and JobToken placeholders before enabling"
                         , TimeoutSeconds = 120
                         , IsEnabled = false
                     }

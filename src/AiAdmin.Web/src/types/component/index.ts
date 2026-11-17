@@ -45,6 +45,26 @@ export interface SearchChangeParams {
     val: unknown
 }
 
+// 表格行操作：显示在行右键菜单中，替代操作列
+export interface RowAction {
+    // 唯一标识
+    key: string
+    // 显示名称
+    label: string
+    // 图标
+    icon?: string
+    // 是否危险操作（红色）
+    danger?: boolean
+    // 是否禁用
+    disabled?: boolean
+    // 执行前是否弹窗确认，字符串时作为确认文案
+    confirm?: boolean | string
+    // 快捷键（单个字母），缺省时按 key 取默认值：view=V、edit=E、delete=D、add=A、retry=R、run=R
+    shortcut?: string
+    // 点击处理
+    onClick: () => void | Promise<void>
+}
+
 // 表格列配置接口
 export interface ColumnOption<T = any> {
     // 列类型

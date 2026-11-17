@@ -7,6 +7,7 @@
         :default-filter="defaultFilter"
         :loading="loading"
         :pagination="pagination"
+        :row-actions="rowActions"
         @filter-change="handleFilterChange"
         @page-change="handleCurrentChange"
         @refresh="refreshData"
@@ -44,11 +45,10 @@
 </template>
 
 <script lang="ts" setup>
-import { ButtonMoreItem } from '@/components/core/forms/art-button-more/index.vue'
+import type { RowAction } from '@/types/component'
 import { useTable } from '@/hooks/core/useTable'
 import { fetchCopyRole, fetchDeleteRole, fetchExportRoles, fetchGetRoleList } from '@/api/system-manage'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
-import ArtButtonMore from '@/components/core/forms/art-button-more/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import RoleEditDialog from './modules/role-edit-dialog.vue'
@@ -149,9 +149,12 @@ const {
                         2: t('listFilter.option.departmentAndChildren'),
                         3: t('listFilter.option.ownData'),
                     }[row.dataScope]
+                    /** 数据权限范围从大到小依次使用红、橙、绿、蓝，色相差异明显 */
+                    const type = ({ 0: 'danger', 1: 'warning', 2: 'success', 3: 'primary' } as const)[row.dataScope as 0 | 1 | 2 | 3]
                     return h(
                         ElTag,
                         {
+                            type,
                             effect: 'light',
                             size: 'small',
                             'data-query-field': 'DataScope',
@@ -180,47 +183,6 @@ const {
                             void getData()
                         },
                     }),
-            },
-            {
-                prop: 'operation',
-                queryField: false,
-                label: t('roleManagement.fields.operation'),
-                width: 100,
-                fixed: 'right',
-                formatter: (row) =>
-                    h('div', [
-                        h(ArtButtonMore, {
-                            list: [
-                                {
-                                    key: 'permission',
-                                    label: t('roleManagement.actions.menuPermission'),
-                                    icon: 'ri:user-3-line',
-                                },
-                                {
-                                    key: 'apiPermission',
-                                    label: t('roleManagement.actions.apiPermission'),
-                                    icon: 'ri:route-line',
-                                },
-                                {
-                                    key: 'edit',
-                                    label: t('roleManagement.actions.edit'),
-                                    icon: 'ri:edit-2-line',
-                                },
-                                {
-                                    key: 'copy',
-                                    label: t('roleManagement.actions.copy'),
-                                    icon: 'ri:file-copy-line',
-                                },
-                                {
-                                    key: 'delete',
-                                    label: t('roleManagement.actions.delete'),
-                                    icon: 'ri:delete-bin-4-line',
-                                    color: '#f56c6c',
-                                },
-                            ],
-                            onClick: (item: ButtonMoreItem) => buttonMoreClick(item, row),
-                        }),
-                    ]),
             },
         ],
     },
@@ -326,26 +288,29 @@ const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Pro
     await getData()
 }
 
-const buttonMoreClick = (item: ButtonMoreItem, row: RoleListItem) => {
-    switch (item.key) {
-        case 'permission':
-            showPermissionDialog(row)
-            break
-        case 'apiPermission':
+/** 行右键菜单操作 */
+const rowActions = (row: RoleListItem): RowAction[] => [
+    {
+        key: 'permission',
+        shortcut: 'M',
+        label: t('roleManagement.actions.menuPermission'),
+        icon: 'ri:user-3-line',
+        onClick: () => showPermissionDialog(row),
+    },
+    {
+        key: 'apiPermission',
+        shortcut: 'P',
+        label: t('roleManagement.actions.apiPermission'),
+        icon: 'ri:route-line',
+        onClick: () => {
             apiPermissionDialog.value = true
             currentRoleData.value = row
-            break
-        case 'edit':
-            showDialog('edit', row)
-            break
-        case 'copy':
-            void copyRole(row)
-            break
-        case 'delete':
-            deleteRole(row)
-            break
-    }
-}
+        },
+    },
+    { key: 'edit', label: t('roleManagement.actions.edit'), icon: 'ri:edit-2-line', onClick: () => showDialog('edit', row) },
+    { key: 'copy', shortcut: 'Y', label: t('roleManagement.actions.copy'), icon: 'ri:file-copy-line', onClick: () => copyRole(row) },
+    { key: 'delete', label: t('roleManagement.actions.delete'), icon: 'ri:delete-bin-4-line', danger: true, onClick: () => deleteRole(row) },
+]
 
 const showPermissionDialog = (row?: RoleListItem) => {
     permissionDialog.value = true

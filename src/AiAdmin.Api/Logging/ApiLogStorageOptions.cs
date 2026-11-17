@@ -8,6 +8,11 @@ namespace AiAdmin.Api.Logging;
 public sealed class ApiLogStorageOptions
 {
     /// <summary>
+    ///     死信队列键，存放反复写入仍失败的日志，供人工排查，长度同样受 QueueCapacity 限制
+    /// </summary>
+    public string DeadLetterKey => QueueKey + ":dead";
+
+    /// <summary>
     ///     单次批量写入的最大日志数量
     /// </summary>
     public int BatchSize { get; init; } = 500;
@@ -16,6 +21,16 @@ public sealed class ApiLogStorageOptions
     ///     是否启用请求日志入库
     /// </summary>
     public bool Enabled { get; init; }
+
+    /// <summary>
+    ///     同一批日志连续写入失败达到该次数后，逐条重试并把仍然失败的日志转入死信队列
+    /// </summary>
+    public int MaxRetries { get; init; } = 5;
+
+    /// <summary>
+    ///     写入失败后重试等待时间的上限，等待时间从轮询间隔开始逐次翻倍
+    /// </summary>
+    public TimeSpan MaxRetryDelay { get; init; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     ///     队列为空时的轮询间隔

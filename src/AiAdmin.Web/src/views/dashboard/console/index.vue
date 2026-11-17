@@ -1,4 +1,4 @@
-<!-- 运营大屏：卡片以组件形式注册，支持拖拽排序、显隐和宽度自定义，布局按用户保存在浏览器本地 -->
+<!-- 系统总览：卡片以组件形式注册，支持拖拽排序、显隐和宽度自定义，布局按用户保存在浏览器本地 -->
 <template>
     <div class="dashboard-page">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">

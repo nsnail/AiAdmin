@@ -37,6 +37,7 @@
     "common": {
         "tips": "提示",
         "edit": "编辑",
+        "rowAction": { "view": "查看", "add": "新增", "edit": "编辑", "delete": "删除" },
         "cancel": "取消",
         "confirm": "确定",
         "logOutTips": "您是否要退出登录?",
@@ -161,6 +162,10 @@
         "deleteConfirm": "确定删除这条通知吗？"
     },
     "worktab": {
+        "homePage": {
+            "set": "已设为首页，点击 Logo 或登录后默认进入该页面（仅保存在当前浏览器）",
+            "cancelled": "已恢复默认首页"
+        },
         "btn": {
             "refresh": "刷新",
             "fixed": "固定",
@@ -168,7 +173,19 @@
             "closeLeft": "关闭左侧",
             "closeRight": "关闭右侧",
             "closeOther": "关闭其他",
-            "closeAll": "关闭全部"
+            "closeAll": "关闭全部",
+            "setHomePage": "设为首页",
+            "cancelHomePage": "取消设为首页"
+        },
+        "autoRefresh": {
+            "title": "定时刷新",
+            "activeLabel": "定时刷新（{seconds} 秒）",
+            "seconds": "{seconds} 秒",
+            "custom": "自定义间隔…",
+            "off": "关闭定时刷新",
+            "countdown": "{seconds} 秒后自动刷新页面",
+            "inputMessage": "请输入刷新间隔（秒）",
+            "inputInvalid": "请输入 {min} 到 {max} 之间的整数"
         }
     },
     "login": {
@@ -293,6 +310,12 @@
         "500": "抱歉，服务器出错了"
     },
     "menus": {
+        "customize": {
+            "moveUp": "上移",
+            "moveDown": "下移",
+            "hide": "隐藏菜单",
+            "reset": "恢复默认菜单"
+        },
         "login": {
             "title": "登录"
         },
@@ -307,7 +330,8 @@
         },
         "dashboard": {
             "title": "主控面板",
-            "console": "运营大屏"
+            "console": "系统总览",
+            "business": "业务总览"
         },
         "exception": {
             "title": "异常页面",
@@ -317,7 +341,9 @@
         },
         "development": {
             "title": "开发管理",
-            "apiDocs": "接口文档"
+            "apiDocs": "接口文档",
+            "integration": "接入说明",
+            "systemComponents": "开源组件"
         },
         "system": {
             "title": "系统管理",
@@ -523,6 +549,12 @@
             "exportFailed": "导出失败",
             "exportTruncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
         },
+        "detail": {
+            "title": "用户详情",
+            "view": "查看详情",
+            "close": "关闭",
+            "tabs": { "basic": "基本信息", "operationLog": "操作日志", "rawData": "原始数据" }
+        },
         "defaultDepartment": "默认部门"
     },
     "referralManagement": {
@@ -562,6 +594,37 @@
         }
     },
     "rawData": "原始数据",
+    "systemComponents": {
+        "refresh": "刷新",
+        "search": "按名称搜索",
+        "count": "共 {count} 个",
+        "tabs": {
+            "frontend": "前端依赖",
+            "backend": "后端组件"
+        },
+        "frontend": {
+            "runtime": "运行依赖",
+            "dev": "开发依赖"
+        },
+        "backend": {
+            "assemblies": "已加载程序集",
+            "packages": "NuGet 包"
+        },
+        "fields": {
+            "size": "大小",
+            "name": "名称",
+            "declared": "声明版本",
+            "installed": "安装版本",
+            "version": "版本",
+            "productVersion": "产品版本",
+            "kind": "类别"
+        },
+        "kind": {
+            "application": "项目",
+            "framework": "框架",
+            "package": "NuGet 包"
+        }
+    },
     "redisCache": {
         "server": {
             "title": "Redis 服务器",
@@ -596,6 +659,17 @@
             "delete": "删除",
             "close": "关闭",
             "save": "保存"
+        },
+        "items": {
+            "title": "共 {total} 项，已加载 {loaded} 项",
+            "index": "序号",
+            "field": "字段",
+            "entryId": "条目 ID",
+            "score": "分数",
+            "loadMore": "加载更多",
+            "allLoaded": "已全部加载",
+            "empty": "暂无数据",
+            "truncated": "部分内容过长，已截断显示"
         },
         "dialog": { "view": "查看缓存", "edit": "编辑缓存", "add": "新增缓存" },
         "messages": {
@@ -1087,6 +1161,8 @@
         "updatedAt": "数据更新于 {time}",
         "empty": "暂无数据",
         "noFailures": "近期没有异常的执行记录",
+        "executionNotFound": "未找到该执行记录",
+        "loginLogNotFound": "未找到该登录日志",
         "unknownRegion": "未知地区",
         "series": {
             "today": "今日",
@@ -1177,7 +1253,7 @@
         "loadFailed": "钱包信息加载失败"
     },
     "table": {
-        "contextMenu": { "copyHint": "复制(C)" },
+        "contextMenu": { "copyHint": "复制(C)", "filter": "筛选", "sort": "排序", "sortAsc": "顺序", "sortDesc": "倒序" },
         "form": {
             "reset": "重置",
             "submit": "提交"
@@ -1186,6 +1262,17 @@
             "reset": "重置",
             "search": "查询",
             "advancedQuery": "高级查询",
+            "autoApply": {
+                "title": "定时应用",
+                "apply": "应用",
+                "applyActive": "应用（{seconds} 秒）",
+                "seconds": "{seconds} 秒",
+                "custom": "自定义间隔…",
+                "off": "关闭定时应用",
+                "countdown": "{seconds} 秒后自动应用查询",
+                "inputMessage": "请输入应用间隔（秒）",
+                "inputInvalid": "请输入 {min} 到 {max} 之间的整数"
+            },
             "saveQueryTitle": "保存查询",
             "queryNamePlaceholder": "请输入查询名称",
             "queryNameRequired": "请输入查询名称",

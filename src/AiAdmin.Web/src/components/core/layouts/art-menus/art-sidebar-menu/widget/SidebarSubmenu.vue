@@ -1,6 +1,6 @@
 <template>
     <template v-for="(item, index) in filteredMenuItems" :key="getUniqueKey(item, index)">
-        <ElSubMenu v-if="hasChildren(item)" :index="item.path || item.meta.title" :level="level">
+        <ElSubMenu v-if="hasChildren(item)" :data-menu-key="item.path || item.meta.title" :index="item.path || item.meta.title" :level="level">
             <template #title>
                 <div class="menu-icon flex-cc">
                     <ArtSvgIcon :color="theme?.iconColor" :icon="item.meta.icon" :style="{ color: theme.iconColor }" />
@@ -14,7 +14,12 @@
             <SidebarSubmenu :is-mobile="isMobile" :level="level + 1" :list="item.children" :theme="theme" @close="closeMenu" />
         </ElSubMenu>
 
-        <ElMenuItem v-else :index="isExternalLink(item) ? undefined : item.path || item.meta.title" :level-item="level + 1" @click="goPage(item)">
+        <ElMenuItem
+            v-else
+            :data-menu-key="item.path || item.meta.title"
+            :index="isExternalLink(item) ? undefined : item.path || item.meta.title"
+            :level-item="level + 1"
+            @click="goPage(item)">
             <div class="menu-icon flex-cc">
                 <ArtSvgIcon :color="theme?.iconColor" :icon="item.meta.icon" :style="{ color: theme.iconColor }" />
             </div>

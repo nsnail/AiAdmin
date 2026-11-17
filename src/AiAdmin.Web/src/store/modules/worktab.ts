@@ -50,6 +50,11 @@ interface WorktabState {
     keepAliveExclude: string[]
 }
 
+/** 定时刷新间隔的下限（秒），避免页面刷新过于频繁 */
+export const AUTO_REFRESH_MIN_SECONDS = 5
+/** 定时刷新间隔的上限（秒） */
+export const AUTO_REFRESH_MAX_SECONDS = 86400
+
 /**
  * 工作台标签页管理 Store
  */
@@ -437,6 +442,32 @@ export const useWorktabStore = defineStore(
         }
 
         /**
+         * 设置标签页的定时刷新间隔
+         * @param path 标签页路径
+         * @param seconds 刷新间隔（秒），传 0 或空表示关闭定时刷新；小于下限按下限处理，大于上限按上限处理
+         */
+        const setAutoRefresh = (path: string, seconds?: number): void => {
+            const targetIndex = findTabIndex(path)
+
+            if (targetIndex === -1) {
+                console.warn(`尝试设置不存在标签页的定时刷新: ${path}`)
+                return
+            }
+
+            const tab = {
+                ...opened.value[targetIndex],
+                autoRefreshSeconds:
+                    seconds && seconds > 0 ? Math.min(AUTO_REFRESH_MAX_SECONDS, Math.max(AUTO_REFRESH_MIN_SECONDS, Math.round(seconds))) : undefined,
+            }
+            opened.value[targetIndex] = tab
+
+            // 更新当前标签引用
+            if (current.value.path === path) {
+                current.value = tab
+            }
+        }
+
+        /**
          * 验证工作台标签页的路由有效性
          */
         const validateWorktabs = (routerInstance: Router): void => {
@@ -551,6 +582,7 @@ export const useWorktabStore = defineStore(
             removeAll,
             removeOtherTabs,
             toggleFixedTab,
+            setAutoRefresh,
             validateWorktabs,
             clearAll,
             getStateSnapshot,

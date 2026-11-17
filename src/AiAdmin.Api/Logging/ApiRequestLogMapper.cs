@@ -12,21 +12,21 @@ namespace AiAdmin.Api.Logging;
 public static class ApiRequestLogMapper
 {
     /// <summary>
-    ///     把 HTTP 方法名转换为方法编号，不区分大小写，无法识别的方法记为 Other
+    ///     把业务码收窄为 short，超出范围时返回空
     /// </summary>
-    /// <param name="method">HTTP 方法名</param>
-    /// <returns>方法编号</returns>
-    public static ApiRequestMethod ToMethod(string? method) {
-        return Enum.TryParse<ApiRequestMethod>(method, true, out var result) && Enum.IsDefined(result) ? result : ApiRequestMethod.Other;
+    /// <param name="code">业务码</param>
+    /// <returns>收窄后的业务码</returns>
+    public static short? ToApiResponseCode(int? code) {
+        return code is >= short.MinValue and <= short.MaxValue ? (short)code.Value : null;
     }
 
     /// <summary>
-    ///     计算不含查询字符串的规范化路径的 CRC32，与接口表使用同一规则
+    ///     把毫秒数收窄为 int，超过上限时取上限，负数按 0 处理
     /// </summary>
-    /// <param name="path">请求路径，可带查询字符串，会被忽略</param>
-    /// <returns>有符号 CRC32</returns>
-    public static int ToPathCrc32(string path) {
-        return ApiEndpointKey.ComputePathCrc32(path);
+    /// <param name="milliseconds">毫秒数</param>
+    /// <returns>收窄后的毫秒数</returns>
+    public static int ToElapsedMilliseconds(long milliseconds) {
+        return (int)Math.Clamp(milliseconds, 0, int.MaxValue);
     }
 
     /// <summary>
@@ -58,20 +58,20 @@ public static class ApiRequestLogMapper
     }
 
     /// <summary>
-    ///     把毫秒数收窄为 int，超过上限时取上限，负数按 0 处理
+    ///     把 HTTP 方法名转换为方法编号，不区分大小写，无法识别的方法记为 Other
     /// </summary>
-    /// <param name="milliseconds">毫秒数</param>
-    /// <returns>收窄后的毫秒数</returns>
-    public static int ToElapsedMilliseconds(long milliseconds) {
-        return (int)Math.Clamp(milliseconds, 0, int.MaxValue);
+    /// <param name="method">HTTP 方法名</param>
+    /// <returns>方法编号</returns>
+    public static ApiRequestMethod ToMethod(string? method) {
+        return Enum.TryParse<ApiRequestMethod>(method, true, out var result) && Enum.IsDefined(result) ? result : ApiRequestMethod.Other;
     }
 
     /// <summary>
-    ///     把业务码收窄为 short，超出范围时返回空
+    ///     计算不含查询字符串的规范化路径的 CRC32，与接口表使用同一规则
     /// </summary>
-    /// <param name="code">业务码</param>
-    /// <returns>收窄后的业务码</returns>
-    public static short? ToApiResponseCode(int? code) {
-        return code is >= short.MinValue and <= short.MaxValue ? (short)code.Value : null;
+    /// <param name="path">请求路径，可带查询字符串，会被忽略</param>
+    /// <returns>有符号 CRC32</returns>
+    public static int ToPathCrc32(string path) {
+        return ApiEndpointKey.ComputePathCrc32(path);
     }
 }

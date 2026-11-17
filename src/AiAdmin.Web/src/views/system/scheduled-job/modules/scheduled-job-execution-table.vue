@@ -9,6 +9,7 @@
             :filter-groups-fn="filterGroups"
             :loading="loading"
             :pagination="pagination"
+            :row-actions="rowActions"
             @filter-change="handleFilterChange"
             @page-change="handleCurrentChange"
             @refresh="refreshData"
@@ -25,7 +26,6 @@
 import { ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { h } from 'vue'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
@@ -38,7 +38,7 @@ import {
     type ScheduledJobExecution,
     type ScheduledJobExecutionSearchParams,
 } from '@/api/system-manage'
-import type { ColumnOption } from '@/types/component'
+import type { ColumnOption, RowAction } from '@/types/component'
 import { formatDateTime } from '@/utils/date'
 import ScheduledJobExecutionDialog from './scheduled-job-execution-dialog.vue'
 
@@ -165,25 +165,22 @@ const {
                 showOverflowTooltip: true,
                 formatter: (row: ScheduledJobExecution) => row.errorMessage || '-',
             },
-            {
-                prop: 'operation',
-                queryField: false,
-                label: t('scheduledJob.detail.operation'),
-                width: 70,
-                fixed: 'right' as const,
-                formatter: (row: ScheduledJobExecution) =>
-                    h(ArtButtonTable, {
-                        type: 'view',
-                        title: t('scheduledJob.executionDetail.title'),
-                        onClick: () => {
-                            selectedExecution.value = row
-                            detailVisible.value = true
-                        },
-                    }),
-            },
         ],
     },
 })
+
+/** 行右键菜单操作 */
+const rowActions = (row: ScheduledJobExecution): RowAction[] => [
+    {
+        key: 'view',
+        label: t('scheduledJob.executionDetail.title'),
+        icon: 'ri:eye-line',
+        onClick: () => {
+            selectedExecution.value = row
+            detailVisible.value = true
+        },
+    },
+]
 
 const filterGroups = (dynamicFilter?: DynamicFilter) => fetchScheduledJobExecutionFilterGroups(props.jobId, dynamicFilter)
 const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Promise<void> => {

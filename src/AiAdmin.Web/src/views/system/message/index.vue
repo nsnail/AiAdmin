@@ -6,6 +6,7 @@
             :data="data"
             :loading="loading"
             :pagination="pagination"
+            :row-actions="rowActions"
             @filter-change="handleFilterChange"
             @page-change="handleCurrentChange"
             @refresh="refreshData"
@@ -79,8 +80,8 @@
 </template>
 <script lang="ts" setup>
 import { h } from 'vue'
+import type { RowAction } from '@/types/component'
 import { ElMessageBox, ElTag } from 'element-plus'
-import ArtButtonTable from '@/components/core/forms/art-button-table/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtWangEditor from '@/components/core/forms/art-wang-editor/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
@@ -174,31 +175,23 @@ const {
                 width: 120,
                 align: 'right',
             },
-            {
-                prop: 'actions',
-                label: t('messageManagement.actions'),
-                width: 150,
-                fixed: 'right',
-                formatter: (row) =>
-                    h('div', { class: 'flex gap-1' }, [
-                        h(ArtButtonTable, { type: 'view', onClick: () => viewRecipients(row) }),
-                        h(ArtButtonTable, { type: 'edit', onClick: () => openEdit(row) }),
-                        h(
-                            ElPopconfirm,
-                            {
-                                cancelButtonText: t('common.cancel'),
-                                confirmButtonText: t('common.confirm'),
-                                title: t('messageManagement.deleteConfirm'),
-                                width: 280,
-                                onConfirm: () => deleteOne(row.id),
-                            },
-                            { reference: () => h(ArtButtonTable, { type: 'delete' }) },
-                        ),
-                    ]),
-            },
         ],
     },
 })
+/** 行右键菜单操作 */
+const rowActions = (row: any): RowAction[] => [
+    { key: 'view', label: t('common.rowAction.view'), icon: 'ri:eye-line', onClick: () => viewRecipients(row) },
+    { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => openEdit(row) },
+    {
+        key: 'delete',
+        label: t('common.rowAction.delete'),
+        icon: 'ri:delete-bin-5-line',
+        danger: true,
+        confirm: t('messageManagement.deleteConfirm'),
+        onClick: () => deleteOne(row.id),
+    },
+]
+
 const recipientColumns = computed(() => [
     { prop: 'userName', label: t('messageManagement.user'), minWidth: 160 },
     { prop: 'userEmail', label: t('messageManagement.email'), minWidth: 220 },

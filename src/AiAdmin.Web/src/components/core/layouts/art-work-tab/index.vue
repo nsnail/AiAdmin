@@ -72,11 +72,13 @@
 
 <script lang="ts" setup>
 import { computed, onMounted, ref, watch, nextTick, onUnmounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { useMenuStore } from '@/store/modules/menu'
 import { LocationQueryRaw, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 
-import { useWorktabStore } from '@/store/modules/worktab'
+import { AUTO_REFRESH_MAX_SECONDS, AUTO_REFRESH_MIN_SECONDS, useWorktabStore } from '@/store/modules/worktab'
 import { useUserStore } from '@/store/modules/user'
 import { formatMenuTitle } from '@/utils/router'
 import { useSettingStore } from '@/store/modules/setting'
@@ -98,6 +100,21 @@ interface TouchState {
 }
 
 type TabCloseType = 'current' | 'left' | 'right' | 'other' | 'all'
+
+/** 定时刷新的预设间隔（秒） */
+const AUTO_REFRESH_PRESETS = [5, 10, 30, 60] as const
+
+/**
+ * 校验自定义的定时刷新间隔：必须是 5 到 86400 之间的整数
+ * @param input 输入框内容
+ * @returns 合法返回 true
+ */
+const isValidAutoRefreshSeconds = (input: string): boolean => {
+    const trimmed = input.trim()
+    if (!/^\d+$/.test(trimmed)) return false
+    const seconds = Number(trimmed)
+    return seconds >= AUTO_REFRESH_MIN_SECONDS && seconds <= AUTO_REFRESH_MAX_SECONDS
+}
 
 // 基础设置
 const { t } = useI18n()
@@ -165,6 +182,7 @@ const useContextMenu = () => {
     const menuItems = computed(() => {
         const { clickedIndex, currentTab, isLastTab, isOneTab, isCurrentTab } = getClickedTabInfo()
         const fixedStatus = checkTabsFixedStatus(clickedIndex)
+        const isCustomHome = !!currentTab && useMenuStore().getCustomHomePath() === currentTab.path
 
         return [
             {
@@ -174,10 +192,38 @@ const useContextMenu = () => {
                 disabled: !isCurrentTab,
             },
             {
+                key: 'autoRefresh',
+                label: currentTab?.autoRefreshSeconds
+                    ? t('worktab.autoRefresh.activeLabel', { seconds: currentTab.autoRefreshSeconds })
+                    : t('worktab.autoRefresh.title'),
+                icon: 'ri:timer-line',
+                disabled: !isCurrentTab,
+                children: [
+                    ...AUTO_REFRESH_PRESETS.map((seconds) => ({
+                        key: `autoRefresh:${seconds}`,
+                        label: t('worktab.autoRefresh.seconds', { seconds }),
+                        icon: currentTab?.autoRefreshSeconds === seconds ? 'ri:check-line' : 'ri:time-line',
+                    })),
+                    { key: 'autoRefresh:custom', label: t('worktab.autoRefresh.custom'), icon: 'ri:edit-line' },
+                    {
+                        key: 'autoRefresh:off',
+                        label: t('worktab.autoRefresh.off'),
+                        icon: 'ri:close-circle-line',
+                        disabled: !currentTab?.autoRefreshSeconds,
+                    },
+                ],
+            },
+            {
                 key: 'fixed',
                 label: currentTab?.fixedTab ? t('worktab.btn.unfixed') : t('worktab.btn.fixed'),
                 icon: 'ri:pushpin-2-line',
                 disabled: false,
+            },
+            {
+                key: 'homePage',
+                label: isCustomHome ? t('worktab.btn.cancelHomePage') : t('worktab.btn.setHomePage'),
+                icon: isCustomHome ? 'ri:home-gear-line' : 'ri:home-4-line',
+                disabled: !currentTab,
                 showLine: true,
             },
             {
@@ -383,6 +429,51 @@ const useTabOperations = (adjustPositionAfterClose: () => void) => {
         e.stopPropagation()
     }
 
+    /**
+     * 处理定时刷新菜单项：预设秒数直接设置，custom 弹出输入框，off 关闭
+     * @param option 菜单项后缀：秒数、custom 或 off
+     */
+    const handleAutoRefresh = async (option: string): Promise<void> => {
+        const path = clickedPath.value
+        if (option === 'off') {
+            store.setAutoRefresh(path, 0)
+            return
+        }
+
+        if (option !== 'custom') {
+            store.setAutoRefresh(path, Number(option))
+            return
+        }
+
+        try {
+            const { value } = await ElMessageBox.prompt(t('worktab.autoRefresh.inputMessage'), t('worktab.autoRefresh.title'), {
+                confirmButtonText: t('common.confirm'),
+                cancelButtonText: t('common.cancel'),
+                inputValue: String(store.getTab(path)?.autoRefreshSeconds ?? 15),
+                inputErrorMessage: t('worktab.autoRefresh.inputInvalid', { min: AUTO_REFRESH_MIN_SECONDS, max: AUTO_REFRESH_MAX_SECONDS }),
+                inputValidator: isValidAutoRefreshSeconds,
+            })
+            store.setAutoRefresh(path, Number(value))
+        } catch {
+            // 用户取消输入
+        }
+    }
+
+    /**
+     * 把标签页设为首页或取消：已是自定义首页时取消，恢复默认首页；设置仅保存在本地存储
+     * @param path 标签页路径
+     */
+    const toggleHomePage = (path: string) => {
+        const menuStore = useMenuStore()
+        if (menuStore.getCustomHomePath() === path) {
+            menuStore.clearCustomHomePath()
+            ElMessage.success(t('worktab.homePage.cancelled'))
+        } else {
+            menuStore.setCustomHomePath(path)
+            ElMessage.success(t('worktab.homePage.set'))
+        }
+    }
+
     const handleSelect = (item: MenuItemType) => {
         const { key } = item
 
@@ -391,8 +482,18 @@ const useTabOperations = (adjustPositionAfterClose: () => void) => {
             return
         }
 
+        if (key.startsWith('autoRefresh:')) {
+            void handleAutoRefresh(key.slice('autoRefresh:'.length))
+            return
+        }
+
         if (key === 'fixed') {
             useWorktabStore().toggleFixedTab(clickedPath.value)
+            return
+        }
+
+        if (key === 'homePage') {
+            toggleHomePage(clickedPath.value)
             return
         }
 

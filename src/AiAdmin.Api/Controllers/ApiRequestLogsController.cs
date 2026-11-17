@@ -247,7 +247,7 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
     }
 
     /// <summary>
-    ///     把接口分组里的 CRC32 还原为接口说明和路径，接口表里找不到的保留数值
+    ///     把接口分组里的 CRC32 还原为接口说明（英文原文，由前端按语言翻译），说明为空时用路径，接口表里找不到的保留数值
     /// </summary>
     /// <param name="groups">合并后的分组结果</param>
     /// <returns>还原显示名称后的分组结果</returns>
@@ -261,15 +261,17 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
         var apis = await db
             .ApiEndpoints.AsNoTracking()
             .Where(x => crcs.Contains(x.PathCrc32))
-            .Select(x => new { x.PathCrc32, x.Path })
+            .Select(x => new { x.PathCrc32, x.Path, x.Name })
             .ToListAsync(HttpContext.RequestAborted)
             .ConfigureAwait(false);
-        var pathByCrc = apis.GroupBy(x => x.PathCrc32).ToDictionary(x => x.Key, x => x.First().Path);
+        var labelByCrc = apis
+            .GroupBy(x => x.PathCrc32)
+            .ToDictionary(x => x.Key, x => string.IsNullOrWhiteSpace(x.First().Name) ? x.First().Path : x.First().Name);
         var restored = apiGroup
             .Options.Select(option =>
                 {
                     var crc = Convert.ToInt32(option.Value, CultureInfo.InvariantCulture);
-                    return option with { Label = pathByCrc.TryGetValue(crc, out var path) ? path : option.Label };
+                    return option with { Label = labelByCrc.TryGetValue(crc, out var label) ? label : option.Label };
                 }
             )
             .ToArray();

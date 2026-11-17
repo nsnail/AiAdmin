@@ -8,6 +8,9 @@ RUN npm install --global cnpm \
 COPY src/AiAdmin.Web/ ./
 ARG VITE_API_URL=/
 ENV VITE_API_URL=${VITE_API_URL}
+# 前端发布版本，由工作流传入 tag 名（可带 v 前缀）；为空表示本地构建，升级提示不会等待前端版本
+ARG APP_VERSION=
+ENV APP_VERSION=${APP_VERSION}
 RUN cnpm exec vite build
 
 FROM nginx:1.27-alpine

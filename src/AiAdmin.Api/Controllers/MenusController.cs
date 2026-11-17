@@ -223,7 +223,7 @@ public sealed class MenusController(AppDbContext db, ApiPermissionCache permissi
     private static IReadOnlyList<MenuItemResult> BuildTree(IReadOnlyList<Menu> rows) {
         var nodes = rows.ToDictionary(x => x.Name, ToResult, StringComparer.Ordinal);
 
-        return BuildChildren(string.Empty, [with(StringComparer.Ordinal)]);
+        return BuildChildren(string.Empty, new HashSet<string>(StringComparer.Ordinal));
 
         IReadOnlyList<MenuItemResult> BuildChildren(
             string parentName

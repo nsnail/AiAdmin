@@ -2,15 +2,16 @@
 
 镜像构建、编排、网关与滚动发布相关文件。流水线见 [.gitea/workflows](../.gitea/workflows/README.md)。
 
-| 文件                          | 说明                                                                                                   |
-|-------------------------------|--------------------------------------------------------------------------------------------------------|
-| `api.Dockerfile`              | 后端镜像：SDK 镜像发布，运行时镜像以 `--enabled-hosted-services` 启动，监听 80 端口                    |
-| `web.Dockerfile`              | 前端镜像：`cnpm` 安装依赖、`vite build`，产物交给 Nginx 提供                                           |
-| `nginx.conf`                  | 前端镜像内的 Nginx 配置，单页应用回退到 `index.html`                                                   |
-| `docker-compose.test.yml`     | 测试环境：单个 `api`、`web` 和 `redis`（带持久化数据卷），端口 5678 / 5679                             |
-| `docker-compose.prod.yml`     | 生产环境：`api-a`、`api-b` 双实例加 `web`，端口 6678 / 6680 / 6679                                     |
-| `rolling-deploy.sh`           | 部署机上的滚动发布步骤：`pull`、`roll <api-a\|api-b>`、`finish`                                        |
-| `gate-upstream.sh`            | 网关服务器上摘除或恢复 Nginx upstream 节点：`down\|up <端口>`                                          |
+| 文件                      | 说明                                                                                                                |
+|---------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `api.Dockerfile`          | 后端镜像：SDK 镜像发布，运行时镜像以 `--enabled-hosted-services` 启动，监听 80 端口                                 |
+| `web.Dockerfile`          | 前端镜像：`cnpm` 安装依赖、`vite build`，产物交给 Nginx 提供                                                        |
+| `nginx.conf`              | 前端镜像内的 Nginx 配置，单页应用回退到 `index.html`                                                                |
+| `docker-compose.test.yml` | 测试环境：单个 `api`、`web` 和 `redis`（带持久化数据卷），端口 5678 / 5679                                          |
+| `docker-compose.prod.yml` | 生产环境：`api-a`、`api-b` 双实例加 `web`，端口 5678 / 5680 / 5679                                                  |
+| `rolling-deploy.sh`       | 部署机上的滚动发布步骤：`pull`、`roll <api-a\|api-b>`、`finish`                                                     |
+| `gate-upstream.sh`        | 网关服务器上摘除或恢复 Nginx upstream 节点：`down\|up <端口>`                                                       |
+| `monitoring/`             | Prometheus、Grafana、MySQL exporter 的监控栈配置、仪表盘和告警规则，见 [monitoring/README.md](monitoring/README.md) |
 
 ## 构建
 
@@ -50,7 +51,19 @@ docker build -f docker/web.Dockerfile -t aiadmin-web .
 - 排空会关闭进程内闸门，所以重建必须使用 `--force-recreate`，否则镜像未变化时容器不会重启，闸门将一直关闭
 - `gate-upstream.sh` 通过给 `server` 行加 `down` 标记实现摘除，摘除后若没有剩余可用节点则拒绝；`nginx -t` 失败或 `nginx -s reload` 失败时会还原配置文件；
   `reload` 依赖 `/run/nginx.pid` 与运行中的 Nginx 主进程一致，若 Nginx 不是由 systemd 启动，PID 文件为空会导致 `reload` 失败
-- 脚本会在 `api-a` 重建前移除单实例时期遗留的 `api` 容器，它占用 6678 端口
+- 脚本会在 `api-a` 重建前移除单实例时期遗留的 `api` 容器，它占用 5678 端口
+
+## 前端版本就绪检查
+
+滚动发布的顺序是先后端、后前端（`finish` 才启动 `web`），后端上线后会通过实时连接向浏览器推送新版本号。如果浏览器立刻提示升级，此时 `web`
+容器还是旧版本，刷新后拿到的仍是旧前端。为此：
+
+- `web.Dockerfile` 接收构建参数 `APP_VERSION`（流水线传入 tag 名），`vite build` 结束后在产物根目录写入 `version.json`（内容如 `{"version":"1.8.1"}`，去掉
+  `v` 前缀）
+- `nginx.conf` 对 `/version.json` 返回 `Cache-Control: no-store`，保证每次回源
+- 浏览器收到后端新版本后，不会立即提示，而是每 5 秒读取一次 `/version.json`，等前端版本与后端新版本一致才弹出升级提示
+- 读不到 `version.json`（本地构建没有 `APP_VERSION`、旧镜像、读取失败）或等待超过 10 分钟，直接提示，避免前端发布失败时永远不提示
+- 本地用 `APP_VERSION=v1.2.3 npx vite build` 可以验证产物里的 `dist/version.json`
 
 ## 首次部署生产环境
 
