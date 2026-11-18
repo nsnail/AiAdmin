@@ -126,6 +126,21 @@
                 "borderRadius": "自定义圆角"
             }
         },
+        "shortcuts": {
+            "title": "快捷键配置",
+            "closeCurrentTab": "关闭当前页",
+            "closeOtherTabs": "关闭其他页",
+            "closeAllTabs": "关闭所有页",
+            "quickSearch": "快速搜索",
+            "recordHint": "点击后按下组合键",
+            "recording": "请按下组合键…",
+            "unset": "未设置",
+            "clear": "清除",
+            "tip": "点击输入框后直接按下组合键录入，Backspace 或 Delete 清除，Esc 取消；必须包含 Ctrl、Alt 或 Meta 之一。",
+            "needModifier": "快捷键必须包含 Ctrl、Alt 或 Meta 之一",
+            "conflict": "该快捷键已被“{name}”使用",
+            "browserReserved": "{shortcut} 会被浏览器优先处理，页面无法拦截，可能不会生效"
+        },
         "tabStyle": {
             "default": "默认",
             "card": "卡片",
@@ -147,6 +162,18 @@
             "copyFailed": "复制失败，请重试",
             "resetFailed": "重置失败，请刷新页面后重试"
         }
+    },
+    "fastEnter": {
+        "quickLinks": "快速链接",
+        "console": { "title": "工作台", "description": "系统概览与数据统计" },
+        "notice": { "title": "站内信通知", "description": "查看系统通知与站内信" },
+        "supportChat": { "title": "在线客服", "description": "咨询问题，客服在线解答" },
+        "settings": { "title": "系统设置", "description": "系统参数与基础配置" },
+        "changeLog": { "title": "更新日志", "description": "版本更新与变更记录" },
+        "login": { "title": "登录" },
+        "register": { "title": "注册" },
+        "forgetPassword": { "title": "忘记密码" },
+        "userCenter": { "title": "个人中心" }
     },
     "notice": {
         "title": "通知",
@@ -870,6 +897,7 @@
             "rawData": "原始数据"
         },
         "executionFields": {
+            "duration": "耗时",
             "errorMessage": "错误信息",
             "finishedAt": "完成时间",
             "requestMethod": "请求方法",
@@ -897,7 +925,7 @@
             "title": "执行详情",
             "close": "关闭",
             "unknown": "未知",
-            "durationValue": "{value} 毫秒",
+            "durationValue": "{value} ms",
             "tabs": { "overview": "概览", "request": "请求", "response": "响应" },
             "fields": {
                 "id": "执行记录 ID",
@@ -1261,6 +1289,7 @@
         "searchBar": {
             "reset": "重置",
             "search": "查询",
+            "mine": "我的",
             "advancedQuery": "高级查询",
             "autoApply": {
                 "title": "定时应用",

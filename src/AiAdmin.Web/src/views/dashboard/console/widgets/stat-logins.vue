@@ -1,7 +1,7 @@
 <!-- 指标卡片：今日登录 -->
 <template>
     <StatCard
-        :description="t('dashboard.widgets.statLogins.desc', { users: summary?.activeUsersToday ?? 0 })"
+        :description="t('dashboard.widgets.statLogins.desc', { users: formatFullNumber(summary?.activeUsersToday ?? 0) })"
         :loading="loading"
         :title="t('dashboard.widgets.statLogins.title')"
         :value="summary?.loginsToday ?? 0"
@@ -10,6 +10,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDashboardContext } from './context'

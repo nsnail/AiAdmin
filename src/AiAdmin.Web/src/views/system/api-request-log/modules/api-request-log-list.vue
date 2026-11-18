@@ -44,7 +44,9 @@
                                         <ElTag :type="logLevelType(log.level)" class="mr-2" size="small">{{ log.level }}</ElTag>
                                         <ElTag class="mr-2" effect="plain" size="small">{{ log.logType }}</ElTag>
                                         <span class="trace-time">{{ formatTraceTime(log.timestamp) }}</span>
-                                        <span v-if="log.elapsedMilliseconds !== null" class="trace-time ml-2">{{ log.elapsedMilliseconds }} ms</span>
+                                        <span v-if="log.elapsedMilliseconds !== null" class="trace-time ml-2"
+                                            >{{ formatFullNumber(log.elapsedMilliseconds) }} ms</span
+                                        >
                                         <span class="trace-message">{{ log.message }}</span>
                                     </template>
                                     <ElDescriptions :column="1" :label-width="150" border size="small">
@@ -69,6 +71,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { ElAlert, ElButton, ElCollapse, ElCollapseItem, ElDescriptions, ElDescriptionsItem, ElDrawer, ElEmpty, ElTag } from 'element-plus'
 import { h, onActivated, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -79,15 +82,19 @@ import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-dr
 import { useTable } from '@/hooks/core/useTable'
 import type { RowAction } from '@/types/component'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
+import ArtUserCell from '@/components/core/forms/art-user-cell/index.vue'
+import { useEntityLinks } from '@/hooks/core/useEntityLinks'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { translateServerMessage } from '@/utils/i18n/server-message'
 import { getHashTagStyle } from '@/utils/tagColor'
+import { getRecentHourRange } from '@/utils/date'
 
-// 操作日志按天分表保存，列表必须带创建时间范围，默认今天，后端最多合并 7 天的日表
+// 操作日志按天分表保存，列表必须带创建时间范围：整页模式默认最近一小时，嵌入用户详情时默认今天，后端最多合并 7 天的日表
 defineOptions({ name: 'ApiRequestLogList' })
 // 传入 userId 时嵌入用户详情：默认条件叠加该用户的 UserId，不读取路由参数，其余列表能力与操作日志页一致
 const props = defineProps<{ userId?: string }>()
+const { openUser } = useEntityLinks()
 const { t, locale } = useI18n()
 const detailVisible = ref(false)
 const selectedLog = ref<ApiRequestLogRecord>()
@@ -128,9 +135,10 @@ const getTodayRange = (): string[] => {
     return [toLocalIsoString(start), toLocalIsoString(end)]
 }
 const todayFilter: DynamicFilter = { field: 'CreatedAt', operator: 'DateRange', value: getTodayRange() }
+const recentHourFilter: DynamicFilter = { field: 'CreatedAt', operator: 'DateRange', value: getRecentHourRange() }
 const defaultFilter: DynamicFilter = props.userId
     ? { logic: 'And', filters: [todayFilter, { field: 'UserId', operator: 'Equal', value: Number(props.userId) }] }
-    : todayFilter
+    : recentHourFilter
 
 const route = useRoute()
 const router = useRouter()
@@ -234,7 +242,7 @@ const formatValue = (field: (typeof detailFields)[number]): string => {
     const value = selectedLog.value?.[field]
     if (value === undefined || value === null || value === '') return '-'
     if (field === 'apiName') return translateServerMessage(String(value)) ?? String(value)
-    return field === 'elapsedMilliseconds' ? `${value} ms` : String(value)
+    return field === 'elapsedMilliseconds' ? `${formatFullNumber(Number(value))} ms` : String(value)
 }
 
 const {
@@ -325,7 +333,7 @@ const {
                 width: 110,
                 align: 'right',
                 sortable: true,
-                formatter: (row: ApiRequestLogRecord) => `${row.elapsedMilliseconds} ms`,
+                formatter: (row: ApiRequestLogRecord) => `${formatFullNumber(row.elapsedMilliseconds)} ms`,
             },
             {
                 prop: 'userId',
@@ -333,9 +341,27 @@ const {
                 queryValueField: 'userId',
                 queryValueType: 'number',
                 label: t('apiRequestLog.fields.user'),
-                width: 140,
-                showOverflowTooltip: true,
-                formatter: (row: ApiRequestLogRecord) => row.userName || row.userId || '-',
+                width: 160,
+                // 未登录的请求没有用户，显示 -；外层 div 承载右键筛选目标
+                formatter: (row: ApiRequestLogRecord) =>
+                    row.userId
+                        ? h(
+                              'div',
+                              {
+                                  'data-query-field': 'UserId',
+                                  'data-query-label': t('apiRequestLog.fields.user'),
+                                  'data-query-value': row.userId,
+                                  'data-query-value-type': 'number',
+                              },
+                              h(ArtUserCell, {
+                                  name: row.userName,
+                                  avatar: row.userAvatar,
+                                  fallback: row.userId,
+                                  link: true,
+                                  onClick: () => openUser(row.userId as string),
+                              }),
+                          )
+                        : '-',
             },
             {
                 prop: 'clientIp',

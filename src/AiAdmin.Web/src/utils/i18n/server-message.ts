@@ -138,6 +138,7 @@ const zhTranslations: Record<string, string> = {
     'Cleanup API request log tables': '清理操作日志分表',
     'Query Elasticsearch logs by trace id': '按链路编号查询日志',
     'Query dashboard request statistics': '查询仪表盘操作日志统计',
+    'Refresh dashboard request statistics cache': '刷新仪表盘操作日志统计缓存',
     'Mark all notifications as read': '将所有通知标记为已读',
     'Mark notification as read': '将通知标记为已读',
     'Query API documentation': '查询接口文档',

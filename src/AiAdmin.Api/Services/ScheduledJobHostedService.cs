@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -13,11 +14,13 @@ namespace AiAdmin.Api.Services;
 /// <param name="scopeFactory">服务作用域工厂</param>
 /// <param name="externalHttpRequestService">外部 HTTP 请求服务</param>
 /// <param name="lockService">计划作业分布式锁服务</param>
+/// <param name="manualTriggerQueue">手动触发队列</param>
 /// <param name="logger">日志记录器</param>
 public sealed class ScheduledJobHostedService(
     IServiceScopeFactory scopeFactory
     , ExternalHttpRequestService externalHttpRequestService
     , ScheduledJobLockService lockService
+    , ScheduledJobManualTriggerQueue manualTriggerQueue
     , ILogger<ScheduledJobHostedService> logger) : BackgroundService
 {
     private static readonly TimeSpan _completionLockWaitTimeout = TimeSpan.FromSeconds(35);
@@ -62,15 +65,21 @@ public sealed class ScheduledJobHostedService(
     }
 
     /// <summary>
-    ///     判断作业在当前时间是否仍应触发：已启用、未在运行、到达触发时间且本触发窗口内未触发过
+    ///     判断作业是否应触发：手动触发只要求未在运行；定时触发要求已启用、到达触发时间且本触发窗口内未触发过
     /// </summary>
     /// <param name="job">计划作业</param>
     /// <param name="now">当前时间</param>
+    /// <param name="manual">是否存在手动触发请求</param>
     /// <returns>应触发返回 true</returns>
     private static bool ShouldTrigger(
         ScheduledJob job
         , DateTime now
+        , bool manual
     ) {
+        if (manual) {
+            return job.Status != ScheduledJobStatus.Running;
+        }
+
         return job.IsEnabled
                && job.Status != ScheduledJobStatus.Running
                && CronMatcher.IsDue(job.CronExpression, now)
@@ -114,7 +123,9 @@ public sealed class ScheduledJobHostedService(
             , RequestBody = body
         };
         _ = await db.ScheduledJobExecutions.AddAsync(execution, cancellationToken).ConfigureAwait(false);
+        var stopwatch = Stopwatch.StartNew();
         await SendJobRequestAsync(job, execution, url, headers, body, cancellationToken).ConfigureAwait(false);
+        execution.DurationMs = stopwatch.ElapsedMilliseconds;
 
         await using var jobLock = await lockService.TryAcquireAsync(job.Id, _completionLockWaitTimeout, CancellationToken.None).ConfigureAwait(false)
                                   ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
@@ -195,11 +206,21 @@ public sealed class ScheduledJobHostedService(
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var now = DateTime.UtcNow;
+        var pending = await manualTriggerQueue.GetPendingAsync().ConfigureAwait(false);
+        var pendingIds = pending.ToList();
         var jobs = await db
-            .ScheduledJobs.Where(x => x.IsEnabled && x.Status != ScheduledJobStatus.Running)
+            .ScheduledJobs.Where(x => (x.IsEnabled || pendingIds.Contains(x.Id)) && x.Status != ScheduledJobStatus.Running)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
-        foreach (var job in jobs.Where(x => ShouldTrigger(x, now))) {
+
+        // 已不存在的作业残留的手动请求直接清理，避免集合无限增长
+        var existingIds
+            = await db.ScheduledJobs.Where(x => pendingIds.Contains(x.Id)).Select(x => x.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var staleId in pending.Except(existingIds)) {
+            await manualTriggerQueue.RemoveAsync(staleId).ConfigureAwait(false);
+        }
+
+        foreach (var job in jobs.Where(x => ShouldTrigger(x, now, pending.Contains(x.Id)))) {
             await using (var jobLock = await lockService.TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken).ConfigureAwait(false)) {
                 if (jobLock is null) {
                     continue;
@@ -207,8 +228,13 @@ public sealed class ScheduledJobHostedService(
 
                 await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
                 now = DateTime.UtcNow;
-                if (!ShouldTrigger(job, now)) {
+                var manual = (await manualTriggerQueue.GetPendingAsync().ConfigureAwait(false)).Contains(job.Id);
+                if (!ShouldTrigger(job, now, manual)) {
                     continue;
+                }
+
+                if (manual) {
+                    await manualTriggerQueue.RemoveAsync(job.Id).ConfigureAwait(false);
                 }
 
                 job.Status = ScheduledJobStatus.Running;

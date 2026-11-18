@@ -16,7 +16,8 @@
 ![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-[🚀 三分钟启动](#-三分钟启动) &nbsp;·&nbsp; [✨ 为什么选它](#-为什么选-aiadmin) &nbsp;·&nbsp; [🏛️ 架构](#️-架构一眼看懂) &nbsp;·&nbsp; [📁 目录](#-目录结构) &nbsp;·&nbsp; [📐 开发约定](AGENTS.md) &nbsp;·&nbsp; [📝 更新日志](CHANGELOG.md)
+[🚀 三分钟启动](#-三分钟启动) &nbsp;·&nbsp; [✨ 为什么选它](#-为什么选-aiadmin) &nbsp;·&nbsp; [🏛️ 架构](#️-架构一眼看懂)
+&nbsp;·&nbsp; [📁 目录](#-目录结构) &nbsp;·&nbsp; [📐 开发约定](AGENTS.md) &nbsp;·&nbsp; [📝 更新日志](CHANGELOG.md)
 
 </div>
 
@@ -45,7 +46,8 @@
 
 ### 🔍 列表：一套协议，写一次用一辈子
 
-新增一个列表页，**后端只需声明实体特性，前端只需配置列**。基础筛选、高级嵌套查询、保存查询、右键单元格筛选、服务端排序、分页、导出——全部开箱即用，且共享同一棵 `dynamicFilter` 树，永不「界面和请求不一致」。
+新增一个列表页，**后端只需声明实体特性，前端只需配置列**。基础筛选、高级嵌套查询、保存查询、右键单元格筛选、服务端排序、分页、导出——全部开箱即用，且共享同一棵
+`dynamicFilter` 树，永不「界面和请求不一致」。
 
 <div align="center">
 <img src="docs/assets/list-ui.svg" alt="统一列表页" width="100%"/>
@@ -90,17 +92,17 @@
 
 ### 🧰 还有这些，别人要装一堆插件才有的
 
-| | 能力 | 你得到什么 |
-|:-:|------|------------|
-| 🗄️ | **四库一键切换** | MySQL / SQL Server / PostgreSQL / SQLite，改 `Database:Provider` 即可 |
-| 🔔 | **实时推送** | WebSocket + Redis 总线跨节点转发，内置站内信与客服会话 |
-| 📜 | **日志体系** | 控制台 / 文件 / Elasticsearch 三路输出；API 请求日志经 Redis 队列**按天分表**入库 |
-| 🔭 | **外呼可追溯** | 所有对外 HTTP 必经 `ExternalHttpRequestService`，地址、请求体、响应、耗时全记录 |
-| 📈 | **监控就绪** | 内置 Prometheus 指标、ECharts 仪表盘、Redis 条目查看 |
-| 🆔 | **雪花主键** | 52 位 Snowflake ID，十进制约 15 位，**前端 JS 数字零精度丢失** |
-| ⏰ | **计划作业** | Redis 分布式锁，多实例部署也不会重复触发 |
-| 🌏 | **中英双语** | 界面文案、服务端消息、接口描述全接入 i18n；框架与业务分文件，**合并上游不冲突** |
-| 🧪 | **工程化门禁** | 0 警告 0 错误、xUnit 测试、认知复杂度阈值、Prettier + ReSharper 一键清理 |
+|    | 能力             | 你得到什么                                                                        |
+|:--:|------------------|-----------------------------------------------------------------------------------|
+| 🗄️ | **四库一键切换** | MySQL / SQL Server / PostgreSQL / SQLite，改 `Database:Provider` 即可             |
+| 🔔 | **实时推送**     | WebSocket + Redis 总线跨节点转发，内置站内信与客服会话                            |
+| 📜 | **日志体系**     | 控制台 / 文件 / Elasticsearch 三路输出；API 请求日志经 Redis 队列**按天分表**入库 |
+| 🔭 | **外呼可追溯**   | 所有对外 HTTP 必经 `ExternalHttpRequestService`，地址、请求体、响应、耗时全记录   |
+| 📈 | **监控就绪**     | 内置 Prometheus 指标、ECharts 仪表盘、Redis 条目查看                              |
+| 🆔 | **雪花主键**     | 52 位 Snowflake ID，十进制约 15 位，**前端 JS 数字零精度丢失**                    |
+| ⏰ | **计划作业**     | Redis 分布式锁，多实例部署也不会重复触发                                          |
+| 🌏 | **中英双语**     | 界面文案、服务端消息、接口描述全接入 i18n；框架与业务分文件，**合并上游不冲突**   |
+| 🧪 | **工程化门禁**   | 0 警告 0 错误、xUnit 测试、认知复杂度阈值、Prettier + ReSharper 一键清理          |
 
 <br/>
 
@@ -174,7 +176,8 @@ cnpm run dev -- --no-open
 <summary><b>⚙️ 配置要点</b></summary>
 
 - 默认 MySQL，通过 `Database:Provider` 切换 `sqlserver` / `postgresql` / `sqlite`；开发环境需先创建 `utf8mb4` 数据库和用户
-- 敏感配置（连接串、Redis、MinIO、SMTP）写入 `src/AiAdmin.Api/appsettings.Local.json`（已排除 Git，参考 `appsettings.Local.example.json`）或环境变量，如 `ConnectionStrings__MySQL`
+- 敏感配置（连接串、Redis、MinIO、SMTP）写入 `src/AiAdmin.Api/appsettings.Local.json`（已排除 Git，参考 `appsettings.Local.example.json`）或环境变量，如
+  `ConnectionStrings__MySQL`
 - `Production` 不自动初始化，见 [docker/README.md](docker/README.md)
 - 部署前**必须**覆盖 `Jwt:Key` 与各类密码；多实例必须为每个实例设置不同的 `Snowflake:WorkerId`（0–31）
 
@@ -183,11 +186,11 @@ cnpm run dev -- --no-open
 <details>
 <summary><b>🏁 启动参数</b></summary>
 
-| 参数 | 作用 |
-|------|------|
-| `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志、API 请求日志入库等后台服务 |
-| `--clear-database` | 仅开发 / 测试：清空所有表后重新初始化（同义：`--delete-all-tables`） |
-| `--replace-job-request-url` | 覆盖计划作业的请求地址 |
+| 参数                        | 作用                                                                 |
+|-----------------------------|----------------------------------------------------------------------|
+| `--enabled-hosted-services` | 启用计划作业、Elasticsearch 日志、API 请求日志入库等后台服务         |
+| `--clear-database`          | 仅开发 / 测试：清空所有表后重新初始化（同义：`--delete-all-tables`） |
+| `--replace-job-request-url` | 覆盖计划作业的请求地址                                               |
 
 多实例部署时只让部分实例启用后台服务，作业执行通过 Redis 锁避免重复触发。
 
@@ -204,17 +207,17 @@ cnpm run dev -- --no-open
 
 ## 📁 目录结构
 
-| 目录 | 说明 |
-|------|------|
-| [src/AiAdmin.Core](src/AiAdmin.Core/README.md) | 实体模型、契约、特性、雪花 ID 等共享类型，不依赖其他项目 |
-| [src/AiAdmin.Infrastructure](src/AiAdmin.Infrastructure/README.md) | 数据库、动态查询、权限与数据范围、令牌、对象存储 |
-| [src/AiAdmin.Api](src/AiAdmin.Api/README.md) | 应用宿主：控制器、中间件、日志、计划作业、实时推送 |
-| [src/AiAdmin.Web](src/AiAdmin.Web/README.md) | 前端应用 |
-| [tests](tests/README.md) | 后端 xUnit 测试 |
-| [build](build/README.md) | 代码清理、质量规则、版本标签脚本 |
-| [docker](docker/README.md) | 镜像构建、编排、网关与滚动发布 |
-| [.gitea/workflows](.gitea/workflows/README.md) | Gitea Actions 发布流水线 |
-| [docs](docs/README.md) | 业务设计与设计稿 |
+| 目录                                                               | 说明                                                     |
+|--------------------------------------------------------------------|----------------------------------------------------------|
+| [src/AiAdmin.Core](src/AiAdmin.Core/README.md)                     | 实体模型、契约、特性、雪花 ID 等共享类型，不依赖其他项目 |
+| [src/AiAdmin.Infrastructure](src/AiAdmin.Infrastructure/README.md) | 数据库、动态查询、权限与数据范围、令牌、对象存储         |
+| [src/AiAdmin.Api](src/AiAdmin.Api/README.md)                       | 应用宿主：控制器、中间件、日志、计划作业、实时推送       |
+| [src/AiAdmin.Web](src/AiAdmin.Web/README.md)                       | 前端应用                                                 |
+| [tests](tests/README.md)                                           | 后端 xUnit 测试                                          |
+| [build](build/README.md)                                           | 代码清理、质量规则、版本标签脚本                         |
+| [docker](docker/README.md)                                         | 镜像构建、编排、网关与滚动发布                           |
+| [.gitea/workflows](.gitea/workflows/README.md)                     | Gitea Actions 发布流水线                                 |
+| [docs](docs/README.md)                                             | 业务设计与设计稿                                         |
 
 <details>
 <summary><b>🎨 前端目录结构</b></summary>

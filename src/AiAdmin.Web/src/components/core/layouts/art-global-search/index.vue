@@ -116,14 +116,7 @@ onUnmounted(() => {
 
 // 键盘快捷键处理
 const handleKeydown = (event: KeyboardEvent) => {
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
-    const isCommandKey = isMac ? event.metaKey : event.ctrlKey
-
-    if (isCommandKey && event.key.toLowerCase() === 'k') {
-        event.preventDefault()
-        showSearchDialog.value = true
-        focusInput()
-    }
+    // 打开搜索的快捷键由设置里配置、useGlobalShortcuts 统一监听并通过 openSearchDialog 事件触发，这里只处理对话框打开后的按键
 
     // 当搜索对话框打开时，处理方向键和回车键
     if (showSearchDialog.value) {

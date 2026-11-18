@@ -61,6 +61,8 @@ export interface RowAction {
     confirm?: boolean | string
     // 快捷键（单个字母），缺省时按 key 取默认值：view=V、edit=E、delete=D、add=A、retry=R、run=R
     shortcut?: string
+    // 双击行时执行该操作；同一行取第一个标记的操作，没有任何操作标记时回退到 key 为 view 的操作
+    dblclick?: boolean
     // 点击处理
     onClick: () => void | Promise<void>
 }

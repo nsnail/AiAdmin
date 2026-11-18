@@ -625,7 +625,7 @@ public sealed class UsersController(
     private static CurrentUserResult ToCurrentUserResult(User user) {
         return new CurrentUserResult(
             user.Id, user.UserName, user.Email, user.Phone, user.Gender, user.Avatar, [.. user.UserRoles.Select(x => x.Role.Code)]
-            , ["add", "edit", "delete"], user.Version
+            , ["add", "edit", "delete"], user.Version, user.UserRoles.Any(x => x.Role.IsEnabled && x.Role.DataScope != RoleDataScope.Self)
         );
     }
 

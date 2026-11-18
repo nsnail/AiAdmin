@@ -14,6 +14,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { translateServerMessage } from '@/utils/i18n/server-message'
@@ -46,5 +47,5 @@ function handleItemClick(item: { pathCrc32?: unknown }) {
     const crc = Number(item.pathCrc32)
     go(crc ? { pathCrc32: String(crc) } : undefined)
 }
-const extra = computed(() => (stats.value ? t('dashboard.requestToday', { total: stats.value.todayTotal }) : ''))
+const extra = computed(() => (stats.value ? t('dashboard.requestToday', { total: formatFullNumber(stats.value.todayTotal) }) : ''))
 </script>

@@ -10,6 +10,12 @@ namespace AiAdmin.Api.Models;
 public sealed class ScheduledJobExecution : EntityBase
 {
     /// <summary>
+    ///     执行耗时，单位毫秒
+    /// </summary>
+    [ListFilter("scheduledJob.executionFields.duration", "number")]
+    public long DurationMs { get; set; }
+
+    /// <summary>
     ///     错误信息
     /// </summary>
     [MaxLength(4000)]

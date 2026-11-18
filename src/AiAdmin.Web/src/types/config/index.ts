@@ -89,8 +89,10 @@ export interface SystemBasicConfig {
 
 // 快速入口基础项
 export interface FastEnterBaseItem {
-    /** 名称 */
+    /** 名称，缺少 nameKey 时直接展示 */
     name: string
+    /** 名称的 i18n 键，存在时优先于 name */
+    nameKey?: string
     /** 是否启用 */
     enabled?: boolean
     /** 排序权重 */
@@ -99,12 +101,21 @@ export interface FastEnterBaseItem {
     routeName?: string
     /** 外部链接 */
     link?: string
+    /** 页面在菜单树中的完整路径，用于按当前账号的菜单权限过滤，没有该菜单权限的账号不显示此入口；未配置时不做权限过滤 */
+    menuPath?: string
+    /** 点击后触发的动作，不跳转页面；目前支持打开顶部栏的通知抽屉、打开客户咨询的聊天窗口 */
+    action?: FastEnterAction
 }
+
+/** 快速入口内置动作 */
+export type FastEnterAction = 'openNotice' | 'openChat'
 
 // 快速入口应用项
 export interface FastEnterApplication extends FastEnterBaseItem {
-    /** 应用描述 */
+    /** 应用描述，缺少 descriptionKey 时直接展示 */
     description: string
+    /** 应用描述的 i18n 键，存在时优先于 description */
+    descriptionKey?: string
     /** 图标代码 */
     icon: string
     /** 图标颜色 */

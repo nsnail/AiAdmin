@@ -40,6 +40,9 @@ import { useCeremony } from '@/hooks/core/useCeremony'
 import { StorageConfig } from '@/utils'
 import { SETTING_DEFAULT_CONFIG } from '@/config/setting'
 
+/** 可配置的快捷键功能标识 */
+export type ShortcutKey = 'closeCurrentTab' | 'closeOtherTabs' | 'closeAllTabs' | 'quickSearch'
+
 /**
  * 系统设置状态管理
  * 管理应用的菜单、主题、界面显示等各项设置
@@ -116,6 +119,16 @@ export const useSettingStore = defineStore(
         // 节日相关
         /** 节日日期 */
         const festivalDate = ref('')
+
+        // 快捷键设置，空字符串表示未配置
+        /** 关闭当前标签页 */
+        const shortcutCloseCurrentTab = ref(SETTING_DEFAULT_CONFIG.shortcutCloseCurrentTab)
+        /** 关闭其他标签页 */
+        const shortcutCloseOtherTabs = ref(SETTING_DEFAULT_CONFIG.shortcutCloseOtherTabs)
+        /** 关闭所有标签页 */
+        const shortcutCloseAllTabs = ref(SETTING_DEFAULT_CONFIG.shortcutCloseAllTabs)
+        /** 打开顶部快速搜索 */
+        const shortcutQuickSearch = ref(SETTING_DEFAULT_CONFIG.shortcutQuickSearch)
 
         /**
          * 获取菜单主题
@@ -375,6 +388,21 @@ export const useSettingStore = defineStore(
             dualMenuShowText.value = show
         }
 
+        /**
+         * 设置快捷键，空字符串表示清除
+         * @param key 快捷键功能标识
+         * @param value 快捷键文本，如 Ctrl+Q
+         */
+        const setShortcut = (key: ShortcutKey, value: string) => {
+            const target = {
+                closeCurrentTab: shortcutCloseCurrentTab,
+                closeOtherTabs: shortcutCloseOtherTabs,
+                closeAllTabs: shortcutCloseAllTabs,
+                quickSearch: shortcutQuickSearch,
+            }[key]
+            target.value = value
+        }
+
         return {
             menuType,
             menuOpenWidth,
@@ -403,6 +431,10 @@ export const useSettingStore = defineStore(
             holidayFireworksLoaded,
             showFestivalText,
             festivalDate,
+            shortcutCloseCurrentTab,
+            shortcutCloseOtherTabs,
+            shortcutCloseAllTabs,
+            shortcutQuickSearch,
             dualMenuShowText,
             containerWidth,
             getMenuTheme,
@@ -439,6 +471,7 @@ export const useSettingStore = defineStore(
             setShowFestivalText,
             setFestivalDate,
             setDualMenuShowText,
+            setShortcut,
         }
     },
     {

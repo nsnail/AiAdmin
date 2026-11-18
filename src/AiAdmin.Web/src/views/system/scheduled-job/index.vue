@@ -53,6 +53,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { ElMessage, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { h, onActivated } from 'vue'
@@ -370,7 +371,7 @@ const {
                             {
                                 style: { color: duration > 1000 ? 'var(--el-color-danger)' : 'var(--el-color-success)' },
                             },
-                            `${duration} ms`,
+                            `${formatFullNumber(duration)} ms`,
                         ),
                         h(
                             'span',
@@ -463,6 +464,7 @@ const rowActions = (job: ScheduledJob): RowAction[] => [
     { key: 'run', label: t('scheduledJob.actions.run'), icon: 'ri:play-circle-line', disabled: job.status === 1, onClick: () => runJob(job) },
     {
         key: 'executions',
+        dblclick: true,
         shortcut: 'H',
         label: t('scheduledJob.actions.executions'),
         icon: 'ri:history-line',

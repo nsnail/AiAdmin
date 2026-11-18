@@ -88,6 +88,10 @@ const CONFIG_ITEMS: ConfigItem[] = [
     { comment: '自定义圆角', key: 'customRadius' },
     { comment: '容器宽度', key: 'containerWidth', enumMap: ENUM_MAPS.containerWidth },
     { comment: '节日日期', key: 'festivalDate', forceValue: '' },
+    { comment: '快捷键：关闭当前标签页', key: 'shortcutCloseCurrentTab' },
+    { comment: '快捷键：关闭其他标签页', key: 'shortcutCloseOtherTabs' },
+    { comment: '快捷键：关闭所有标签页', key: 'shortcutCloseAllTabs' },
+    { comment: '快捷键：打开顶部快速搜索', key: 'shortcutQuickSearch' },
 ]
 
 /**
@@ -201,6 +205,12 @@ const handleResetConfig = async () => {
         settingStore.setTabStyle(config.tabStyle)
         settingStore.setCustomRadius(config.customRadius)
         settingStore.setContainerWidth(config.containerWidth)
+
+        // 快捷键
+        settingStore.setShortcut('closeCurrentTab', config.shortcutCloseCurrentTab)
+        settingStore.setShortcut('closeOtherTabs', config.shortcutCloseOtherTabs)
+        settingStore.setShortcut('closeAllTabs', config.shortcutCloseAllTabs)
+        settingStore.setShortcut('quickSearch', config.shortcutQuickSearch)
 
         // 节日相关
         settingStore.setFestivalDate(config.festivalDate)

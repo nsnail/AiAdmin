@@ -126,6 +126,8 @@ const {
     chartRef,
     getAxisLineStyle,
     getAxisLabelStyle,
+    getCompactAxisLabelStyle,
+    formatTooltipValue,
     getAxisTickStyle,
     getSplitLineStyle,
     getAnimationConfig,
@@ -157,7 +159,8 @@ const {
                 right: 0,
                 left: 0,
             }),
-            tooltip: props.showTooltip ? getTooltipStyle() : undefined,
+            // 提示框保留完整数字，坐标轴刻度才缩写
+            tooltip: props.showTooltip ? getTooltipStyle('axis', { valueFormatter: formatTooltipValue }) : undefined,
             xAxis: {
                 type: 'category',
                 data: props.xAxisData,
@@ -167,7 +170,7 @@ const {
             },
             yAxis: {
                 type: 'value',
-                axisLabel: getAxisLabelStyle(props.showAxisLabel),
+                axisLabel: getCompactAxisLabelStyle(props.showAxisLabel),
                 axisLine: getAxisLineStyle(props.showAxisLine),
                 splitLine: getSplitLineStyle(props.showSplitLine),
             },

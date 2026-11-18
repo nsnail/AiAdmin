@@ -42,6 +42,19 @@ export function toLocalIsoString(date: Date): string {
 }
 
 /**
+ * 最近一小时的日期范围筛选值：从当前时刻往前一小时到下一整分钟，右开区间，用作消息、回调等数据量大的列表默认的 CreatedAt 筛选；
+ * 右端取到下一整分钟而不是当前时刻，避免筛选建立的瞬间刚产生的记录落在区间之外
+ */
+export function getRecentHourRange(now = new Date()): string[] {
+    const end = new Date(now)
+    end.setSeconds(0, 0)
+    end.setMinutes(end.getMinutes() + 1)
+    const start = new Date(end)
+    start.setHours(start.getHours() - 1)
+    return [toLocalIsoString(start), toLocalIsoString(end)]
+}
+
+/**
  * 今日的日期范围筛选值：本地今天零点到明天零点，右开区间，用作列表默认的 CreatedAt 筛选
  */
 export function getTodayRange(now = new Date()): string[] {

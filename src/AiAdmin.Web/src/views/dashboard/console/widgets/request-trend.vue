@@ -15,6 +15,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useWidgetLink } from './context'
@@ -43,6 +44,8 @@ function handlePointClick(payload: { dataIndex: number; seriesIndex: number }) {
 }
 const isEmpty = computed(() => !!stats.value && stats.value.todayTotal === 0 && stats.value.yesterdayTotal === 0)
 const extra = computed(() =>
-    stats.value ? t('dashboard.requestTotals', { today: stats.value.todayTotal, yesterday: stats.value.yesterdayTotal }) : '',
+    stats.value
+        ? t('dashboard.requestTotals', { today: formatFullNumber(stats.value.todayTotal), yesterday: formatFullNumber(stats.value.yesterdayTotal) })
+        : '',
 )
 </script>

@@ -3,9 +3,9 @@
     <StatCard
         :description="
             t('dashboard.widgets.statJobs.desc', {
-                enabled: summary?.enabledJobs ?? 0,
-                running: summary?.runningJobs ?? 0,
-                failed: summary?.failedJobs ?? 0,
+                enabled: formatFullNumber(summary?.enabledJobs ?? 0),
+                running: formatFullNumber(summary?.runningJobs ?? 0),
+                failed: formatFullNumber(summary?.failedJobs ?? 0),
             })
         "
         :loading="loading"
@@ -16,6 +16,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDashboardContext } from './context'

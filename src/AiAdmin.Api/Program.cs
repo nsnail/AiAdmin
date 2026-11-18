@@ -115,6 +115,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 builder.Services.AddSingleton<ElasticsearchLogQueue>();
 builder.Services.AddSingleton<ApiLogStorageQueue>();
 builder.Services.AddSingleton<ScheduledJobLockService>();
+builder.Services.AddSingleton<ScheduledJobManualTriggerQueue>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
 builder.Services.AddSingleton<SystemInfoService>();
@@ -130,6 +131,8 @@ builder.Services.AddSingleton<DatabaseShutdownInterceptor>();
 builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddSingleton<DataScopeCache>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
+builder.Services.AddScoped<DashboardRequestStatsService>();
+builder.Services.AddSingleton<DashboardRequestStatsCache>();
 builder.Services.AddScoped<ApiDocumentationService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DictionarySnapshotService>();

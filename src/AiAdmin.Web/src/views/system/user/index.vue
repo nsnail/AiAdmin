@@ -9,6 +9,7 @@
         :columns="columns"
         :data="data"
         :default-filter="defaultFilter"
+        :initial-filter="initialFilter"
         :loading="loading"
         :pagination="pagination"
         :row-actions="rowActions"
@@ -19,6 +20,7 @@
         @selection-change="selectedRows = $event"
         @size-change="handleSizeChange"
         @sort-change="handleSortChange"
+        ref="userPage"
         resource="user">
         <template #header-left>
             <ElSpace wrap>
@@ -53,6 +55,7 @@ import type { RowAction } from '@/types/component'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
+import { useRouteFilter } from '@/hooks/core/useRouteFilter'
 import { useTable } from '@/hooks/core/useTable'
 import {
     fetchCreateUser,
@@ -94,6 +97,22 @@ const detailVisible = ref(false)
 const detailUser = ref<UserListItem>()
 
 const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
+const userPage = ref<{ setFilter?: (filter: DynamicFilter | undefined) => void }>()
+
+/**
+ * 路由参数 userId 对应的筛选：从其他页面（如账号列表的“分配商家”）点击跳转而来时只按该用户查询。
+ * 不叠加默认的“已启用”条件，否则已停用的用户会被筛掉而查不到
+ */
+const { initialFilter: routeFilter } = useRouteFilter({
+    queryKey: 'userId',
+    toFilter: (value) => (/^\d+$/.test(value) ? { field: 'Id', operator: 'Equal', value } : undefined),
+    setFilter: (filter) => userPage.value?.setFilter?.(filter),
+    apply: async (filter) => {
+        replaceSearchParams({ dynamicFilter: filter })
+        await getData()
+    },
+})
+const initialFilter = routeFilter ?? defaultFilter
 const roleName = (role: string): string => {
     const key = `userCenter.roleNames.${role}`
     return t(key) === key ? role : t(key)
@@ -121,7 +140,7 @@ const {
         apiParams: {
             current: 1,
             size: 20,
-            dynamicFilter: defaultFilter,
+            dynamicFilter: initialFilter,
         },
         // 自定义分页字段映射，未设置时将使用全局配置 tableConfig.ts 中的 paginationKey
         // paginationKey: {

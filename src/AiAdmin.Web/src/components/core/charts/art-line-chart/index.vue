@@ -247,7 +247,8 @@ const generateChartOptions = (isInitial = false): EChartsOption => {
             right: 15,
             left: 0,
         }),
-        tooltip: props.showTooltip ? getTooltipStyle() : undefined,
+        // 提示框保留完整数字，坐标轴刻度才缩写
+        tooltip: props.showTooltip ? getTooltipStyle('axis', { valueFormatter: formatTooltipValue }) : undefined,
         xAxis: {
             type: 'category',
             boundaryGap: false,
@@ -260,7 +261,7 @@ const generateChartOptions = (isInitial = false): EChartsOption => {
             type: 'value',
             min: 0,
             max: maxValue.value,
-            axisLabel: getAxisLabelStyle(props.showAxisLabel),
+            axisLabel: getCompactAxisLabelStyle(props.showAxisLabel),
             axisLine: getAxisLineStyle(props.showAxisLine),
             splitLine: getSplitLineStyle(props.showSplitLine),
         },
@@ -377,6 +378,8 @@ const {
     initChart,
     getAxisLineStyle,
     getAxisLabelStyle,
+    getCompactAxisLabelStyle,
+    formatTooltipValue,
     getAxisTickStyle,
     getSplitLineStyle,
     getTooltipStyle,

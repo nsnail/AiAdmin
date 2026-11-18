@@ -54,6 +54,7 @@ import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/store/modules/setting'
 import { getCssVar } from '@/utils/ui'
 import type { BaseChartProps, ChartThemeConfig, UseChartOptions } from '@/types/component/chart'
+import { formatCompactNumber, formatFullNumber } from '@/utils/number'
 
 // 图表主题配置
 export const useChartOps = (): ChartThemeConfig => ({
@@ -271,6 +272,23 @@ export function useChart(options: UseChartOptions = {}) {
         },
         ...customOptions,
     })
+
+    /**
+     * 数值轴刻度标签样式：在统一样式基础上把大数字缩写为 K、M，避免刻度里堆满 0
+     * @param show 是否显示
+     * @returns 刻度标签配置
+     */
+    const getCompactAxisLabelStyle = (show: boolean = true) => ({
+        ...getAxisLabelStyle(show),
+        formatter: (value: number) => formatCompactNumber(Number(value)),
+    })
+
+    /**
+     * 提示框里的数值格式化：保留完整数字并加千分位，需要看准确值时不被缩写影响
+     * @param value 数值，非数值原样转成文本
+     * @returns 文本
+     */
+    const formatTooltipValue = (value: unknown): string => (typeof value === 'number' ? formatFullNumber(value) : String(value ?? '-'))
 
     // 获取统一的图例配置
     const getLegendStyle = (position: 'bottom' | 'top' | 'left' | 'right' = 'bottom', customOptions: any = {}) => {
@@ -597,6 +615,8 @@ export function useChart(options: UseChartOptions = {}) {
         getAxisLineStyle,
         getSplitLineStyle,
         getAxisLabelStyle,
+        getCompactAxisLabelStyle,
+        formatTooltipValue,
         getAxisTickStyle,
         getAnimationConfig,
         getTooltipStyle,

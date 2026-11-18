@@ -86,6 +86,7 @@ export interface ApiRequestLogRecord {
     elapsedMilliseconds: number
     userId: string | null
     userName: string | null
+    userAvatar: string | null
     departmentId: string | null
     clientIp: string | null
     serverIp: string | null
@@ -753,6 +754,7 @@ export interface ScheduledJobExecution {
     responseBody: string
     status: number
     errorMessage: string
+    durationMs: number
 }
 
 export type ScheduledJobExecutionSearchParams = DynamicQuery & {

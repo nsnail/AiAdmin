@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace AiAdmin.Api.Data;
 
 /// <content>
@@ -9,7 +11,8 @@ public sealed partial class AppDbContext
     /// <summary>
     ///     配置业务实体的表名、字段和索引
     /// </summary>
-    static partial void ConfigureBusinessModel() {
+    /// <param name="modelBuilder">实体模型构建器</param>
+    static partial void ConfigureBusinessModel(ModelBuilder modelBuilder) {
         // ignore
     }
 

@@ -58,7 +58,7 @@ const emit = defineEmits<{
 }>()
 
 // 使用新的图表组件抽象
-const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle } = useChartComponent({
+const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle, formatTooltipValue } = useChartComponent({
     props,
     chartOptions: {
         onInit: (instance) => {
@@ -97,7 +97,8 @@ const { chartRef, isDark, getAnimationConfig, getTooltipStyle, getLegendStyle } 
                 ? getTooltipStyle('item', {
                       formatter: (params: { name: string; value: number; percent: number; data?: { tip?: string } }) => {
                           const tip = params.data?.tip
-                          return `${escapeHtml(params.name)}: ${params.value} (${params.percent}%)${tip ? `<br/><span style="opacity:0.7">${escapeHtml(tip)}</span>` : ''}`
+                          // 数量带千分位，保留完整数字
+                          return `${escapeHtml(params.name)}: ${formatTooltipValue(params.value)} (${params.percent}%)${tip ? `<br/><span style="opacity:0.7">${escapeHtml(tip)}</span>` : ''}`
                       },
                   })
                 : undefined,

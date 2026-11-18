@@ -126,6 +126,21 @@
                 "borderRadius": "Custom radius"
             }
         },
+        "shortcuts": {
+            "title": "Keyboard Shortcuts",
+            "closeCurrentTab": "Close current tab",
+            "closeOtherTabs": "Close other tabs",
+            "closeAllTabs": "Close all tabs",
+            "quickSearch": "Quick search",
+            "recordHint": "Click, then press keys",
+            "recording": "Press a key combination…",
+            "unset": "Not set",
+            "clear": "Clear",
+            "tip": "Click the box and press a key combination to record it. Backspace or Delete clears it and Esc cancels. It must include Ctrl, Alt or Meta.",
+            "needModifier": "A shortcut must include Ctrl, Alt or Meta",
+            "conflict": "This shortcut is already used by \"{name}\"",
+            "browserReserved": "{shortcut} is handled by the browser first and cannot be intercepted, so it may not work"
+        },
         "tabStyle": {
             "default": "Default",
             "card": "Card",
@@ -147,6 +162,18 @@
             "copyFailed": "Copy failed, please try again",
             "resetFailed": "Reset failed, please refresh the page and try again"
         }
+    },
+    "fastEnter": {
+        "quickLinks": "Quick links",
+        "console": { "title": "Console", "description": "System overview and statistics" },
+        "notice": { "title": "Notifications", "description": "View system notifications and inbox messages" },
+        "supportChat": { "title": "Live support", "description": "Ask questions and get answers online" },
+        "settings": { "title": "System settings", "description": "System parameters and basic configuration" },
+        "changeLog": { "title": "Change log", "description": "Version updates and change records" },
+        "login": { "title": "Login" },
+        "register": { "title": "Register" },
+        "forgetPassword": { "title": "Forgot password" },
+        "userCenter": { "title": "User center" }
     },
     "notice": {
         "title": "Notice",
@@ -879,6 +906,7 @@
             "rawData": "Raw data"
         },
         "executionFields": {
+            "duration": "Duration",
             "errorMessage": "Error message",
             "finishedAt": "Finished at",
             "requestMethod": "Request method",
@@ -1270,6 +1298,7 @@
         "searchBar": {
             "reset": "Reset",
             "search": "Search",
+            "mine": "Mine",
             "advancedQuery": "Advanced query",
             "autoApply": {
                 "title": "Auto apply",

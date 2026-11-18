@@ -14,6 +14,7 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">数据库上下文</param>
 /// <param name="lockService">计划作业分布式锁服务</param>
+/// <param name="manualTriggerQueue">手动触发队列</param>
 /// <param name="dataScopeCache">数据权限缓存</param>
 /// <param name="apiPermissionCache">接口权限缓存</param>
 [ApiController]
@@ -22,6 +23,7 @@ namespace AiAdmin.Api.Controllers;
 public sealed class ScheduledJobsController(
     AppDbContext db
     , ScheduledJobLockService lockService
+    , ScheduledJobManualTriggerQueue manualTriggerQueue
     , DataScopeCache dataScopeCache
     , ApiPermissionCache apiPermissionCache) : ControllerBase
 {
@@ -259,7 +261,7 @@ public sealed class ScheduledJobsController(
             .ConfigureAwait(false);
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
                 x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), ServerTime.ToOffset(x.StartedAt), x.RequestUrl, x.RequestMethod
-                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
+                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage, x.DurationMs
             )
         );
         return Ok(
@@ -290,7 +292,7 @@ public sealed class ScheduledJobsController(
         var rows = await query.Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
                 x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), ServerTime.ToOffset(x.StartedAt), x.RequestUrl, x.RequestMethod
-                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage
+                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage, x.DurationMs
             )
         );
         return Ok(
@@ -409,9 +411,8 @@ public sealed class ScheduledJobsController(
             return Conflict(new ApiResponse<object>(409, "Scheduled job is running", null));
         }
 
-        job.LastTriggeredAt = null;
-        job.Status = ScheduledJobStatus.Waiting;
-        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+        // 只登记手动触发请求，由后台调度器在下一秒扫描时跳过 Cron 判断并真正执行
+        await manualTriggerQueue.EnqueueAsync(job.Id).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
     }
 

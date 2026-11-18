@@ -71,6 +71,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { useI18n } from 'vue-i18n'
 import type { ScheduledJobExecution } from '@/api/system-manage'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
@@ -106,9 +107,8 @@ const currentStatus = computed(
         },
 )
 const duration = computed(() => {
-    if (!props.execution?.createdAt) return '-'
-    const milliseconds = Math.max(0, new Date(props.execution.createdAt).getTime() - new Date(props.execution.startedAt).getTime())
-    return t('scheduledJob.executionDetail.durationValue', { value: milliseconds })
+    if (!props.execution) return '-'
+    return t('scheduledJob.executionDetail.durationValue', { value: formatFullNumber(props.execution.durationMs ?? 0) })
 })
 const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')
 const tryFormatJson = (value: string, fallback: string): string => {

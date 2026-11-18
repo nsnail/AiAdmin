@@ -255,6 +255,29 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
+        // 操作日志统计缓存刷新作业：每 4 分钟扫描今天和昨天的日分表并写入缓存，缓存有效期 5 分钟，刷新间隔留有 1 分钟余量，与业务总览一致，默认未启用
+        // 未启用时统计在缓存缺失（最长 5 分钟过期）后由第一次访问当场扫表并写入，页面仍可用，只是该次访问较慢
+        const string refreshRequestStatsJobName = "Refresh dashboard request stats cache";
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == refreshRequestStatsJobName).ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = refreshRequestStatsJobName
+                        , CronExpression = "*/4 * * * *"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/dashboard/request-stats/refresh"
+                        , RequestMethod = "POST"
+                        , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
+                        , RequestBody = "{}"
+                        , Remark
+                            = "Scan the daily API request log tables of today and yesterday and store the dashboard request statistics in the cache so the dashboard only reads the cache. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                        , TimeoutSeconds = 120
+                        , IsEnabled = false
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

@@ -43,6 +43,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { ElButton, ElMessage, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { fetchGetSystemLogs } from '@/api/system-manage'
@@ -266,7 +267,8 @@ const {
                     label: t('systemLog.fields.elapsedMilliseconds'),
                     width: 130,
                     align: 'right',
-                    formatter: (row: Api.SystemManage.SystemLogItem) => (row.elapsedMilliseconds ? `${row.elapsedMilliseconds} ms` : ''),
+                    formatter: (row: Api.SystemManage.SystemLogItem) =>
+                        row.elapsedMilliseconds ? `${formatFullNumber(row.elapsedMilliseconds)} ms` : '',
                 },
                 { prop: 'threadId', label: t('systemLog.fields.threadId'), width: 100, align: 'right' },
                 {

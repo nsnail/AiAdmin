@@ -39,6 +39,8 @@ const {
     chartRef,
     getAxisLineStyle,
     getAxisLabelStyle,
+    getCompactAxisLabelStyle,
+    formatTooltipValue,
     getAxisTickStyle,
     getSplitLineStyle,
     getAnimationConfig,
@@ -53,7 +55,8 @@ const {
         color: props.colors,
         grid: getGridWithLegend(true, props.legendPosition, { top: 15, right: 0, left: 0 }),
         legend: getLegendStyle(props.legendPosition),
-        tooltip: getTooltipStyle(),
+        // 提示框保留完整数字；百分比系列在各自的 tooltip 里单独格式化，优先于这里的全局格式化
+        tooltip: getTooltipStyle('axis', { valueFormatter: formatTooltipValue }),
         xAxis: {
             type: 'category',
             data: props.xAxisData,
@@ -65,7 +68,7 @@ const {
             {
                 type: 'value',
                 minInterval: 1,
-                axisLabel: getAxisLabelStyle(true),
+                axisLabel: getCompactAxisLabelStyle(true),
                 axisLine: getAxisLineStyle(true),
                 splitLine: getSplitLineStyle(true),
             },

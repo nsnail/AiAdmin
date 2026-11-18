@@ -5,6 +5,7 @@
             v-model:column-checks="columnChecks"
             :columns="columns"
             :data="data"
+            :default-filter="defaultFilter"
             :filter-fields="filterFields"
             :filter-groups-fn="filterGroups"
             :loading="loading"
@@ -23,9 +24,10 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import { h } from 'vue'
+import { computed, h } from 'vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
@@ -39,7 +41,7 @@ import {
     type ScheduledJobExecutionSearchParams,
 } from '@/api/system-manage'
 import type { ColumnOption, RowAction } from '@/types/component'
-import { formatDateTime } from '@/utils/date'
+import { formatDateTime, getTodayRange } from '@/utils/date'
 import ScheduledJobExecutionDialog from './scheduled-job-execution-dialog.vue'
 
 const props = defineProps<{
@@ -47,6 +49,11 @@ const props = defineProps<{
     jobId?: string
 }>()
 const { t, locale } = useI18n()
+
+/** 默认筛选：全部执行记录只查今日，数据量大时避免一次扫全表；按作业查看（传入 jobId）时该作业的记录本来就少，不限定日期 */
+const defaultFilter = computed<DynamicFilter | undefined>(() =>
+    props.jobId ? undefined : { field: 'CreatedAt', operator: 'DateRange', value: getTodayRange() },
+)
 const filterFields = ref<ListFilterField[]>([])
 const selectedExecution = ref<ScheduledJobExecution>()
 const detailVisible = ref(false)
@@ -61,6 +68,14 @@ const statusLabel = (status: number): string => t(`scheduledJob.status.${statusM
 const requestMethodTagType = (method: string): 'info' | 'primary' | 'success' | 'danger' | 'warning' =>
     (({ GET: 'success', POST: 'primary', PUT: 'warning', PATCH: 'warning', DELETE: 'danger' })[method.toUpperCase()] as
         'success' | 'primary' | 'warning' | 'danger' | undefined) || 'info'
+/** 响应状态码标签类型：2xx 成功、3xx 主色、4xx 警告、5xx 危险，其余为信息 */
+const statusCodeTagType = (code: number): 'info' | 'primary' | 'success' | 'danger' | 'warning' => {
+    if (code >= 200 && code < 300) return 'success'
+    if (code >= 300 && code < 400) return 'primary'
+    if (code >= 400 && code < 500) return 'warning'
+    if (code >= 500) return 'danger'
+    return 'info'
+}
 const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')
 
 const {
@@ -79,9 +94,18 @@ const {
 } = useTable({
     core: {
         apiFn: (params: ScheduledJobExecutionSearchParams) => fetchScheduledJobExecutions(props.jobId, params),
-        apiParams: { current: 1, size: 20 },
+        apiParams: { current: 1, size: 20, dynamicFilter: defaultFilter.value },
         immediate: false,
         columnsFactory: (): ColumnOption<ScheduledJobExecution>[] => [
+            {
+                prop: 'id',
+                queryField: 'Id',
+                queryValueType: 'number' as const,
+                label: 'ID',
+                width: 160,
+                align: 'left' as const,
+                formatter: (row: ScheduledJobExecution) => h(ArtListIdCell, { id: row.id, createdAt: row.createdAt }),
+            },
             ...(props.jobId
                 ? []
                 : [
@@ -93,7 +117,6 @@ const {
                           width: 160,
                           align: 'left' as const,
                           sortable: true,
-                          formatter: (row: ScheduledJobExecution) => h(ArtListIdCell, { id: row.scheduledJobId, createdAt: row.createdAt }),
                       },
                   ]),
             {
@@ -143,8 +166,22 @@ const {
                 label: t('scheduledJob.executionFields.responseStatusCode'),
                 width: 130,
                 sortable: true,
+                align: 'center' as const,
+                formatter: (row: ScheduledJobExecution) =>
+                    row.responseStatusCode === null || row.responseStatusCode === undefined
+                        ? '-'
+                        : h(ElTag, { effect: 'light', size: 'small', type: statusCodeTagType(row.responseStatusCode) }, () => row.responseStatusCode),
+            },
+            {
+                prop: 'durationMs',
+                queryField: 'DurationMs',
+                queryValueType: 'number' as const,
+                label: t('scheduledJob.executionFields.duration'),
+                width: 120,
+                sortable: true,
                 align: 'right' as const,
-                formatter: (row: ScheduledJobExecution) => row.responseStatusCode ?? '-',
+                formatter: (row: ScheduledJobExecution) =>
+                    t('scheduledJob.executionDetail.durationValue', { value: formatFullNumber(row.durationMs ?? 0) }),
             },
             {
                 prop: 'status',
@@ -153,6 +190,7 @@ const {
                 label: t('scheduledJob.executionFields.status'),
                 width: 130,
                 sortable: true,
+                align: 'center' as const,
                 formatter: (row: ScheduledJobExecution) =>
                     h(ElTag, { effect: 'light', size: 'small', type: statusMap[row.status]?.type || 'info' }, () => statusLabel(row.status)),
             },
@@ -190,7 +228,7 @@ const handleFilterChange = async (dynamicFilter: DynamicFilter | undefined): Pro
 
 onMounted(async () => {
     filterFields.value = await fetchScheduledJobExecutionFilterFields(props.jobId)
-    replaceSearchParams({ current: 1, size: 20, dynamicFilter: undefined })
+    replaceSearchParams({ current: 1, size: 20, dynamicFilter: defaultFilter.value })
     await getData()
 })
 </script>

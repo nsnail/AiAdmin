@@ -8,7 +8,13 @@
         ]"
         @click="go(query)">
         <span class="text-sm text-g-700">{{ title }}</span>
-        <ArtCountTo :decimals="decimals" :duration="1000" :target="value" class="mt-2 text-[26px] font-medium" />
+        <ArtCountTo
+            :compact="decimals === 0"
+            :decimals="decimals"
+            :duration="1000"
+            :target="value"
+            :title="decimals === 0 ? formatFullNumber(value) : undefined"
+            class="mt-2 text-[26px] font-medium" />
         <span class="mt-1 truncate text-xs text-g-600">{{ description }}</span>
         <div class="flex-cc absolute bottom-0 right-5 top-0 m-auto size-12 rounded-xl bg-theme/10">
             <ArtSvgIcon :icon="icon" class="text-xl text-theme" />
@@ -17,6 +23,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { useWidgetLink } from './context'
 
 defineOptions({ name: 'DashboardStatCard' })

@@ -51,10 +51,8 @@
                         <ArtSvgIcon class="text-sm text-g-500" icon="ri:search-line" />
                         <span class="ml-1 text-xs font-normal text-g-500">{{ $t('topBar.search.title') }}</span>
                     </div>
-                    <div class="flex-c h-5 px-1.5 text-g-500/80 border border-g-400 rounded">
-                        <ArtSvgIcon v-if="isWindows" class="text-sm" icon="vaadin:ctrl-a" />
-                        <ArtSvgIcon v-else class="text-xs" icon="ri:command-fill" />
-                        <span class="ml-0.5 text-xs">k</span>
+                    <div v-if="searchShortcutKeys.length" class="flex-c h-5 px-1.5 text-g-500/80 border border-g-400 rounded">
+                        <span class="text-xs">{{ searchShortcutKeys.join('+') }}</span>
                     </div>
                 </div>
 
@@ -131,6 +129,7 @@ import { useRouter } from 'vue-router'
 import { useFullscreen, useWindowSize } from '@vueuse/core'
 import { LanguageEnum, MenuTypeEnum } from '@/enums/appEnum'
 import { useSettingStore } from '@/store/modules/setting'
+import { splitShortcut } from '@/utils/sys/shortcut'
 import { useUserStore } from '@/store/modules/user'
 import { useMenuStore } from '@/store/modules/menu'
 import AppConfig from '@/config'
@@ -143,14 +142,14 @@ import ArtUserMenu from './widget/ArtUserMenu.vue'
 
 defineOptions({ name: 'ArtHeaderBar' })
 
-// 检测操作系统类型
-const isWindows = navigator.userAgent.includes('Windows')
-
 const router = useRouter()
 const { locale } = useI18n()
 const { width } = useWindowSize()
 
 const settingStore = useSettingStore()
+
+// 搜索按钮上展示设置里配置的快捷键，未配置时不展示
+const searchShortcutKeys = computed(() => splitShortcut(settingStore.shortcutQuickSearch))
 const userStore = useUserStore()
 const menuStore = useMenuStore()
 
@@ -196,11 +195,13 @@ onMounted(() => {
     initLanguage()
     document.addEventListener('click', bodyCloseNotice)
     mittBus.on('supportUnreadChange', onSupportUnreadChange)
+    mittBus.on('openNotice', openNotice)
 })
 
 onUnmounted(() => {
     document.removeEventListener('click', bodyCloseNotice)
     mittBus.off('supportUnreadChange', onSupportUnreadChange)
+    mittBus.off('openNotice', openNotice)
 })
 
 /**
@@ -283,9 +284,9 @@ const bodyCloseNotice = (e: any): void => {
 
     const target = e.target as HTMLElement
 
-    // 检查是否点击了通知按钮或通知面板内部
+    // 检查是否点击了通知按钮、通知面板内部，或快速入口浮层（其中的“站内信通知”条目会打开抽屉，点击不能随即把它关掉）
     const isNoticeButton = target.closest('.notice-button')
-    const isNoticePanel = target.closest('.art-notification-panel, .notification-drawer')
+    const isNoticePanel = target.closest('.art-notification-panel, .notification-drawer, .fast-enter-popover')
 
     if (!isNoticeButton && !isNoticePanel) {
         showNotice.value = false
@@ -297,6 +298,14 @@ const bodyCloseNotice = (e: any): void => {
  */
 const visibleNotice = (): void => {
     showNotice.value = !showNotice.value
+}
+
+/**
+ * 打开通知抽屉：通知中心功能被关闭时不响应，避免打开一个没有入口的面板
+ */
+const openNotice = (): void => {
+    if (!shouldShowNotification.value) return
+    showNotice.value = true
 }
 
 /**

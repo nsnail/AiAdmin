@@ -8,6 +8,7 @@
             v-bind="mergedTableProps"
             v-loading="!!loading"
             @cell-contextmenu="handleCellContextMenu"
+            @row-dblclick="handleRowDblclick"
             @selection-change="emit('selection-change', $event)"
             @sort-change="handleSortChange"
             ref="elTableRef">
@@ -190,6 +191,7 @@ import { useCommon } from '@/hooks/core/useCommon'
 import { useTableHeight } from '@/hooks/core/useTableHeight'
 import { useResizeObserver, useWindowSize } from '@vueuse/core'
 import { convertDynamicQueryValue } from '@/utils/json/dynamic-query-value'
+import { findDblclickAction, isInteractiveTarget } from '@/utils/table/rowDblclick'
 import { useI18n } from 'vue-i18n'
 
 defineOptions({ name: 'ArtTable' })
@@ -573,6 +575,24 @@ const handleCellContextMenu = (
         operators: queryTarget?.dataset.queryOperators?.split(',').filter(Boolean) || definition.queryOperators,
         initialValue: value,
     })
+}
+
+/**
+ * 双击行：执行行操作里标记了 dblclick 的操作，没有标记时回退到“查看详情”（key 为 view），都没有的表格不处理。
+ * 使用方自己监听了 row-dblclick 时由使用方负责；在按钮、开关、链接、输入框等控件上的双击不触发
+ * @param row 被双击的行
+ * @param _column 被双击的列
+ * @param event 鼠标事件
+ */
+const handleRowDblclick = (row: Record<string, unknown>, _column: unknown, event: MouseEvent): void => {
+    if (instance?.vnode.props?.onRowDblclick) return
+    if (isInteractiveTarget(event.target as HTMLElement | null)) return
+    const action = findDblclickAction(props.rowActions?.(row))
+    if (!action) return
+
+    // 双击会同时选中文字，执行前清除选区，避免详情打开后页面里残留一段高亮文本
+    window.getSelection()?.removeAllRanges()
+    void runRowAction(action)
 }
 
 /** 当前右键行可用的操作，右键时按行实时计算 */

@@ -14,6 +14,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="ElapsedMilliseconds">请求耗时毫秒数</param>
 /// <param name="UserId">用户主键，字符串形式，未登录时为空</param>
 /// <param name="UserName">用户名，用户已不存在或未登录时为空</param>
+/// <param name="UserAvatar">用户头像地址，用户已不存在或未设置头像时为空</param>
 /// <param name="DepartmentId">所属部门主键，字符串形式</param>
 /// <param name="ClientIp">客户端 IPv4 地址</param>
 /// <param name="ServerIp">服务端 IPv4 地址</param>
@@ -31,6 +32,7 @@ public sealed record ApiRequestLogResult(
     , int ElapsedMilliseconds
     , string? UserId
     , string? UserName
+    , string? UserAvatar
     , string? DepartmentId
     , string? ClientIp
     , string? ServerIp

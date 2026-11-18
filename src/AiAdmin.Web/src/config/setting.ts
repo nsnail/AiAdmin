@@ -85,6 +85,14 @@ export const SETTING_DEFAULT_CONFIG = {
     containerWidth: ContainerWidthEnum.FULL,
     /** 节日日期 */
     festivalDate: '',
+    /** 快捷键：关闭当前标签页，格式见 utils/sys/shortcut.ts，空字符串表示未配置 */
+    shortcutCloseCurrentTab: 'Ctrl+Q',
+    /** 快捷键：关闭其他标签页 */
+    shortcutCloseOtherTabs: '',
+    /** 快捷键：关闭所有标签页 */
+    shortcutCloseAllTabs: '',
+    /** 快捷键：打开顶部快速搜索 */
+    shortcutQuickSearch: 'Ctrl+K',
 }
 
 /**

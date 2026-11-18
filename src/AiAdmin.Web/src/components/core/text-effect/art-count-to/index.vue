@@ -8,6 +8,7 @@
 <script lang="ts" setup>
 import { computed, watch, nextTick, onUnmounted, shallowRef } from 'vue'
 import { useTransition, TransitionPresets } from '@vueuse/core'
+import { formatCompactNumber } from '@/utils/number'
 
 // 类型定义
 interface CountToProps {
@@ -27,6 +28,8 @@ interface CountToProps {
     prefix?: string
     /** 后缀 */
     suffix?: string
+    /** 是否缩写大数字：1000 起用 K、一百万起用 M，开启后忽略小数位数和千分位设置 */
+    compact?: boolean
     /** 缓动函数 */
     easing?: keyof typeof TransitionPresets
     /** 是否禁用动画 */
@@ -70,6 +73,7 @@ const props = withDefaults(defineProps<CountToProps>(), {
     separator: '',
     prefix: '',
     suffix: '',
+    compact: false,
     easing: DEFAULT_EASING,
     disabled: false,
 })
@@ -151,7 +155,10 @@ const formattedValue = computed(() => {
         return `${props.prefix}0${props.suffix}`
     }
 
-    const formattedNumber = formatNumber(value, safeDecimals.value, props.decimal, props.separator)
+    // 缩写时按整数计算：动画中间值先取整再缩写，避免滚动过程中 K 前面的小数位来回抖动
+    const formattedNumber = props.compact
+        ? formatCompactNumber(Math.floor(value))
+        : formatNumber(value, safeDecimals.value, props.decimal, props.separator)
     return `${props.prefix}${formattedNumber}${props.suffix}`
 })
 

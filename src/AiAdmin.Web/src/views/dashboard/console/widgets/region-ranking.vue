@@ -6,7 +6,7 @@
             <div v-for="item in rows" :key="item.name">
                 <div class="mb-1 flex justify-between text-sm">
                     <span class="truncate text-g-800">{{ item.name }}</span>
-                    <span class="text-g-600">{{ item.value }}</span>
+                    <span class="text-g-600">{{ formatFullNumber(item.value) }}</span>
                 </div>
                 <ElProgress :percentage="item.percent" :show-text="false" :stroke-width="6" />
             </div>
@@ -15,6 +15,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDashboardContext } from './context'

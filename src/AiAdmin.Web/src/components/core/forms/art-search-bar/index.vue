@@ -182,6 +182,15 @@
                                     </template>
                                 </ElDropdown>
                                 <ElButton
+                                    v-if="hasOwnerField"
+                                    v-ripple
+                                    :disabled="disabledSearch"
+                                    @click="handleMine"
+                                    class="mine-button in-group"
+                                    type="primary">
+                                    {{ t('table.searchBar.mine') }}
+                                </ElButton>
+                                <ElButton
                                     :aria-label="t('table.searchBar.advancedQuery')"
                                     :disabled="disabledSearch"
                                     @click="advancedQueryVisible = true"
@@ -198,6 +207,15 @@
                                 class="search-button"
                                 type="primary">
                                 {{ t('table.searchBar.search') }}
+                            </ElButton>
+                            <ElButton
+                                v-if="showSearch && hasOwnerField && !advancedQueryFields?.length"
+                                v-ripple
+                                :disabled="disabledSearch"
+                                @click="handleMine"
+                                class="mine-button"
+                                type="primary">
+                                {{ t('table.searchBar.mine') }}
                             </ElButton>
                             <ElBadge
                                 v-if="showReset"
@@ -316,6 +334,7 @@ import {
 } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
 import { translateServerMessage } from '@/utils/i18n/server-message'
+import { formatCompactNumber } from '@/utils/number'
 import ArtApiSelect from '../art-api-select/index.vue'
 import ArtUserSelect from '../art-user-select/index.vue'
 
@@ -487,11 +506,11 @@ const formatGroupPercent = (count: number, total: number): string => {
     return `${percent < 10 ? percent.toFixed(1).replace(/\.0$/, '') : Math.round(percent)}%`
 }
 /**
- * 数量角标的紧凑文本：1000 以上用 k 代替 000，保留一位小数，整数不带 .0，如 9802 显示 9.8k
+ * 数量角标的紧凑文本：1000 以上用 K、一百万以上用 M 代替末尾的 0，保留一位小数，整数不带 .0，如 9802 显示 9.8K、2641872 显示 2.6M
  * @param count 数量
  * @returns 紧凑文本
  */
-const formatGroupCount = (count: number): string => (count < 1000 ? String(count) : `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`)
+const formatGroupCount = (count: number): string => formatCompactNumber(count)
 
 /** 选项容器上下为角标预留的空间（px），折叠高度和溢出判断都要计入 */
 const GROUP_BADGE_SPACE = 6
@@ -1227,6 +1246,34 @@ const handleSearch = () => {
     emit('search', dynamicFilter ? { dynamicFilter } : {})
 }
 
+/** 列表实体带有所有者字段（实现 IOwner 并声明了筛选），且当前用户拥有本人数据以外的数据权限时才显示“我的”按钮 */
+const hasOwnerField = computed(
+    () => userStore.getUserInfo.hasBroadDataScope === true && props.filterFields?.some((field) => field.field === 'OwnerId') === true,
+)
+
+/** 判断筛选树中是否已有“所有者等于当前用户”的条件 */
+const hasOwnerCondition = (filter: DynamicFilter | undefined, userId: string): boolean =>
+    !!filter &&
+    ((filter.field === 'OwnerId' && filter.operator === 'Equal' && String(filter.value) === userId) ||
+        (filter.filters ?? []).some((child) => hasOwnerCondition(child, userId)))
+
+/** “我的”：把当前动态查询条件与 OwnerId = 当前用户 用 And 合并后查询，已含该条件时保持不变 */
+const handleMine = () => {
+    const userId = String(userStore.getUserInfo.userId ?? '')
+    if (!userId) return
+    trimModelStrings(modelValue.value)
+    const basic = getSanitizedOutput()
+    delete basic.dynamicFilter
+    const current = activeAdvancedFilter.value ?? modelValue.value.dynamicFilter ?? queryPreviewToFilter(basic)
+    if (hasOwnerCondition(current, userId)) {
+        applyAdvancedFilter(current)
+        return
+    }
+    const owner: DynamicFilter = { field: 'OwnerId', operator: 'Equal', value: userId }
+    const existing = current ? (current.logic === 'And' && current.filters?.length && !current.field ? current.filters : [current]) : []
+    applyAdvancedFilter({ logic: 'And', filters: [...existing, owner] })
+}
+
 // 每次展开菜单时刷新数据，使高级查询层中新保存的条件立即可用。
 const handleSavedQueryMenuVisible = async (visible: boolean) => {
     if (visible) {
@@ -1444,6 +1491,12 @@ const { span, gutter, labelPosition, labelWidth } = toRefs(props)
                 .search-button {
                     border-top-right-radius: 0;
                     border-bottom-right-radius: 0;
+                }
+
+                // 按钮组中间的“我的”：与相邻按钮以 1px 缝隙相连，两侧无圆角
+                .mine-button.in-group {
+                    margin-left: 1px;
+                    border-radius: 0;
                 }
 
                 .advanced-query-button {

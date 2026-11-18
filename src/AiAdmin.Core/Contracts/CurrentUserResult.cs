@@ -14,6 +14,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="Roles">角色编码集合</param>
 /// <param name="Buttons">权限按钮集合</param>
 /// <param name="Version">并发版本号</param>
+/// <param name="HasBroadDataScope">是否拥有本人数据以外的数据权限，即任一已启用角色的数据范围不是仅本人</param>
 public sealed record CurrentUserResult(
     long UserId
     , string UserName
@@ -23,4 +24,5 @@ public sealed record CurrentUserResult(
     , string? Avatar
     , string[] Roles
     , string[] Buttons
-    , int Version);
+    , int Version
+    , bool HasBroadDataScope);

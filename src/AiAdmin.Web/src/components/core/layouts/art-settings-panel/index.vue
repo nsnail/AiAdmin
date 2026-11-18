@@ -18,6 +18,8 @@
             <ContainerSettings />
             <!-- 基础配置 -->
             <BasicSettings />
+            <!-- 快捷键配置 -->
+            <ShortcutSettings />
             <!-- 操作按钮 -->
             <SettingActions />
         </SettingDrawer>
@@ -36,6 +38,7 @@ import ColorSettings from './widget/ColorSettings.vue'
 import BoxStyleSettings from './widget/BoxStyleSettings.vue'
 import ContainerSettings from './widget/ContainerSettings.vue'
 import BasicSettings from './widget/BasicSettings.vue'
+import ShortcutSettings from './widget/ShortcutSettings.vue'
 import SettingActions from './widget/SettingActions.vue'
 
 defineOptions({ name: 'ArtSettingsPanel' })

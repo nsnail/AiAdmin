@@ -2,7 +2,7 @@
 <template>
     <StatCard
         :decimals="1"
-        :description="t('dashboard.widgets.statSuccessRate.desc', { days, count: summary?.executionsToday ?? 0 })"
+        :description="t('dashboard.widgets.statSuccessRate.desc', { days, count: formatFullNumber(summary?.executionsToday ?? 0) })"
         :loading="loading"
         :query="{ tab: 'executions' }"
         :title="t('dashboard.widgets.statSuccessRate.title')"
@@ -12,6 +12,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDashboardContext } from './context'

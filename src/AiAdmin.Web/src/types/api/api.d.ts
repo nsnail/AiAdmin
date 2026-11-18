@@ -150,6 +150,8 @@ declare namespace Api {
             phone: string
             gender: 1 | 2
             avatar?: string
+            /** 是否拥有本人数据以外的数据权限 */
+            hasBroadDataScope?: boolean
         }
 
         /** 当前用户资料更新参数 */

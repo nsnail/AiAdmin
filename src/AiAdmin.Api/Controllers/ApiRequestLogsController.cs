@@ -295,24 +295,25 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
         // CRC32 可能碰撞或同一路径对应多个 HTTP 方法，取第一条即可，名称仅用于展示
         var apiByCrc = apis.GroupBy(x => x.PathCrc32).ToDictionary(x => x.Key, x => x.First());
         var userIds = logs.Where(x => x.UserId.HasValue).Select(x => x.UserId!.Value).Distinct().ToList();
-        var userNames = await db
+        var users = await db
             .Users.AsNoTracking()
             .Where(x => userIds.Contains(x.Id))
-            .ToDictionaryAsync(x => x.Id, x => x.UserName, HttpContext.RequestAborted)
+            .Select(x => new { x.Id, x.UserName, x.Avatar })
+            .ToDictionaryAsync(x => x.Id, HttpContext.RequestAborted)
             .ConfigureAwait(false);
         return
         [
             .. logs.Select(log =>
                 {
                     _ = apiByCrc.TryGetValue(log.PathCrc32, out var api);
-                    var userName = log.UserId.HasValue && userNames.TryGetValue(log.UserId.Value, out var name) ? name : null;
+                    var user = log.UserId.HasValue && users.TryGetValue(log.UserId.Value, out var found) ? found : null;
                     return new ApiRequestLogResult(
                         log.Id.ToString(CultureInfo.InvariantCulture), ServerTime.ToOffset(log.CreatedAt), ToMethodName(log.Method), api?.Path
                         , api?.Name
                         , log.PathCrc32, log.StatusCode, log.ApiResponseCode, log.ElapsedMilliseconds
                         , log.UserId?.ToString(CultureInfo.InvariantCulture)
-                        , userName, log.DepartmentId?.ToString(CultureInfo.InvariantCulture), ToIpText(log.ClientIp), ToIpText(log.ServerIp)
-                        , log.TraceId.ToString(CultureInfo.InvariantCulture), log.WorkerId
+                        , user?.UserName, user?.Avatar, log.DepartmentId?.ToString(CultureInfo.InvariantCulture), ToIpText(log.ClientIp)
+                        , ToIpText(log.ServerIp), log.TraceId.ToString(CultureInfo.InvariantCulture), log.WorkerId
                     );
                 }
             )

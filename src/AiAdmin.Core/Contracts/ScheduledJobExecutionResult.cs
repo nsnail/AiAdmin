@@ -18,6 +18,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="ResponseBody">响应体</param>
 /// <param name="Status">执行状态</param>
 /// <param name="ErrorMessage">错误信息</param>
+/// <param name="DurationMs">执行耗时，单位毫秒</param>
 public sealed record ScheduledJobExecutionResult(
     long Id
     , long ScheduledJobId
@@ -31,4 +32,5 @@ public sealed record ScheduledJobExecutionResult(
     , string ResponseHeaders
     , string ResponseBody
     , ScheduledJobStatus Status
-    , string ErrorMessage);
+    , string ErrorMessage
+    , long DurationMs);

@@ -476,7 +476,7 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
             }
         );
 
-        ConfigureBusinessModel();
+        ConfigureBusinessModel(modelBuilder);
         ApplyOwnerQueryFilters(modelBuilder);
     }
 
@@ -524,7 +524,8 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
     /// <summary>
     ///     业务实体模型配置扩展点，由 AppDbContext.Business.cs 实现
     /// </summary>
-    static partial void ConfigureBusinessModel();
+    /// <param name="modelBuilder">实体模型构建器</param>
+    static partial void ConfigureBusinessModel(ModelBuilder modelBuilder);
 
     /// <summary>
     ///     将数据权限开关包装为 EF.Constant，使其作为常量内联进 SQL 而不是参数：

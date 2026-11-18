@@ -1,7 +1,12 @@
 <!-- 指标卡片：用户总数 -->
 <template>
     <StatCard
-        :description="t('dashboard.widgets.statUsers.desc', { enabled: summary?.enabledUsers ?? 0, added: summary?.newUsersToday ?? 0 })"
+        :description="
+            t('dashboard.widgets.statUsers.desc', {
+                enabled: formatFullNumber(summary?.enabledUsers ?? 0),
+                added: formatFullNumber(summary?.newUsersToday ?? 0),
+            })
+        "
         :loading="loading"
         :title="t('dashboard.widgets.statUsers.title')"
         :value="summary?.totalUsers ?? 0"
@@ -10,6 +15,7 @@
 </template>
 
 <script lang="ts" setup>
+import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDashboardContext } from './context'
