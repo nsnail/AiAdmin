@@ -1,0 +1,91 @@
+# MySQL 告警规则：连接使用率与行锁等待。由 Grafana 文件方式加载，修改后重启 Grafana 或等待自动重载生效
+# 数据源 uid 与 provisioning/datasources/prometheus.yml 里创建的 Prometheus 对应，若数据源被重建需同步修改
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: mysql
+    folder: AiAdmin
+    interval: 1m
+    rules:
+      # 连接使用率 = 当前连接数 / max_connections，持续高于 80% 说明连接池接近耗尽，连接排队会直接拖慢所有接口
+      - uid: mysql-connection-usage-high
+        title: MySQL 连接使用率过高
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              refId: A
+              expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections * 100
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: dropNN }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [80] }
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 3m
+        annotations:
+          summary: MySQL 连接使用率 {{ printf "%.1f" $values.B.Value }}%，超过 80%
+          description: 当前连接数接近 max_connections。先看应用侧连接池是否被慢请求或锁等待占满，再看 MySQL 的 PROCESSLIST 与 INNODB_TRX
+        labels:
+          severity: warning
+          service: mysql
+        isPaused: false
+
+      # 行锁等待：当前有事务在等行锁。偶发短暂等待是正常的，持续存在说明有事务互相阻塞，容易拖满连接池
+      - uid: mysql-row-lock-waiting
+        title: MySQL 行锁持续等待
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange: { from: 600, to: 0 }
+            datasourceUid: PBFA97CFB590B2093
+            model:
+              refId: A
+              expr: mysql_global_status_innodb_row_lock_current_waits
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              settings: { mode: dropNN }
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }
+        noDataState: Alerting
+        execErrState: Alerting
+        for: 2m
+        annotations:
+          summary: 有 {{ printf "%.0f" $values.B.Value }} 个事务正在等待行锁，已持续 2 分钟以上
+          description: 查 information_schema.INNODB_TRX 与 performance_schema.data_locks 找出持锁事务；若集中在 tg_callback，优先检查回调领取与批量写入
+        labels:
+          severity: warning
+          service: mysql
+        isPaused: false

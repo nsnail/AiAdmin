@@ -52,6 +52,21 @@ public sealed class ScheduledJobHostedService(
     }
 
     /// <summary>
+    ///     生成报警通知中的错误说明：优先使用错误信息，没有时回退为响应状态码
+    /// </summary>
+    /// <param name="execution">本次执行记录</param>
+    /// <returns>错误说明，没有错误时为空字符串</returns>
+    private static string DescribeError(ScheduledJobExecution execution) {
+        if (!string.IsNullOrWhiteSpace(execution.ErrorMessage)) {
+            return execution.ErrorMessage;
+        }
+
+        return execution.Status == ScheduledJobStatus.Success || execution.ResponseStatusCode is null
+            ? string.Empty
+            : $"HTTP {execution.ResponseStatusCode}";
+    }
+
+    /// <summary>
     ///     使用字典值替换文本中的占位符
     /// </summary>
     /// <param name="value">待处理文本</param>
@@ -131,13 +146,44 @@ public sealed class ScheduledJobHostedService(
                                   ?? throw new InvalidOperationException("Unable to acquire scheduled job lock");
 
         await db.Entry(job).ReloadAsync(CancellationToken.None).ConfigureAwait(false);
+        string? alertText = null;
         if (job.Status == ScheduledJobStatus.Running && job.LastTriggeredAt == triggeredAt) {
             job.Status = execution.Status;
             job.LastFinishedAt = DateTime.UtcNow;
             job.LastError = execution.ErrorMessage;
+            alertText = ScheduledJobAlertService.Prepare(job, execution.Status, execution.DurationMs, DescribeError(execution), true);
         }
 
         _ = await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
+
+        // 通知在保存之后发送，发送失败只记录日志，不影响作业结果
+        if (alertText is not null) {
+            await scope
+                .ServiceProvider.GetRequiredService<ScheduledJobAlertService>()
+                .NotifyAsync(alertText, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     清理已不存在的作业残留的手动触发请求，避免集合无限增长
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <param name="pending">待处理的手动触发作业 ID 集合</param>
+    /// <param name="pendingIds">待处理的手动触发作业 ID 列表，用于 EF Core 翻译</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>异步清理任务</returns>
+    private async Task RemoveStaleManualTriggersAsync(
+        AppDbContext db
+        , HashSet<long> pending
+        , List<long> pendingIds
+        , CancellationToken cancellationToken
+    ) {
+        var existingIds
+            = await db.ScheduledJobs.Where(x => pendingIds.Contains(x.Id)).Select(x => x.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var staleId in pending.Except(existingIds)) {
+            await manualTriggerQueue.RemoveAsync(staleId).ConfigureAwait(false);
+        }
     }
 
     /// <summary>
@@ -205,46 +251,56 @@ public sealed class ScheduledJobHostedService(
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var now = DateTime.UtcNow;
         var pending = await manualTriggerQueue.GetPendingAsync().ConfigureAwait(false);
         var pendingIds = pending.ToList();
         var jobs = await db
             .ScheduledJobs.Where(x => (x.IsEnabled || pendingIds.Contains(x.Id)) && x.Status != ScheduledJobStatus.Running)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        await RemoveStaleManualTriggersAsync(db, pending, pendingIds, cancellationToken).ConfigureAwait(false);
 
-        // 已不存在的作业残留的手动请求直接清理，避免集合无限增长
-        var existingIds
-            = await db.ScheduledJobs.Where(x => pendingIds.Contains(x.Id)).Select(x => x.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
-        foreach (var staleId in pending.Except(existingIds)) {
-            await manualTriggerQueue.RemoveAsync(staleId).ConfigureAwait(false);
-        }
-
-        foreach (var job in jobs.Where(x => ShouldTrigger(x, now, pending.Contains(x.Id)))) {
-            await using (var jobLock = await lockService.TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken).ConfigureAwait(false)) {
-                if (jobLock is null) {
-                    continue;
-                }
-
-                await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
-                now = DateTime.UtcNow;
-                var manual = (await manualTriggerQueue.GetPendingAsync().ConfigureAwait(false)).Contains(job.Id);
-                if (!ShouldTrigger(job, now, manual)) {
-                    continue;
-                }
-
-                if (manual) {
-                    await manualTriggerQueue.RemoveAsync(job.Id).ConfigureAwait(false);
-                }
-
-                job.Status = ScheduledJobStatus.Running;
-                job.LastTriggeredAt = now;
-                _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var job in jobs.Where(x => ShouldTrigger(x, DateTime.UtcNow, pending.Contains(x.Id)))) {
+            if (!await TryClaimJobAsync(db, job, cancellationToken).ConfigureAwait(false)) {
+                continue;
             }
 
             // 作业脱离扫描循环独立运行，由 Track 在发起点同步登记，避免“已发起但未登记”的空窗
             var jobId = job.Id;
             ShutdownGate.Track(ShutdownActivity.Job, () => ExecuteJobAsync(jobId, cancellationToken));
         }
+    }
+
+    /// <summary>
+    ///     在分布式锁保护下复核并认领作业，成功后将其标记为运行中
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <param name="job">待认领的作业</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>认领成功返回 true，未获得锁或复核后无需触发返回 false</returns>
+    private async Task<bool> TryClaimJobAsync(
+        AppDbContext db
+        , ScheduledJob job
+        , CancellationToken cancellationToken
+    ) {
+        await using var jobLock = await lockService.TryAcquireAsync(job.Id, TimeSpan.Zero, cancellationToken).ConfigureAwait(false);
+        if (jobLock is null) {
+            return false;
+        }
+
+        await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
+        var now = DateTime.UtcNow;
+        var manual = (await manualTriggerQueue.GetPendingAsync().ConfigureAwait(false)).Contains(job.Id);
+        if (!ShouldTrigger(job, now, manual)) {
+            return false;
+        }
+
+        if (manual) {
+            await manualTriggerQueue.RemoveAsync(job.Id).ConfigureAwait(false);
+        }
+
+        job.Status = ScheduledJobStatus.Running;
+        job.LastTriggeredAt = now;
+        _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return true;
     }
 }

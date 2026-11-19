@@ -19,7 +19,11 @@ public sealed partial class AppDbContext
     /// <summary>
     ///     保存前按任务状态同步所有新增和修改任务的非终态唯一键
     /// </summary>
-    static partial void PrepareBusinessSaveChanges() {
-        // ingore
+    // 框架声明为实例方法，业务实现需要访问上下文；空实现不访问实例数据，仅在此处抑制 CA1822
+    // ReSharper disable once MemberCanBeMadeStatic.Local
+    #pragma warning disable CA1822
+    partial void PrepareBusinessSaveChanges() {
+        // ignore
     }
+    #pragma warning restore CA1822
 }

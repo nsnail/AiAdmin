@@ -1,0 +1,24 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: aiadmin-api
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:6678"]
+        labels: { instance: api-a }
+      - targets: ["host.docker.internal:6680"]
+        labels: { instance: api-b }
+
+  - job_name: mysql
+    static_configs:
+      - targets: ["mysqld-exporter:9104"]
+        labels: { instance: mysql-172.16.5.104 }
+
+  # 服务器性能采样：两台机器上均已运行 node_exporter（9100），通过内网地址抓取；web 服务器同时也是监控栈所在机器
+  - job_name: node
+    static_configs:
+      - targets: ["172.16.5.105:9100"]
+        labels: { instance: web-172.16.5.105, role: web }
+      - targets: ["172.16.5.104:9100"]
+        labels: { instance: db-172.16.5.104, role: db }

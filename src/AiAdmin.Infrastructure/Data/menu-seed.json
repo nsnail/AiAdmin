@@ -263,6 +263,29 @@
           "icon": "ri:database-2-line",
           "keepAlive": true
         }
+      },
+      {
+        "path": "alert-monitor",
+        "name": "AlertMonitorManagement",
+        "component": "/system/alert-monitor",
+        "meta": {
+          "title": "menus.system.alertMonitor",
+          "icon": "ri:alarm-warning-line",
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Delete",
+              "authMark": "delete"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
+            }
+          ],
+          "roles": [
+            "R_SUPER"
+          ]
+        }
       }
     ]
   },

@@ -1,0 +1,64 @@
+# 监控栈：Prometheus 抓取 api-a / api-b 的 /metrics，Grafana 展示；独立于业务 Compose 项目，互不影响发布
+services:
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+    extra_hosts:
+      # 业务实例端口发布在宿主机上，容器通过宿主网关访问
+      - "host.docker.internal:host-gateway"
+    environment:
+      TZ: Asia/Shanghai
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      # Prometheus 无鉴权，仅绑定本机回环，由 Grafana 通过内部网络访问
+      - "127.0.0.1:9090:9090"
+
+  # MySQL 指标：只读的 exporter 账号连接 172.16.5.104，账号密码放在 600 权限的 mysqld-exporter.cnf，不进 compose 文件
+  mysqld-exporter:
+    image: prom/mysqld-exporter:v0.17.2
+    restart: unless-stopped
+    user: "65534:65534"
+    command:
+      - --config.my-cnf=/etc/mysqld-exporter.cnf
+      - --collect.info_schema.tables
+      - --collect.info_schema.tables.databases=aiadmin
+      - --no-collect.slave_status
+    volumes:
+      - ./mysqld-exporter.cnf:/etc/mysqld-exporter.cnf:ro
+    environment:
+      TZ: Asia/Shanghai
+    # 只在监控栈内部网络暴露 9104，不发布到宿主机
+    expose:
+      - "9104"
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      TZ: Asia/Shanghai
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      # 通过网关域名访问，分享链接与告警链接使用该地址
+      GF_SERVER_ROOT_URL: https://th-monitor.ccgm.top
+      # 允许被后台菜单以 iframe 嵌入
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+      # 告警通知到 Telegram 群：Token 放在 .env，由 provisioning/alerting/contact-points.yml 引用
+      TG_BOT_TOKEN: ${TG_BOT_TOKEN:?TG_BOT_TOKEN is required}
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+
+volumes:
+  prometheus-data:
+  grafana-data:

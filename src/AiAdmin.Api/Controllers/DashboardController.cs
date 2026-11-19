@@ -185,19 +185,18 @@ public sealed class DashboardController(AppDbContext db, SystemInfoService syste
     /// <summary>
     ///     查询操作日志统计：今日与昨日按小时的访问量对比，以及今日各接口的请求占比，只扫描今天和昨天两天的日表
     /// </summary>
-    /// <param name="offsetMinutes">客户端相对 UTC 的时区偏移分钟数，用于按本地日期和小时分组</param>
     /// <returns>操作日志统计结果</returns>
     /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
     [HttpGet("request-stats")]
     [ApiDescription("Query dashboard request statistics")]
-    public async Task<ActionResult<ApiResponse<DashboardRequestStatsResult>>> RequestStatsAsync([FromQuery] int offsetMinutes = 0) {
+    public async Task<ActionResult<ApiResponse<DashboardRequestStatsResult>>> RequestStatsAsync() {
         // 操作日志包含全部用户的访问记录，与操作日志页一致，只允许全部数据权限查看
         if (!db.DataScope.HasAllData) {
             throw new DataAccessDeniedException();
         }
 
-        // 统计结果与用户无关，计划作业定时预热缓存，页面只读缓存；缓存缺失时当场计算一次
-        var result = await requestStatsCache.GetOrBuildAsync(offsetMinutes, HttpContext.RequestAborted).ConfigureAwait(false);
+        // 统计结果与用户无关，只由计划作业刷新缓存，页面只读缓存；缓存缺失时返回空结果，不会当场扫表
+        var result = await requestStatsCache.GetAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         return Ok(ApiResponse<DashboardRequestStatsResult>.Ok(result));
     }
 

@@ -17,6 +17,7 @@ export type DynamicFilter = {
 export interface BusinessListFilterResources {}
 
 export type ListFilterResource =
+    | 'alert-monitor'
     | 'api-endpoint'
     | 'api-request-log'
     | 'department'
@@ -125,7 +126,8 @@ export interface LoginLogRecord {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface BusinessEnabledStateResources {}
 
-export type EnabledStateResource = 'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job' | keyof BusinessEnabledStateResources
+export type EnabledStateResource =
+    'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job' | 'alert-monitor' | keyof BusinessEnabledStateResources
 
 /**
  * 启用状态资源对应的接口地址，每个资源使用自己的接口，便于在角色里单独授权
@@ -138,6 +140,7 @@ export const enabledStateUrls: Record<string, string> = {
     department: '/api/department/enabled',
     'dictionary-item': '/api/dictionary/items/enabled',
     'scheduled-job': '/api/scheduled-job/enabled',
+    'alert-monitor': '/api/alert-monitor/enabled',
 }
 
 export interface RedisServerInfo {
@@ -663,6 +666,63 @@ export function fetchDeleteMenu(id: string) {
     return request.post<void>({ url: '/api/menu/delete', data: { id }, showSuccessMessage: true })
 }
 
+/** 告警监控：来源 1 字典 2 Redis，指标 1 值 2 长度，比较类型 1 数字 2 字符串，操作符 1-10 */
+export interface AlertMonitorInfo {
+    id: string
+    createdAt: string
+    name: string
+    source: number
+    categoryCode: string
+    target: string
+    metric: number
+    valueType: number
+    operator: number
+    threshold: string
+    caseSensitive: boolean
+    mentions: string
+    remark: string
+    isEnabled: boolean
+    alertActive: boolean
+    alertedAt: string | null
+    lastValue: string
+    lastMessage: string
+    lastCheckedAt: string | null
+    updatedAt: string | null
+}
+
+/** 告警监控保存参数，新增不传 id */
+export type SaveAlertMonitor = Pick<
+    AlertMonitorInfo,
+    | 'name'
+    | 'source'
+    | 'categoryCode'
+    | 'target'
+    | 'metric'
+    | 'valueType'
+    | 'operator'
+    | 'threshold'
+    | 'caseSensitive'
+    | 'mentions'
+    | 'remark'
+    | 'isEnabled'
+> & { id?: string }
+
+export function fetchGetAlertMonitorList(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<AlertMonitorInfo>>({ url: '/api/alert-monitor/list', data: params })
+}
+
+export function fetchCreateAlertMonitor(data: SaveAlertMonitor) {
+    return request.post<AlertMonitorInfo>({ url: '/api/alert-monitor', data, showSuccessMessage: true })
+}
+
+export function fetchUpdateAlertMonitor(data: SaveAlertMonitor) {
+    return request.post<AlertMonitorInfo>({ url: '/api/alert-monitor/update', data, showSuccessMessage: true })
+}
+
+export function fetchDeleteAlertMonitors(ids: string[]) {
+    return request.post<{ count: number }>({ url: '/api/alert-monitor/delete', data: { ids }, showSuccessMessage: true })
+}
+
 export function fetchGetDictionaryCategories() {
     return request.get<Api.SystemManage.DictionaryCategory[]>({ url: '/api/dictionary/categories' })
 }
@@ -738,6 +798,11 @@ export interface ScheduledJob {
     lastFinishedAt: string | null
     lastError: string
     successRate: number
+    alertEnabled: boolean
+    alertOnFailure: boolean
+    alertOverSeconds: number
+    alertMentions: string
+    alertActive: boolean
 }
 
 export interface ScheduledJobExecution {
@@ -767,8 +832,26 @@ export type ScheduledJobExecutionSearchParams = DynamicQuery & {
 
 export type SaveScheduledJob = Pick<
     ScheduledJob,
-    'name' | 'cronExpression' | 'requestUrl' | 'requestMethod' | 'requestHeadersJson' | 'requestBody' | 'remark' | 'timeoutSeconds' | 'isEnabled'
+    | 'name'
+    | 'cronExpression'
+    | 'requestUrl'
+    | 'requestMethod'
+    | 'requestHeadersJson'
+    | 'requestBody'
+    | 'remark'
+    | 'timeoutSeconds'
+    | 'isEnabled'
+    | 'alertEnabled'
+    | 'alertOnFailure'
+    | 'alertOverSeconds'
+    | 'alertMentions'
 >
+
+export type BatchScheduledJobAlert = Pick<ScheduledJob, 'alertEnabled' | 'alertOnFailure' | 'alertOverSeconds' | 'alertMentions'>
+
+export function fetchBatchUpdateScheduledJobAlert(ids: string[], alert: BatchScheduledJobAlert) {
+    return request.post<{ affected: number }>({ url: '/api/scheduled-job/batch-alert', data: { ids, ...alert }, showSuccessMessage: true })
+}
 
 export function fetchBatchUpdateScheduledJobRemark(ids: string[], remark: string) {
     return request.post<{ affected: number }>({ url: '/api/scheduled-job/batch-remark', data: { ids, remark }, showSuccessMessage: true })

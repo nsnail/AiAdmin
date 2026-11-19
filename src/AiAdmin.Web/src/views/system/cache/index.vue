@@ -86,6 +86,7 @@
                 }}</ElButton></template
             >
         </ElDrawer>
+        <AlertMonitorQuickAdd ref="monitorAdder" />
     </div>
 </template>
 
@@ -93,6 +94,8 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import type { RowAction } from '@/types/component'
+import AlertMonitorQuickAdd from '@/views/system/alert-monitor/modules/alert-monitor-quick-add.vue'
+import type { SaveAlertMonitor } from '@/api/system-manage'
 import {
     fetchDeleteRedisValue,
     fetchGetRedisItems,
@@ -233,6 +236,7 @@ const rowActions = (row: { key: string; type: string }): RowAction[] => {
     if (row.type === 'String') {
         actions.push({ key: 'edit', label: t('redisCache.actions.edit'), icon: 'ri:pencil-line', onClick: () => openDialog(row.key) })
     }
+    actions.push({ key: 'monitor', label: t('alertMonitor.quickAdd.action'), icon: 'ri:alarm-warning-line', onClick: () => addMonitor(row) })
     actions.push({
         key: 'delete',
         label: t('redisCache.actions.delete'),
@@ -241,6 +245,20 @@ const rowActions = (row: { key: string; type: string }): RowAction[] => {
         onClick: () => deleteKey(row.key),
     })
     return actions
+}
+const monitorAdder = ref<{ open: (values: Partial<SaveAlertMonitor>) => void }>()
+
+/** 为当前缓存键添加监控：预填来源为 Redis 和缓存键；字符串默认监控值，集合类型没有可比较的值，默认监控长度 */
+const addMonitor = (row: { key: string; type: string }): void => {
+    const isString = row.type === 'String'
+    monitorAdder.value?.open({
+        source: 2,
+        target: row.key,
+        metric: isString ? 1 : 2,
+        valueType: isString ? 2 : 1,
+        operator: isString ? 5 : 1,
+        name: row.key.slice(0, 100),
+    })
 }
 const deleteKey = async (key: string) => {
     await ElMessageBox.confirm(t('redisCache.messages.confirmDelete', { key }), t('redisCache.actions.delete'), { type: 'warning' })

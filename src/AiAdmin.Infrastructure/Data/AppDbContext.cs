@@ -18,6 +18,11 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
     : DbContext(options)
 {
     /// <summary>
+    ///     告警监控实体集合
+    /// </summary>
+    public DbSet<AlertMonitor> AlertMonitors => Set<AlertMonitor>();
+
+    /// <summary>
     ///     接口实体集合
     /// </summary>
     public DbSet<ApiEndpoint> ApiEndpoints => Set<ApiEndpoint>();
@@ -365,6 +370,29 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
             }
         );
 
+        _ = modelBuilder.Entity<AlertMonitor>(entity =>
+            {
+                _ = entity.ToTable("sys_alert_monitor");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
+                _ = entity.Property(x => x.Target).HasMaxLength(500).IsRequired();
+                _ = entity.Property(x => x.CategoryCode).HasMaxLength(100);
+                _ = entity.Property(x => x.Threshold).HasMaxLength(1000);
+                _ = entity.Property(x => x.Mentions).HasMaxLength(500);
+                _ = entity.Property(x => x.Remark).HasMaxLength(500);
+                _ = entity.Property(x => x.LastValue).HasMaxLength(1000);
+                _ = entity.Property(x => x.LastMessage).HasMaxLength(500);
+                _ = entity.Property(x => x.Source).HasConversion<int>();
+                _ = entity.Property(x => x.ValueType).HasConversion<int>();
+                _ = entity.Property(x => x.Metric).HasConversion<int>();
+                _ = entity.Property(x => x.Operator).HasConversion<int>();
+
+                // 扫描作业只读已启用的监控
+                _ = entity.HasIndex(x => x.IsEnabled);
+            }
+        );
+
         _ = modelBuilder.Entity<ScheduledJobExecution>(entity =>
             {
                 _ = entity.ToTable("sys_scheduled_job_execution");
@@ -538,11 +566,6 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
     }
 
     /// <summary>
-    ///     业务保存前处理扩展点，由 AppDbContext.Business.cs 实现
-    /// </summary>
-    static partial void PrepareBusinessSaveChanges();
-
-    /// <summary>
     ///     为所有实现 IOwner 的实体统一追加数据权限查询过滤，业务实体无需再各自声明
     ///     规则：未初始化数据权限（后台任务、设备上报等无登录用户场景）或拥有全部数据权限时不过滤；
     ///     否则仅返回所有者是自己（本人数据权限）或所有者部门在授权部门内的数据，所有者或部门为空的数据不会命中
@@ -615,6 +638,11 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
         );
         return Expression.Lambda(body, entity);
     }
+
+    /// <summary>
+    ///     业务保存前处理扩展点，由 AppDbContext.Business.cs 实现
+    /// </summary>
+    partial void PrepareBusinessSaveChanges();
 
     /// <summary>
     ///     根据实体状态维护创建时间和最后更新时间

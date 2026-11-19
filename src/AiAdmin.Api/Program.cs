@@ -136,11 +136,16 @@ builder.Services.AddSingleton<DashboardRequestStatsCache>();
 builder.Services.AddScoped<ApiDocumentationService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DictionarySnapshotService>();
+builder.Services.AddScoped<ScheduledJobAlertService>();
+builder.Services.AddScoped<AlertMonitorScanService>();
 builder.Services.AddScoped<ExportLimitService>();
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddSingleton<CredentialProtectionService>();
 builder.Services.AddSingleton<MinioStorageService>();
 builder.Services.AddHttpClient();
+
+// 外部请求的超时由调用方的取消令牌控制（如计划作业的 TimeoutSeconds），客户端自身只保留略大于作业上限（86400 秒）的兜底，避免默认 100 秒提前中断
+builder.Services.AddHttpClient(ExternalHttpRequestService.CLIENT_NAME, client => client.Timeout = TimeSpan.FromSeconds(86460));
 builder.Services.AddTransient<ExternalHttpRequestService>();
 if (enabledHostedServices) {
     _ = builder.Services.AddHostedService<ScheduledJobHostedService>();
@@ -216,6 +221,20 @@ app.MapControllers();
 // 健康检查：匿名可访问，不在 /api 下因此不产生请求日志；安全停机闸门关闭后由 ShutdownGateMiddleware 直接返回 503，网关据此摘除实例
 _ = app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 
+// 就绪检查：匿名可访问，不在 /api 下因此不产生请求日志；真正访问一次数据库和 Redis 并返回耗时，滚动发布据此判断新实例的连接池是否已预热、能否承接流量
+// 依赖不可用或超过 3 秒无应答时返回 503；安全停机闸门关闭后同样由 ShutdownGateMiddleware 直接返回 503
+_ = app.MapGet(
+    "/ready", async (
+        AppDbContext db
+        , IConnectionMultiplexer redis
+        , CancellationToken cancellationToken
+    ) =>
+    {
+        var result = await ReadinessProbe.CheckAsync(db, redis, cancellationToken).ConfigureAwait(false);
+        return Results.Json(result, statusCode: result.Ready ? StatusCodes.Status200OK : StatusCodes.Status503ServiceUnavailable);
+    }
+);
+
 // Prometheus 指标抓取端点：匿名可访问，不在 /api 下因此不产生请求日志，网关不应对公网转发该路径，仅允许内网 Prometheus 访问 API 端口抓取
 _ = app.MapMetrics();
 
@@ -262,8 +281,8 @@ static void ConfigureProvider(
     {
         "sqlite" => options.UseSqlite(connectionString, sqliteOptions => sqliteOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
         , "sqlserver" => options.UseSqlServer(connectionString, sqlOptions => sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery))
-        , "mysql" => options.UseMySQL(
-            connectionString, mysqlOptions =>
+        , "mysql" => options.UseMySql(
+            connectionString, new MySqlServerVersion(new Version(8, 0, 46)), mysqlOptions =>
             {
                 _ = mysqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
 

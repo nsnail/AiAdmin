@@ -27,6 +27,9 @@
                 <ElButton v-ripple :disabled="selectedRows.length === 0" @click="openRemarkDialog">{{
                     t('scheduledJob.actions.batchRemark')
                 }}</ElButton>
+                <ElButton v-ripple :disabled="selectedRows.length === 0" @click="openAlertDialog">{{
+                    t('scheduledJob.actions.batchAlert')
+                }}</ElButton>
                 <ElButton v-ripple @click="openDialog()">{{ t('scheduledJob.actions.create') }}</ElButton>
             </template>
         </ArtTablePage>
@@ -35,6 +38,41 @@
             <template #footer>
                 <ElButton @click="remarkDialogVisible = false">{{ t('scheduledJob.actions.close') }}</ElButton>
                 <ElButton :loading="batchRemarkSaving" @click="saveBatchRemark" type="primary">{{ t('scheduledJob.actions.save') }}</ElButton>
+            </template>
+        </ElDialog>
+        <ElDialog v-model="alertDialogVisible" :title="t('scheduledJob.actions.batchAlert')" destroy-on-close width="520px">
+            <ElForm label-width="140px">
+                <ElFormItem :label="t('scheduledJob.alert.enabled')">
+                    <ElSwitch v-model="batchAlert.alertEnabled" />
+                </ElFormItem>
+                <template v-if="batchAlert.alertEnabled">
+                    <ElFormItem :label="t('scheduledJob.alert.onFailure')">
+                        <ElSwitch v-model="batchAlert.alertOnFailure" />
+                    </ElFormItem>
+                    <ElFormItem :label="t('scheduledJob.alert.overSeconds')">
+                        <ElInputNumber v-model="batchAlert.alertOverSeconds" :max="86400" :min="0" controls-position="right" />
+                    </ElFormItem>
+                    <ElFormItem :label="t('scheduledJob.alert.mentions')">
+                        <ElInput
+                            v-model="batchAlert.alertMentions"
+                            :placeholder="t('scheduledJob.alert.mentionsPlaceholder')"
+                            maxlength="500"
+                            show-word-limit />
+                    </ElFormItem>
+                    <ElAlert
+                        v-if="!batchAlert.alertOnFailure && !batchAlert.alertOverSeconds"
+                        :closable="false"
+                        class="mb-3"
+                        show-icon
+                        type="warning">
+                        {{ t('scheduledJob.alert.noTrigger') }}
+                    </ElAlert>
+                </template>
+                <ElAlert :closable="false" show-icon type="info">{{ t('scheduledJob.alert.batchHint', { count: selectedRows.length }) }}</ElAlert>
+            </ElForm>
+            <template #footer>
+                <ElButton @click="alertDialogVisible = false">{{ t('scheduledJob.actions.close') }}</ElButton>
+                <ElButton :loading="batchAlertSaving" @click="saveBatchAlert" type="primary">{{ t('scheduledJob.actions.save') }}</ElButton>
             </template>
         </ElDialog>
         <ScheduledJobDialog v-model:visible="dialogVisible" :job-data="currentJob" :saving="saving" @submit="saveJob" />
@@ -54,6 +92,7 @@
 
 <script lang="ts" setup>
 import { formatFullNumber } from '@/utils/number'
+import { describeCron as describeCronExpression } from '@/utils/cron'
 import { ElMessage, ElTag } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { h, onActivated } from 'vue'
@@ -65,6 +104,7 @@ import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import {
     fetchCreateScheduledJob,
+    fetchBatchUpdateScheduledJobAlert,
     fetchBatchUpdateScheduledJobRemark,
     fetchDeleteScheduledJob,
     fetchCopyScheduledJob,
@@ -103,6 +143,9 @@ const selectedRows = ref<ScheduledJob[]>([])
 const remarkDialogVisible = ref(false)
 const batchRemark = ref('')
 const batchRemarkSaving = ref(false)
+const alertDialogVisible = ref(false)
+const batchAlertSaving = ref(false)
+const batchAlert = reactive({ alertEnabled: true, alertOnFailure: true, alertOverSeconds: 0, alertMentions: '' })
 const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
 const statusMap: Record<number, { key: string; type: 'info' | 'primary' | 'success' | 'danger' | 'warning' }> = {
     0: { key: 'waiting', type: 'info' },
@@ -157,34 +200,7 @@ const getNextExecution = (cron: string): string => {
     return '-'
 }
 const formatTime = (value: string | null): string => (value ? formatDateTime(value, locale.value) : '-')
-const describeCron = (value?: string): string => {
-    if (!value?.trim()) return '-'
-    const parts = value.trim().split(/\s+/)
-    if (parts.length === 5) parts.unshift('0')
-    if (parts.length !== 6 || parts.some((part) => !/^[\d*/,-]+$/.test(part))) return t('cronEditor.description.invalid')
-    const [second, minute, hour, day, month, week] = parts
-    if (second === '*' && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*')
-        return t('cronEditor.description.everySecond')
-    if (second === '0' && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*')
-        return t('cronEditor.description.everyMinute')
-    if (second === '0' && minute === '0' && hour === '*' && day === '*' && month === '*' && week === '*') return t('cronEditor.description.hourly')
-    const hourStepMatch = hour.match(/^\*\/(\d+)$/)
-    if (second === '0' && minute === '0' && hourStepMatch && day === '*' && month === '*' && week === '*') {
-        return t('cronEditor.description.everyHours', { value: hourStepMatch[1] })
-    }
-    const secondMatch = second.match(/^(?:\*|\d+)\/(\d+)$/)
-    if (secondMatch && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*')
-        return t('cronEditor.description.everySeconds', { value: secondMatch[1] })
-    const minuteMatch = minute.match(/^(?:\*|\d+)\/(\d+)$/)
-    if (second === '0' && minuteMatch && hour === '*' && day === '*' && month === '*' && week === '*')
-        return t('cronEditor.description.everyMinutes', { value: minuteMatch[1] })
-    if (/^\d+$/.test(hour) && /^\d+$/.test(minute) && /^\d+$/.test(second) && day === '*' && month === '*' && week === '*') {
-        return t('cronEditor.description.daily', {
-            time: [hour, minute, second].map((item) => item.padStart(2, '0')).join(':'),
-        })
-    }
-    return t('cronEditor.description.custom', { value: value.trim() })
-}
+const describeCron = (value?: string): string => describeCronExpression(value, t)
 
 const {
     columns,
@@ -501,6 +517,26 @@ const deleteJob = async (job: ScheduledJob): Promise<void> => {
 const openRemarkDialog = (): void => {
     batchRemark.value = ''
     remarkDialogVisible.value = true
+}
+/** 打开批量报警对话框，默认启用并选中“失败或超时报警”，整体覆盖到所选作业 */
+const openAlertDialog = (): void => {
+    Object.assign(batchAlert, { alertEnabled: true, alertOnFailure: true, alertOverSeconds: 0, alertMentions: '' })
+    alertDialogVisible.value = true
+}
+/** 保存批量报警设置并刷新列表 */
+const saveBatchAlert = async (): Promise<void> => {
+    batchAlertSaving.value = true
+    try {
+        await fetchBatchUpdateScheduledJobAlert(
+            selectedRows.value.map((row) => row.id),
+            { ...batchAlert },
+        )
+        alertDialogVisible.value = false
+        selectedRows.value = []
+        await refreshData()
+    } finally {
+        batchAlertSaving.value = false
+    }
 }
 const saveBatchRemark = async (): Promise<void> => {
     batchRemarkSaving.value = true

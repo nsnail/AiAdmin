@@ -123,6 +123,7 @@
                 ><ElButton :loading="saving" @click="saveItem" type="primary">保存</ElButton></template
             >
         </ElDrawer>
+        <AlertMonitorQuickAdd ref="monitorAdder" />
     </div>
 </template>
 
@@ -131,6 +132,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+import AlertMonitorQuickAdd from '@/views/system/alert-monitor/modules/alert-monitor-quick-add.vue'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
@@ -322,8 +324,16 @@ const saveItem = async () => {
 /** 行右键菜单操作 */
 const rowActions = (row: Item): RowAction[] => [
     { key: 'edit', label: t('common.rowAction.edit'), icon: 'ri:pencil-line', onClick: () => openItemDialog(row) },
+    { key: 'monitor', label: t('alertMonitor.quickAdd.action'), icon: 'ri:alarm-warning-line', onClick: () => addMonitor(row) },
     { key: 'delete', label: t('common.rowAction.delete'), icon: 'ri:delete-bin-5-line', danger: true, onClick: () => deleteItem(row) },
 ]
+const monitorAdder = ref<{ open: (values: Partial<SaveAlertMonitor>) => void }>()
+
+/** 为当前字典内容添加监控：预填来源为字典、目录编码和标签，名称取“目录/标签” */
+const addMonitor = (item: Item): void => {
+    const code = selectedCategory.value?.code ?? ''
+    monitorAdder.value?.open({ source: 1, categoryCode: code, target: item.label, name: `${code} / ${item.label}`.slice(0, 100) })
+}
 const deleteItem = async (item: Pick<Item, 'id' | 'label'>) => {
     await ElMessageBox.confirm(`确定删除字典内容“${item.label}”吗？`, '删除确认', {
         type: 'warning',

@@ -308,7 +308,7 @@ public sealed class ApiRequestLogTableService(string provider, string connection
             "sqlite" => builder.UseSqlite(connectionString)
             , "sqlserver" => builder.UseSqlServer(connectionString)
             , "postgresql" or "postgres" => builder.UseNpgsql(connectionString)
-            , "mysql" => builder.UseMySQL(connectionString)
+            , "mysql" => builder.UseMySql(connectionString, new MySqlServerVersion(new Version(8, 0, 46)))
             , _ => throw new InvalidOperationException($"Unsupported database provider '{provider}'.")
         };
         return new ApiRequestLogContext(builder.Options, tableName);

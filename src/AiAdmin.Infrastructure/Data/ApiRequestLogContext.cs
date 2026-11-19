@@ -35,6 +35,10 @@ public sealed class ApiRequestLogContext(DbContextOptions<ApiRequestLogContext> 
 
                 // 千万级大表只建查询必需的索引，每多一个索引都会增加写入开销和存储空间
                 _ = entity.HasIndex(x => x.CreatedAt);
+
+                // 仪表盘按接口统计"时间范围内各接口请求数"：只有单列 PathCrc32 索引时优化器会全索引扫描再逐行回表，千万行要几分钟，
+                // 联合索引让该统计只扫描范围内的索引条目，不再回表，本地 200 万行实测由 12.9 秒降到 0.24 秒
+                _ = entity.HasIndex(x => new { x.CreatedAt, x.PathCrc32 });
                 _ = entity.HasIndex(x => x.UserId);
                 _ = entity.HasIndex(x => x.PathCrc32);
                 _ = entity.HasIndex(x => x.TraceId);

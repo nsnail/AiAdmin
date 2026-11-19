@@ -278,6 +278,28 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
+        // 告警监控扫描作业：每分钟读取已启用的监控值，命中条件触发报警，恢复后解除报警，通知发到系统设置中的报警机器人，默认未启用
+        const string scanAlertMonitorsJobName = "Scan alert monitors";
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == scanAlertMonitorsJobName).ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = scanAlertMonitorsJobName
+                        , CronExpression = "* * * * *"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/alert-monitor/scan"
+                        , RequestMethod = "POST"
+                        , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
+                        , RequestBody = "{}"
+                        , Remark
+                            = "Read the value or length of every enabled alert monitor, raise an alert when its condition is met and resolve it when it recovers, sending both to the alert bot. Fill the ApiBaseUrl and JobToken placeholders and the alert bot settings before enabling"
+                        , TimeoutSeconds = 60
+                        , IsEnabled = false
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
     }
 

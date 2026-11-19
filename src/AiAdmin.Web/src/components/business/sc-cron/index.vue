@@ -67,6 +67,7 @@
 <script lang="ts" setup>
 import { ArrowDown } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
+import { describeCron } from '@/utils/cron'
 
 type FieldKey = 'second' | 'minute' | 'hour' | 'day' | 'month' | 'week'
 type RuleType = 'any' | 'range' | 'step' | 'list'
@@ -166,44 +167,7 @@ const expressionFor = (key: FieldKey): string => {
 }
 const generatedValue = computed(() => fields.value.map((field) => expressionFor(field.key)).join(' '))
 
-const cronDescription = computed(() => {
-    const parts = textValue.value.trim().split(/\s+/)
-    if (parts.length === 5) parts.unshift('0')
-    if (parts.length !== 6 || parts.some((part) => !/^[\d*/,-]+$/.test(part))) return '等待完整的 Cron 表达式'
-
-    const [second, minute, hour, day, month, week] = parts
-    if (second === '*' && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*')
-        return t('cronEditor.description.everySecond')
-    if (second === '0' && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*')
-        return t('cronEditor.description.everyMinute')
-    if (second === '0' && minute === '0' && hour === '*' && day === '*' && month === '*' && week === '*') return t('cronEditor.description.hourly')
-
-    const secondStep = parseStep(second)
-    if (secondStep && minute === '*' && hour === '*' && day === '*' && month === '*' && week === '*') {
-        return t('cronEditor.description.everySeconds', { value: secondStep })
-    }
-
-    const minuteStep = parseStep(minute)
-    if (second === '0' && minuteStep && hour === '*' && day === '*' && month === '*' && week === '*') {
-        return t('cronEditor.description.everyMinutes', { value: minuteStep })
-    }
-
-    const time = formatTime(hour, minute, second)
-    if (time && day === '*' && month === '*' && week === '*') return t('cronEditor.description.daily', { time })
-    if (time && day === '*' && month === '*' && /^\d$/.test(week)) return t(`cronEditor.description.weekly${week}`, { time })
-    return t('cronEditor.description.custom', { value: textValue.value.trim() })
-})
-
-const parseStep = (value: string): number | undefined => {
-    const match = value.match(/^(?:\*|\d+)\/(\d+)$/)
-    const step = match ? Number(match[1]) : 0
-    return step > 0 ? step : undefined
-}
-
-const formatTime = (hour: string, minute: string, second: string): string | undefined => {
-    if (![hour, minute, second].every((value) => /^\d+$/.test(value))) return undefined
-    return [hour, minute, second].map((value) => value.padStart(2, '0')).join(':')
-}
+const cronDescription = computed(() => describeCron(textValue.value, t))
 
 const parseRule = (key: FieldKey, raw: string): void => {
     const rule = state[key]

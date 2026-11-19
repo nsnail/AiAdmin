@@ -46,6 +46,39 @@
                     </ElFormItem>
                 </ElForm>
             </ElTabPane>
+            <ElTabPane :label="t('scheduledJob.tabs.alert')" name="alert">
+                <ElForm :model="formData" :rules="rules" label-width="140px">
+                    <ElFormItem :label="t('scheduledJob.alert.enabled')">
+                        <ElSwitch v-model="formData.alertEnabled" />
+                    </ElFormItem>
+                    <template v-if="formData.alertEnabled">
+                        <ElFormItem :label="t('scheduledJob.alert.onFailure')">
+                            <ElSwitch v-model="formData.alertOnFailure" />
+                            <span class="alert-hint">{{ t('scheduledJob.alert.onFailureHint') }}</span>
+                        </ElFormItem>
+                        <ElFormItem :label="t('scheduledJob.alert.overSeconds')" prop="alertOverSeconds">
+                            <ElInputNumber v-model="formData.alertOverSeconds" :max="86400" :min="0" controls-position="right" />
+                            <span class="alert-hint">{{ t('scheduledJob.alert.overSecondsHint') }}</span>
+                        </ElFormItem>
+                        <ElFormItem :label="t('scheduledJob.alert.mentions')">
+                            <ElInput
+                                v-model="formData.alertMentions"
+                                :placeholder="t('scheduledJob.alert.mentionsPlaceholder')"
+                                maxlength="500"
+                                show-word-limit />
+                        </ElFormItem>
+                        <ElAlert
+                            v-if="!formData.alertOnFailure && !formData.alertOverSeconds"
+                            :closable="false"
+                            class="mb-3"
+                            show-icon
+                            type="warning">
+                            {{ t('scheduledJob.alert.noTrigger') }}
+                        </ElAlert>
+                    </template>
+                    <ElAlert :closable="false" show-icon type="info">{{ t('scheduledJob.alert.resolveHint') }}</ElAlert>
+                </ElForm>
+            </ElTabPane>
             <ElTabPane v-if="jobData?.id" :label="t('rawData')" name="raw-data"><ArtRawData :data="rawData" /></ElTabPane>
         </ElTabs>
         <template #footer>
@@ -90,6 +123,10 @@ const defaults = (): SaveScheduledJob => ({
     remark: '',
     timeoutSeconds: 30,
     isEnabled: true,
+    alertEnabled: false,
+    alertOnFailure: true,
+    alertOverSeconds: 0,
+    alertMentions: '',
 })
 const formData = reactive<SaveScheduledJob>(defaults())
 const activeTab = ref('edit')
@@ -184,6 +221,7 @@ const rules: FormRules<SaveScheduledJob> = {
             trigger: 'change',
         },
     ],
+    alertOverSeconds: [{ type: 'number', min: 0, max: 86400, message: '报警耗时应为 0 至 86400 秒', trigger: 'change' }],
 }
 
 watch(
@@ -215,6 +253,11 @@ const submit = async (): Promise<void> => {
 }
 .scheduled-job-body-editor {
     height: 220px;
+}
+.alert-hint {
+    margin-left: 12px;
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
 }
 .raw-data {
     background: var(--el-fill-color-light);

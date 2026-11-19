@@ -19,6 +19,11 @@ public sealed partial class ExternalHttpRequestService(
     , ILogger<ExternalHttpRequestService> logger)
 {
     /// <summary>
+    ///     外部请求专用命名 HTTP 客户端名称，超时由调用方取消令牌控制
+    /// </summary>
+    public const string CLIENT_NAME = "external-request";
+
+    /// <summary>
     ///     日志中需要脱敏的消息头名称，避免密钥和凭据写入日志
     /// </summary>
     private static readonly HashSet<string> _sensitiveHeaders =
@@ -63,7 +68,10 @@ public sealed partial class ExternalHttpRequestService(
         var requestContentType = request.Content?.Headers.ContentType?.ToString();
         var stopwatch = Stopwatch.StartNew();
 
-        using var response = await httpClientFactory.CreateClient().SendAsync(request, completionOption, cancellationToken).ConfigureAwait(false);
+        using var response = await httpClientFactory
+            .CreateClient(CLIENT_NAME)
+            .SendAsync(request, completionOption, cancellationToken)
+            .ConfigureAwait(false);
         var responseBody = IsTextContentType(response.Content.Headers.ContentType?.MediaType)
             ? await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false)
             : string.Empty;

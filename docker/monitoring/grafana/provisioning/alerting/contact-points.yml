@@ -1,0 +1,33 @@
+# 告警通知渠道与路由：所有告警发送到 Telegram 运维群，并在消息里 @ 值班人
+# Bot Token 通过环境变量 TG_BOT_TOKEN 注入（见 docker-compose.yml 与 .env），不写进仓库；
+# 群 Chat ID 不是密钥，直接写成字符串字面量：群 ID 是负数，经环境变量替换后会被识别成数字，Grafana 校验会失败并导致服务无法启动
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: telegram-ops
+    receivers:
+      - uid: telegram-ops
+        type: telegram
+        settings:
+          bottoken: ${TG_BOT_TOKEN}
+          chatid: "-5284001266"
+          parse_mode: None
+          disable_notifications: false
+          message: |-
+            @taokeu {{ if eq .Status "firing" }}🔥 告警触发{{ else }}✅ 告警恢复{{ end }}
+            {{ range .Alerts }}
+            规则：{{ .Labels.alertname }}
+            实例：{{ .Labels.instance }}
+            {{ if .Annotations.summary }}摘要：{{ .Annotations.summary }}{{ end }}
+            {{ if .Annotations.description }}说明：{{ .Annotations.description }}{{ end }}
+            {{ end }}
+        disableResolveMessage: false
+
+policies:
+  - orgId: 1
+    receiver: telegram-ops
+    group_by: ["alertname", "instance"]
+    group_wait: 30s
+    group_interval: 5m
+    repeat_interval: 4h

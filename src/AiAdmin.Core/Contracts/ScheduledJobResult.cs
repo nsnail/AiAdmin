@@ -21,6 +21,11 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="LastFinishedAt">最后完成时间</param>
 /// <param name="LastError">最后一次错误信息</param>
 /// <param name="SuccessRate">成功率（百分比）</param>
+/// <param name="AlertEnabled">是否启用报警</param>
+/// <param name="AlertOnFailure">执行失败或超时时是否报警</param>
+/// <param name="AlertOverSeconds">耗时超过该秒数报警，0 表示不按耗时报警</param>
+/// <param name="AlertMentions">报警时提醒的 Telegram 用户名</param>
+/// <param name="AlertActive">当前是否处于报警状态</param>
 public sealed record ScheduledJobResult(
     long Id
     , DateTimeOffset CreatedAt
@@ -37,4 +42,9 @@ public sealed record ScheduledJobResult(
     , DateTimeOffset? LastTriggeredAt
     , DateTimeOffset? LastFinishedAt
     , string LastError
-    , decimal SuccessRate);
+    , decimal SuccessRate
+    , bool AlertEnabled
+    , bool AlertOnFailure
+    , int AlertOverSeconds
+    , string AlertMentions
+    , bool AlertActive);

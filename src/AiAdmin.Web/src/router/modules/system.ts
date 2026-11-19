@@ -135,6 +135,21 @@ export const systemManagementRoute: AppRouteRecord = {
             },
         },
         {
+            path: 'alert-monitor',
+            name: 'AlertMonitorManagement',
+            component: '/system/alert-monitor',
+            meta: {
+                title: 'menus.system.alertMonitor',
+                icon: 'ri:alarm-warning-line',
+                keepAlive: true,
+                roles: ['R_SUPER'],
+                authList: [
+                    { title: '删除', authMark: 'delete' },
+                    { title: '启用', authMark: 'enable' },
+                ],
+            },
+        },
+        {
             path: 'message',
             name: 'MessageManagement',
             component: '/system/message',

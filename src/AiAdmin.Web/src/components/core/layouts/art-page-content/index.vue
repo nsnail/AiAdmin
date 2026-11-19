@@ -1,6 +1,6 @@
 <!-- 布局内容 -->
 <template>
-    <div :class="{ 'overflow-auto': isFullPage }" :style="containerStyle" class="layout-content">
+    <div :class="{ 'overflow-auto': isFullPage }" :style="containerStyle" @contextmenu="handleContentContextMenu" class="layout-content">
         <div id="app-content-header">
             <!-- 节日滚动 -->
             <ArtFestivalTextScroll v-if="!isFullPage" />
@@ -38,8 +38,21 @@ import { useAutoLayoutHeight } from '@/hooks/core/useLayoutHeight'
 import { useSettingStore } from '@/store/modules/setting'
 import { useWorktabStore } from '@/store/modules/worktab'
 import { useAutoRefresh } from '@/hooks/core/useAutoRefresh'
+import { openActiveTabMenu } from '@/hooks/core/useTabContextMenu'
 
 defineOptions({ name: 'ArtPageContent' })
+
+/**
+ * 接管内容区的浏览器默认右键菜单，改为弹出当前标签页的右键菜单
+ * 表格单元格、文件管理等已自行处理右键（已调用 preventDefault）的，以及输入框、文本域、可编辑区域保留原有行为，避免影响复制粘贴
+ * @param e 右键事件
+ */
+const handleContentContextMenu = (e: MouseEvent): void => {
+    if (e.defaultPrevented) return
+    const target = e.target as HTMLElement | null
+    if (target?.closest('input, textarea, [contenteditable=""], [contenteditable="true"]')) return
+    openActiveTabMenu(e)
+}
 
 const route = useRoute()
 const { containerMinHeight } = useAutoLayoutHeight()

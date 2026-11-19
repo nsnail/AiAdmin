@@ -10,6 +10,32 @@ namespace AiAdmin.Api.Models;
 public sealed class ScheduledJob : EntityBase, IUpdatedAt
 {
     /// <summary>
+    ///     当前是否处于报警状态，由调度器维护：触发报警时置为 true，恢复正常并发出解除通知后置为 false，用于避免重复报警
+    /// </summary>
+    public bool AlertActive { get; set; }
+
+    /// <summary>
+    ///     是否启用报警，报警通过系统设置中的报警机器人发送到指定会话
+    /// </summary>
+    public bool AlertEnabled { get; set; }
+
+    /// <summary>
+    ///     报警时需要提醒的 Telegram 用户名，多个以空格分隔，每项以 @ 开头
+    /// </summary>
+    [MaxLength(500)]
+    public string AlertMentions { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     执行失败或超时时是否报警
+    /// </summary>
+    public bool AlertOnFailure { get; set; } = true;
+
+    /// <summary>
+    ///     执行耗时超过该秒数时报警，0 表示不按耗时报警
+    /// </summary>
+    public int AlertOverSeconds { get; set; }
+
+    /// <summary>
     ///     Cron 触发表达式
     /// </summary>
     [ListFilter("scheduledJob.fields.cronExpression", Placeholder = "scheduledJob.placeholder.cronExpression")]

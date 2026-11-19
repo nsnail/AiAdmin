@@ -44,10 +44,25 @@
                 </ElFormItem>
 
                 <ElDivider />
-                <h3>{{ t('systemSettings.sections.telegram') }}</h3>
-                <ElFormItem :label="t('systemSettings.fields.telegramBotToken')">
-                    <ElInput v-model="values['Telegram Bot Token']" autocomplete="off" show-password type="password" />
-                </ElFormItem>
+                <h3>{{ t('systemSettings.sections.bots') }}</h3>
+                <ElTabs v-model="botTab" class="bot-tabs" tab-position="left">
+                    <ElTabPane :label="t('systemSettings.botTabs.query')" name="query">
+                        <ElFormItem :label="t('systemSettings.fields.telegramBotToken')">
+                            <ElInput v-model="values['Telegram Bot Token']" autocomplete="off" show-password type="password" />
+                        </ElFormItem>
+                    </ElTabPane>
+                    <ElTabPane :label="t('systemSettings.botTabs.alert')" name="alert">
+                        <ElFormItem :label="t('systemSettings.fields.telegramAlertBotToken')">
+                            <ElInput v-model="values['Telegram Alert Bot Token']" autocomplete="off" show-password type="password" />
+                        </ElFormItem>
+                        <ElFormItem :label="t('systemSettings.fields.telegramAlertChatId')">
+                            <ElInput
+                                v-model.trim="values['Telegram Alert Chat Id']"
+                                :placeholder="t('systemSettings.placeholders.telegramAlertChatId')"
+                                maxlength="50" />
+                        </ElFormItem>
+                    </ElTabPane>
+                </ElTabs>
             </ElForm>
             <ElEmpty v-else :description="t('systemSettings.loadFailed')" />
         </ElCard>
@@ -70,6 +85,7 @@ const items = ref<Item[]>([])
 const values = reactive<Record<string, string | boolean>>({})
 const loading = ref(false)
 const saving = ref(false)
+const botTab = ref('query')
 const registrationFields = [
     {
         label: 'Enable login slider verification',
@@ -158,6 +174,12 @@ onMounted(loadSettings)
 .settings-form {
     max-width: 760px;
     padding: 8px 12px;
+}
+/* 左侧页签：标签栏宽度随文字，右侧表单占满剩余宽度 */
+.bot-tabs :deep(.el-tabs__content) {
+    flex: 1;
+    min-width: 0;
+    padding-left: 12px;
 }
 .settings-form h3 {
     margin: 0 0 20px;

@@ -386,6 +386,7 @@
             "files": "File Management",
             "scheduledJob": "Scheduled Jobs",
             "cache": "Cache Management",
+            "alertMonitor": "Alert monitor",
             "referrals": "My Referrals",
             "message": "Message Management",
             "supportChat": "Customer Service"
@@ -605,7 +606,7 @@
         "saved": "System settings saved",
         "loadFailed": "System settings category was not found",
         "sections": {
-            "telegram": "Telegram",
+            "bots": "Bot Settings",
             "registration": "Registration and Verification",
             "smtp": "Email Service",
             "export": "Data Export"
@@ -621,7 +622,16 @@
             "smtpPassword": "SMTP password",
             "smtpFrom": "Sender address",
             "maximumExportRows": "Maximum export rows",
-            "telegramBotToken": "Telegram Bot Token"
+            "telegramBotToken": "Query bot token",
+            "telegramAlertBotToken": "Alert bot token",
+            "telegramAlertChatId": "Alert chat ID"
+        },
+        "botTabs": {
+            "query": "Telegram Query Bot",
+            "alert": "Telegram Alert Bot"
+        },
+        "placeholders": {
+            "telegramAlertChatId": "Group or channel chat ID, usually negative, e.g. -1001234567890"
         }
     },
     "rawData": "Raw Data",
@@ -857,6 +867,99 @@
             }
         }
     },
+    "alertMonitor": {
+        "actions": {
+            "create": "Add monitor",
+            "edit": "Edit monitor",
+            "save": "Save"
+        },
+        "delete": {
+            "batch": "Delete in batch",
+            "batchConfirm": "Delete the {count} selected monitors?",
+            "confirm": "Delete this monitor?"
+        },
+        "dialog": {
+            "createTitle": "Add alert monitor",
+            "editTitle": "Edit alert monitor",
+            "tabs": {
+                "basic": "Basic info",
+                "rawData": "Raw data"
+            }
+        },
+        "fields": {
+            "name": "Monitor name",
+            "source": "Source",
+            "categoryCode": "Dictionary category code",
+            "target": "Target",
+            "metric": "Metric",
+            "valueType": "Compare as",
+            "operator": "Operator",
+            "condition": "Trigger condition",
+            "threshold": "Threshold",
+            "caseSensitive": "Case sensitive",
+            "mentions": "Mention users",
+            "remark": "Remark",
+            "isEnabled": "Enabled",
+            "alertState": "Alert state",
+            "lastScan": "Last value / scanned at"
+        },
+        "placeholder": {
+            "name": "Enter the monitor name",
+            "target": "Dictionary label or Redis key",
+            "categoryCode": "e.g. system_settings",
+            "dictionaryLabel": "Dictionary label, e.g. Maximum export rows",
+            "redisKey": "Redis key, e.g. queue:report",
+            "thresholdNumber": "A number, e.g. 1000",
+            "thresholdText": "Text to compare with",
+            "mentions": "Telegram usernames separated by spaces, e.g. {'@'}alice {'@'}bob",
+            "remark": "Enter a remark"
+        },
+        "source": {
+            "dictionary": "Dictionary",
+            "redis": "Redis cache"
+        },
+        "metric": {
+            "value": "Value",
+            "length": "Length"
+        },
+        "valueType": {
+            "number": "Number",
+            "string": "String"
+        },
+        "operator": {
+            "greaterThan": "Greater than",
+            "greaterThanOrEqual": "Greater than or equal",
+            "lessThan": "Less than",
+            "lessThanOrEqual": "Less than or equal",
+            "equal": "Equal",
+            "notEqual": "Not equal",
+            "contains": "Contains",
+            "notContains": "Does not contain",
+            "startsWith": "Starts with",
+            "endsWith": "Ends with"
+        },
+        "state": {
+            "normal": "Normal",
+            "alerting": "Alerting",
+            "pending": "Not scanned yet",
+            "disabled": "Disabled"
+        },
+        "rules": {
+            "name": "Enter the monitor name",
+            "categoryCode": "Enter the dictionary category code",
+            "target": "Enter the target",
+            "thresholdNumber": "The threshold of a number comparison must be a number",
+            "thresholdText": "Enter the text to compare with"
+        },
+        "quickAdd": {
+            "action": "Add monitor",
+            "created": "Monitor added, review it on the Alert monitor page"
+        },
+        "hints": {
+            "length": "Bytes for a string, element count for List, Set, Hash, SortedSet and Stream; a missing key counts as 0 and can only be compared as a number",
+            "behavior": "Scanned periodically by the scheduled job \"Scan alert monitors\". An alert is sent when the condition is met and a resolved notice when it recovers, with no repeats while it stays abnormal. A missing key, a deleted or disabled dictionary item, or a non-numeric value in a number comparison all count as the condition being met. The alert bot and chat are set in system settings"
+        }
+    },
     "scheduledJob": {
         "actions": {
             "create": "Add job",
@@ -869,6 +972,7 @@
             "close": "Close",
             "operation": "Actions",
             "batchRemark": "Set remarks in batch",
+            "batchAlert": "Set alerts in batch",
             "save": "Save"
         },
         "executionTitle": "{name} execution records",
@@ -903,7 +1007,20 @@
             "jobs": "Jobs",
             "allExecutions": "All execution records",
             "basicInfo": "Basic info",
+            "alert": "Alerts",
             "rawData": "Raw data"
+        },
+        "alert": {
+            "enabled": "Enable alerts",
+            "onFailure": "Alert on failure or timeout",
+            "onFailureHint": "Alert when the run fails, the request errors, or it exceeds the timeout",
+            "overSeconds": "Alert when slower than (s)",
+            "overSecondsHint": "0 disables duration alerts; a run still going past this time raises the alert",
+            "mentions": "Mention users",
+            "mentionsPlaceholder": "Telegram usernames separated by spaces, e.g. {'@'}alice {'@'}bob",
+            "noTrigger": "No trigger is selected, so no alert will be sent",
+            "batchHint": "These settings replace the alert configuration of the {count} selected jobs. Turning alerts off also clears their alert state",
+            "resolveHint": "When the job recovers after an alert, a resolved notice is sent to the same chat. The alert bot and chat are set in system settings"
         },
         "executionFields": {
             "duration": "Duration",
@@ -1004,7 +1121,70 @@
             "weekly4": "Every Thursday at {time}",
             "weekly5": "Every Friday at {time}",
             "weekly6": "Every Saturday at {time}",
-            "custom": "Run according to Cron rule ({value})"
+            "hourlyAt": "Every hour at minute {minute}, second {second}",
+            "custom": "Run according to Cron rule ({value})",
+            "outOfRange": "Cron field value is out of range",
+            "listSeparator": ", ",
+            "separator": ", ",
+            "generic": "Runs: {value}",
+            "weekday0": "Sun",
+            "weekday1": "Mon",
+            "weekday2": "Tue",
+            "weekday3": "Wed",
+            "weekday4": "Thu",
+            "weekday5": "Fri",
+            "weekday6": "Sat",
+            "detail": {
+                "time": "at {time}",
+                "second": {
+                    "at": "second {value}",
+                    "range": "seconds {start} to {end}",
+                    "every": "every {step} seconds",
+                    "everyFrom": "every {step} seconds from second {start}",
+                    "everyRange": "every {step} seconds from {start} to {end}",
+                    "everyAny": "every second"
+                },
+                "minute": {
+                    "at": "minute {value}",
+                    "range": "minutes {start} to {end}",
+                    "every": "every {step} minutes",
+                    "everyFrom": "every {step} minutes from minute {start}",
+                    "everyRange": "every {step} minutes from {start} to {end}",
+                    "everyAny": "every minute"
+                },
+                "hour": {
+                    "at": "hour {value}",
+                    "range": "hours {start} to {end}",
+                    "every": "every {step} hours",
+                    "everyFrom": "every {step} hours from hour {start}",
+                    "everyRange": "every {step} hours from {start} to {end}",
+                    "everyAny": "every hour"
+                },
+                "day": {
+                    "at": "day {value} of the month",
+                    "range": "days {start} to {end} of the month",
+                    "every": "every {step} days",
+                    "everyFrom": "every {step} days from day {start}",
+                    "everyRange": "every {step} days from day {start} to {end}",
+                    "everyAny": "every day"
+                },
+                "month": {
+                    "at": "month {value}",
+                    "range": "months {start} to {end}",
+                    "every": "every {step} months",
+                    "everyFrom": "every {step} months from month {start}",
+                    "everyRange": "every {step} months from {start} to {end}",
+                    "everyAny": "every month"
+                },
+                "week": {
+                    "at": "{value}",
+                    "range": "{start} to {end}",
+                    "every": "{step}",
+                    "everyFrom": "{start}",
+                    "everyRange": "{start}",
+                    "everyAny": "every day"
+                }
+            }
         }
     },
     "apiManagement": {

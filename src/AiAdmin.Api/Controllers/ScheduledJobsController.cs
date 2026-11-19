@@ -28,6 +28,34 @@ public sealed class ScheduledJobsController(
     , ApiPermissionCache apiPermissionCache) : ControllerBase
 {
     /// <summary>
+    ///     批量设置计划作业报警：把报警配置整体覆盖到所选作业，关闭报警时同时清除报警状态，避免遗留“报警中”而无法再触发
+    /// </summary>
+    /// <param name="request">批量报警请求</param>
+    /// <returns>更新结果</returns>
+    [HttpPost("batch-alert")]
+    [ApiDescription("Batch update scheduled job alerts")]
+    public async Task<ActionResult<ApiResponse<object>>> BatchUpdateAlertAsync(BatchUpdateScheduledJobAlertRequest request) {
+        var ids = request.Ids.Distinct().ToArray();
+        var mentions = ScheduledJobAlertService.NormalizeMentions(request.AlertMentions);
+        var enabled = request.AlertEnabled;
+        var onFailure = request.AlertOnFailure;
+        var overSeconds = request.AlertOverSeconds;
+        var affected = await db
+            .ScheduledJobs.Where(x => Enumerable.Contains(ids, x.Id))
+            .ExecuteUpdateAsync(x =>
+                x
+                    .SetProperty(row => row.AlertEnabled, enabled)
+                    .SetProperty(row => row.AlertOnFailure, onFailure)
+                    .SetProperty(row => row.AlertOverSeconds, overSeconds)
+                    .SetProperty(row => row.AlertMentions, mentions)
+                    .SetProperty(row => row.AlertActive, row => enabled && row.AlertActive)
+                    .SetProperty(row => row.UpdatedAt, DateTime.UtcNow)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<object>.Ok(new { affected }));
+    }
+
+    /// <summary>
     ///     批量更新计划作业备注
     /// </summary>
     /// <param name="request">批量备注请求</param>
@@ -161,6 +189,10 @@ public sealed class ScheduledJobsController(
             , RequestBody = source.RequestBody
             , Remark = source.Remark
             , TimeoutSeconds = source.TimeoutSeconds
+            , AlertEnabled = source.AlertEnabled
+            , AlertOnFailure = source.AlertOnFailure
+            , AlertOverSeconds = source.AlertOverSeconds
+            , AlertMentions = source.AlertMentions
             , IsEnabled = false
             , Status = ScheduledJobStatus.Waiting
         };
@@ -479,7 +511,8 @@ public sealed class ScheduledJobsController(
         return new ScheduledJobResult(
             x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.CronExpression, x.RequestUrl, x.RequestMethod, x.RequestHeadersJson, x.RequestBody
             , x.Remark, x.TimeoutSeconds, x.IsEnabled, x.Status, x.LastTriggeredAt.HasValue ? ServerTime.ToOffset(x.LastTriggeredAt.Value) : null
-            , x.LastFinishedAt.HasValue ? ServerTime.ToOffset(x.LastFinishedAt.Value) : null, x.LastError, x.SuccessRate
+            , x.LastFinishedAt.HasValue ? ServerTime.ToOffset(x.LastFinishedAt.Value) : null, x.LastError, x.SuccessRate, x.AlertEnabled
+            , x.AlertOnFailure, x.AlertOverSeconds, x.AlertMentions, x.AlertActive
         );
     }
 
@@ -515,6 +548,14 @@ public sealed class ScheduledJobsController(
         job.Remark = request.Remark.Trim();
         job.TimeoutSeconds = Math.Clamp(request.TimeoutSeconds, 1, 86400);
         job.IsEnabled = request.IsEnabled;
+        job.AlertEnabled = request.AlertEnabled;
+        job.AlertOnFailure = request.AlertOnFailure;
+        job.AlertOverSeconds = Math.Clamp(request.AlertOverSeconds, 0, 86400);
+        job.AlertMentions = ScheduledJobAlertService.NormalizeMentions(request.AlertMentions);
+        if (!job.AlertEnabled) {
+            job.AlertActive = false;
+        }
+
         if (!id.HasValue) {
             _ = await db.ScheduledJobs.AddAsync(job).ConfigureAwait(false);
         }

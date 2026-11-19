@@ -138,6 +138,7 @@ public static class DatabaseInitializer
 
         await EnsureScheduledJobMenuAsync(db).ConfigureAwait(false);
         await EnsureRedisCacheMenuAsync(db).ConfigureAwait(false);
+        await EnsureAlertMonitorMenuAsync(db).ConfigureAwait(false);
         await EnsureLoginLogMenuAsync(db).ConfigureAwait(false);
         await EnsureApiRequestLogMenuAsync(db).ConfigureAwait(false);
         await EnsureMessageMenuAsync(db).ConfigureAwait(false);
@@ -174,7 +175,12 @@ public static class DatabaseInitializer
             , (Label: "SMTP From", Value: configuration["SystemSettings:Smtp:From"] ?? string.Empty, Sort: 8, Remark: "SMTP sender address")
             , (Label: "Maximum export rows", Value: configuration["SystemSettings:MaximumExportRows"] ?? "10000", Sort: 9
                 , Remark: "Maximum number of rows allowed per export")
-            , (Label: "Telegram Bot Token", Value: configuration["Telegram:BotToken"] ?? string.Empty, Sort: 10, Remark: "Telegram bot token")
+            , (Label: "Telegram Bot Token", Value: configuration["Telegram:BotToken"] ?? string.Empty, Sort: 10
+                , Remark: "Telegram query bot token")
+            , (Label: "Telegram Alert Bot Token", Value: configuration["Telegram:AlertBotToken"] ?? string.Empty, Sort: 11
+                , Remark: "Telegram alert bot token")
+            , (Label: "Telegram Alert Chat Id", Value: configuration["Telegram:AlertChatId"] ?? string.Empty, Sort: 12
+                , Remark: "Telegram chat id that receives scheduled job alerts")
         };
         var existingSystemSettingLabels = await db
             .DictionaryItems.Where(x => x.CategoryId == systemSettings.Id)
@@ -197,6 +203,43 @@ public static class DatabaseInitializer
                     }
                 )
                 .ConfigureAwait(false);
+        }
+
+        _ = await db.SaveChangesAsync().ConfigureAwait(false);
+    }
+
+    /// <summary>
+    ///     确保告警监控菜单存在并授权给超级管理员，兼容已有数据库和旧菜单种子；挂在运维管理下，运维管理不存在时挂在系统管理下
+    /// </summary>
+    /// <param name="db">应用数据库上下文</param>
+    /// <returns>异步初始化任务</returns>
+    private static async Task EnsureAlertMonitorMenuAsync(AppDbContext db) {
+        if (await db.Menus.AnyAsync(x => x.Name == "AlertMonitorManagement").ConfigureAwait(false)) {
+            return;
+        }
+
+        // 告警监控属于运维范畴，优先挂在运维管理下；运维管理是部署时手工创建的菜单，不存在时回退到系统管理
+        var parent = await db.Menus.SingleOrDefaultAsync(x => x.Name == "OpsManagement").ConfigureAwait(false)
+                     ?? await db.Menus.SingleOrDefaultAsync(x => x.Name == "SystemManagement").ConfigureAwait(false);
+        if (parent is null) {
+            return;
+        }
+
+        var menu = new Menu
+        {
+            Name = "AlertMonitorManagement"
+            , Path = "alert-monitor"
+            , Component = "/system/alert-monitor"
+            , ParentName = parent.Name
+            , Sort = 50
+            , IsEnabled = true
+            , MetaJson = /*lang=json,strict*/
+                "{\"title\":\"menus.system.alertMonitor\",\"icon\":\"ri:alarm-warning-line\",\"keepAlive\":true,\"authList\":[{\"title\":\"Delete\",\"authMark\":\"delete\"},{\"title\":\"Enable\",\"authMark\":\"enable\"}],\"roles\":[\"R_SUPER\"]}"
+        };
+        _ = await db.Menus.AddAsync(menu).ConfigureAwait(false);
+        var roles = await db.Roles.Where(x => x.Code == "R_SUPER").ToListAsync().ConfigureAwait(false);
+        foreach (var role in roles) {
+            role.RoleMenus.Add(new RoleMenu { Role = role, Menu = menu });
         }
 
         _ = await db.SaveChangesAsync().ConfigureAwait(false);

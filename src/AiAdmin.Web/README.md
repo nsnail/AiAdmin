@@ -34,7 +34,7 @@ src
 ├─ router/         core（路由注册、校验、组件加载）、guards（守卫）、modules（静态路由）、routes
 ├─ store/modules/  Pinia：user、menu、setting、worktab、table
 ├─ types/          类型声明，其中 types/import 为自动导入生成文件
-├─ utils/          http、i18n、table、json（动态查询）、realtime、socket、storage 等
+├─ utils/          cron（Cron 说明）、http、i18n、table、json（动态查询）、realtime、socket、storage 等
 └─ views/          页面：system 为框架页面，business 为业务页面，其余为 auth、dashboard、finance 等
 ```
 

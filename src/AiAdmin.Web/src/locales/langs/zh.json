@@ -386,6 +386,7 @@
             "files": "文件管理",
             "scheduledJob": "计划作业",
             "cache": "缓存管理",
+            "alertMonitor": "告警监控",
             "referrals": "我的邀请",
             "message": "消息管理",
             "supportChat": "在线客服"
@@ -601,7 +602,7 @@
         "saved": "系统设置已保存",
         "loadFailed": "未找到系统设置目录",
         "sections": {
-            "telegram": "Telegram",
+            "bots": "机器人设置",
             "registration": "注册与验证",
             "smtp": "邮件服务",
             "export": "数据导出"
@@ -617,7 +618,16 @@
             "smtpPassword": "SMTP 密码",
             "smtpFrom": "发件人",
             "maximumExportRows": "最大导出条数",
-            "telegramBotToken": "Telegram Bot Token"
+            "telegramBotToken": "查询机器人 Token",
+            "telegramAlertBotToken": "报警机器人 Token",
+            "telegramAlertChatId": "报警会话 Chat ID"
+        },
+        "botTabs": {
+            "query": "Telegram 查询机器人",
+            "alert": "Telegram 报警机器人"
+        },
+        "placeholders": {
+            "telegramAlertChatId": "群组或频道的 Chat ID，通常为负数，如 -1001234567890"
         }
     },
     "rawData": "原始数据",
@@ -848,6 +858,99 @@
             }
         }
     },
+    "alertMonitor": {
+        "actions": {
+            "create": "新增监控",
+            "edit": "编辑监控",
+            "save": "保存"
+        },
+        "delete": {
+            "batch": "批量删除",
+            "batchConfirm": "确定删除选中的 {count} 个监控吗？",
+            "confirm": "确定删除该监控吗？"
+        },
+        "dialog": {
+            "createTitle": "新增告警监控",
+            "editTitle": "编辑告警监控",
+            "tabs": {
+                "basic": "基本信息",
+                "rawData": "原始数据"
+            }
+        },
+        "fields": {
+            "name": "监控名称",
+            "source": "数据来源",
+            "categoryCode": "字典目录编码",
+            "target": "监控目标",
+            "metric": "指标",
+            "valueType": "比较类型",
+            "operator": "操作符",
+            "condition": "触发条件",
+            "threshold": "阈值",
+            "caseSensitive": "区分大小写",
+            "mentions": "提醒用户",
+            "remark": "备注",
+            "isEnabled": "启用",
+            "alertState": "报警状态",
+            "lastScan": "最近取值 / 扫描时间"
+        },
+        "placeholder": {
+            "name": "请输入监控名称",
+            "target": "字典标签或 Redis 缓存键",
+            "categoryCode": "如 system_settings",
+            "dictionaryLabel": "字典标签，如 Maximum export rows",
+            "redisKey": "Redis 缓存键，如 queue:report",
+            "thresholdNumber": "数字，如 1000",
+            "thresholdText": "要比较的文本",
+            "mentions": "Telegram 用户名，多个用空格分隔，如 {'@'}alice {'@'}bob",
+            "remark": "请输入备注"
+        },
+        "source": {
+            "dictionary": "字典",
+            "redis": "Redis 缓存"
+        },
+        "metric": {
+            "value": "值",
+            "length": "长度"
+        },
+        "valueType": {
+            "number": "数字",
+            "string": "字符串"
+        },
+        "operator": {
+            "greaterThan": "大于",
+            "greaterThanOrEqual": "大于等于",
+            "lessThan": "小于",
+            "lessThanOrEqual": "小于等于",
+            "equal": "等于",
+            "notEqual": "不等于",
+            "contains": "包含",
+            "notContains": "不包含",
+            "startsWith": "开头是",
+            "endsWith": "结尾是"
+        },
+        "state": {
+            "normal": "正常",
+            "alerting": "报警中",
+            "pending": "待扫描",
+            "disabled": "已停用"
+        },
+        "rules": {
+            "name": "请输入监控名称",
+            "categoryCode": "请输入字典目录编码",
+            "target": "请输入监控目标",
+            "thresholdNumber": "数字比较的阈值必须是数字",
+            "thresholdText": "请输入要比较的文本"
+        },
+        "quickAdd": {
+            "action": "添加监控",
+            "created": "监控已添加，可到“告警监控”页查看和调整"
+        },
+        "hints": {
+            "length": "字符串为字节数，List、Set、Hash、SortedSet、Stream 为元素个数；键不存在时长度为 0，只能按数字比较",
+            "behavior": "由计划作业“Scan alert monitors”定期扫描。命中条件时发送报警，恢复正常后发送解除通知，持续异常期间不重复发送；键不存在、字典项被删除或停用、数字比较时值不是数字，都按命中条件处理。报警机器人和会话在系统设置中配置"
+        }
+    },
     "scheduledJob": {
         "actions": {
             "create": "新增作业",
@@ -860,6 +963,7 @@
             "close": "关闭",
             "operation": "操作",
             "batchRemark": "批量设置备注",
+            "batchAlert": "批量设置报警",
             "save": "保存"
         },
         "executionTitle": "{name}执行记录",
@@ -894,7 +998,20 @@
             "jobs": "作业列表",
             "allExecutions": "全部执行记录",
             "basicInfo": "基本信息",
+            "alert": "报警设置",
             "rawData": "原始数据"
+        },
+        "alert": {
+            "enabled": "启用报警",
+            "onFailure": "失败或超时报警",
+            "onFailureHint": "执行失败、请求异常或超过超时时间时报警",
+            "overSeconds": "耗时超过（秒）",
+            "overSecondsHint": "0 表示不按耗时报警；运行中超过该时间即报警",
+            "mentions": "提醒用户",
+            "mentionsPlaceholder": "Telegram 用户名，多个用空格分隔，如 {'@'}alice {'@'}bob",
+            "noTrigger": "未选择任何触发项，不会发出报警",
+            "batchHint": "将以上设置整体覆盖到所选的 {count} 个作业，关闭报警会同时清除其报警状态",
+            "resolveHint": "报警后作业恢复正常时，会向同一会话发送解除通知；报警机器人和会话在系统设置中配置"
         },
         "executionFields": {
             "duration": "耗时",
@@ -995,7 +1112,70 @@
             "weekly4": "每周四 {time} 执行",
             "weekly5": "每周五 {time} 执行",
             "weekly6": "每周六 {time} 执行",
-            "custom": "按规则执行"
+            "hourlyAt": "每小时第 {minute} 分 {second} 秒执行",
+            "custom": "按规则执行（{value}）",
+            "outOfRange": "Cron 字段取值超出范围",
+            "listSeparator": "、",
+            "separator": "，",
+            "generic": "{value}执行",
+            "weekday0": "周日",
+            "weekday1": "周一",
+            "weekday2": "周二",
+            "weekday3": "周三",
+            "weekday4": "周四",
+            "weekday5": "周五",
+            "weekday6": "周六",
+            "detail": {
+                "time": "{time}",
+                "second": {
+                    "at": "第 {value} 秒",
+                    "range": "第 {start} 至 {end} 秒",
+                    "every": "每 {step} 秒",
+                    "everyFrom": "从第 {start} 秒起每 {step} 秒",
+                    "everyRange": "第 {start} 至 {end} 秒每 {step} 秒",
+                    "everyAny": "每秒"
+                },
+                "minute": {
+                    "at": "第 {value} 分",
+                    "range": "第 {start} 至 {end} 分",
+                    "every": "每 {step} 分钟",
+                    "everyFrom": "从第 {start} 分起每 {step} 分钟",
+                    "everyRange": "第 {start} 至 {end} 分每 {step} 分钟",
+                    "everyAny": "每分钟"
+                },
+                "hour": {
+                    "at": "{value} 点",
+                    "range": "{start} 至 {end} 点",
+                    "every": "每 {step} 小时",
+                    "everyFrom": "从 {start} 点起每 {step} 小时",
+                    "everyRange": "{start} 至 {end} 点每 {step} 小时",
+                    "everyAny": "每小时"
+                },
+                "day": {
+                    "at": "每月 {value} 日",
+                    "range": "每月 {start} 至 {end} 日",
+                    "every": "每 {step} 天",
+                    "everyFrom": "每月从 {start} 日起每 {step} 天",
+                    "everyRange": "每月 {start} 至 {end} 日每 {step} 天",
+                    "everyAny": "每天"
+                },
+                "month": {
+                    "at": "{value} 月",
+                    "range": "{start} 至 {end} 月",
+                    "every": "每 {step} 个月",
+                    "everyFrom": "从 {start} 月起每 {step} 个月",
+                    "everyRange": "{start} 至 {end} 月每 {step} 个月",
+                    "everyAny": "每月"
+                },
+                "week": {
+                    "at": "{value}",
+                    "range": "{start}至{end}",
+                    "every": "{step}",
+                    "everyFrom": "{start}",
+                    "everyRange": "{start}",
+                    "everyAny": "每天"
+                }
+            }
         }
     },
     "apiManagement": {

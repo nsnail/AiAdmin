@@ -1,0 +1,1488 @@
+{
+ "uid": "node-overview",
+ "title": "服务器性能监控",
+ "tags": [
+  "node",
+  "aiadmin"
+ ],
+ "timezone": "browser",
+ "schemaVersion": 39,
+ "version": 1,
+ "refresh": "30s",
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "editable": true,
+ "templating": {
+  "list": [
+   {
+    "name": "DS_PROMETHEUS",
+    "label": "数据源",
+    "type": "datasource",
+    "query": "prometheus",
+    "current": {},
+    "hide": 0
+   },
+   {
+    "name": "instance",
+    "label": "服务器",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "${DS_PROMETHEUS}"
+    },
+    "query": {
+     "query": "label_values(node_uname_info{job=\"node\"}, instance)",
+     "refId": "q"
+    },
+    "includeAll": true,
+    "multi": true,
+    "current": {
+     "text": "All",
+     "value": "$__all"
+    },
+    "refresh": 2,
+    "sort": 1
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "type": "row",
+   "title": "概览",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 1
+   },
+   "panels": []
+  },
+  {
+   "id": 2,
+   "title": "CPU 使用率",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "除空闲外的 CPU 时间占比，所有核心平均",
+   "gridPos": {
+    "h": 4,
+    "w": 4,
+    "x": 0,
+    "y": 2
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - avg by (instance, role) (rate(node_cpu_seconds_total{job=\"node\",instance=~\"$instance\",mode=\"idle\"}[$__rate_interval]))) * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {},
+     "decimals": 1,
+     "min": 0,
+     "max": 100,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 70
+       },
+       {
+        "color": "red",
+        "value": 85
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 3,
+   "title": "内存使用率",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "按可用内存（MemAvailable）计算，已把可回收的页缓存算作可用，比 free 命令的 used 更接近真实压力",
+   "gridPos": {
+    "h": 4,
+    "w": 4,
+    "x": 4,
+    "y": 2
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\",instance=~\"$instance\"} / node_memory_MemTotal_bytes{job=\"node\",instance=~\"$instance\"}) * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {},
+     "decimals": 1,
+     "min": 0,
+     "max": 100,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 70
+       },
+       {
+        "color": "red",
+        "value": 85
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 4,
+   "title": "根分区使用率",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 4,
+    "w": 4,
+    "x": 8,
+    "y": 2
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - node_filesystem_avail_bytes{job=\"node\",instance=~\"$instance\",fstype!~\"tmpfs|overlay|squashfs|vfat|fuse.*\",mountpoint!~\"/var/lib/docker/.*|/run/.*\"} / node_filesystem_size_bytes{job=\"node\",instance=~\"$instance\",fstype!~\"tmpfs|overlay|squashfs|vfat|fuse.*\",mountpoint!~\"/var/lib/docker/.*|/run/.*\"}) * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {},
+     "decimals": 1,
+     "min": 0,
+     "max": 100,
+     "thresholds": {
+      "mode": "absolute",
+      "steps": [
+       {
+        "color": "green",
+        "value": null
+       },
+       {
+        "color": "orange",
+        "value": 80
+       },
+       {
+        "color": "red",
+        "value": 90
+       }
+      ]
+     },
+     "color": {
+      "mode": "thresholds"
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 5,
+   "title": "1 分钟负载",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "可运行加不可中断进程的平均数，长期高于 CPU 核数说明排队",
+   "gridPos": {
+    "h": 4,
+    "w": 4,
+    "x": 12,
+    "y": 2
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_load1{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {},
+     "decimals": 2
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 6,
+   "title": "运行时长",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 4,
+    "w": 4,
+    "x": 16,
+    "y": 2
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "time() - node_boot_time_seconds{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {}
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 7,
+   "title": "CPU 核数",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 4,
+    "w": 4,
+    "x": 20,
+    "y": 2
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "count by (instance, role) (node_cpu_seconds_total{job=\"node\",instance=~\"$instance\",mode=\"idle\"})",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {}
+    },
+    "overrides": []
+   },
+   "options": {
+    "reduceOptions": {
+     "calcs": [
+      "lastNotNull"
+     ],
+     "fields": "",
+     "values": false
+    },
+    "colorMode": "value",
+    "graphMode": "area",
+    "textMode": "value_and_name"
+   }
+  },
+  {
+   "id": 8,
+   "type": "row",
+   "title": "CPU",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 7
+   },
+   "panels": []
+  },
+  {
+   "id": 9,
+   "title": "CPU 使用率",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - avg by (instance, role) (rate(node_cpu_seconds_total{job=\"node\",instance=~\"$instance\",mode=\"idle\"}[$__rate_interval]))) * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 10,
+   "title": "CPU 时间分布",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "iowait 偏高说明在等磁盘，steal 偏高说明云主机被宿主机抢占，system 偏高多为网络或系统调用开销",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "avg by (mode, instance, role) (rate(node_cpu_seconds_total{job=\"node\",instance=~\"$instance\",mode!=\"idle\"}[$__rate_interval])) * 100",
+     "legendFormat": "{{role}} {{mode}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 11,
+   "title": "系统负载",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 8
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_load1{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 1 分钟",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_load5{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 5 分钟",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_load15{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 15 分钟",
+     "refId": "C"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "decimals": 2
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 12,
+   "type": "row",
+   "title": "内存",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 17
+   },
+   "panels": []
+  },
+  {
+   "id": 13,
+   "title": "内存使用率",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 18
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - node_memory_MemAvailable_bytes{job=\"node\",instance=~\"$instance\"} / node_memory_MemTotal_bytes{job=\"node\",instance=~\"$instance\"}) * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 14,
+   "title": "内存构成",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "已用 = 总量 - 可用；缓存可被内核回收，已包含在可用里",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 18
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_memory_MemTotal_bytes{job=\"node\",instance=~\"$instance\"} - node_memory_MemAvailable_bytes{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 已用",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_memory_Cached_bytes{job=\"node\",instance=~\"$instance\"} + node_memory_Buffers_bytes{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 缓存",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_memory_MemAvailable_bytes{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 可用",
+     "refId": "C"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 15,
+   "title": "Swap 使用与换页",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "换入换出持续不为 0 说明物理内存不足，性能会明显下降",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 18
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_memory_SwapTotal_bytes{job=\"node\",instance=~\"$instance\"} - node_memory_SwapFree_bytes{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} Swap 已用",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_vmstat_pswpin{job=\"node\",instance=~\"$instance\"}[$__rate_interval]) * 4096",
+     "legendFormat": "{{role}} 换入/秒",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_vmstat_pswpout{job=\"node\",instance=~\"$instance\"}[$__rate_interval]) * 4096",
+     "legendFormat": "{{role}} 换出/秒",
+     "refId": "C"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "bytes",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 16,
+   "type": "row",
+   "title": "磁盘",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 27
+   },
+   "panels": []
+  },
+  {
+   "id": 17,
+   "title": "磁盘空间使用率",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 28
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - node_filesystem_avail_bytes{job=\"node\",instance=~\"$instance\",fstype!~\"tmpfs|overlay|squashfs|vfat|fuse.*\",mountpoint!~\"/var/lib/docker/.*|/run/.*\"} / node_filesystem_size_bytes{job=\"node\",instance=~\"$instance\",fstype!~\"tmpfs|overlay|squashfs|vfat|fuse.*\",mountpoint!~\"/var/lib/docker/.*|/run/.*\"}) * 100",
+     "legendFormat": "{{role}} {{mountpoint}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 18,
+   "title": "磁盘读写吞吐",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 28
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_read_bytes_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 读",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_written_bytes_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 写",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "Bps",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 19,
+   "title": "磁盘 IOPS",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 28
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_reads_completed_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 读",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_writes_completed_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 写",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "iops",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 20,
+   "title": "磁盘繁忙度",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "磁盘有 IO 在处理的时间占比，持续接近 100% 说明磁盘已饱和",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 36
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_io_time_seconds_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval]) * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 21,
+   "title": "磁盘平均延迟",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 36
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_read_time_seconds_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval]) / rate(node_disk_reads_completed_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 读",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_disk_write_time_seconds_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval]) / rate(node_disk_writes_completed_total{job=\"node\",instance=~\"$instance\",device=~\"nvme.*|sd.*|vd.*|xvd.*\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 写",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 22,
+   "title": "inode 使用率",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 36
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "(1 - node_filesystem_files_free{job=\"node\",instance=~\"$instance\",fstype!~\"tmpfs|overlay|squashfs|vfat|fuse.*\",mountpoint!~\"/var/lib/docker/.*|/run/.*\"} / node_filesystem_files{job=\"node\",instance=~\"$instance\",fstype!~\"tmpfs|overlay|squashfs|vfat|fuse.*\",mountpoint!~\"/var/lib/docker/.*|/run/.*\"}) * 100",
+     "legendFormat": "{{role}} {{mountpoint}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 23,
+   "type": "row",
+   "title": "网络",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 45
+   },
+   "panels": []
+  },
+  {
+   "id": 24,
+   "title": "网络流量",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "只统计物理网卡，不含回环和 docker 虚拟网桥",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 0,
+    "y": 46
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "sum by (instance, role) (rate(node_network_receive_bytes_total{job=\"node\",instance=~\"$instance\",device!~\"lo|docker.*|br-.*|veth.*\"}[$__rate_interval]))",
+     "legendFormat": "{{role}} 接收",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "sum by (instance, role) (rate(node_network_transmit_bytes_total{job=\"node\",instance=~\"$instance\",device!~\"lo|docker.*|br-.*|veth.*\"}[$__rate_interval]))",
+     "legendFormat": "{{role}} 发送",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "Bps",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 25,
+   "title": "TCP 连接",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 8,
+    "y": 46
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_netstat_Tcp_CurrEstab{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 已建立",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_sockstat_TCP_tw{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} TIME_WAIT",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 26,
+   "title": "网络丢包与错误",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 8,
+    "w": 8,
+    "x": 16,
+    "y": 46
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "sum by (instance, role) (rate(node_network_receive_drop_total{job=\"node\",instance=~\"$instance\",device!~\"lo|docker.*|br-.*|veth.*\"}[$__rate_interval]))",
+     "legendFormat": "{{role}} 接收丢包/秒",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "sum by (instance, role) (rate(node_network_receive_errs_total{job=\"node\",instance=~\"$instance\",device!~\"lo|docker.*|br-.*|veth.*\"}[$__rate_interval]))",
+     "legendFormat": "{{role}} 接收错误/秒",
+     "refId": "B"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_netstat_Tcp_RetransSegs{job=\"node\",instance=~\"$instance\"}[$__rate_interval])",
+     "legendFormat": "{{role}} TCP 重传/秒",
+     "refId": "C"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 27,
+   "type": "row",
+   "title": "系统",
+   "collapsed": false,
+   "gridPos": {
+    "h": 1,
+    "w": 24,
+    "x": 0,
+    "y": 55
+   },
+   "panels": []
+  },
+  {
+   "id": 28,
+   "title": "文件句柄",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "已分配句柄占系统上限的比例，接近 100% 时进程会报 too many open files",
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 0,
+    "y": 56
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_filefd_allocated{job=\"node\",instance=~\"$instance\"} / node_filefd_maximum{job=\"node\",instance=~\"$instance\"} * 100",
+     "legendFormat": "{{role}} {{instance}}",
+     "refId": "A"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     },
+     "min": 0,
+     "max": 100
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 29,
+   "title": "上下文切换与中断",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 8,
+    "y": 56
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_context_switches_total{job=\"node\",instance=~\"$instance\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 上下文切换/秒",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "rate(node_intr_total{job=\"node\",instance=~\"$instance\"}[$__rate_interval])",
+     "legendFormat": "{{role}} 中断/秒",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  },
+  {
+   "id": 30,
+   "title": "进程数",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${DS_PROMETHEUS}"
+   },
+   "description": "",
+   "gridPos": {
+    "h": 7,
+    "w": 8,
+    "x": 16,
+    "y": 56
+   },
+   "targets": [
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_procs_running{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 运行中",
+     "refId": "A"
+    },
+    {
+     "datasource": {
+      "type": "prometheus",
+      "uid": "${DS_PROMETHEUS}"
+     },
+     "expr": "node_procs_blocked{job=\"node\",instance=~\"$instance\"}",
+     "legendFormat": "{{role}} 阻塞",
+     "refId": "B"
+    }
+   ],
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short",
+     "custom": {
+      "lineWidth": 1,
+      "fillOpacity": 10,
+      "spanNulls": true
+     }
+    },
+    "overrides": []
+   },
+   "options": {
+    "legend": {
+     "displayMode": "list",
+     "placement": "bottom"
+    },
+    "tooltip": {
+     "mode": "multi",
+     "sort": "desc"
+    }
+   }
+  }
+ ]
+}

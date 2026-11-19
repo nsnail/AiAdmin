@@ -65,9 +65,10 @@
                 <ArtSvgIcon class="text-2xl text-g-700" icon="iconamoon:arrow-down-2-thin" />
             </div>
         </div>
-
-        <ArtMenuRight :border-radius="10" :menu-items="menuItems" :menu-width="140" @select="handleSelect" ref="menuRef" />
     </div>
+
+    <!-- 菜单放在 v-if 之外：隐藏标签栏后，内容区右键仍可使用同一个菜单 -->
+    <ArtMenuRight :border-radius="10" :menu-items="menuItems" :menu-width="140" @select="handleSelect" ref="menuRef" />
 </template>
 
 <script lang="ts" setup>
@@ -84,6 +85,7 @@ import { formatMenuTitle } from '@/utils/router'
 import { useSettingStore } from '@/store/modules/setting'
 import { MenuItemType } from '../../others/art-menu-right/index.vue'
 import { useCommon } from '@/hooks/core/useCommon'
+import { registerTabMenuOpener } from '@/hooks/core/useTabContextMenu'
 import { WorkTab } from '@/types'
 
 defineOptions({ name: 'ArtWorkTab' })
@@ -530,13 +532,18 @@ const { setupEventListeners, cleanupEventListeners, adjustPositionAfterClose } =
 const { clickTab, closeWorktab, showMenu, handleSelect } = useTabOperations(adjustPositionAfterClose)
 
 // 生命周期
+let unregisterMenuOpener: (() => void) | undefined
+
 onMounted(() => {
     setupEventListeners()
     autoPositionTab()
+    // 内容区右键时以当前标签页为对象弹出同一个菜单
+    unregisterMenuOpener = registerTabMenuOpener((e) => showMenu(e, activeTab.value))
 })
 
 onUnmounted(() => {
     cleanupEventListeners()
+    unregisterMenuOpener?.()
 })
 
 // 监听器

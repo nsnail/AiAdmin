@@ -42,6 +42,99 @@ public sealed class ScheduledJobReleaseHostedService(
     }
 
     /// <summary>
+    ///     判断运行中的作业是否已超过报警耗时且尚未报警
+    /// </summary>
+    /// <param name="job">计划作业</param>
+    /// <param name="now">当前时间</param>
+    /// <returns>应触发超时报警返回 true</returns>
+    private static bool IsRunningTooLong(
+        ScheduledJob job
+        , DateTime now
+    ) {
+        return job is { AlertEnabled: true, AlertActive: false, AlertOverSeconds: > 0, Status: ScheduledJobStatus.Running, LastTriggeredAt: not null }
+               && job.LastTriggeredAt.Value.AddSeconds(job.AlertOverSeconds) <= now;
+    }
+
+    /// <summary>
+    ///     在分布式锁保护下复核并触发运行超过报警耗时的作业报警，作业仍在运行，只触发不解除
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <param name="alerts">报警服务</param>
+    /// <param name="job">运行中的作业</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>异步处理任务</returns>
+    private async Task AlertLongRunningAsync(
+        AppDbContext db
+        , ScheduledJobAlertService alerts
+        , ScheduledJob job
+        , CancellationToken cancellationToken
+    ) {
+        string? alertText;
+        await using (var jobLock = await lockService.TryAcquireAsync(job.Id, _lockWaitTimeout, cancellationToken).ConfigureAwait(false)) {
+            if (jobLock is null) {
+                return;
+            }
+
+            await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
+            var now = DateTime.UtcNow;
+            if (!IsRunningTooLong(job, now)) {
+                return;
+            }
+
+            alertText = ScheduledJobAlertService.Prepare(
+                job, ScheduledJobStatus.Running, (long)(now - job.LastTriggeredAt!.Value).TotalMilliseconds, string.Empty, false
+            );
+            _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (alertText is not null) {
+            await alerts.NotifyAsync(alertText, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    ///     在分布式锁保护下把运行超过超时设置的作业标记为超时，并按需发送报警
+    /// </summary>
+    /// <param name="db">数据库上下文</param>
+    /// <param name="alerts">报警服务</param>
+    /// <param name="job">待释放的作业</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>异步处理任务</returns>
+    private async Task ReleaseOneAsync(
+        AppDbContext db
+        , ScheduledJobAlertService alerts
+        , ScheduledJob job
+        , CancellationToken cancellationToken
+    ) {
+        string? alertText;
+        await using (var jobLock = await lockService.TryAcquireAsync(job.Id, _lockWaitTimeout, cancellationToken).ConfigureAwait(false)) {
+            if (jobLock is null) {
+                return;
+            }
+
+            await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
+            var now = DateTime.UtcNow;
+            if (job.Status != ScheduledJobStatus.Running
+                || !job.LastTriggeredAt.HasValue
+                || job.LastTriggeredAt.Value.AddSeconds(job.TimeoutSeconds) > now) {
+                return;
+            }
+
+            job.Status = ScheduledJobStatus.Timeout;
+            job.LastFinishedAt = now;
+            job.LastError = "Job execution exceeded timeout";
+            alertText = ScheduledJobAlertService.Prepare(
+                job, ScheduledJobStatus.Timeout, (long)(now - job.LastTriggeredAt.Value).TotalMilliseconds, job.LastError, true
+            );
+            _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        if (alertText is not null) {
+            await alerts.NotifyAsync(alertText, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
     ///     扫描并释放已超过运行超时时间的计划作业
     /// </summary>
     /// <param name="cancellationToken">取消令牌</param>
@@ -60,24 +153,13 @@ public sealed class ScheduledJobReleaseHostedService(
             .ScheduledJobs.Where(x => x.Status == ScheduledJobStatus.Running && x.LastTriggeredAt.HasValue)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
+        var alerts = scope.ServiceProvider.GetRequiredService<ScheduledJobAlertService>();
         foreach (var job in jobs.Where(x => x.LastTriggeredAt!.Value.AddSeconds(x.TimeoutSeconds) <= now)) {
-            await using var jobLock = await lockService.TryAcquireAsync(job.Id, _lockWaitTimeout, cancellationToken).ConfigureAwait(false);
-            if (jobLock is null) {
-                continue;
-            }
+            await ReleaseOneAsync(db, alerts, job, cancellationToken).ConfigureAwait(false);
+        }
 
-            await db.Entry(job).ReloadAsync(cancellationToken).ConfigureAwait(false);
-            now = DateTime.UtcNow;
-            if (job.Status != ScheduledJobStatus.Running
-                || !job.LastTriggeredAt.HasValue
-                || job.LastTriggeredAt.Value.AddSeconds(job.TimeoutSeconds) > now) {
-                continue;
-            }
-
-            job.Status = ScheduledJobStatus.Timeout;
-            job.LastFinishedAt = now;
-            job.LastError = "Job execution exceeded timeout";
-            _ = await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        foreach (var job in jobs.Where(x => IsRunningTooLong(x, now))) {
+            await AlertLongRunningAsync(db, alerts, job, cancellationToken).ConfigureAwait(false);
         }
     }
 }

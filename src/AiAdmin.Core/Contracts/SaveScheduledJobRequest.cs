@@ -6,6 +6,26 @@ namespace AiAdmin.Api.Contracts;
 public sealed class SaveScheduledJobRequest
 {
     /// <summary>
+    ///     是否启用报警
+    /// </summary>
+    public bool AlertEnabled { get; set; }
+
+    /// <summary>
+    ///     报警时提醒的 Telegram 用户名，多个以空格、逗号或分号分隔
+    /// </summary>
+    public string AlertMentions { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     执行失败或超时时是否报警
+    /// </summary>
+    public bool AlertOnFailure { get; set; } = true;
+
+    /// <summary>
+    ///     执行耗时超过该秒数时报警，0 表示不按耗时报警
+    /// </summary>
+    public int AlertOverSeconds { get; set; }
+
+    /// <summary>
     ///     Cron 表达式
     /// </summary>
     public required string CronExpression { get; set; }

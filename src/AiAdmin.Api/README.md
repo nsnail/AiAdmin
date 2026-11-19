@@ -6,9 +6,9 @@
 
 | 目录          | 内容                                                                                                         |
 |---------------|--------------------------------------------------------------------------------------------------------------|
-| `Controllers` | 框架控制器：认证、用户、角色、部门、菜单、字典、文件、计划作业、站内信、客服、日志、缓存、仪表盘、安全停机等 |
+| `Controllers` | 框架控制器：认证、用户、角色、部门、菜单、字典、文件、计划作业、告警监控、站内信、客服、日志、缓存、仪表盘、安全停机等 |
 | `Middleware`  | 请求管道中间件与异常处理                                                                                     |
-| `Services`    | 外部请求、计划作业、实时推送、字典快照、导出限制、系统信息等宿主服务                                         |
+| `Services`    | 外部请求、计划作业与报警、告警监控扫描、就绪探测、实时推送、字典快照、导出限制、系统信息等宿主服务                                         |
 | `Logging`     | 控制台 / 文件 / Elasticsearch 日志提供程序，API 请求日志入库队列与后台服务                                   |
 | `Properties`  | `launchSettings.json` 启动配置                                                                               |
 
@@ -24,7 +24,7 @@
 6. `ResponseJsonCleanupMiddleware`：递归移除响应 JSON 中值为 null 或空字符串的属性
 7. `DataScopeMiddleware`：根据用户角色构造数据范围
 8. `ApiPermissionMiddleware`：接口权限判定，除显式 `AllowAnonymous` 的端点外全部检查，`R_SUPER` 放行
-9. 授权与控制器；`/health` 匿名可访问且不产生请求日志
+9. 授权与控制器；`/health` 与 `/ready` 匿名可访问且不产生请求日志；`/ready` 会实际访问数据库和 Redis 并返回耗时，任一依赖不可用或超过 3 秒无应答返回 503，滚动发布据此预热连接池
 
 ## 配置
 
@@ -57,6 +57,7 @@
 
 - `ScheduledJobHostedService`：按 Cron 触发计划作业，通过 Redis 锁保证多实例下同一作业只触发一次，作业请求经 `ExternalHttpRequestService` 发出并记录执行结果
 - `ScheduledJobReleaseHostedService`：每 5 秒扫描一次，释放运行时间超过作业超时设置的计划作业
+- `ScheduledJobAlertService`、`AlertMonitorScanService`：通过系统设置中的报警机器人（`Telegram Alert Bot Token`、`Telegram Alert Chat Id`）发送报警与解除通知。计划作业可按失败、超时或耗时超限报警；告警监控由内置作业 `Scan alert monitors` 每分钟扫描，持续异常期间不重复发送
 - `ElasticsearchLogBackgroundService`、`ApiLogStorageBackgroundService`：从 Redis 队列批量消费日志，分别写入 Elasticsearch 和按天分表
 - `RealtimeShutdownHostedService`：主机停止时关闭安全停机闸门并关闭所有实时连接（始终注册，不受 `--enabled-hosted-services` 影响）
 

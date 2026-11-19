@@ -43,9 +43,8 @@ public sealed class SaveDictionaryItemRequest
     public int Sort { get; init; }
 
     /// <summary>
-    ///     字典键
+    ///     字典值，允许为空字符串（如尚未填写的 SMTP 用户名、机器人令牌），前端请求层会把空字符串字段整个移除，因此缺省按空字符串处理
     /// </summary>
-    [Required]
     [StringLength(4000)]
     public string Value { get; init; } = string.Empty;
 }
