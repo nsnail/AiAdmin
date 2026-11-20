@@ -61,6 +61,7 @@
         "optional": "Optional",
         "description": "Description",
         "noParameters": "No parameters",
+        "endpointCount": "{count} endpoints",
         "requestBody": "Request body",
         "response": "Response",
         "tryIt": "Try it",
@@ -358,6 +359,7 @@
         "dashboard": {
             "title": "Dashboard",
             "console": "System Overview",
+            "tiles": "Quick Access",
             "business": "Business Overview"
         },
         "exception": {
@@ -387,6 +389,8 @@
             "scheduledJob": "Scheduled Jobs",
             "cache": "Cache Management",
             "alertMonitor": "Alert monitor",
+            "rateLimit": "API rate limit",
+            "circuitBreaker": "API circuit breaker",
             "referrals": "My Referrals",
             "message": "Message Management",
             "supportChat": "Customer Service"
@@ -467,14 +471,32 @@
             "phone": "Phone"
         },
         "token": {
-            "title": "Access token",
-            "expiresAt": "Valid until",
-            "remaining": "{time} remaining",
-            "expired": "Expired",
-            "unknown": "Unknown",
-            "copy": "Copy token",
-            "copied": "Token copied",
             "copyFailed": "Copy failed"
+        },
+        "apiKey": {
+            "title": "API Key",
+            "desc": "An API key suits long-lived server-side calls. Each user has one; resetting it invalidates the old key immediately. Send it in the X-Api-Key header.",
+            "none": "No API key generated yet",
+            "prefix": "Key prefix",
+            "createdAt": "Created at",
+            "lastUsedAt": "Last used",
+            "neverUsed": "Never used",
+            "generate": "Generate API key",
+            "reset": "Reset API key",
+            "revoke": "Revoke",
+            "copy": "Copy key",
+            "copySecret": "Copy signing secret",
+            "download": "Download key and secret",
+            "downloaded": "Credentials file downloaded, keep it safe",
+            "keyLabel": "API key",
+            "secretLabel": "Signing secret (HMAC key for request signatures, never sent with requests)",
+            "secretCopied": "Signing secret copied",
+            "copied": "API key copied",
+            "newKeyTip": "Copy and store them now. The full key and signing secret cannot be viewed again after you leave.",
+            "resetConfirm": "The old key will stop working immediately. Continue?",
+            "revokeConfirm": "This key will stop working immediately. Continue?",
+            "generated": "API key generated",
+            "revoked": "API key revoked"
         },
         "password": {
             "title": "Change password",
@@ -526,10 +548,7 @@
             "add": "Add user",
             "save": "Save",
             "edit": "Edit",
-            "delete": "Delete",
-            "exportData": "Export data",
-            "exportExcel": "Excel",
-            "exportJson": "JSON"
+            "delete": "Delete"
         },
         "fields": {
             "userName": "Username",
@@ -545,10 +564,13 @@
             "lastLogin": "Last login",
             "lastLoginIp": "Last login IP",
             "lastLoginRegion": "Last login location",
+            "online": "Online status",
+            "lastOnline": "Last online",
+            "neverOnline": "Never online",
             "unknownRegion": "Unknown location",
             "operation": "Actions"
         },
-        "status": { "enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown" },
+        "status": { "enabled": "Enabled", "disabled": "Disabled", "unknown": "Unknown", "online": "Online", "offline": "Offline" },
         "gender": { "male": "Male", "female": "Female" },
         "dialog": {
             "addTitle": "Add user",
@@ -557,7 +579,6 @@
             "passwordKeep": "Leave blank to keep unchanged; new passwords need 8+ characters with letters and numbers",
             "passwordNew": "8+ characters with letters and numbers"
         },
-        "export": { "sheetName": "Users" },
         "placeholder": {
             "userName": "Enter username",
             "email": "Enter email",
@@ -575,11 +596,7 @@
         "confirm": { "deleteTitle": "Delete user", "deleteMessage": "Delete user “{name}”?" },
         "message": {
             "created": "User created",
-            "updated": "User updated",
-            "exported": "Exported {count} records",
-            "exportEmpty": "There is no data to export",
-            "exportFailed": "Export failed",
-            "exportTruncated": "{total} records matched; this export is limited to {limit} by system settings"
+            "updated": "User updated"
         },
         "detail": {
             "title": "User details",
@@ -615,6 +632,8 @@
             "enableLoginSliderVerification": "Enable login slider verification",
             "enableUserRegistration": "Enable user registration",
             "enableEmailVerification": "Enable email verification",
+            "enableRequestSignature": "Enable request signature",
+            "enableRequestSignatureTip": "Requires every authenticated request to carry an HMAC signature, timestamp and one-time nonce, so a leaked token or captured request cannot be used or replayed. Sign in again after changing this setting",
             "smtpHost": "SMTP host",
             "smtpPort": "SMTP port",
             "smtpSsl": "Enable SMTP SSL",
@@ -867,6 +886,99 @@
             }
         }
     },
+    "circuitBreaker": {
+        "actions": { "create": "Add rule", "edit": "Edit rule", "save": "Save" },
+        "delete": { "batch": "Delete selected", "batchConfirm": "Delete the {count} selected rules?", "confirm": "Delete this rule?" },
+        "dialog": {
+            "createTitle": "Add circuit breaker rule",
+            "editTitle": "Edit circuit breaker rule",
+            "tabs": { "basic": "Basic info", "rawData": "Raw data" }
+        },
+        "fields": {
+            "api": "API",
+            "state": "State",
+            "condition": "Trip condition",
+            "windowSeconds": "Window (seconds)",
+            "minimumRequests": "Minimum requests",
+            "failureRatePercent": "Failure rate threshold (%)",
+            "slowCallMs": "Slow call threshold (ms)",
+            "openSeconds": "Open duration (seconds)",
+            "halfOpenRequests": "Probe requests",
+            "remark": "Remark",
+            "isEnabled": "Enabled"
+        },
+        "placeholder": { "api": "Search and select an API", "remark": "Enter remark" },
+        "state": { "closed": "Normal", "open": "Open", "halfOpen": "Probing", "disabled": "Disabled" },
+        "condition": "≥ {minimum} requests in {seconds}s and failure rate ≥ {percent}%",
+        "hints": {
+            "minimumRequests": "The failure rate is only evaluated once the window has this many requests, so a few failures at low traffic do not trip it",
+            "failureRate": "Trips when the share of failed requests in the window reaches this value. A failure is a 5xx response, an unhandled exception, or a response slower than the slow call threshold",
+            "slowCall": "Requests slower than this also count as failures. 0 disables slow call counting",
+            "openSeconds": "While open, requests to this API are rejected immediately; after this time it moves to probing",
+            "halfOpen": "While probing only this many requests are let through. If all succeed it recovers, if any fails it trips again",
+            "behavior": "A tripped breaker returns 429 with Retry-After and X-Circuit-State headers. It never uses 502/503, which the gateway would treat as a node failure and remove the node. The 429s returned by rate limiting and the breaker itself are not counted as failures. An API can have only one circuit breaker rule"
+        }
+    },
+    "rateLimit": {
+        "actions": {
+            "create": "Add rule",
+            "edit": "Edit rule",
+            "save": "Save"
+        },
+        "delete": {
+            "batch": "Delete selected",
+            "batchConfirm": "Delete the {count} selected rules?",
+            "confirm": "Delete this rule?"
+        },
+        "dialog": {
+            "createTitle": "Add rate limit rule",
+            "editTitle": "Edit rate limit rule",
+            "tabs": {
+                "basic": "Basic info",
+                "rawData": "Raw data"
+            }
+        },
+        "fields": {
+            "api": "API",
+            "algorithm": "Algorithm",
+            "scope": "Scope",
+            "user": "Specific user",
+            "limit": "Request limit",
+            "windowSeconds": "Window (seconds)",
+            "rate": "Rate",
+            "remark": "Remark",
+            "isEnabled": "Enabled",
+            "role": "Specific role",
+            "subject": "Applies to"
+        },
+        "placeholder": {
+            "api": "Search and select an API",
+            "user": "Leave empty to limit every user separately",
+            "limit": "Requests allowed per window, also the bucket capacity",
+            "windowSeconds": "e.g. 60",
+            "remark": "Enter remark",
+            "role": "Select a role"
+        },
+        "algorithm": {
+            "slidingWindow": "Sliding window",
+            "leakyBucket": "Leaky bucket",
+            "tokenBucket": "Token bucket"
+        },
+        "scope": {
+            "global": "Global",
+            "user": "User",
+            "role": "Role"
+        },
+        "scopeAll": "Each user",
+        "rate": "{limit} per {seconds}s",
+        "hints": {
+            "slidingWindow": "No more than {limit} requests in any continuous {seconds} seconds. The most precise, but every request keeps a record",
+            "leakyBucket": "Requests enter the bucket and leave at a constant {rate} per second. Capacity {limit}; a full bucket rejects requests, so downstream always sees a smooth rate",
+            "tokenBucket": "{rate} tokens are added per second, capacity {limit}. Each request takes a token, bursts up to the capacity are allowed, then requests pass at the refill rate",
+            "scope": "Global rules always apply as a ceiling. Otherwise the most specific layer wins: specific user > role > per-user default, and within a layer the most generous rule is used. User, role and default rules all count per user",
+            "multiple": "An API can have several rules; a request must pass all enabled rules"
+        }
+    },
     "alertMonitor": {
         "actions": {
             "create": "Add monitor",
@@ -911,6 +1023,7 @@
             "redisKey": "Redis key, e.g. queue:report",
             "thresholdNumber": "A number, e.g. 1000",
             "thresholdText": "Text to compare with",
+            "thresholdRegex": "Regular expression, e.g. ^ERR-\\d+$, case-insensitive by default",
             "mentions": "Telegram usernames separated by spaces, e.g. {'@'}alice {'@'}bob",
             "remark": "Enter a remark"
         },
@@ -936,7 +1049,9 @@
             "contains": "Contains",
             "notContains": "Does not contain",
             "startsWith": "Starts with",
-            "endsWith": "Ends with"
+            "endsWith": "Ends with",
+            "regexMatch": "Matches regex",
+            "regexNotMatch": "Does not match regex"
         },
         "state": {
             "normal": "Normal",
@@ -949,7 +1064,8 @@
             "categoryCode": "Enter the dictionary category code",
             "target": "Enter the target",
             "thresholdNumber": "The threshold of a number comparison must be a number",
-            "thresholdText": "Enter the text to compare with"
+            "thresholdText": "Enter the text to compare with",
+            "thresholdRegex": "Enter a valid regular expression"
         },
         "quickAdd": {
             "action": "Add monitor",
@@ -997,6 +1113,7 @@
             "finished": "Finished",
             "lastFinishedAt": "Last finished",
             "lastError": "Last error",
+            "lastResult": "Last result",
             "previous": "Previous",
             "nextExecution": "Next execution",
             "executionDuration": "Execution duration",
@@ -1020,11 +1137,21 @@
             "mentionsPlaceholder": "Telegram usernames separated by spaces, e.g. {'@'}alice {'@'}bob",
             "noTrigger": "No trigger is selected, so no alert will be sent",
             "batchHint": "These settings replace the alert configuration of the {count} selected jobs. Turning alerts off also clears their alert state",
-            "resolveHint": "When the job recovers after an alert, a resolved notice is sent to the same chat. The alert bot and chat are set in system settings"
+            "resolveHint": "When the job recovers after an alert, a resolved notice is sent to the same chat; the alert bot and chat are configured in system settings",
+            "result": {
+                "title": "Result alert",
+                "none": "Do not alert on result",
+                "number": "Number",
+                "text": "Text",
+                "caseSensitive": "Case sensitive",
+                "hint": "Matched against the full response body and alerts when it matches. Not evaluated when there is no response body, such as on timeout or error. Text is a substring match, use a regex with ^ and $ for a whole match. Numbers require the whole body to be a number",
+                "invalid": "The result alert rule is invalid, please check the value"
+            }
         },
         "executionFields": {
             "duration": "Duration",
             "errorMessage": "Error message",
+            "result": "Result",
             "finishedAt": "Finished at",
             "requestMethod": "Request method",
             "requestUrl": "Request URL",
@@ -1067,7 +1194,8 @@
                 "responseStatusCode": "Response status code",
                 "responseHeaders": "Response headers",
                 "responseBody": "Response body",
-                "errorMessage": "Error message"
+                "errorMessage": "Error message",
+                "result": "Result"
             }
         }
     },
@@ -1188,12 +1316,17 @@
         }
     },
     "apiManagement": {
+        "actions": {
+            "addRateLimit": "Add rate limit rule",
+            "addCircuitBreaker": "Add circuit breaker rule"
+        },
         "statistics": {
             "total": "Total APIs",
             "controllers": "Controllers",
             "anonymous": "Anonymous APIs",
             "methods": "HTTP methods"
-        }
+        },
+        "anonymousOnly": "Show anonymous APIs only"
     },
     "listFilter": {
         "group": { "all": "All" },
@@ -1221,6 +1354,33 @@
             "controller": "Controller",
             "controllerName": "Controller name",
             "allowAnonymous": "Anonymous access"
+        },
+        "rateLimit": {
+            "algorithm": "Algorithm",
+            "scope": "Scope",
+            "slidingWindow": "Sliding window",
+            "leakyBucket": "Leaky bucket",
+            "tokenBucket": "Token bucket",
+            "global": "Global",
+            "user": "User",
+            "role": "Role",
+            "limit": "Request limit",
+            "remark": "Remark",
+            "remarkPlaceholder": "Enter remark",
+            "roleCode": "Role code",
+            "roleCodePlaceholder": "Enter role code",
+            "userId": "Specific user",
+            "windowSeconds": "Window (seconds)"
+        },
+        "circuitBreaker": {
+            "failureRatePercent": "Failure rate threshold (%)",
+            "halfOpenRequests": "Probe requests",
+            "minimumRequests": "Minimum requests",
+            "openSeconds": "Open duration (seconds)",
+            "remark": "Remark",
+            "remarkPlaceholder": "Enter remark",
+            "slowCallMs": "Slow call threshold (ms)",
+            "windowSeconds": "Window (seconds)"
         },
         "placeholder": {
             "userName": "Enter username",
@@ -1268,9 +1428,6 @@
     "roleManagement": {
         "actions": {
             "add": "Add role",
-            "exportData": "Export data",
-            "exportExcel": "Excel",
-            "exportJson": "JSON",
             "expandAll": "Expand all",
             "collapseAll": "Collapse all",
             "selectAll": "Select all",
@@ -1297,7 +1454,6 @@
             "descriptionRequired": "Enter a role description",
             "dataScopeRequired": "Select a data scope"
         },
-        "export": { "sheetName": "Roles" },
         "confirm": {
             "deleteTitle": "Delete role",
             "deleteMessage": "Delete role \"{name}\"? This action cannot be undone."
@@ -1306,11 +1462,7 @@
             "created": "Role created",
             "updated": "Role updated",
             "copied": "Role copied",
-            "deleteCancelled": "Deletion cancelled",
-            "exported": "Exported {count} records",
-            "exportEmpty": "There is no data to export",
-            "exportFailed": "Export failed",
-            "exportTruncated": "{total} records matched; this export is limited to {limit} by system settings"
+            "deleteCancelled": "Deletion cancelled"
         }
     },
     "departmentManagement": {
@@ -1366,6 +1518,21 @@
     },
     "changeLog": {
         "empty": "No change log available"
+    },
+    "quickTiles": {
+        "tip": "Add frequently used pages as tiles and jump straight to them. Tiles are stored in this browser and only pages you can access can be added",
+        "edit": "Edit tiles",
+        "done": "Done",
+        "add": "Add tile",
+        "editTip": "Drag tiles to reorder them and use the corner button to remove one. Changes are saved in this browser",
+        "remove": "Remove tile",
+        "empty": "No quick access yet. Add a few frequently used pages",
+        "pickerTitle": "Choose pages",
+        "search": "Search page name",
+        "noCandidates": "No pages available to add",
+        "count": "{count} / {max} selected",
+        "cancel": "Cancel",
+        "confirm": "OK"
     },
     "dashboard": {
         "refresh": "Refresh",
@@ -1470,6 +1637,15 @@
         "loadFailed": "Failed to load wallet"
     },
     "table": {
+        "export": {
+            "title": "Export data",
+            "excel": "Excel",
+            "json": "JSON",
+            "empty": "There is no data to export",
+            "done": "Exported {count} records",
+            "failed": "Export failed",
+            "truncated": "{total} records matched, only the first {limit} are exported according to the system setting"
+        },
         "contextMenu": { "copyHint": "Copy (C)", "filter": "Filter", "sort": "Sort", "sortAsc": "Ascending", "sortDesc": "Descending" },
         "form": {
             "reset": "Reset",

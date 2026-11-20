@@ -48,6 +48,7 @@ public sealed class SupportChatTests : IDisposable
         _ = services.AddScoped(_ => NewDb());
         _ = services.AddSingleton<SystemInfoService>();
         _ = services.AddSingleton<IRealtimeBus, InMemoryRealtimeBus>();
+        _ = services.AddSingleton<IUserPresence, NoPresence>();
         _ = services.AddSingleton<RealtimeConnectionManager>();
         _provider = services.BuildServiceProvider();
     }

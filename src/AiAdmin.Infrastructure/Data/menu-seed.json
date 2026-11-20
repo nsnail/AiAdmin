@@ -2,7 +2,7 @@
   {
     "name": "Dashboard",
     "path": "/dashboard",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.dashboard.title",
       "icon": "ri:pie-chart-line",
@@ -19,7 +19,17 @@
           "title": "menus.dashboard.console",
           "icon": "ri:home-smile-2-line",
           "keepAlive": false,
-          "fixedTab": true,
+          "fixedTab": true
+        }
+      },
+      {
+        "path": "tiles",
+        "name": "QuickTiles",
+        "component": "/dashboard/tiles",
+        "meta": {
+          "title": "menus.dashboard.tiles",
+          "icon": "ri:apps-2-line",
+          "keepAlive": true,
           "roles": [
             "R_USER"
           ]
@@ -30,7 +40,7 @@
   {
     "path": "/permission",
     "name": "PermissionManagement",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.system.permission",
       "icon": "ri:shield-user-line"
@@ -52,6 +62,10 @@
             {
               "title": "Enable",
               "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
             }
           ]
         }
@@ -68,6 +82,10 @@
             {
               "title": "Enable",
               "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
             }
           ]
         }
@@ -96,6 +114,10 @@
             {
               "title": "Enable",
               "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
             }
           ]
         }
@@ -124,6 +146,10 @@
             {
               "title": "Enable",
               "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
             }
           ]
         }
@@ -143,7 +169,7 @@
   {
     "path": "/marketing",
     "name": "MarketingManagement",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.marketing.title",
       "icon": "ri:megaphone-line"
@@ -164,10 +190,13 @@
   {
     "path": "/system-management",
     "name": "SystemManagement",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.system.title",
-      "icon": "ri:settings-3-line"
+      "icon": "ri:settings-3-line",
+      "roles": [
+        "R_USER"
+      ]
     },
     "children": [
       {
@@ -179,7 +208,10 @@
           "icon": "ri:user-line",
           "isHide": true,
           "keepAlive": true,
-          "isHideTab": true
+          "isHideTab": true,
+          "roles": [
+            "R_USER"
+          ]
         }
       },
       {
@@ -189,7 +221,13 @@
         "meta": {
           "title": "menus.system.message",
           "icon": "ri:mail-send-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ]
         }
       },
       {
@@ -240,6 +278,10 @@
             {
               "title": "Enable",
               "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
             }
           ]
         }
@@ -265,6 +307,60 @@
         }
       },
       {
+        "path": "circuit-breaker",
+        "name": "CircuitBreakerManagement",
+        "component": "/system/circuit-breaker",
+        "meta": {
+          "title": "menus.system.circuitBreaker",
+          "icon": "ri:flashlight-line",
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Delete",
+              "authMark": "delete"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ],
+          "roles": [
+            "R_SUPER"
+          ]
+        }
+      },
+      {
+        "path": "rate-limit",
+        "name": "RateLimitManagement",
+        "component": "/system/rate-limit",
+        "meta": {
+          "title": "menus.system.rateLimit",
+          "icon": "ri:speed-up-line",
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Delete",
+              "authMark": "delete"
+            },
+            {
+              "title": "Enable",
+              "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ],
+          "roles": [
+            "R_SUPER"
+          ]
+        }
+      },
+      {
         "path": "alert-monitor",
         "name": "AlertMonitorManagement",
         "component": "/system/alert-monitor",
@@ -280,6 +376,10 @@
             {
               "title": "Enable",
               "authMark": "enable"
+            },
+            {
+              "title": "Export",
+              "authMark": "export"
             }
           ],
           "roles": [
@@ -292,7 +392,7 @@
   {
     "path": "/finance",
     "name": "FinanceManagement",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.finance.title",
       "icon": "ri:wallet-3-line"
@@ -305,7 +405,13 @@
         "meta": {
           "title": "menus.finance.wallet",
           "icon": "ri:wallet-3-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ]
         }
       }
     ]
@@ -313,7 +419,7 @@
   {
     "path": "/log-management",
     "name": "LogManagement",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.log.title",
       "icon": "ri:file-search-line"
@@ -326,7 +432,13 @@
         "meta": {
           "title": "menus.log.systemLog",
           "icon": "ri:file-search-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ]
         }
       },
       {
@@ -336,7 +448,13 @@
         "meta": {
           "title": "menus.log.loginLog",
           "icon": "ri:login-box-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ]
         }
       },
       {
@@ -346,7 +464,13 @@
         "meta": {
           "title": "menus.log.apiRequestLog",
           "icon": "ri:route-line",
-          "keepAlive": true
+          "keepAlive": true,
+          "authList": [
+            {
+              "title": "Export",
+              "authMark": "export"
+            }
+          ]
         }
       }
     ]
@@ -354,7 +478,7 @@
   {
     "path": "/development",
     "name": "Development",
-    "component": "/index/index",
+    "component": "",
     "meta": {
       "title": "menus.development.title",
       "icon": "ri:code-box-line"

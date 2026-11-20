@@ -28,6 +28,11 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
     public DbSet<ApiEndpoint> ApiEndpoints => Set<ApiEndpoint>();
 
     /// <summary>
+    ///     接口熔断规则集合
+    /// </summary>
+    public DbSet<CircuitBreakerRule> CircuitBreakerRules => Set<CircuitBreakerRule>();
+
+    /// <summary>
     ///     当前请求的数据权限上下文，供全局查询过滤表达式访问
     /// </summary>
     public DataScopeContext DataScope => dataScope;
@@ -56,6 +61,11 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
     ///     菜单实体集合
     /// </summary>
     public DbSet<Menu> Menus => Set<Menu>();
+
+    /// <summary>
+    ///     接口限流规则集合
+    /// </summary>
+    public DbSet<RateLimitRule> RateLimitRules => Set<RateLimitRule>();
 
     /// <summary>
     ///     角色接口关联集合
@@ -106,6 +116,11 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
     ///     系统消息集合
     /// </summary>
     public DbSet<SystemMessage> SystemMessages => Set<SystemMessage>();
+
+    /// <summary>
+    ///     用户 API Key 集合
+    /// </summary>
+    public DbSet<UserApiKey> UserApiKeys => Set<UserApiKey>();
 
     /// <summary>
     ///     用户部门关联集合
@@ -187,6 +202,9 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
                 _ = entity.HasIndex(x => x.Email);
                 _ = entity.HasIndex(x => x.InvitationCode).IsUnique();
                 _ = entity.HasIndex(x => x.LastLoginAt);
+
+                // 在线状态校正作业每分钟按 IsOnline 取出标记为在线的用户，列表也按它筛选和分组统计
+                _ = entity.HasIndex(x => x.IsOnline);
                 _ = entity.Property(x => x.UserName).HasMaxLength(50).IsRequired();
                 _ = entity.Property(x => x.PasswordHash).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.InvitationCode).HasMaxLength(12).IsRequired();
@@ -339,6 +357,22 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
             }
         );
 
+        _ = modelBuilder.Entity<UserApiKey>(entity =>
+            {
+                _ = entity.ToTable("sys_user_api_key");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+
+                // 每个用户只能有一个 API Key，哈希唯一用于认证查找
+                _ = entity.HasIndex(x => x.UserId).IsUnique();
+                _ = entity.HasIndex(x => x.KeyHash).IsUnique();
+                _ = entity.Property(x => x.KeyHash).HasMaxLength(64).IsRequired();
+                _ = entity.Property(x => x.KeyPrefix).HasMaxLength(16).IsRequired();
+                _ = entity.Property(x => x.SignSecret).HasMaxLength(512).IsRequired();
+                _ = entity.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            }
+        );
+
         _ = modelBuilder.Entity<SavedQuery>(entity =>
             {
                 _ = entity.ToTable("sys_saved_query");
@@ -364,6 +398,10 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
                 _ = entity.Property(x => x.RequestMethod).HasMaxLength(20).IsRequired();
                 _ = entity.Property(x => x.Remark).HasMaxLength(500);
                 _ = entity.Property(x => x.LastError).HasMaxLength(4000);
+                _ = entity.Property(x => x.LastResult).HasMaxLength(ScheduledJobExecution.RESULT_MAX_LENGTH);
+                _ = entity.Property(x => x.AlertResultOperator).HasConversion<int?>();
+                _ = entity.Property(x => x.AlertResultValueType).HasConversion<int>();
+                _ = entity.Property(x => x.AlertResultValue).HasMaxLength(500);
                 _ = entity.Property(x => x.Status).HasConversion<int>();
                 _ = entity.Property(x => x.SuccessRate).HasPrecision(5, 2);
                 _ = entity.HasIndex(x => new { x.IsEnabled, x.Status });
@@ -401,6 +439,7 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
                 _ = entity.Property(x => x.RequestUrl).HasMaxLength(2000);
                 _ = entity.Property(x => x.RequestMethod).HasMaxLength(20);
                 _ = entity.Property(x => x.ErrorMessage).HasMaxLength(4000);
+                _ = entity.Property(x => x.Result).HasMaxLength(ScheduledJobExecution.RESULT_MAX_LENGTH);
                 _ = entity.Property(x => x.Status).HasConversion<int>();
                 _ = entity.HasIndex(x => new { x.ScheduledJobId, x.StartedAt });
                 _ = entity
@@ -453,6 +492,33 @@ public sealed partial class AppDbContext(DbContextOptions<AppDbContext> options,
                 _ = entity.Property(x => x.Controller).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.ControllerName).HasMaxLength(100).IsRequired();
                 _ = entity.Property(x => x.Action).HasMaxLength(100).IsRequired();
+            }
+        );
+
+        _ = modelBuilder.Entity<CircuitBreakerRule>(entity =>
+            {
+                _ = entity.ToTable("sys_circuit_breaker_rule");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.Remark).HasMaxLength(500).IsRequired();
+
+                // 每个接口最多一条熔断规则
+                _ = entity.HasIndex(x => x.ApiEndpointId).IsUnique();
+                _ = entity.HasOne(x => x.ApiEndpoint).WithMany().HasForeignKey(x => x.ApiEndpointId).OnDelete(DeleteBehavior.Cascade);
+            }
+        );
+
+        _ = modelBuilder.Entity<RateLimitRule>(entity =>
+            {
+                _ = entity.ToTable("sys_rate_limit_rule");
+                _ = entity.HasKey(x => x.Id);
+                _ = entity.Property(x => x.Id).ValueGeneratedNever();
+                _ = entity.Property(x => x.Algorithm).HasConversion<int>();
+                _ = entity.Property(x => x.Scope).HasConversion<int>();
+                _ = entity.Property(x => x.Remark).HasMaxLength(500).IsRequired();
+                _ = entity.Property(x => x.RoleCode).HasMaxLength(50);
+                _ = entity.HasIndex(x => x.ApiEndpointId);
+                _ = entity.HasOne(x => x.ApiEndpoint).WithMany().HasForeignKey(x => x.ApiEndpointId).OnDelete(DeleteBehavior.Cascade);
             }
         );
 

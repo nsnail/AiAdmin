@@ -101,6 +101,7 @@ public sealed class RealtimeWebSocketTests : IAsyncLifetime, IDisposable
         _ = builder.Services.AddSingleton<ApiPermissionCache>();
         _ = builder.Services.AddSingleton<SystemInfoService>();
         _ = builder.Services.AddSingleton<IRealtimeBus, InMemoryRealtimeBus>();
+        _ = builder.Services.AddSingleton<IUserPresence, NoPresence>();
         _ = builder.Services.AddSingleton<RealtimeConnectionManager>();
         _app = builder.Build();
         _ = _app.UseWebSockets();

@@ -24,6 +24,13 @@
                     <ElDescriptionsItem :label="t('userManagement.fields.departments')">
                         {{ formatValue(user.departmentNames.join(', ')) }}
                     </ElDescriptionsItem>
+                    <ElDescriptionsItem :label="t('userManagement.fields.online')">
+                        <span class="inline-flex items-center gap-2">
+                            <span :class="['inline-block size-2 rounded-full', user.isOnline ? 'bg-success' : 'bg-g-300']"></span>
+                            {{ t(user.isOnline ? 'userManagement.status.online' : 'userManagement.status.offline') }}
+                        </span>
+                    </ElDescriptionsItem>
+                    <ElDescriptionsItem :label="t('userManagement.fields.lastOnline')">{{ formatTime(user.lastOnlineAt) }}</ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('userManagement.fields.lastLogin')">{{ formatTime(user.lastLoginAt) }}</ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('userManagement.fields.lastLoginIp')">{{ formatValue(user.lastLoginIp) }}</ElDescriptionsItem>
                     <ElDescriptionsItem :label="t('userManagement.fields.lastLoginRegion')">{{

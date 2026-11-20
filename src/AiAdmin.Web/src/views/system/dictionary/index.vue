@@ -50,6 +50,7 @@
                 :columns="columns"
                 :data="items"
                 :default-filter="defaultFilter"
+                :export-fn="exportItems"
                 :filter-groups-loader="loadDictionaryFilterGroups"
                 :key="selectedCategory?.id || 'empty'"
                 :loading="loading"
@@ -66,10 +67,10 @@
                 resource="dictionary">
                 <template #header-left>
                     <div class="flex items-center gap-3">
+                        <span class="text-g-500">{{ selectedCategory ? getCategoryName(selectedCategory) : '请选择字典目录' }}</span>
                         <ElButton v-auth="'add'" :disabled="!selectedCategory" @click="openItemDialog()">
                             <ArtSvgIcon class="mr-1" icon="ri:add-line" />新增字典内容
                         </ElButton>
-                        <span class="text-g-500">{{ selectedCategory ? getCategoryName(selectedCategory) : '请选择字典目录' }}</span>
                     </div>
                 </template>
             </ArtTablePage>
@@ -146,9 +147,11 @@ import {
     fetchDeleteDictionaryItem,
     fetchGetDictionaryCategories,
     fetchGetDictionaryFilterGroups,
+    fetchExportDictionaryItems,
     fetchGetDictionaryItemList,
     fetchUpdateDictionaryCategory,
     fetchUpdateDictionaryItem,
+    type ExportQuery,
 } from '@/api/system-manage'
 
 defineOptions({ name: 'DictionaryManagement' })
@@ -209,6 +212,9 @@ const columnsFactory = () => [
     },
     { prop: 'remark', label: '备注', queryField: 'Remark', minWidth: 180, showOverflowTooltip: true, sortable: 'custom' as const },
 ]
+/** 导出当前字典目录下的字典项，未选择目录时没有可导出的数据 */
+const exportItems = (query: ExportQuery) =>
+    selectedCategory.value ? fetchExportDictionaryItems(selectedCategory.value.id, query) : Promise.resolve({ records: [], limit: 0, total: 0 })
 const tableState = useTable({
     core: {
         apiFn: (params: { current: number; size: number; dynamicFilter?: DynamicFilter; sortField?: string; sortOrder?: 'asc' | 'desc' }) =>

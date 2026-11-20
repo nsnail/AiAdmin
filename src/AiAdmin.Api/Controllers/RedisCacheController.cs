@@ -24,12 +24,12 @@ public sealed class RedisCacheController(IConnectionMultiplexer connectionMultip
     /// <summary>
     ///     删除 Redis 缓存键
     /// </summary>
-    /// <param name="key">缓存键</param>
+    /// <param name="request">包含缓存键的请求体</param>
     /// <returns>删除结果</returns>
     [HttpPost("value/delete")]
     [ApiDescription("Delete Redis cache value")]
-    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromQuery] string key) {
-        var deleted = await connectionMultiplexer.GetDatabase().KeyDeleteAsync(key).ConfigureAwait(false);
+    public async Task<ActionResult<ApiResponse<object>>> DeleteAsync([FromBody] DeleteRedisCacheRequest request) {
+        var deleted = await connectionMultiplexer.GetDatabase().KeyDeleteAsync(request.Key).ConfigureAwait(false);
         return deleted
             ? Ok(ApiResponse<object>.Ok(new { }, "Redis cache deleted"))
             : NotFound(new ApiResponse<object>(404, "Redis cache key not found", null));

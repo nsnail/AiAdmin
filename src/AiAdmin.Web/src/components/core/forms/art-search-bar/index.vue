@@ -4,6 +4,17 @@
 <template>
     <section :class="{ 'is-expanded': isExpanded }" class="art-search-bar art-card-xs">
         <section v-if="filterGroups.length || reserveFilterGroups" :class="{ 'is-empty': !filterGroups.length }" class="filter-groups">
+            <!-- 分组尚未返回时按分组字段个数预留同高度的骨架行，避免加载完成后页面被撑开而抖动 -->
+            <template v-if="!filterGroups.length">
+                <ElSkeleton v-for="index in reserveGroupCount" :key="`placeholder-${index}`" animated class="filter-group-row">
+                    <template #template>
+                        <ElSkeletonItem class="filter-group-skeleton-label" variant="text" />
+                        <div class="filter-group-skeleton-options">
+                            <ElSkeletonItem v-for="n in 5" :key="n" class="filter-group-skeleton-option" variant="button" />
+                        </div>
+                    </template>
+                </ElSkeleton>
+            </template>
             <div v-for="group in filterGroups" :key="group.field" class="filter-group-row">
                 <button :aria-expanded="isGroupExpanded(group.field)" @click="toggleGroup(group.field)" class="filter-group-label" type="button">
                     <span>{{ t(group.label) }}（{{ group.options.length }}）</span>
@@ -432,6 +443,8 @@ interface SearchBarProps {
     filterGroups?: ListFilterGroup[]
     groupSelections?: Record<string, unknown>
     reserveFilterGroups?: boolean
+    /** 分组尚未返回时预留的分组行数，通常等于配置了分组统计的字段数 */
+    reserveGroupCount?: number
 }
 
 interface SanitizeOutputOptions {
@@ -466,6 +479,7 @@ const props = withDefaults(defineProps<SearchBarProps>(), {
     filterGroups: () => [],
     groupSelections: () => ({}),
     reserveFilterGroups: false,
+    reserveGroupCount: 1,
 })
 
 interface SearchBarEmits {
@@ -1345,8 +1359,26 @@ const { span, gutter, labelPosition, labelWidth } = toRefs(props)
     border-bottom: 1px solid var(--el-border-color-lighter);
 }
 
-.filter-groups.is-empty {
+/* 仅有空容器（未配置分组数据）时隐藏；存在骨架行时必须可见 */
+.filter-groups.is-empty:not(:has(.el-skeleton)) {
     visibility: hidden;
+}
+
+.filter-group-skeleton-label {
+    width: 80px;
+    height: 16px;
+}
+
+.filter-group-skeleton-options {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.filter-group-skeleton-option {
+    width: 64px;
+    height: 28px;
+    border-radius: 14px;
 }
 
 .filter-group-row {

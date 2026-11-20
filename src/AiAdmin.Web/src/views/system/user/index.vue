@@ -25,18 +25,6 @@
         <template #header-left>
             <ElSpace wrap>
                 <ElButton v-ripple @click="showDialog('add')">{{ t('userManagement.actions.add') }}</ElButton>
-                <ElDropdown :disabled="exporting" @command="handleExport">
-                    <ElButton :loading="exporting">
-                        <ArtSvgIcon class="mr-1" icon="ri:download-2-line" />{{ t('userManagement.actions.exportData') }}
-                        <ArtSvgIcon class="ml-1" icon="ri:arrow-down-s-line" />
-                    </ElButton>
-                    <template #dropdown>
-                        <ElDropdownMenu>
-                            <ElDropdownItem command="excel">{{ t('userManagement.actions.exportExcel') }}</ElDropdownItem>
-                            <ElDropdownItem command="json">{{ t('userManagement.actions.exportJson') }}</ElDropdownItem>
-                        </ElDropdownMenu>
-                    </template>
-                </ElDropdown>
             </ElSpace>
         </template>
 
@@ -57,15 +45,7 @@ import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useRouteFilter } from '@/hooks/core/useRouteFilter'
 import { useTable } from '@/hooks/core/useTable'
-import {
-    fetchCreateUser,
-    fetchExportUsers,
-    fetchGetUser,
-    fetchGetUserList,
-    fetchImpersonateUser,
-    fetchUpdateUser,
-    fetchUploadUserAvatar,
-} from '@/api/system-manage'
+import { fetchCreateUser, fetchGetUser, fetchGetUserList, fetchImpersonateUser, fetchUpdateUser, fetchUploadUserAvatar } from '@/api/system-manage'
 import UserDialog from './modules/user-dialog.vue'
 import UserDetailDialog from './modules/user-detail-dialog.vue'
 import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
@@ -76,8 +56,6 @@ import { DialogType } from '@/types'
 import { useI18n } from 'vue-i18n'
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
 import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
-import * as XLSX from 'xlsx'
-import FileSaver from 'file-saver'
 import { formatDateTime } from '@/utils/date'
 import { getHashTagStyle } from '@/utils/tagColor'
 
@@ -92,7 +70,6 @@ const dialogVisible = ref(false)
 const currentUserData = ref<Partial<UserListItem>>({})
 const dialogSaving = ref(false)
 const selectedRows = ref<UserListItem[]>([])
-const exporting = ref(false)
 const detailVisible = ref(false)
 const detailUser = ref<UserListItem>()
 
@@ -164,10 +141,12 @@ const {
             },
             {
                 prop: 'userInfo',
+                exportKey: 'userName',
+                exportValue: (row) => row.userName,
                 queryField: 'UserName',
                 queryValueField: 'userName',
                 label: t('userManagement.fields.userName'),
-                width: 280,
+                width: 250,
                 // visible: false, // 默认是否显示列
                 formatter: (row) => {
                     return h('div', { class: 'user flex-c' }, [
@@ -201,6 +180,7 @@ const {
             },
             {
                 prop: 'userGender',
+                exportValue: (row) => t(row.userGender === 2 ? 'userManagement.gender.female' : 'userManagement.gender.male'),
                 queryField: 'Gender',
                 queryValueType: 'number',
                 align: 'right',
@@ -221,15 +201,18 @@ const {
             },
             {
                 prop: 'userRoles',
+                exportKey: 'roles',
+                exportValue: (row) => row.userRoles.map(roleName).join(', '),
                 queryField: 'UserRoles.Role.Name',
                 queryValueField: 'roleNames.0',
                 queryValueType: 'string',
                 label: t('userManagement.fields.roles'),
                 minWidth: 160,
+                align: 'center',
                 formatter: (row) =>
                     h(
                         'div',
-                        { class: 'flex flex-wrap gap-1' },
+                        { class: 'flex flex-wrap justify-center gap-1' },
                         row.userRoles.map((role, index) =>
                             h(
                                 ElTag,
@@ -248,16 +231,18 @@ const {
             },
             {
                 prop: 'departmentNames',
+                exportKey: 'departments',
                 queryField: 'UserDepartments.Department.Name',
                 queryValueField: 'departmentNames.0',
                 queryValueType: 'string',
                 label: t('userManagement.fields.departments'),
                 minWidth: 160,
+                align: 'center',
                 formatter: (row) =>
                     row.departmentNames.length
                         ? h(
                               'div',
-                              { class: 'flex flex-wrap gap-1' },
+                              { class: 'flex flex-wrap justify-center gap-1' },
                               row.departmentNames.map((department) =>
                                   h(
                                       ElTag,
@@ -276,7 +261,54 @@ const {
                         : '-',
             },
             {
+                prop: 'isOnline',
+                exportValue: (row) => t(row.isOnline ? 'userManagement.status.online' : 'userManagement.status.offline'),
+                queryField: 'IsOnline',
+                queryValueField: 'isOnline',
+                queryValueType: 'boolean',
+                label: t('userManagement.fields.online'),
+                minWidth: 190,
+                sortable: true,
+                formatter: (row) =>
+                    h('div', { class: 'leading-5' }, [
+                        // 第一行：圆点加状态文字，作为在线状态字段的右键目标
+                        h(
+                            'div',
+                            {
+                                class: 'flex items-center gap-2',
+                                'data-query-field': 'IsOnline',
+                                'data-query-label': t('userManagement.fields.online'),
+                                'data-query-value': String(row.isOnline),
+                                'data-query-value-type': 'boolean',
+                            },
+                            [
+                                h('span', {
+                                    class: ['inline-block size-2 shrink-0 rounded-full', row.isOnline ? 'user-online-dot bg-success' : 'bg-g-300'],
+                                }),
+                                h('span', t(row.isOnline ? 'userManagement.status.online' : 'userManagement.status.offline')),
+                            ],
+                        ),
+                        // 第二行：最后在线时间，作为日期字段的右键目标；从未在线过时没有时间，不挂筛选属性
+                        h(
+                            'div',
+                            {
+                                class: 'text-xs text-gray-400',
+                                ...(row.lastOnlineAt
+                                    ? {
+                                          'data-query-field': 'LastOnlineAt',
+                                          'data-query-label': t('userManagement.fields.lastOnline'),
+                                          'data-query-value': row.lastOnlineAt,
+                                          'data-query-value-type': 'date',
+                                      }
+                                    : {}),
+                            },
+                            row.lastOnlineAt ? formatDateTime(row.lastOnlineAt, locale.value) : t('userManagement.fields.neverOnline'),
+                        ),
+                    ]),
+            },
+            {
                 prop: 'lastLoginAt',
+                exportValue: (row) => (row.lastLoginAt ? formatDateTime(row.lastLoginAt, locale.value) : ''),
                 queryField: 'LastLoginAt',
                 queryValueField: 'lastLoginAt',
                 queryValueType: 'date',
@@ -323,6 +355,8 @@ const {
             },
             {
                 prop: 'status',
+                exportKey: 'isEnabled',
+                exportValue: (row) => t(row.isEnabled ? 'userManagement.status.enabled' : 'userManagement.status.disabled'),
                 queryField: 'IsEnabled',
                 queryValueField: 'isEnabled',
                 queryValueType: 'boolean',
@@ -383,91 +417,14 @@ const impersonate = async (row: UserListItem): Promise<void> => {
     } catch {
         return
     }
-    const { token } = await fetchImpersonateUser(row.id)
+    const { token, refreshToken, signKey } = await fetchImpersonateUser(row.id)
     // 记录当前身份，刷新后检测到用户变化会清理上一个身份的工作台标签页
     localStorage.setItem(StorageConfig.LAST_USER_ID_KEY, currentUserId.value)
-    userStore.setToken(token, '')
+    userStore.setToken(token, refreshToken, signKey)
     userStore.setLoginStatus(true)
     // 清空用户信息，刷新后按新身份重新拉取并重建动态路由
     userStore.info = {}
     window.location.href = import.meta.env.BASE_URL
-}
-
-type ExportFormat = 'excel' | 'json'
-
-const exportFileName = (extension: ExportFormat): string => {
-    const timestamp = new Date().toISOString().replace('T', '_').replace(/:/g, '-').replace(/\..+$/, '')
-    return `users_${timestamp}.${extension === 'excel' ? 'xlsx' : 'json'}`
-}
-
-const downloadExcel = (rows: UserListItem[]): void => {
-    const exportRows = rows.map((row) => ({
-        ID: row.id,
-        [t('userManagement.fields.userName')]: row.userName,
-        [t('userManagement.fields.email')]: row.userEmail,
-        [t('userManagement.fields.phone')]: row.userPhone,
-        [t('userManagement.fields.gender')]: t(row.userGender === 2 ? 'userManagement.gender.female' : 'userManagement.gender.male'),
-        [t('userManagement.fields.roles')]: row.userRoles.map(roleName).join(', '),
-        [t('userManagement.fields.departments')]: row.departmentNames.join(', '),
-        [t('userManagement.fields.status')]: t(row.isEnabled ? 'userManagement.status.enabled' : 'userManagement.status.disabled'),
-        [t('userManagement.fields.createdAt')]: formatDateTime(row.createTime, locale.value),
-        [t('userManagement.fields.updatedAt')]: formatDateTime(row.updateTime, locale.value),
-    }))
-    const worksheet = XLSX.utils.json_to_sheet(exportRows)
-    worksheet['!cols'] = Object.keys(exportRows[0]).map((key) => ({
-        wch: Math.min(Math.max(key.length + 2, ...exportRows.map((row) => String(row[key as keyof typeof row] ?? '').length + 2)), 50),
-    }))
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, t('userManagement.export.sheetName'))
-    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array', compression: true })
-    FileSaver.saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), exportFileName('excel'))
-}
-
-const downloadJson = (rows: UserListItem[]): void => {
-    const exportRows = rows.map((row) => ({
-        id: row.id,
-        userName: row.userName,
-        email: row.userEmail,
-        phone: row.userPhone,
-        gender: row.userGender,
-        roles: row.roleNames,
-        departments: row.departmentNames,
-        isEnabled: row.isEnabled,
-        createdAt: formatDateTime(row.createTime, locale.value),
-        updatedAt: formatDateTime(row.updateTime, locale.value),
-    }))
-    FileSaver.saveAs(new Blob([JSON.stringify(exportRows, null, 2)], { type: 'application/json;charset=utf-8' }), exportFileName('json'))
-}
-
-const handleExport = async (format: ExportFormat): Promise<void> => {
-    if (exporting.value) return
-    exporting.value = true
-    try {
-        let rows = selectedRows.value
-        if (rows.length === 0) {
-            const result = await fetchExportUsers({
-                dynamicFilter: searchParams.dynamicFilter as DynamicFilter | undefined,
-                sortField: searchParams.sortField as string | undefined,
-                sortOrder: searchParams.sortOrder as 'asc' | 'desc' | undefined,
-            })
-            rows = result.records
-            if (result.total > result.records.length) {
-                ElMessage.warning(t('userManagement.message.exportTruncated', { total: result.total, limit: result.limit }))
-            }
-        }
-        if (rows.length === 0) {
-            ElMessage.info(t('userManagement.message.exportEmpty'))
-            return
-        }
-        if (format === 'excel') downloadExcel(rows)
-        else downloadJson(rows)
-        ElMessage.success(t('userManagement.message.exported', { count: rows.length }))
-    } catch (error) {
-        console.error(error)
-        ElMessage.error(t('userManagement.message.exportFailed'))
-    } finally {
-        exporting.value = false
-    }
 }
 
 /**
@@ -541,3 +498,30 @@ const handleDialogSubmit = async (form: Api.SystemManage.SaveUserParams) => {
     }
 }
 </script>
+
+<style lang="scss">
+/* 在线用户的小圆点：向外扩散的光晕，表示连接保持中；用户设置了“减少动态效果”时不播放 */
+.user-online-dot {
+    animation: user-online-pulse 1.8s ease-out infinite;
+}
+
+@keyframes user-online-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 55%, transparent);
+    }
+
+    70% {
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--el-color-success) 0%, transparent);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--el-color-success) 0%, transparent);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .user-online-dot {
+        animation: none;
+    }
+}
+</style>

@@ -2,6 +2,7 @@ using System.Text.Json;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -16,15 +17,10 @@ namespace AiAdmin.Api.Controllers;
 /// <param name="db">应用数据库上下文</param>
 /// <param name="permissionCache">接口权限缓存</param>
 /// <param name="dataScopeCache">数据权限缓存</param>
-/// <param name="exportLimitService">列表导出上限服务</param>
 [ApiController]
 [ApiDescription("Role management")]
 [Route("api/role")]
-public sealed class RolesController(
-    AppDbContext db
-    , ApiPermissionCache permissionCache
-    , DataScopeCache dataScopeCache
-    , ExportLimitService exportLimitService) : ControllerBase
+public sealed class RolesController(AppDbContext db, ApiPermissionCache permissionCache, DataScopeCache dataScopeCache) : ControllerBase
 {
     private static readonly IReadOnlyDictionary<string, string> _sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -59,6 +55,7 @@ public sealed class RolesController(
     /// <returns>复制后的角色</returns>
     [HttpPost("copy")]
     [ApiDescription("Copy role")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<RoleListItem>>> CopyAsync([FromBody] IdentifierRequest request) {
         var id = request.Id;
         var source = await db.Roles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
@@ -101,6 +98,7 @@ public sealed class RolesController(
     /// <returns>创建后的角色</returns>
     [HttpPost]
     [ApiDescription("Create role")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<RoleListItem>>> CreateAsync(SaveRoleRequest request) {
         var code = request.RoleCode.Trim();
         if (await db.Roles.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
@@ -146,18 +144,24 @@ public sealed class RolesController(
     }
 
     /// <summary>
-    ///     按当前筛选和排序条件导出角色数据
+    ///     导出角色数据，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
     /// </summary>
-    /// <param name="request">角色导出请求</param>
-    /// <returns>受系统设置条数限制的角色数据</returns>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的角色导出结果</returns>
     [HttpPost("export")]
     [ApiDescription("Export role data")]
-    public async Task<ActionResult<ApiResponse<RoleExportResult>>> ExportAsync([FromBody] RoleExportRequest request) {
-        var query = BuildListQuery(request.DynamicFilter);
-        var total = await query.CountAsync().ConfigureAwait(false);
-        var limit = await exportLimitService.GetLimitAsync().ConfigureAwait(false);
-        var roles = await ApplyListSort(query, request.SortField, request.SortOrder).Take(limit).ToListAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<RoleExportResult>.Ok(new RoleExportResult(roles.ConvertAll(ToListItem), limit, total)));
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<RoleListItem>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                BuildListQuery(request.DynamicFilter), limits, query => ApplyListSort(query, request.SortField, request.SortOrder)
+                , rows => rows.ConvertAll(ToListItem)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<RoleListItem>>.Ok(result));
     }
 
     /// <summary>

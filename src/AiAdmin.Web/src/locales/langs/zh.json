@@ -61,6 +61,7 @@
         "optional": "可选",
         "description": "说明",
         "noParameters": "无参数",
+        "endpointCount": "{count} 个接口",
         "requestBody": "请求体",
         "response": "响应",
         "tryIt": "在线调试",
@@ -358,6 +359,7 @@
         "dashboard": {
             "title": "主控面板",
             "console": "系统总览",
+            "tiles": "常用功能",
             "business": "业务总览"
         },
         "exception": {
@@ -387,6 +389,8 @@
             "scheduledJob": "计划作业",
             "cache": "缓存管理",
             "alertMonitor": "告警监控",
+            "rateLimit": "接口限流",
+            "circuitBreaker": "接口熔断",
             "referrals": "我的邀请",
             "message": "消息管理",
             "supportChat": "在线客服"
@@ -463,14 +467,32 @@
             "phone": "手机号"
         },
         "token": {
-            "title": "访问令牌",
-            "expiresAt": "有效期至",
-            "remaining": "剩余 {time}",
-            "expired": "已过期",
-            "unknown": "未知",
-            "copy": "复制令牌",
-            "copied": "令牌已复制",
             "copyFailed": "复制失败"
+        },
+        "apiKey": {
+            "title": "API Key",
+            "desc": "API Key 适合服务端长期调用接口，每个用户只有一个，重置后旧 Key 立即失效。请求头使用 X-Api-Key 携带。",
+            "none": "尚未生成 API Key",
+            "prefix": "Key 前缀",
+            "createdAt": "生成时间",
+            "lastUsedAt": "最后使用",
+            "neverUsed": "从未使用",
+            "generate": "生成 API Key",
+            "reset": "重置 API Key",
+            "revoke": "吊销",
+            "copy": "复制 Key",
+            "copySecret": "复制签名 Secret",
+            "download": "下载 Key 和 Secret",
+            "downloaded": "凭据文件已下载，请妥善保管",
+            "keyLabel": "API Key",
+            "secretLabel": "签名 Secret（请求签名时作为 HMAC 密钥，不随请求发送）",
+            "secretCopied": "签名 Secret 已复制",
+            "copied": "API Key 已复制",
+            "newKeyTip": "请立即复制并妥善保存，关闭后将无法再次查看完整 Key 和签名 Secret。",
+            "resetConfirm": "重置后旧 Key 将立即失效，确定继续吗？",
+            "revokeConfirm": "吊销后该 Key 将立即失效，确定继续吗？",
+            "generated": "API Key 已生成",
+            "revoked": "API Key 已吊销"
         },
         "password": {
             "title": "更改密码",
@@ -522,10 +544,7 @@
             "add": "新增用户",
             "save": "保存",
             "edit": "编辑",
-            "delete": "删除",
-            "exportData": "导出数据",
-            "exportExcel": "Excel",
-            "exportJson": "JSON"
+            "delete": "删除"
         },
         "fields": {
             "userName": "用户名",
@@ -541,10 +560,13 @@
             "lastLogin": "最后登录",
             "lastLoginIp": "最后登录 IP",
             "lastLoginRegion": "最后登录地点",
+            "online": "在线状态",
+            "lastOnline": "最后在线",
+            "neverOnline": "从未在线",
             "unknownRegion": "未知地点",
             "operation": "操作"
         },
-        "status": { "enabled": "启用", "disabled": "停用", "unknown": "未知" },
+        "status": { "enabled": "启用", "disabled": "停用", "unknown": "未知", "online": "在线", "offline": "离线" },
         "gender": { "male": "男", "female": "女" },
         "dialog": {
             "addTitle": "添加用户",
@@ -553,7 +575,6 @@
             "passwordKeep": "留空表示不修改；新密码至少 8 位且包含字母和数字",
             "passwordNew": "至少 8 位且包含字母和数字"
         },
-        "export": { "sheetName": "用户数据" },
         "placeholder": {
             "userName": "请输入用户名",
             "email": "请输入邮箱",
@@ -571,11 +592,7 @@
         "confirm": { "deleteTitle": "删除用户", "deleteMessage": "确定要删除用户“{name}”吗？" },
         "message": {
             "created": "创建成功",
-            "updated": "更新成功",
-            "exported": "已导出 {count} 条数据",
-            "exportEmpty": "没有可导出的数据",
-            "exportFailed": "导出失败",
-            "exportTruncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
+            "updated": "更新成功"
         },
         "detail": {
             "title": "用户详情",
@@ -611,6 +628,8 @@
             "enableLoginSliderVerification": "开启登录滑块验证",
             "enableUserRegistration": "开启用户注册",
             "enableEmailVerification": "开启邮箱验证",
+            "enableRequestSignature": "开启请求签名",
+            "enableRequestSignatureTip": "开启后所有登录后的接口请求必须携带 HMAC 签名、时间戳和一次性随机数，令牌泄露或请求被抓包后无法使用或重放；修改后需重新登录生效",
             "smtpHost": "SMTP 服务器",
             "smtpPort": "SMTP 端口",
             "smtpSsl": "启用 SMTP SSL",
@@ -858,6 +877,95 @@
             }
         }
     },
+    "circuitBreaker": {
+        "actions": { "create": "新增规则", "edit": "编辑规则", "save": "保存" },
+        "delete": { "batch": "批量删除", "batchConfirm": "确定删除选中的 {count} 条规则吗？", "confirm": "确定删除该规则吗？" },
+        "dialog": { "createTitle": "新增熔断规则", "editTitle": "编辑熔断规则", "tabs": { "basic": "基本信息", "rawData": "原始数据" } },
+        "fields": {
+            "api": "接口",
+            "state": "熔断状态",
+            "condition": "熔断条件",
+            "windowSeconds": "统计窗口（秒）",
+            "minimumRequests": "最小请求数",
+            "failureRatePercent": "失败率阈值（%）",
+            "slowCallMs": "慢调用阈值（毫秒）",
+            "openSeconds": "熔断时长（秒）",
+            "halfOpenRequests": "试探请求数",
+            "remark": "备注",
+            "isEnabled": "启用"
+        },
+        "placeholder": { "api": "搜索并选择接口", "remark": "请输入备注" },
+        "state": { "closed": "正常", "open": "熔断中", "halfOpen": "试探中", "disabled": "未启用" },
+        "condition": "{seconds} 秒内请求数 ≥ {minimum} 且失败率 ≥ {percent}%",
+        "hints": {
+            "minimumRequests": "窗口内请求数达到该值才评估失败率，避免低流量时因个别失败误熔断",
+            "failureRate": "窗口内失败请求占比达到该值时熔断；失败指响应状态码 5xx、处理抛出异常，或耗时超过慢调用阈值",
+            "slowCall": "耗时超过该值的请求也按失败统计，0 表示不统计慢调用",
+            "openSeconds": "熔断期间直接拒绝该接口的请求，到期后进入试探状态",
+            "halfOpen": "试探状态下只放行这么多请求，全部成功则恢复正常，任何一个失败则重新熔断",
+            "behavior": "熔断时返回 429 并带 Retry-After、X-Circuit-State 响应头，不使用 502/503，避免网关把节点当作故障摘除；限流和熔断自身返回的 429 不计入失败统计。同一接口只能配置一条熔断规则"
+        }
+    },
+    "rateLimit": {
+        "actions": {
+            "create": "新增规则",
+            "edit": "编辑规则",
+            "save": "保存"
+        },
+        "delete": {
+            "batch": "批量删除",
+            "batchConfirm": "确定删除选中的 {count} 条规则吗？",
+            "confirm": "确定删除该规则吗？"
+        },
+        "dialog": {
+            "createTitle": "新增限流规则",
+            "editTitle": "编辑限流规则",
+            "tabs": {
+                "basic": "基本信息",
+                "rawData": "原始数据"
+            }
+        },
+        "fields": {
+            "api": "接口",
+            "algorithm": "限流算法",
+            "scope": "限流范围",
+            "user": "指定用户",
+            "limit": "请求数上限",
+            "windowSeconds": "统计窗口（秒）",
+            "rate": "限流速率",
+            "remark": "备注",
+            "isEnabled": "启用",
+            "role": "指定角色",
+            "subject": "作用对象"
+        },
+        "placeholder": {
+            "api": "搜索并选择接口",
+            "user": "不选则对每个用户分别限流",
+            "limit": "窗口内允许的请求数，同时是桶容量",
+            "windowSeconds": "如 60",
+            "remark": "请输入备注",
+            "role": "请选择角色"
+        },
+        "algorithm": {
+            "slidingWindow": "滑动窗口",
+            "leakyBucket": "漏桶",
+            "tokenBucket": "令牌桶"
+        },
+        "scope": {
+            "global": "全局",
+            "user": "用户",
+            "role": "角色"
+        },
+        "scopeAll": "每个用户",
+        "rate": "{limit} 次 / {seconds} 秒",
+        "hints": {
+            "slidingWindow": "任意连续 {seconds} 秒内的请求数不超过 {limit}，限流最精确，但每个请求都要占用一条记录",
+            "leakyBucket": "请求入桶后以每秒 {rate} 个的恒定速率流出，桶容量 {limit}，桶满时拒绝，下游收到的请求速率始终平滑",
+            "tokenBucket": "每秒补充 {rate} 个令牌，桶容量 {limit}，每个请求消耗一个令牌，允许在容量内突发，令牌用完后按补充速率放行",
+            "scope": "全局规则始终生效作为保底上限；其余按“指定用户 > 角色 > 每个用户的默认规则”取最具体的一层，同层有多条时取额度最宽松的一条；用户、角色和默认规则都是每个用户分别计数",
+            "multiple": "同一接口可配置多条规则，请求必须同时通过全部已启用的规则"
+        }
+    },
     "alertMonitor": {
         "actions": {
             "create": "新增监控",
@@ -902,6 +1010,7 @@
             "redisKey": "Redis 缓存键，如 queue:report",
             "thresholdNumber": "数字，如 1000",
             "thresholdText": "要比较的文本",
+            "thresholdRegex": "正则表达式，如 ^ERR-\\d+$，默认不区分大小写",
             "mentions": "Telegram 用户名，多个用空格分隔，如 {'@'}alice {'@'}bob",
             "remark": "请输入备注"
         },
@@ -927,7 +1036,9 @@
             "contains": "包含",
             "notContains": "不包含",
             "startsWith": "开头是",
-            "endsWith": "结尾是"
+            "endsWith": "结尾是",
+            "regexMatch": "匹配正则",
+            "regexNotMatch": "不匹配正则"
         },
         "state": {
             "normal": "正常",
@@ -940,7 +1051,8 @@
             "categoryCode": "请输入字典目录编码",
             "target": "请输入监控目标",
             "thresholdNumber": "数字比较的阈值必须是数字",
-            "thresholdText": "请输入要比较的文本"
+            "thresholdText": "请输入要比较的文本",
+            "thresholdRegex": "请输入合法的正则表达式"
         },
         "quickAdd": {
             "action": "添加监控",
@@ -988,6 +1100,7 @@
             "finished": "完成",
             "lastFinishedAt": "最近完成时间",
             "lastError": "最近错误",
+            "lastResult": "最近结果",
             "previous": "上次",
             "nextExecution": "下次执行",
             "executionDuration": "耗时",
@@ -1011,7 +1124,16 @@
             "mentionsPlaceholder": "Telegram 用户名，多个用空格分隔，如 {'@'}alice {'@'}bob",
             "noTrigger": "未选择任何触发项，不会发出报警",
             "batchHint": "将以上设置整体覆盖到所选的 {count} 个作业，关闭报警会同时清除其报警状态",
-            "resolveHint": "报警后作业恢复正常时，会向同一会话发送解除通知；报警机器人和会话在系统设置中配置"
+            "resolveHint": "报警后作业恢复正常时，会向同一会话发送解除通知；报警机器人和会话在系统设置中配置",
+            "result": {
+                "title": "执行结果报警",
+                "none": "不按执行结果报警",
+                "number": "数字",
+                "text": "文本",
+                "caseSensitive": "区分大小写",
+                "hint": "对完整响应体匹配，命中即报警；请求超时或异常没有响应体时不判定。文本为子串匹配，整串匹配请用正则加 ^ 和 $，数字要求响应体整体是数字",
+                "invalid": "执行结果报警规则不合法，请检查匹配值"
+            }
         },
         "executionFields": {
             "duration": "耗时",
@@ -1019,6 +1141,7 @@
             "finishedAt": "完成时间",
             "requestMethod": "请求方法",
             "requestUrl": "请求地址",
+            "result": "执行结果",
             "responseStatusCode": "响应状态码",
             "startedAt": "开始时间",
             "status": "执行状态"
@@ -1058,7 +1181,8 @@
                 "responseStatusCode": "响应状态码",
                 "responseHeaders": "响应头",
                 "responseBody": "响应体",
-                "errorMessage": "错误信息"
+                "errorMessage": "错误信息",
+                "result": "执行结果"
             }
         }
     },
@@ -1179,12 +1303,17 @@
         }
     },
     "apiManagement": {
+        "actions": {
+            "addRateLimit": "添加限流规则",
+            "addCircuitBreaker": "添加熔断规则"
+        },
         "statistics": {
             "total": "接口总数",
             "controllers": "控制器数",
             "anonymous": "匿名接口",
             "methods": "HTTP 方法数"
-        }
+        },
+        "anonymousOnly": "仅显示匿名接口"
     },
     "listFilter": {
         "group": { "all": "全部" },
@@ -1212,6 +1341,33 @@
             "controller": "控制器",
             "controllerName": "控制器名称",
             "allowAnonymous": "允许匿名访问"
+        },
+        "rateLimit": {
+            "algorithm": "限流算法",
+            "scope": "限流范围",
+            "slidingWindow": "滑动窗口",
+            "leakyBucket": "漏桶",
+            "tokenBucket": "令牌桶",
+            "global": "全局",
+            "user": "用户",
+            "role": "角色",
+            "limit": "请求数上限",
+            "remark": "备注",
+            "remarkPlaceholder": "请输入备注",
+            "roleCode": "角色编码",
+            "roleCodePlaceholder": "请输入角色编码",
+            "userId": "指定用户",
+            "windowSeconds": "统计窗口（秒）"
+        },
+        "circuitBreaker": {
+            "failureRatePercent": "失败率阈值（%）",
+            "halfOpenRequests": "试探请求数",
+            "minimumRequests": "最小请求数",
+            "openSeconds": "熔断时长（秒）",
+            "remark": "备注",
+            "remarkPlaceholder": "请输入备注",
+            "slowCallMs": "慢调用阈值（毫秒）",
+            "windowSeconds": "统计窗口（秒）"
         },
         "placeholder": {
             "userName": "请输入用户名",
@@ -1259,9 +1415,6 @@
     "roleManagement": {
         "actions": {
             "add": "新增角色",
-            "exportData": "导出数据",
-            "exportExcel": "Excel",
-            "exportJson": "JSON",
             "expandAll": "全部展开",
             "collapseAll": "全部收起",
             "selectAll": "全部选择",
@@ -1288,7 +1441,6 @@
             "descriptionRequired": "请输入角色描述",
             "dataScopeRequired": "请选择数据权限"
         },
-        "export": { "sheetName": "角色数据" },
         "confirm": {
             "deleteTitle": "删除确认",
             "deleteMessage": "确定删除角色“{name}”吗？此操作不可恢复！"
@@ -1297,11 +1449,7 @@
             "created": "角色新增成功",
             "updated": "角色修改成功",
             "copied": "角色复制成功",
-            "deleteCancelled": "已取消删除",
-            "exported": "已导出 {count} 条数据",
-            "exportEmpty": "没有可导出的数据",
-            "exportFailed": "导出失败",
-            "exportTruncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
+            "deleteCancelled": "已取消删除"
         }
     },
     "departmentManagement": {
@@ -1357,6 +1505,21 @@
     },
     "changeLog": {
         "empty": "暂无更新日志"
+    },
+    "quickTiles": {
+        "tip": "把常用页面添加为磁贴，点击即可直达；磁贴保存在当前浏览器，只能添加你有权限访问的页面",
+        "edit": "编辑磁贴",
+        "done": "完成",
+        "add": "添加磁贴",
+        "editTip": "拖动磁贴调整顺序，点击右上角按钮移除，修改自动保存在当前浏览器",
+        "remove": "移除磁贴",
+        "empty": "还没有常用功能，添加几个常用页面吧",
+        "pickerTitle": "选择常用页面",
+        "search": "搜索页面名称",
+        "noCandidates": "没有可添加的页面",
+        "count": "已选 {count} / {max}",
+        "cancel": "取消",
+        "confirm": "确定"
     },
     "dashboard": {
         "refresh": "刷新",
@@ -1461,6 +1624,15 @@
         "loadFailed": "钱包信息加载失败"
     },
     "table": {
+        "export": {
+            "title": "导出数据",
+            "excel": "Excel",
+            "json": "JSON",
+            "empty": "没有可导出的数据",
+            "done": "已导出 {count} 条数据",
+            "failed": "导出失败",
+            "truncated": "共匹配 {total} 条数据，本次按系统设置最多导出 {limit} 条"
+        },
         "contextMenu": { "copyHint": "复制(C)", "filter": "筛选", "sort": "排序", "sortAsc": "顺序", "sortDesc": "倒序" },
         "form": {
             "reset": "重置",

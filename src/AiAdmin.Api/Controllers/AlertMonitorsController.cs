@@ -1,6 +1,7 @@
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +26,7 @@ public sealed class AlertMonitorsController(AppDbContext db, AlertMonitorScanSer
     /// <returns>新增后的告警监控</returns>
     [HttpPost]
     [ApiDescription("Create alert monitor")]
+    [Idempotent]
     public Task<ActionResult<ApiResponse<AlertMonitorListItem>>> CreateAsync([FromBody] SaveAlertMonitorRequest request) {
         return SaveAsync(null, request);
     }
@@ -46,6 +48,29 @@ public sealed class AlertMonitorsController(AppDbContext db, AlertMonitorScanSer
         db.AlertMonitors.RemoveRange(rows);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { count = rows.Count }, "Alert monitors deleted"));
+    }
+
+    /// <summary>
+    ///     导出告警监控，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的告警监控导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export alert monitor data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<AlertMonitorListItem>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                db.AlertMonitors.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter), limits
+                , query => ((IOrderedQueryable<AlertMonitor>)query.ApplyDynamicSort(
+                    request.SortField, request.SortOrder, nameof(AlertMonitor.CreatedAt), true
+                )).ThenByKey(x => x.Id, request.SortField, request.SortOrder, true), rows => rows.ConvertAll(ToListItem)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<AlertMonitorListItem>>.Ok(result));
     }
 
     /// <summary>
@@ -218,7 +243,7 @@ public sealed class AlertMonitorsController(AppDbContext db, AlertMonitorScanSer
             return new BadRequestObjectResult(new ApiResponse<object>(400, "Operator does not apply to the value type", null));
         }
 
-        return AlertMonitorEvaluator.IsThresholdValid(request.ValueType, request.Threshold.Trim())
+        return AlertMonitorEvaluator.IsThresholdValid(request.ValueType, request.Operator, request.Threshold.Trim())
             ? null
             : new BadRequestObjectResult(new ApiResponse<object>(400, "Threshold is invalid", null));
     }

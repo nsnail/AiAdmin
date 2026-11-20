@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -15,11 +16,13 @@ namespace AiAdmin.Api.Services;
 /// <param name="systemInfo">系统信息服务</param>
 /// <param name="logger">日志记录器</param>
 /// <param name="bus">实时推送总线，多实例部署时负责把推送广播给连接在其他实例上的用户</param>
+/// <param name="presence">用户在线状态服务，连接建立、续期和断开时同步到 Redis</param>
 public sealed class RealtimeConnectionManager(
     IServiceScopeFactory scopeFactory
     , SystemInfoService systemInfo
     , ILogger<RealtimeConnectionManager> logger
-    , IRealtimeBus bus)
+    , IRealtimeBus bus
+    , IUserPresence presence)
 {
     private const int _RECEIVE_BUFFER_SIZE = 256;
     private static readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
@@ -86,6 +89,7 @@ public sealed class RealtimeConnectionManager(
         Start();
         using var connection = new RealtimeConnection(userId, socket, isService);
         _ = _connections.TryAdd(connection.Id, connection);
+        await presence.ConnectedAsync(userId, connection.Id).ConfigureAwait(false);
         try {
             // 每次（重）连接都先推送当前后端版本，前端据此判断后端是否已升级
             await SendAsync(connection, "system-info", systemInfo.Info, cancellationToken).ConfigureAwait(false);
@@ -102,6 +106,9 @@ public sealed class RealtimeConnectionManager(
         }
         finally {
             _ = _connections.TryRemove(connection.Id, out _);
+
+            // 断开登记不随请求取消而中断，否则用户的在线状态会残留到登记过期
+            await presence.DisconnectedAsync(userId, connection.Id).ConfigureAwait(false);
         }
     }
 
@@ -159,35 +166,6 @@ public sealed class RealtimeConnectionManager(
     public void Start() {
         if (Interlocked.Exchange(ref _subscribed, 1) == 0) {
             bus.Subscribe(DeliverAsync);
-        }
-    }
-
-    /// <summary>
-    ///     持续接收客户端消息：收到文本 ping 回复 pong，收到关闭帧后完成关闭握手
-    /// </summary>
-    /// <param name="connection">连接</param>
-    /// <param name="cancellationToken">取消令牌</param>
-    /// <returns>连接关闭时完成的任务</returns>
-    private static async Task ReceiveLoopAsync(
-        RealtimeConnection connection
-        , CancellationToken cancellationToken
-    ) {
-        var buffer = new byte[_RECEIVE_BUFFER_SIZE];
-        while (connection.Socket.State == WebSocketState.Open) {
-            var result = await connection.Socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken).ConfigureAwait(false);
-            switch (result.MessageType) {
-                case WebSocketMessageType.Close:
-                    await connection
-                        .Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None)
-                        .ConfigureAwait(false);
-                    return;
-                case WebSocketMessageType.Text when result.EndOfMessage
-                                                    && string.Equals(
-                                                        Encoding.UTF8.GetString(buffer, 0, result.Count), "ping", StringComparison.Ordinal
-                                                    ):
-                    await SendTextAsync(connection, "pong", cancellationToken).ConfigureAwait(false);
-                    break;
-            }
         }
     }
 
@@ -347,5 +325,49 @@ public sealed class RealtimeConnectionManager(
                 _logPushSkipped(logger, connection.UserId, exception);
             }
         }
+    }
+
+    /// <summary>
+    ///     持续接收客户端消息：收到文本 ping 回复 pong，收到关闭帧后完成关闭握手
+    /// </summary>
+    /// <param name="connection">连接</param>
+    /// <param name="cancellationToken">取消令牌</param>
+    /// <returns>连接关闭时完成的任务</returns>
+    private async Task ReceiveLoopAsync(
+        RealtimeConnection connection
+        , CancellationToken cancellationToken
+    ) {
+        var buffer = new byte[_RECEIVE_BUFFER_SIZE];
+        while (connection.Socket.State == WebSocketState.Open) {
+            var result = await connection.Socket.ReceiveAsync(new ArraySegment<byte>(buffer), cancellationToken).ConfigureAwait(false);
+            switch (result.MessageType) {
+                case WebSocketMessageType.Close:
+                    await connection
+                        .Socket.CloseAsync(WebSocketCloseStatus.NormalClosure, string.Empty, CancellationToken.None)
+                        .ConfigureAwait(false);
+                    return;
+                case WebSocketMessageType.Text when result.EndOfMessage
+                                                    && string.Equals(
+                                                        Encoding.UTF8.GetString(buffer, 0, result.Count), "ping", StringComparison.Ordinal
+                                                    ):
+                    await SendTextAsync(connection, "pong", cancellationToken).ConfigureAwait(false);
+                    await RenewPresenceAsync(connection).ConfigureAwait(false);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
+    ///     收到心跳时续期在线登记，距离上次续期不到续期间隔时跳过，避免每次心跳都写 Redis
+    /// </summary>
+    /// <param name="connection">连接</param>
+    /// <returns>续期任务，无需续期时为已完成的任务</returns>
+    private Task RenewPresenceAsync(RealtimeConnection connection) {
+        if (Stopwatch.GetElapsedTime(connection.LastRenewedAt) < UserPresenceService.RenewInterval) {
+            return Task.CompletedTask;
+        }
+
+        connection.LastRenewedAt = Stopwatch.GetTimestamp();
+        return presence.RenewAsync(connection.UserId, connection.Id);
     }
 }

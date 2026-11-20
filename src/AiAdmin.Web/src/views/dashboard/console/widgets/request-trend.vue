@@ -18,14 +18,15 @@
 import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useWidgetLink } from './context'
-import { useRequestStats } from './request-stats'
+import { useDashboardContext, useWidgetLink } from './context'
 import WidgetCard from './widget-card.vue'
 
 defineOptions({ name: 'DashboardRequestTrend' })
 
 const { t } = useI18n()
-const { stats, loading } = useRequestStats()
+const { overview, loading } = useDashboardContext()
+/** 操作日志统计随总览一起返回，总览尚未加载完成时为空 */
+const stats = computed(() => overview.value?.requestStats ?? null)
 const { linkable, go } = useWidgetLink(() => '/log-management/api-request-log')
 const trend = computed(() => stats.value?.hourlyTrend ?? [])
 const labels = computed(() => trend.value.map((x) => `${x.date}:00`))

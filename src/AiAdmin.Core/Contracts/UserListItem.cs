@@ -25,6 +25,8 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="LastLoginAt">最后登录时间</param>
 /// <param name="LastLoginIp">最后登录 IP 地址</param>
 /// <param name="LastLoginRegion">最后登录 IP 归属地区</param>
+/// <param name="IsOnline">当前是否在线</param>
+/// <param name="LastOnlineAt">最后在线时间，即最后一条实时连接断开的时间，从未在线过为空</param>
 public sealed record UserListItem(
     long Id
     , string Avatar
@@ -45,4 +47,6 @@ public sealed record UserListItem(
     , int Version
     , DateTimeOffset? LastLoginAt = null
     , string LastLoginIp = ""
-    , string LastLoginRegion = "");
+    , string LastLoginRegion = ""
+    , bool IsOnline = false
+    , DateTimeOffset? LastOnlineAt = null);

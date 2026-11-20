@@ -7,6 +7,7 @@ using AiAdmin.Api.Data;
 using AiAdmin.Api.Logging;
 using AiAdmin.Api.Middleware;
 using AiAdmin.Api.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -118,8 +119,14 @@ builder.Services.AddSingleton<ScheduledJobLockService>();
 builder.Services.AddSingleton<ScheduledJobManualTriggerQueue>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<ApiPermissionCache>();
+builder.Services.AddSingleton<RateLimitRuleCache>();
+builder.Services.AddSingleton<RateLimiter>();
+builder.Services.AddSingleton<CircuitBreakerRuleCache>();
+builder.Services.AddSingleton<CircuitBreaker>();
 builder.Services.AddSingleton<SystemInfoService>();
 builder.Services.AddSingleton<IRealtimeBus, RedisRealtimeBus>();
+builder.Services.AddSingleton<UserPresenceService>();
+builder.Services.AddSingleton<IUserPresence>(provider => provider.GetRequiredService<UserPresenceService>());
 builder.Services.AddSingleton<RealtimeConnectionManager>();
 builder.Services.AddHostedService<RealtimeShutdownHostedService>();
 
@@ -132,13 +139,16 @@ builder.Services.AddScoped<DataScopeContext>();
 builder.Services.AddSingleton<DataScopeCache>();
 builder.Services.AddScoped<ApiEndpointSyncService>();
 builder.Services.AddScoped<DashboardRequestStatsService>();
-builder.Services.AddSingleton<DashboardRequestStatsCache>();
+builder.Services.AddScoped<DashboardOverviewService>();
+builder.Services.AddSingleton<DashboardOverviewCache>();
 builder.Services.AddScoped<ApiDocumentationService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<DictionarySnapshotService>();
 builder.Services.AddScoped<ScheduledJobAlertService>();
 builder.Services.AddScoped<AlertMonitorScanService>();
 builder.Services.AddScoped<ExportLimitService>();
+builder.Services.AddSingleton<IdempotencyService>();
+builder.Services.AddSingleton<RequestNonceStore>();
 builder.Services.AddSingleton<EncryptionService>();
 builder.Services.AddSingleton<CredentialProtectionService>();
 builder.Services.AddSingleton<MinioStorageService>();
@@ -174,7 +184,19 @@ builder.Services.AddDbContext<AppDbContext>((
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("Jwt:Key is required.");
 builder
-    .Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .Services.AddAuthentication(options =>
+        {
+            // 按请求头自动选择方案：携带 X-Api-Key 或 Authorization: ApiKey 时使用 API Key，其余使用 JWT
+            options.DefaultScheme = "Smart";
+            options.DefaultChallengeScheme = "Smart";
+        }
+    )
+    .AddPolicyScheme(
+        "Smart", null
+        , options => options.ForwardDefaultSelector = context =>
+            ApiKeyAuthenticationHandler.HasApiKey(context.Request) ? ApiKeyAuthenticationHandler.SCHEME : JwtBearerDefaults.AuthenticationScheme
+    )
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyAuthenticationHandler.SCHEME, null)
     .AddJwtBearer(options =>
         {
             // 浏览器 WebSocket 无法携带请求头，实时连接端点允许通过查询参数传递令牌
@@ -194,7 +216,12 @@ builder
     );
 builder.Services.AddAuthorization();
 builder.Services.AddCors(options => options.AddPolicy(
-        "Web", policy => policy.WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? []).AllowAnyHeader().AllowAnyMethod()
+        "Web"
+        , policy => policy
+            .WithOrigins(builder.Configuration.GetSection("Cors:Origins").Get<string[]>() ?? [])
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .WithExposedHeaders(TokenService.NEW_TOKEN_HEADER, TokenService.NEW_REFRESH_TOKEN_HEADER)
     )
 );
 
@@ -214,7 +241,11 @@ app.UseMiddleware<RealtimeWebSocketMiddleware>();
 app.UseMiddleware<ApiHttpLoggingMiddleware>();
 app.UseMiddleware<ResponseJsonCleanupMiddleware>();
 app.UseMiddleware<DataScopeMiddleware>();
+app.UseMiddleware<RequestSignatureMiddleware>();
 app.UseMiddleware<ApiPermissionMiddleware>();
+app.UseMiddleware<TokenRenewalMiddleware>();
+app.UseMiddleware<RateLimitMiddleware>();
+app.UseMiddleware<CircuitBreakerMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
 

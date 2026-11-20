@@ -118,6 +118,7 @@ public sealed class CrossInstanceRealtimeTests : IDisposable
         _ = services.AddScoped(_ => NewDb(options));
         _ = services.AddSingleton<SystemInfoService>();
         _ = services.AddSingleton<IRealtimeBus, InMemoryRealtimeBus>();
+        _ = services.AddSingleton<IUserPresence, NoPresence>();
         _ = services.AddSingleton<RealtimeConnectionManager>();
         return services.BuildServiceProvider();
     }

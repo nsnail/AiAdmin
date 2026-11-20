@@ -18,14 +18,15 @@ import { formatFullNumber } from '@/utils/number'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { translateServerMessage } from '@/utils/i18n/server-message'
-import { useWidgetLink } from './context'
-import { useRequestStats } from './request-stats'
+import { useDashboardContext, useWidgetLink } from './context'
 import WidgetCard from './widget-card.vue'
 
 defineOptions({ name: 'DashboardRequestApiDistribution' })
 
 const { t, locale } = useI18n()
-const { stats, loading } = useRequestStats()
+const { overview, loading } = useDashboardContext()
+/** 操作日志统计随总览一起返回，总览尚未加载完成时为空 */
+const stats = computed(() => overview.value?.requestStats ?? null)
 const { linkable, go } = useWidgetLink(() => '/log-management/api-request-log')
 /** 扇区名称：优先显示按当前语言翻译的接口说明，接口表里找不到说明时显示路径，合并项显示“其他” */
 const data = computed(() => {

@@ -1,8 +1,6 @@
 <!-- 顶部栏 -->
 <template>
-    <div
-        :class="[tabStyle === 'tab-card' || tabStyle === 'tab-google' ? 'mb-5 max-sm:mb-3 !bg-box' : '']"
-        class="w-full bg-[var(--default-bg-color)]">
+    <div :class="[tabStyle === 'tab-card' || tabStyle === 'tab-google' ? 'mb-3 !bg-box' : '']" class="w-full bg-[var(--default-bg-color)]">
         <div
             :class="[tabStyle === 'tab-card' || tabStyle === 'tab-google' ? 'border-b border-[var(--art-card-border)]' : '']"
             class="relative box-border flex-b h-15 leading-15 select-none">

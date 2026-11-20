@@ -45,8 +45,10 @@ public sealed class ApiHttpLoggingMiddleware(
             ? await ReadBodyAsync(context.Request.Body, context.RequestAborted).ConfigureAwait(false)
             : string.Empty;
         context.Request.Body.Position = 0;
-        var requestHeaders = JsonSerializer.Serialize(
-            context.Request.Headers.ToDictionary(item => item.Key, item => string.Join(",", item.Value.ToArray()), StringComparer.OrdinalIgnoreCase)
+
+        // 请求体和请求头只在写日志时脱敏，业务处理仍使用原始内容
+        var requestHeaders = SensitiveDataMasker.MaskHeaders(
+            context.Request.Headers.Select(item => KeyValuePair.Create(item.Key, string.Join(",", item.Value.ToArray())))
         );
         var originalResponseBody = context.Response.Body;
         await using var responseBuffer = new MemoryStream();
@@ -64,16 +66,14 @@ public sealed class ApiHttpLoggingMiddleware(
             responseBuffer.Position = 0;
             await responseBuffer.CopyToAsync(originalResponseBody, context.RequestAborted).ConfigureAwait(false);
             context.Response.Body = originalResponseBody;
-            var responseHeaders = JsonSerializer.Serialize(
-                context.Response.Headers.ToDictionary(
-                    item => item.Key, item => string.Join(",", item.Value.ToArray()), StringComparer.OrdinalIgnoreCase
-                )
+            var responseHeaders = SensitiveDataMasker.MaskHeaders(
+                context.Response.Headers.Select(item => KeyValuePair.Create(item.Key, string.Join(",", item.Value.ToArray())))
             );
             var userIdText = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
             var userId = long.TryParse(userIdText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsedUserId)
                 ? parsedUserId
                 : (long?)null;
-            var relativeUrl = $"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}";
+            var relativeUrl = ExternalHttpRequestService.MaskUrl($"{context.Request.PathBase}{context.Request.Path}{context.Request.QueryString}");
             EnqueueDatabaseLog(context, traceId, stopwatch.ElapsedMilliseconds, userId, TryGetBusinessCode(responseBody));
             if (logger.IsEnabled(LogLevel.Information)) {
                 var fields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
@@ -90,13 +90,13 @@ public sealed class ApiHttpLoggingMiddleware(
                     , ["ApiResponseCode"] = TryGetBusinessCode(responseBody)
                     , ["UserId"] = userId
                     , ["UserName"] = context.User.FindFirstValue(ClaimTypes.Name)
-                    , ["RequestBody"] = requestBody
+                    , ["RequestBody"] = SensitiveDataMasker.MaskBody(requestBody, context.Request.ContentType)
                     , ["RequestHeaders"] = requestHeaders
                     , ["RequestContentType"] = context.Request.ContentType
                     , ["TraceId"] = traceId
                     , ["WorkerId"] = SnowflakeIdGenerator.WorkerId
                     , ["ResponseHeaders"] = responseHeaders
-                    , ["ResponseBody"] = responseBody
+                    , ["ResponseBody"] = SensitiveDataMasker.MaskBody(responseBody, context.Response.ContentType)
                     , ["ResponseContentType"] = context.Response.ContentType
                 };
                 var state = new StructuredLogState("API request completed", fields);

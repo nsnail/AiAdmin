@@ -13,6 +13,7 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="JobStatusDistribution">计划作业状态分布</param>
 /// <param name="RecentLogins">最近登录记录</param>
 /// <param name="RecentFailures">最近异常的作业执行记录</param>
+/// <param name="RequestStats">操作日志统计：今日与昨日按小时的访问量对比和今日各接口的请求占比，只有全部数据权限的用户才有数据，其余用户为空结果</param>
 /// <param name="GeneratedAt">数据生成时间</param>
 public sealed record DashboardOverviewResult(
     DashboardSummaryResult Summary
@@ -25,4 +26,5 @@ public sealed record DashboardOverviewResult(
     , IReadOnlyList<DashboardNameValue> JobStatusDistribution
     , IReadOnlyList<DashboardRecentLoginResult> RecentLogins
     , IReadOnlyList<DashboardFailedExecutionResult> RecentFailures
+    , DashboardRequestStatsResult RequestStats
     , DateTimeOffset GeneratedAt);

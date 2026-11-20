@@ -4,6 +4,7 @@ using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -69,6 +70,33 @@ public sealed class MessagesController(AppDbContext db, RealtimeConnectionManage
         _ = db.SystemMessages.Remove(message);
         _ = await db.SaveChangesAsync(HttpContext.RequestAborted).ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "System message deleted"));
+    }
+
+    /// <summary>
+    ///     导出系统消息，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的系统消息导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export system message data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<SystemMessageListItem>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                db.SystemMessages.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter, _listAliases), limits
+                , query => query
+                    .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(SystemMessage.CreatedAt), true, _listAliases)
+                    .Select(x => new SystemMessageListItem(
+                            x.Id, ServerTime.ToOffset(x.CreatedAt), x.UpdatedAt.HasValue ? ServerTime.ToOffset(x.UpdatedAt.Value) : null, x.Title
+                            , x.Content, x.IsPopup, x.Recipients.Count
+                        )
+                    ), rows => rows
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<SystemMessageListItem>>.Ok(result));
     }
 
     /// <summary>
@@ -153,6 +181,7 @@ public sealed class MessagesController(AppDbContext db, RealtimeConnectionManage
     /// <returns>发送结果</returns>
     [HttpPost]
     [ApiDescription("Send system message")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<object>>> SendAsync(SendSystemMessageRequest request) {
         var targetType = request.TargetType.Trim().ToLowerInvariant();
         if (targetType is not ("all" or "department" or "department_children" or "user")) {

@@ -18,6 +18,28 @@ namespace AiAdmin.Api.Controllers;
 public sealed class LoginLogsController(AppDbContext db) : ControllerBase
 {
     /// <summary>
+    ///     导出登录日志，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的登录日志导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export login log data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<LoginLogResult>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                db.LoginLogs.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter), limits
+                , query => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(LoginLog.CreatedAt), true)
+                , rows => rows.ConvertAll(ToResult)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<LoginLogResult>>.Ok(result));
+    }
+
+    /// <summary>
     ///     查询登录日志列表筛选字段元数据
     /// </summary>
     /// <returns>登录日志筛选字段定义</returns>

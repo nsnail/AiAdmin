@@ -13,4 +13,10 @@ public sealed record DashboardRequestStatsResult(
     , IReadOnlyList<DashboardApiShare> ApiDistribution
     , int TodayTotal
     , int YesterdayTotal
-    , DateTimeOffset GeneratedAt);
+    , DateTimeOffset GeneratedAt)
+{
+    /// <summary>
+    ///     没有统计数据时的空结果，用于缓存缺失或调用方没有全部数据权限
+    /// </summary>
+    public static DashboardRequestStatsResult Empty { get; } = new([], [], 0, 0, DateTimeOffset.MinValue);
+}

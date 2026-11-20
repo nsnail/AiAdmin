@@ -181,6 +181,10 @@ public sealed class AlertMonitorEvaluatorTests
     [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.Equal, true)]
     [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.GreaterThan, false)]
     [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.LessThanOrEqual, false)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexMatch, true)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexNotMatch, true)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.RegexMatch, false)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.RegexNotMatch, false)]
     public void OperatorMustMatchValueType(
         AlertMonitorValueType valueType
         , AlertMonitorOperator op
@@ -248,25 +252,32 @@ public sealed class AlertMonitorEvaluatorTests
     }
 
     /// <summary>
-    ///     阈值校验：数字比较必须是数字，文本比较不能为空
+    ///     阈值校验：数字比较必须是数字，文本比较不能为空，正则操作符必须是可编译的正则
     /// </summary>
     /// <param name="valueType">比较类型</param>
+    /// <param name="op">操作符</param>
     /// <param name="threshold">阈值</param>
     /// <param name="expected">期望是否合法</param>
     [Theory]
-    [InlineData(AlertMonitorValueType.Number, "100", true)]
-    [InlineData(AlertMonitorValueType.Number, "-0.5", true)]
-    [InlineData(AlertMonitorValueType.Number, "abc", false)]
-    [InlineData(AlertMonitorValueType.Number, "", false)]
-    [InlineData(AlertMonitorValueType.Number, "1,000", false)]
-    [InlineData(AlertMonitorValueType.Text, "error", true)]
-    [InlineData(AlertMonitorValueType.Text, "", false)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.GreaterThan, "100", true)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.GreaterThan, "-0.5", true)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.GreaterThan, "abc", false)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.GreaterThan, "", false)]
+    [InlineData(AlertMonitorValueType.Number, AlertMonitorOperator.GreaterThan, "1,000", false)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.Contains, "error", true)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.Contains, "", false)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexMatch, "^ERR-\\d+$", true)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexNotMatch, "(ok|success)", true)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexMatch, "(unclosed", false)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexMatch, "[a-", false)]
+    [InlineData(AlertMonitorValueType.Text, AlertMonitorOperator.RegexNotMatch, "", false)]
     public void ThresholdMustMatchValueType(
         AlertMonitorValueType valueType
+        , AlertMonitorOperator op
         , string threshold
         , bool expected
     ) {
-        Assert.Equal(expected, AlertMonitorEvaluator.IsThresholdValid(valueType, threshold));
+        Assert.Equal(expected, AlertMonitorEvaluator.IsThresholdValid(valueType, op, threshold));
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
 using AiAdmin.Api.Services;
@@ -53,6 +54,16 @@ public sealed class ApiPermissionMiddleware(RequestDelegate next)
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             await context
                 .Response.WriteAsJsonAsync(new ApiResponse<object>(401, "Authentication is required", null), context.RequestAborted)
+                .ConfigureAwait(false);
+            return;
+        }
+
+        // 密码、资料和 API Key 管理等敏感接口只允许 JWT 调用，API Key 一律拒绝
+        if (endpoint?.Metadata.GetMetadata<JwtOnlyAttribute>() is not null
+            && context.User.FindFirstValue(ApiKeyAuthenticationHandler.AUTH_METHOD_CLAIM) == ApiKeyAuthenticationHandler.SCHEME) {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await context
+                .Response.WriteAsJsonAsync(new ApiResponse<object>(403, "This API does not accept API keys", null), context.RequestAborted)
                 .ConfigureAwait(false);
             return;
         }

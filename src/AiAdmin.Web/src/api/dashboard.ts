@@ -69,6 +69,8 @@ export interface DashboardOverview {
     jobStatusDistribution: DashboardNameValue[]
     recentLogins: DashboardRecentLogin[]
     recentFailures: DashboardFailedExecution[]
+    /** 操作日志统计，只有全部数据权限的用户有数据，其余用户为空结果 */
+    requestStats: DashboardRequestStats
     generatedAt: string
 }
 
@@ -120,14 +122,4 @@ export interface DashboardRequestStats {
     todayTotal: number
     yesterdayTotal: number
     generatedAt: string
-}
-
-/**
- * 查询操作日志统计，只扫描今天和昨天的日表
- */
-export function fetchGetDashboardRequestStats() {
-    return request.get<DashboardRequestStats>({
-        url: '/api/dashboard/request-stats',
-        params: { offsetMinutes: -new Date().getTimezoneOffset() },
-    })
 }

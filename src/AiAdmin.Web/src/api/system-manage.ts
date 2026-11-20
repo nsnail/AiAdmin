@@ -16,15 +16,31 @@ export type DynamicFilter = {
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface BusinessListFilterResources {}
 
+/** 列表导出请求：与列表查询一致的筛选和排序，不带分页 */
+export interface ExportQuery {
+    dynamicFilter?: DynamicFilter
+    sortField?: string
+    sortOrder?: 'asc' | 'desc'
+}
+
+/** 列表导出结果：records 已按系统设置的上限截取，total 为匹配总数 */
+export interface ExportResult<T> {
+    records: T[]
+    limit: number
+    total: number
+}
+
 export type ListFilterResource =
     | 'alert-monitor'
     | 'api-endpoint'
     | 'api-request-log'
+    | 'circuit-breaker'
     | 'department'
     | 'dictionary'
     | 'login-log'
     | 'menu'
     | 'message'
+    | 'rate-limit'
     | 'role'
     | 'scheduled-job'
     | 'support'
@@ -127,7 +143,16 @@ export interface LoginLogRecord {
 export interface BusinessEnabledStateResources {}
 
 export type EnabledStateResource =
-    'user' | 'role' | 'menu' | 'department' | 'dictionary-item' | 'scheduled-job' | 'alert-monitor' | keyof BusinessEnabledStateResources
+    | 'user'
+    | 'role'
+    | 'menu'
+    | 'department'
+    | 'dictionary-item'
+    | 'scheduled-job'
+    | 'alert-monitor'
+    | 'rate-limit'
+    | 'circuit-breaker'
+    | keyof BusinessEnabledStateResources
 
 /**
  * 启用状态资源对应的接口地址，每个资源使用自己的接口，便于在角色里单独授权
@@ -141,6 +166,8 @@ export const enabledStateUrls: Record<string, string> = {
     'dictionary-item': '/api/dictionary/items/enabled',
     'scheduled-job': '/api/scheduled-job/enabled',
     'alert-monitor': '/api/alert-monitor/enabled',
+    'rate-limit': '/api/rate-limit/enabled',
+    'circuit-breaker': '/api/circuit-breaker/enabled',
 }
 
 export interface RedisServerInfo {
@@ -266,7 +293,7 @@ export function fetchSaveRedisValue(data: SaveRedisCacheParams) {
 }
 
 export function fetchDeleteRedisValue(key: string) {
-    return request.post<void>({ url: '/api/redis-cache/value/delete', params: { key } })
+    return request.post<void>({ url: '/api/redis-cache/value/delete', data: { key } })
 }
 
 export function fetchUpdateEnabledState(resource: EnabledStateResource, id: string, isEnabled: boolean) {
@@ -398,7 +425,7 @@ export function fetchCreateUser(data: Api.SystemManage.SaveUserParams) {
 
 /** 超级管理员模拟指定用户登录，返回该用户的访问令牌，不产生登录日志 */
 export function fetchImpersonateUser(id: string) {
-    return request.post<{ token: string; refreshToken: string }>({ url: '/api/user/impersonate', data: { id } })
+    return request.post<{ token: string; refreshToken: string; signKey: string }>({ url: '/api/user/impersonate', data: { id } })
 }
 
 export function fetchUpdateUser(id: string, data: Api.SystemManage.UpdateUserParams) {
@@ -723,6 +750,100 @@ export function fetchDeleteAlertMonitors(ids: string[]) {
     return request.post<{ count: number }>({ url: '/api/alert-monitor/delete', data: { ids }, showSuccessMessage: true })
 }
 
+/** 限流规则：算法 1 滑动窗口 2 漏桶 3 令牌桶，范围 1 全局 2 用户 3 角色 */
+export interface RateLimitRuleInfo {
+    id: string
+    createdAt: string
+    apiEndpointId: string
+    method: string
+    path: string
+    apiName: string
+    algorithm: number
+    scope: number
+    roleCode: string | null
+    roleName: string | null
+    userId: string | null
+    userName: string | null
+    limit: number
+    windowSeconds: number
+    isEnabled: boolean
+    remark: string
+    updatedAt: string | null
+}
+
+/** 限流规则保存参数，新增不传 id */
+export type SaveRateLimitRule = Pick<
+    RateLimitRuleInfo,
+    'apiEndpointId' | 'algorithm' | 'scope' | 'roleCode' | 'userId' | 'limit' | 'windowSeconds' | 'isEnabled' | 'remark'
+> & { id?: string }
+
+export function fetchGetRateLimitRuleList(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<RateLimitRuleInfo>>({ url: '/api/rate-limit/list', data: params })
+}
+
+export function fetchCreateRateLimitRule(data: SaveRateLimitRule) {
+    return request.post<RateLimitRuleInfo>({ url: '/api/rate-limit', data, showSuccessMessage: true })
+}
+
+export function fetchUpdateRateLimitRule(data: SaveRateLimitRule) {
+    return request.post<RateLimitRuleInfo>({ url: '/api/rate-limit/update', data, showSuccessMessage: true })
+}
+
+export function fetchDeleteRateLimitRules(ids: string[]) {
+    return request.post<{ count: number }>({ url: '/api/rate-limit/delete', data: { ids }, showSuccessMessage: true })
+}
+
+/** 熔断规则：状态 1 关闭 2 打开 3 半开 */
+export interface CircuitBreakerRuleInfo {
+    id: string
+    createdAt: string
+    apiEndpointId: string
+    method: string
+    path: string
+    apiName: string
+    failureRatePercent: number
+    minimumRequests: number
+    windowSeconds: number
+    openSeconds: number
+    halfOpenRequests: number
+    slowCallMs: number
+    isEnabled: boolean
+    remark: string
+    updatedAt: string | null
+    state: number
+    retryAfterSeconds: number
+}
+
+/** 熔断规则保存参数，新增不传 id */
+export type SaveCircuitBreakerRule = Pick<
+    CircuitBreakerRuleInfo,
+    | 'apiEndpointId'
+    | 'failureRatePercent'
+    | 'minimumRequests'
+    | 'windowSeconds'
+    | 'openSeconds'
+    | 'halfOpenRequests'
+    | 'slowCallMs'
+    | 'isEnabled'
+    | 'remark'
+> & { id?: string }
+
+export function fetchGetCircuitBreakerRuleList(params: DynamicTableQuery) {
+    return request.post<Api.Common.PaginatedResponse<CircuitBreakerRuleInfo>>({ url: '/api/circuit-breaker/list', data: params })
+}
+
+export function fetchCreateCircuitBreakerRule(data: SaveCircuitBreakerRule) {
+    return request.post<CircuitBreakerRuleInfo>({ url: '/api/circuit-breaker', data, showSuccessMessage: true })
+}
+
+export function fetchUpdateCircuitBreakerRule(data: SaveCircuitBreakerRule) {
+    return request.post<CircuitBreakerRuleInfo>({ url: '/api/circuit-breaker/update', data, showSuccessMessage: true })
+}
+
+export function fetchDeleteCircuitBreakerRules(ids: string[]) {
+    return request.post<{ count: number }>({ url: '/api/circuit-breaker/delete', data: { ids }, showSuccessMessage: true })
+}
+
 export function fetchGetDictionaryCategories() {
     return request.get<Api.SystemManage.DictionaryCategory[]>({ url: '/api/dictionary/categories' })
 }
@@ -766,6 +887,19 @@ export function fetchGetDictionaryItemList(
     })
 }
 
+/**
+ * 导出指定字典目录下的字典项，条数由后端按系统设置的上限截取
+ * @param categoryId 字典目录主键
+ * @param query 当前动态筛选与排序
+ * @returns 导出记录、导出上限和匹配总数
+ */
+export function fetchExportDictionaryItems(categoryId: string, query: ExportQuery) {
+    return request.post<ExportResult<Api.SystemManage.DictionaryItem>>({
+        url: '/api/dictionary/items/export',
+        data: { ...query, parentId: categoryId },
+    })
+}
+
 export function fetchCreateDictionaryItem(categoryId: string, data: Api.SystemManage.SaveDictionaryItemParams) {
     return request.post<Api.SystemManage.DictionaryItem>({
         url: '/api/dictionary/items',
@@ -797,11 +931,21 @@ export interface ScheduledJob {
     lastTriggeredAt: string | null
     lastFinishedAt: string | null
     lastError: string
+    /** 最近一次执行的结果摘要，即响应体的前若干字符 */
+    lastResult: string
     successRate: number
     alertEnabled: boolean
     alertOnFailure: boolean
     alertOverSeconds: number
     alertMentions: string
+    /** 响应体的比较操作符编号，空表示不按执行结果报警，与后端 AlertMonitorOperator 一致 */
+    alertResultOperator: number | null
+    /** 响应体的比较类型：1 数字 2 文本 */
+    alertResultValueType: number
+    /** 响应体匹配的阈值，数字、文本或正则表达式 */
+    alertResultValue: string
+    /** 响应体匹配是否区分大小写 */
+    alertResultCaseSensitive: boolean
     alertActive: boolean
 }
 
@@ -817,6 +961,8 @@ export interface ScheduledJobExecution {
     responseStatusCode: number | null
     responseHeaders: string
     responseBody: string
+    /** 执行结果摘要，即响应体的前若干字符 */
+    result: string
     status: number
     errorMessage: string
     durationMs: number
@@ -845,9 +991,23 @@ export type SaveScheduledJob = Pick<
     | 'alertOnFailure'
     | 'alertOverSeconds'
     | 'alertMentions'
+    | 'alertResultOperator'
+    | 'alertResultValueType'
+    | 'alertResultValue'
+    | 'alertResultCaseSensitive'
 >
 
-export type BatchScheduledJobAlert = Pick<ScheduledJob, 'alertEnabled' | 'alertOnFailure' | 'alertOverSeconds' | 'alertMentions'>
+export type BatchScheduledJobAlert = Pick<
+    ScheduledJob,
+    | 'alertEnabled'
+    | 'alertOnFailure'
+    | 'alertOverSeconds'
+    | 'alertMentions'
+    | 'alertResultOperator'
+    | 'alertResultValueType'
+    | 'alertResultValue'
+    | 'alertResultCaseSensitive'
+>
 
 export function fetchBatchUpdateScheduledJobAlert(ids: string[], alert: BatchScheduledJobAlert) {
     return request.post<{ affected: number }>({ url: '/api/scheduled-job/batch-alert', data: { ids, ...alert }, showSuccessMessage: true })
@@ -894,6 +1054,19 @@ export function fetchScheduledJobExecutions(id: string | undefined, params: Sche
     return request.post<Api.Common.PaginatedResponse<ScheduledJobExecution>>({
         url: '/api/scheduled-job/executions/list',
         data: { ...createDynamicQuery(params.current, params.size, filters, params.sortField, params.sortOrder), parentId: id || undefined },
+    })
+}
+
+/**
+ * 导出作业执行记录，未指定作业主键时导出全部作业的执行记录，条数由后端按系统设置的上限截取
+ * @param id 作业主键
+ * @param query 当前动态筛选与排序
+ * @returns 导出记录、导出上限和匹配总数
+ */
+export function fetchExportScheduledJobExecutions(id: string | undefined, query: ExportQuery) {
+    return request.post<ExportResult<ScheduledJobExecution>>({
+        url: '/api/scheduled-job/executions/export',
+        data: { ...query, parentId: id || undefined },
     })
 }
 

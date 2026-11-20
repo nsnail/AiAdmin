@@ -3,6 +3,7 @@ using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -167,6 +168,7 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
     /// <returns>已发送的消息</returns>
     [HttpPost("reply")]
     [ApiDescription("Reply support conversation")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<SupportMessageItem>>> ReplyAsync([FromBody] SupportSendRequest request) {
         var content = request.Content.Trim();
         if (request.ConversationId is null || content.Length == 0) {
@@ -213,6 +215,7 @@ public sealed class SupportChatController(AppDbContext db, RealtimeConnectionMan
     /// <returns>已发送的消息</returns>
     [HttpPost("send")]
     [ApiDescription("Send message to customer service")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<SupportMessageItem>>> SendAsync([FromBody] SupportSendRequest request) {
         var content = request.Content.Trim();
         if (content.Length == 0) {

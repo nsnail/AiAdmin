@@ -23,6 +23,8 @@ import { translateServerMessage } from '@/utils/i18n/server-message'
 import { BaseResponse } from '@/types'
 import { bindRequestButton, releaseRequestButton } from './button-loading'
 import { isScreenLocked } from '@/utils/lock/state'
+import { createSignatureHeaders } from './signature'
+import { applyRenewedTokens, markRefreshTokenCarried, shouldCarryRefreshToken } from './renewal'
 
 /** 请求配置常量 */
 const REQUEST_TIMEOUT = 15000
@@ -91,8 +93,13 @@ axiosInstance.interceptors.request.use(
         // 锁屏期间凭证已被移走，直接拒绝请求，避免收到 401 后被登出
         if (isScreenLocked.value) return Promise.reject(createHttpError($t('lockScreen.locked'), ApiStatus.unauthorized))
         bindRequestButton(request)
-        const { accessToken } = useUserStore()
+        const { accessToken, refreshToken } = useUserStore()
         if (accessToken) request.headers.set('Authorization', `Bearer ${accessToken}`)
+        // 访问令牌临近到期时才携带续签令牌，平时不传输
+        if (shouldCarryRefreshToken(accessToken, refreshToken)) {
+            request.headers.set('X-Refresh-Token', refreshToken)
+            markRefreshTokenCarried()
+        }
         request.headers.set('Accept-Language', useUserStore().language)
 
         if (request.params && !(request.params instanceof URLSearchParams)) {
@@ -107,6 +114,13 @@ axiosInstance.interceptors.request.use(
             request.data = JSON.stringify(request.data)
         }
 
+        // 请求签名：最后一步执行，保证签名覆盖实际发送的请求体与最终地址
+        const { signKey } = useUserStore()
+        if (signKey && request.headers.has('Authorization')) {
+            const headers = createSignatureHeaders(signKey, request.method ?? 'GET', axios.getUri(request), request.data)
+            Object.entries(headers).forEach(([name, value]) => request.headers.set(name, value))
+        }
+
         return request
     },
     (error) => {
@@ -119,6 +133,7 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
     (response: AxiosResponse<BaseResponse>) => {
         releaseRequestButton(response.config)
+        applyRenewedTokens(response.headers as Record<string, unknown>)
         const { code, msg } = response.data
         if (code === ApiStatus.success) return response
         if (code === ApiStatus.unauthorized) handleUnauthorizedError(msg)
@@ -126,6 +141,7 @@ axiosInstance.interceptors.response.use(
     },
     (error) => {
         releaseRequestButton(error.config)
+        applyRenewedTokens(error.response?.headers as Record<string, unknown> | undefined)
         if (error.response?.status === ApiStatus.unauthorized) {
             const message = translateServerMessage((error.response.data as BaseResponse<unknown> | undefined)?.msg)
             handleUnauthorizedError(message)
@@ -237,7 +253,7 @@ export interface DebugExchange {
  * 不经过统一的业务码校验和错误提示，非 2xx 响应同样会返回
  */
 async function debugRequest(config: AxiosRequestConfig): Promise<DebugExchange> {
-    const { accessToken, language } = useUserStore()
+    const { accessToken, language, signKey } = useUserStore()
     const headers: Record<string, string> = { 'Accept-Language': language }
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`
     const hasBody = config.data !== undefined && config.data !== null
@@ -254,6 +270,7 @@ async function debugRequest(config: AxiosRequestConfig): Promise<DebugExchange> 
         validateStatus: () => true,
         transformResponse: [(data) => data],
     }
+    Object.assign(headers, createSignatureHeaders(signKey, full.method ?? 'GET', axios.getUri(full), body))
     const exchange: DebugExchange = {
         request: {
             method: (config.method || 'GET').toUpperCase(),

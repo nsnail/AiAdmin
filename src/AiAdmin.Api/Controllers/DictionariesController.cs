@@ -1,6 +1,7 @@
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <returns>新增目录</returns>
     [HttpPost("categories")]
     [ApiDescription("Create dictionary category")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<DictionaryCategoryResult>>> CreateCategoryAsync(SaveDictionaryCategoryRequest request) {
         var code = request.Code.Trim();
         if (await db.DictionaryCategories.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
@@ -60,6 +62,7 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
     /// <returns>新增内容</returns>
     [HttpPost("items")]
     [ApiDescription("Create dictionary item")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<DictionaryItemResult>>> CreateItemAsync([FromBody] SaveDictionaryItemRequest request) {
         var categoryId = request.CategoryId;
         if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false)) {
@@ -177,6 +180,32 @@ public sealed class DictionariesController(AppDbContext db, DictionarySnapshotSe
             .ToListAsync()
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<DictionaryItemResult>>.Ok(rows.ConvertAll(ToItem)));
+    }
+
+    /// <summary>
+    ///     导出字典项，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的字典项导出结果</returns>
+    [HttpPost("items/export")]
+    [ApiDescription("Export dictionary items")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<DictionaryItemResult>>>> ItemsExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var categoryId = request.ParentId.GetValueOrDefault();
+        if (!await db.DictionaryCategories.AnyAsync(x => x.Id == categoryId).ConfigureAwait(false)) {
+            return NotFound(new ApiResponse<object>(404, "Dictionary category not found", null));
+        }
+
+        var result = await ListExport
+            .RunAsync(
+                db.DictionaryItems.AsNoTracking().Where(x => x.CategoryId == categoryId).ApplyDynamicFilter(request.DynamicFilter), limits
+                , query => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(DictionaryItem.Sort)), rows => rows.ConvertAll(ToItem)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<DictionaryItemResult>>.Ok(result));
     }
 
     /// <summary>

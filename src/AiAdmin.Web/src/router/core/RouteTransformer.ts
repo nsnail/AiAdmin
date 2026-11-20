@@ -45,7 +45,8 @@ export class RouteTransformer {
         } else if (this.isFirstLevelRoute(route, depth)) {
             this.handleFirstLevelRoute(converted, route, component as string)
         } else {
-            this.handleNormalRoute(converted, component as string)
+            // 一级目录菜单（有子菜单）未配置组件时，自动使用布局容器
+            this.handleNormalRoute(converted, component as string, depth === 0 && Boolean(children?.length))
         }
 
         // 递归处理子路由
@@ -108,9 +109,11 @@ export class RouteTransformer {
     /**
      * 处理普通路由
      */
-    private handleNormalRoute(converted: ConvertedRoute, component: string | undefined): void {
+    private handleNormalRoute(converted: ConvertedRoute, component: string | undefined, useLayoutFallback: boolean): void {
         if (component) {
             converted.component = this.componentLoader.load(component)
+        } else if (useLayoutFallback) {
+            converted.component = this.componentLoader.loadLayout()
         }
     }
 

@@ -11,7 +11,10 @@
             <el-collapse-item v-for="group in filteredGroups" :key="group.name" :name="group.name">
                 <template #title
                     ><span class="group-title">{{ group.name }}</span
-                    ><span class="muted">{{ group.description }}</span></template
+                    ><span class="muted">{{ group.description }}</span
+                    ><el-tag class="count-tag" size="small" type="info">{{
+                        $t('apiDocs.endpointCount', { count: group.items.length })
+                    }}</el-tag></template
                 >
                 <div v-for="item in group.items" :key="item.method + item.path" class="endpoint">
                     <div @click="toggle(item)" class="endpoint-head">
@@ -262,6 +265,9 @@ onMounted(load)
 }
 .muted {
     color: var(--el-text-color-secondary);
+}
+.count-tag {
+    margin-left: 10px;
 }
 .endpoint {
     border: 1px solid var(--el-border-color-lighter);

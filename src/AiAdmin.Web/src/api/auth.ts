@@ -97,3 +97,27 @@ export function fetchChangeUserPassword(data: Api.Auth.ChangePasswordParams) {
         data,
     })
 }
+
+/**
+ * 查询当前用户 API Key 状态
+ * @returns API Key 状态，不含明文
+ */
+export function fetchApiKeyStatus() {
+    return request.get<Api.Auth.ApiKeyStatus>({ url: '/api/user/api-key' })
+}
+
+/**
+ * 生成或重置当前用户 API Key，旧 Key 立即失效
+ * @returns 包含一次性明文的 API Key 状态
+ */
+export function fetchResetApiKey() {
+    return request.post<Api.Auth.ApiKeyStatus>({ url: '/api/user/api-key/reset' })
+}
+
+/**
+ * 吊销当前用户 API Key
+ * @returns 吊销结果
+ */
+export function fetchDeleteApiKey() {
+    return request.post<Record<string, never>>({ url: '/api/user/api-key/delete' })
+}

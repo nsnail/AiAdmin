@@ -1,7 +1,7 @@
 namespace AiAdmin.Api.Models;
 
 /// <summary>
-///     告警监控的比较操作符，数字和字符串共用一套编号：前六个可用于数字，字符串支持相等、不相等和后四个文本操作符
+///     告警监控的比较操作符，数字和字符串共用一套编号：前六个可用于数字，字符串支持相等、不相等和后六个文本操作符
 /// </summary>
 public enum AlertMonitorOperator
 {
@@ -72,4 +72,18 @@ public enum AlertMonitorOperator
     ///     以指定文本结尾，仅字符串
     /// </summary>
     EndsWith = 10
+
+    ,
+
+    /// <summary>
+    ///     匹配正则表达式，仅字符串，阈值为正则表达式
+    /// </summary>
+    RegexMatch = 11
+
+    ,
+
+    /// <summary>
+    ///     不匹配正则表达式，仅字符串，阈值为正则表达式
+    /// </summary>
+    RegexNotMatch = 12
 }

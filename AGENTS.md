@@ -186,9 +186,39 @@ dotnet test tests/AiAdmin.Tests --no-build -p:BaseOutputPath=D:/Work/SVN/Tao/AiA
 
 ## 6. 列表导出规范
 
-- 列表页导出按钮统一使用带下载图标和下拉菜单的按钮样式，提供 Excel 和 JSON 两种导出格式
+### 6.1 总则
+
+- 每个使用 `ArtTablePage` 的列表页都必须具备导出能力，由 `ArtTablePage` 内置提供（`exportable` 默认开启），页面层不得再自行实现导出按钮、下载和格式转换；确实不适合导出的页面（如树形、聚合视图）显式设置
+  `:exportable="false"` 并说明原因
+- 导出按钮统一使用带下载图标和下拉菜单的按钮样式，提供 Excel 和 JSON 两种导出格式，由 `ArtTablePage` 统一渲染，文案使用 `table.export.*`
+- 导出文件生成（Excel、JSON、文件名、值转换）统一放在 `utils/table/export.ts`，不得在页面中直接引入 `xlsx`、`file-saver`
+- 导出按钮受菜单按钮权限 `export` 控制：每个带列表的菜单必须在种子（`menu-seed.json`，以及 `DatabaseInitializer.cs`、`BusinessDataSeeder.cs` 中内置菜单的
+  `authList`）里声明 `{ "title": "Export", "authMark": "export" }`，`ArtTablePage` 通过 `hasAuth('export')` 决定是否显示按钮，页面不得绕过
+
+### 6.2 取数
+
 - 未勾选任何行时，导出当前查询条件和排序下的全部结果，不受当前分页页大小限制
 - 勾选行后，仅导出勾选的数据
-- 导出字段必须与列表展示字段保持一致，字段名称使用 i18n 文案；日期字段使用列表相同的格式化方式
-- 导出过程必须具备 loading 或防重复操作机制，空结果需提示用户，不得生成空文件
-- 未勾选导出时，前端必须调用后端专用 `export` 接口并由后端应用最大导出条数，禁止通过循环调用 `list` 接口模拟导出
+- 未勾选导出时，前端必须调用后端专用 `export` 接口并由后端应用最大导出条数，禁止通过循环调用 `list` 接口模拟导出；`ArtTablePage` 默认调用
+  `POST /api/{resource}/export`，接口路径不同时通过 `exportFn` 传入
+- 后端每个列表资源必须提供 `POST {resource}/export`，请求体使用公共 `DynamicExportRequest`，返回 `DynamicExportResult<T>`（`T` 与该资源 `list`
+  返回的记录类型一致）；不得为单个资源另建导出请求和结果类型
+- 后端 `export` 动作必须通过 `ListExport`（`RunAsync`、`RunWithLookupAsync`、`RunCustomAsync`）完成总数统计、上限截取和结果封装，控制器只提供已筛选的查询、与
+  `list` 一致的排序投影和转换，不得各自重复这套流程；`ExportLimitService` 通过动作参数 `[FromServices]` 注入，不放进控制器构造函数
+- 嵌套列表（字典项、作业执行记录）的导出使用 `DynamicExportRequest.ParentId` 限定父资源，接口路径与对应 `list` 同级（如 `items/export`、`executions/export`
+  ），前端通过 `exportFn` 传入
+- 导出查询必须复用该控制器 `list` 使用的同一套筛选、排序别名和默认排序，先 `ApplyDynamicFilter`、统计总数，再按 `ExportLimitService.GetLimitAsync()`
+  截取；超出上限时前端提示实际导出条数
+
+### 6.3 导出列
+
+- 导出列由 `ArtTablePage` 根据当前可见的列定义推导，操作列、选择列、序号列、展开列和 `queryField: false` 的纯展示列不导出，需要导出的纯展示列显式声明
+  `exportable: true`，不需要的数据列声明 `exportable: false`
+- 导出字段必须与列表展示字段保持一致，字段名称使用 i18n 文案（即列的 `label`）；日期字段使用列表相同的格式化方式，布尔值统一输出为“是/否”
+- 列表单元格由 `h()` 渲染，展示值与行字段不一致时（枚举文案、关联名称、多字段合并的复合列），必须在列定义中声明 `exportValue`，必要时用 `exportKey` 指定 JSON
+  字段名，不得让导出结果出现枚举数字或对象
+
+### 6.4 交互
+
+- 导出过程必须具备 loading 或防重复操作机制，空结果需提示用户，不得生成空文件，失败需提示
+- 新增或修改列表页时，至少验证：未勾选导出全部、勾选后只导出勾选行、排序和筛选后导出结果与列表一致、超出上限时的提示、枚举和复合列的导出内容

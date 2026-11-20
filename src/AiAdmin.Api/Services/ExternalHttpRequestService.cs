@@ -102,11 +102,11 @@ public sealed partial class ExternalHttpRequestService(
             , ["RequestUrl"] = result.RequestUrl
             , ["ElapsedMilliseconds"] = result.ElapsedMilliseconds
             , ["StatusCode"] = result.StatusCode
-            , ["RequestBody"] = result.RequestBody
+            , ["RequestBody"] = SensitiveDataMasker.MaskBody(result.RequestBody, result.RequestContentType)
             , ["RequestHeaders"] = result.RequestHeaders
             , ["RequestContentType"] = result.RequestContentType
             , ["ResponseHeaders"] = result.ResponseHeaders
-            , ["ResponseBody"] = result.ResponseBody
+            , ["ResponseBody"] = SensitiveDataMasker.MaskBody(result.ResponseBody, result.ResponseContentType)
             , ["ResponseContentType"] = result.ResponseContentType
             , ["TraceId"] = traceId
         };

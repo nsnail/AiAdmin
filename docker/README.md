@@ -43,7 +43,7 @@ docker build -f docker/web.Dockerfile -t aiadmin-web .
    `/health` 返回 200，然后用 `/ready` 预热连接池（见下文）
 4. 网关 `gate-upstream.sh up <端口>` 恢复节点
 5. 部署机 `rolling-deploy.sh settle <服务>`：节点放回网关后观察它在真实流量下是否稳定，稳定后才继续
-6. 另一个实例重复 2 到 5，最后 `rolling-deploy.sh finish` 启动 `web` 并清理无用镜像
+6. 另一个实例重复 2 到 5，最后 `rolling-deploy.sh finish` 启动 `web` 并清理旧镜像（删除 `API_IMAGE`、`WEB_IMAGE` 同仓库下除当前版本外的旧标签及悬空镜像，仍被容器使用的会跳过）
 
 要点：
 

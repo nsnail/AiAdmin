@@ -5,6 +5,7 @@ using System.Text.Json;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -76,6 +77,7 @@ public sealed class SavedQueriesController(AppDbContext db) : ControllerBase
     /// <returns>保存后的查询条件</returns>
     [HttpPost]
     [ApiDescription("Save query condition")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<SavedQueryResult>>> SaveAsync(SaveQueryRequest request) {
         var userId = GetCurrentUserId();
         var name = request.Name.Trim();

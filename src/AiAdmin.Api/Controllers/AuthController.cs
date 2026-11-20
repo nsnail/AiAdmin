@@ -5,6 +5,7 @@ using System.Text;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Middleware;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using MailKit;
@@ -83,7 +84,10 @@ public sealed class AuthController(
         var sliderEnabled = IsSettingEnabled(settings, "Enable login slider verification");
         var registrationEnabled = IsSettingEnabled(settings, "Enable user registration");
         var emailVerificationEnabled = IsSettingEnabled(settings, "Enable email verification");
-        return Ok(ApiResponse<LoginConfigResult>.Ok(new LoginConfigResult(sliderEnabled, registrationEnabled, emailVerificationEnabled)));
+        var signatureEnabled = IsSettingEnabled(settings, RequestSignatureMiddleware.SETTING_LABEL);
+        return Ok(
+            ApiResponse<LoginConfigResult>.Ok(new LoginConfigResult(sliderEnabled, registrationEnabled, emailVerificationEnabled, signatureEnabled))
+        );
     }
 
     /// <summary>
@@ -204,7 +208,8 @@ public sealed class AuthController(
         user.LastLoginIp = Limit(clientIp, 64);
         user.LastLoginRegion = Limit(region, 300);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
-        return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, previous), "Login successful"));
+        var (token, refreshToken, signKey) = tokenService.Create(user);
+        return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(token, refreshToken, signKey, previous), "Login successful"));
     }
 
     /// <summary>
@@ -213,6 +218,7 @@ public sealed class AuthController(
     /// <returns>发送结果</returns>
     [HttpPost("profile-email/code")]
     [ApiDescription("Send profile email verification code")]
+    [JwtOnly]
     public async Task<ActionResult<ApiResponse<object>>> ProfileEmailCodeAsync() {
         if (!long.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), CultureInfo.InvariantCulture, out var id)) {
             return Unauthorized(new ApiResponse<object>(401, "Login session has expired, please log in again", null));

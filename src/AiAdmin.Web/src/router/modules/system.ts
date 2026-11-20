@@ -135,6 +135,36 @@ export const systemManagementRoute: AppRouteRecord = {
             },
         },
         {
+            path: 'circuit-breaker',
+            name: 'CircuitBreakerManagement',
+            component: '/system/circuit-breaker',
+            meta: {
+                title: 'menus.system.circuitBreaker',
+                icon: 'ri:flashlight-line',
+                keepAlive: true,
+                roles: ['R_SUPER'],
+                authList: [
+                    { title: '删除', authMark: 'delete' },
+                    { title: '启用', authMark: 'enable' },
+                ],
+            },
+        },
+        {
+            path: 'rate-limit',
+            name: 'RateLimitManagement',
+            component: '/system/rate-limit',
+            meta: {
+                title: 'menus.system.rateLimit',
+                icon: 'ri:speed-up-line',
+                keepAlive: true,
+                roles: ['R_SUPER'],
+                authList: [
+                    { title: '删除', authMark: 'delete' },
+                    { title: '启用', authMark: 'enable' },
+                ],
+            },
+        },
+        {
             path: 'alert-monitor',
             name: 'AlertMonitorManagement',
             component: '/system/alert-monitor',

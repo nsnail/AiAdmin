@@ -19,18 +19,6 @@
         <template #header-left>
             <ElSpace wrap>
                 <ElButton v-ripple @click="showDialog('add')">{{ t('roleManagement.actions.add') }}</ElButton>
-                <ElDropdown :disabled="exporting" @command="handleExport">
-                    <ElButton :loading="exporting">
-                        <ArtSvgIcon class="mr-1" icon="ri:download-2-line" />{{ t('roleManagement.actions.exportData') }}
-                        <ArtSvgIcon class="ml-1" icon="ri:arrow-down-s-line" />
-                    </ElButton>
-                    <template #dropdown>
-                        <ElDropdownMenu>
-                            <ElDropdownItem command="excel">{{ t('roleManagement.actions.exportExcel') }}</ElDropdownItem>
-                            <ElDropdownItem command="json">{{ t('roleManagement.actions.exportJson') }}</ElDropdownItem>
-                        </ElDropdownMenu>
-                    </template>
-                </ElDropdown>
             </ElSpace>
         </template>
 
@@ -47,7 +35,7 @@
 <script lang="ts" setup>
 import type { RowAction } from '@/types/component'
 import { useTable } from '@/hooks/core/useTable'
-import { fetchCopyRole, fetchDeleteRole, fetchExportRoles, fetchGetRoleList } from '@/api/system-manage'
+import { fetchCopyRole, fetchDeleteRole, fetchGetRoleList } from '@/api/system-manage'
 import ArtEnabledSwitch from '@/components/core/forms/art-enabled-switch/index.vue'
 import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
@@ -57,9 +45,6 @@ import RoleApiDialog from './modules/role-api-dialog.vue'
 import { ElMessage, ElMessageBox, ElTag } from 'element-plus'
 import type { DynamicFilter } from '@/components/core/forms/art-dynamic-query-drawer/types'
 import { useI18n } from 'vue-i18n'
-import { formatDateTime } from '@/utils/date'
-import * as XLSX from 'xlsx'
-import FileSaver from 'file-saver'
 
 defineOptions({ name: 'Role' })
 type RoleListItem = Api.SystemManage.RoleListItem
@@ -71,7 +56,6 @@ const permissionDialog = ref(false)
 const apiPermissionDialog = ref(false)
 const currentRoleData = ref<RoleListItem | undefined>(undefined)
 const selectedRows = ref<RoleListItem[]>([])
-const exporting = ref(false)
 
 const {
     columns,
@@ -107,6 +91,7 @@ const {
             },
             {
                 prop: 'roleId',
+                exportKey: 'id',
                 queryField: 'Id',
                 queryValueType: 'number',
                 label: 'ID',
@@ -138,8 +123,16 @@ const {
             },
             {
                 prop: 'dataScope',
+                exportValue: (row) =>
+                    ({
+                        0: t('listFilter.option.allData'),
+                        1: t('listFilter.option.departmentData'),
+                        2: t('listFilter.option.departmentAndChildren'),
+                        3: t('listFilter.option.ownData'),
+                    })[row.dataScope as 0 | 1 | 2 | 3] ?? row.dataScope,
                 queryField: 'DataScope',
                 queryValueType: 'string',
+                align: 'center',
                 label: t('listFilter.role.dataScope'),
                 minWidth: 150,
                 formatter: (row) => {
@@ -168,6 +161,7 @@ const {
             },
             {
                 prop: 'enabled',
+                exportKey: 'isEnabled',
                 queryField: 'IsEnabled',
                 queryValueField: 'enabled',
                 queryValueType: 'boolean',
@@ -189,87 +183,6 @@ const {
 })
 
 watch(locale, () => resetColumns?.())
-
-type ExportFormat = 'excel' | 'json'
-
-const exportFileName = (extension: ExportFormat): string => {
-    const timestamp = new Date().toISOString().replace('T', '_').replace(/:/g, '-').replace(/\..+$/, '')
-    return `roles_${timestamp}.${extension === 'excel' ? 'xlsx' : 'json'}`
-}
-
-const dataScopeLabel = (scope: RoleListItem['dataScope']): string =>
-    ({
-        0: t('listFilter.option.allData'),
-        1: t('listFilter.option.departmentData'),
-        2: t('listFilter.option.departmentAndChildren'),
-        3: t('listFilter.option.ownData'),
-    })[scope]
-
-const downloadExcel = (rows: RoleListItem[]): void => {
-    const exportRows = rows.map((row) => ({
-        ID: row.roleId,
-        [t('listFilter.role.name')]: row.roleName,
-        [t('listFilter.role.code')]: row.roleCode,
-        [t('listFilter.role.description')]: row.description,
-        [t('listFilter.role.dataScope')]: dataScopeLabel(row.dataScope),
-        [t('listFilter.common.status')]: t(row.enabled ? 'listFilter.option.enabled' : 'listFilter.option.disabled'),
-        [t('roleManagement.fields.createdAt')]: formatDateTime(row.createTime, locale.value),
-        [t('roleManagement.fields.updatedAt')]: formatDateTime(row.updateTime, locale.value),
-    }))
-    const worksheet = XLSX.utils.json_to_sheet(exportRows)
-    worksheet['!cols'] = Object.keys(exportRows[0]).map((key) => ({
-        wch: Math.min(Math.max(key.length + 2, ...exportRows.map((row) => String(row[key as keyof typeof row] ?? '').length + 2)), 50),
-    }))
-    const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, t('roleManagement.export.sheetName'))
-    const buffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array', compression: true })
-    FileSaver.saveAs(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), exportFileName('excel'))
-}
-
-const downloadJson = (rows: RoleListItem[]): void => {
-    const exportRows = rows.map((row) => ({
-        id: row.roleId,
-        name: row.roleName,
-        code: row.roleCode,
-        description: row.description,
-        dataScope: row.dataScope,
-        isEnabled: row.enabled,
-        createdAt: formatDateTime(row.createTime, locale.value),
-        updatedAt: formatDateTime(row.updateTime, locale.value),
-    }))
-    FileSaver.saveAs(new Blob([JSON.stringify(exportRows, null, 2)], { type: 'application/json;charset=utf-8' }), exportFileName('json'))
-}
-
-const handleExport = async (format: ExportFormat): Promise<void> => {
-    if (exporting.value) return
-    exporting.value = true
-    try {
-        let rows = selectedRows.value
-        if (rows.length === 0) {
-            const result = await fetchExportRoles({
-                dynamicFilter: searchParams.dynamicFilter as DynamicFilter | undefined,
-                sortField: searchParams.sortField as string | undefined,
-                sortOrder: searchParams.sortOrder as 'asc' | 'desc' | undefined,
-            })
-            rows = result.records
-            if (result.total > result.records.length) {
-                ElMessage.warning(t('roleManagement.message.exportTruncated', { total: result.total, limit: result.limit }))
-            }
-        }
-        if (rows.length === 0) {
-            ElMessage.info(t('roleManagement.message.exportEmpty'))
-            return
-        }
-        if (format === 'excel') downloadExcel(rows)
-        else downloadJson(rows)
-        ElMessage.success(t('roleManagement.message.exported', { count: rows.length }))
-    } catch (error) {
-        console.error(error)
-        ElMessage.error(t('roleManagement.message.exportFailed'))
-    } finally {
-        exporting.value = false
-    }
-}
 
 const dialogType = ref<'add' | 'edit'>('add')
 

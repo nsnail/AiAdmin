@@ -91,6 +91,12 @@ export interface ColumnOption<T = any> {
     queryValueType?: 'string' | 'number' | 'enum' | 'boolean' | 'date'
     // 右键查询允许的操作符
     queryOperators?: string[]
+    // 导出取值：返回导出到 Excel 和 JSON 的原始值，缺省时按 prop 取行字段；列表单元格由 h() 渲染、与行字段不一致时必须声明
+    exportValue?: (row: T) => unknown
+    // 导出字段名（JSON 键），缺省取 prop
+    exportKey?: string
+    // 是否参与导出，false 表示不导出；操作列、选择列、展开列等无 prop 的列不会被导出
+    exportable?: boolean
     // 过滤器选项
     filters?: any[]
     // 过滤方法

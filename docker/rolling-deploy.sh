@@ -4,7 +4,7 @@
 #   pull             拉取镜像
 #   roll <service>   排空并重建单个实例（api-a / api-b），等待 /health 通过，再用 /ready 预热连接池；api-a 重建前会移除单实例时期遗留的 api 容器
 #   settle <service> 实例放回网关后观察它在真实流量下是否稳定，稳定才返回成功；工作流在“放回网关”之后、摘除另一个实例之前调用
-#   finish           启动 web 并清理无用镜像
+#   finish           启动 web 并清理旧镜像（API_IMAGE、WEB_IMAGE 同仓库下除当前版本外的旧标签，以及悬空镜像）
 # 依赖环境变量：API_IMAGE、WEB_IMAGE（compose 使用）；可选 SHUTDOWN_TOKEN（未设置则跳过排空，仅依赖 stop_grace_period）
 # 可选调参：HEALTH_TIMEOUT、PREPARE_TIMEOUT，以及预热和稳定观察的 WARMUP_*、SETTLE_*（见下方默认值）；SETTLE_STRICT=1 时稳定观察超时会中断发布
 set -euo pipefail
@@ -147,6 +147,26 @@ settle() {
   return 0
 }
 
+# 清理旧镜像：删除 API_IMAGE、WEB_IMAGE 同仓库下除当前版本外的所有旧版本标签，再清理悬空镜像
+# 不使用 --force：仍被容器使用的镜像会删除失败并被跳过，清理失败不影响发布结果
+cleanup_images() {
+  local current repo ref
+  for current in "${API_IMAGE:-}" "${WEB_IMAGE:-}"; do
+    [ -n "$current" ] || continue
+    # 仅当最后一个 / 之后含 : 时才去掉标签部分（避免把 registry:port 误当标签）
+    repo="$current"
+    case "${current##*/}" in
+      *:*) repo="${current%:*}" ;;
+    esac
+    while read -r ref; do
+      [ -n "$ref" ] && [ "$ref" != "$current" ] || continue
+      echo "Removing old image ${ref}"
+      docker rmi "$ref" || echo "WARNING: failed to remove ${ref}, skipped" >&2
+    done < <(docker images --format '{{.Repository}}:{{.Tag}}' "$repo" | grep -v ':<none>$' || true)
+  done
+  docker image prune --force || true
+}
+
 case "${1:-}" in
   pull)
     $COMPOSE pull
@@ -159,7 +179,7 @@ case "${1:-}" in
     ;;
   finish)
     $COMPOSE up -d web
-    docker image prune --force
+    cleanup_images
     ;;
   *)
     echo "usage: rolling-deploy.sh pull | roll <api-a|api-b> | settle <api-a|api-b> | finish" >&2

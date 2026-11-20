@@ -81,6 +81,8 @@ const operatorKeys: Record<number, string> = {
     8: 'alertMonitor.operator.notContains',
     9: 'alertMonitor.operator.startsWith',
     10: 'alertMonitor.operator.endsWith',
+    11: 'alertMonitor.operator.regexMatch',
+    12: 'alertMonitor.operator.regexNotMatch',
 }
 
 /** 把条件渲染成“指标 操作符 阈值”，如 长度 大于 1000 */

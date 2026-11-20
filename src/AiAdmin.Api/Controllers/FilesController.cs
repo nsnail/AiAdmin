@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,6 +25,7 @@ public sealed class FilesController(MinioStorageService storage) : ControllerBas
     /// <returns>创建结果</returns>
     [HttpPost("directories")]
     [ApiDescription("Create file directory")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<object>>> CreateDirectoryAsync(CreateFileDirectoryRequest request) {
         var path = NormalizePath(request.Path);
         var name = SanitizeSegment(request.Name);

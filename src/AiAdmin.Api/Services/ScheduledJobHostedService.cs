@@ -102,6 +102,16 @@ public sealed class ScheduledJobHostedService(
     }
 
     /// <summary>
+    ///     把响应体压缩为执行结果摘要：去掉首尾空白，超过最大长度时截断
+    /// </summary>
+    /// <param name="responseBody">HTTP 响应体</param>
+    /// <returns>执行结果摘要，响应体为空时返回空字符串</returns>
+    private static string Summarize(string? responseBody) {
+        var text = responseBody?.Trim() ?? string.Empty;
+        return text.Length <= ScheduledJobExecution.RESULT_MAX_LENGTH ? text : text[..ScheduledJobExecution.RESULT_MAX_LENGTH];
+    }
+
+    /// <summary>
     ///     执行指定计划作业并保存执行结果
     /// </summary>
     /// <param name="jobId">作业编号</param>
@@ -151,7 +161,11 @@ public sealed class ScheduledJobHostedService(
             job.Status = execution.Status;
             job.LastFinishedAt = DateTime.UtcNow;
             job.LastError = execution.ErrorMessage;
-            alertText = ScheduledJobAlertService.Prepare(job, execution.Status, execution.DurationMs, DescribeError(execution), true);
+            job.LastResult = execution.Result;
+
+            // 只有拿到 HTTP 响应时才按执行结果规则判定，超时和异常没有响应体，由失败规则处理，避免重复报警
+            var responseBody = execution.ResponseStatusCode.HasValue ? execution.ResponseBody : null;
+            alertText = ScheduledJobAlertService.Prepare(job, execution.Status, execution.DurationMs, DescribeError(execution), true, responseBody);
         }
 
         _ = await db.SaveChangesAsync(CancellationToken.None).ConfigureAwait(false);
@@ -225,6 +239,7 @@ public sealed class ScheduledJobHostedService(
             execution.ResponseStatusCode = response.StatusCode;
             execution.ResponseHeaders = response.ResponseHeaders;
             execution.ResponseBody = response.ResponseBody;
+            execution.Result = Summarize(response.ResponseBody);
             execution.Status = response.StatusCode is >= 200 and < 300 ? ScheduledJobStatus.Success : ScheduledJobStatus.Failed;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {

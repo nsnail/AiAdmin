@@ -1,6 +1,7 @@
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -37,6 +38,7 @@ public sealed class DepartmentsController(AppDbContext db, ApiPermissionCache pe
     /// <returns>创建后的部门节点</returns>
     [HttpPost]
     [ApiDescription("Create department")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<DepartmentTreeItem>>> CreateAsync(SaveDepartmentRequest request) {
         var code = request.Code.Trim();
         if (await db.Departments.AnyAsync(x => x.Code == code).ConfigureAwait(false)) {
@@ -78,6 +80,28 @@ public sealed class DepartmentsController(AppDbContext db, ApiPermissionCache pe
         _ = db.Departments.Remove(department);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }, "Department deleted"));
+    }
+
+    /// <summary>
+    ///     导出部门数据，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的部门数据导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export department data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<DepartmentTreeItem>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                db.Departments.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter), limits
+                , query => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Department.Sort), true, _sortAliases)
+                , rows => rows.ConvertAll(x => ToTreeItem(x))
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<DepartmentTreeItem>>.Ok(result));
     }
 
     /// <summary>

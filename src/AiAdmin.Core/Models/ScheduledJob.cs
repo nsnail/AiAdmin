@@ -36,6 +36,27 @@ public sealed class ScheduledJob : EntityBase, IUpdatedAt
     public int AlertOverSeconds { get; set; }
 
     /// <summary>
+    ///     响应体匹配是否区分大小写，仅文本比较和正则有效
+    /// </summary>
+    public bool AlertResultCaseSensitive { get; set; }
+
+    /// <summary>
+    ///     响应体的比较操作符，为空表示不按执行结果报警；命中时报警
+    /// </summary>
+    public AlertMonitorOperator? AlertResultOperator { get; set; }
+
+    /// <summary>
+    ///     响应体匹配的阈值，数字比较时为数字，正则操作符时为正则表达式
+    /// </summary>
+    [MaxLength(500)]
+    public string AlertResultValue { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     响应体的比较类型，数字或文本
+    /// </summary>
+    public AlertMonitorValueType AlertResultValueType { get; set; } = AlertMonitorValueType.Text;
+
+    /// <summary>
     ///     Cron 触发表达式
     /// </summary>
     [ListFilter("scheduledJob.fields.cronExpression", Placeholder = "scheduledJob.placeholder.cronExpression")]
@@ -71,6 +92,13 @@ public sealed class ScheduledJob : EntityBase, IUpdatedAt
     /// </summary>
     [ListFilter("scheduledJob.fields.lastFinishedAt", "date")]
     public DateTime? LastFinishedAt { get; set; }
+
+    /// <summary>
+    ///     最近一次执行的结果摘要：HTTP 响应体的前若干字符，请求超时或异常时为空，完整响应体见执行记录
+    /// </summary>
+    [MaxLength(ScheduledJobExecution.RESULT_MAX_LENGTH)]
+    [ListFilter("scheduledJob.fields.lastResult")]
+    public string LastResult { get; set; } = string.Empty;
 
     /// <summary>
     ///     最近一次触发时间

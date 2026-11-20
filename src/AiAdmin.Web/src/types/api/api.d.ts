@@ -107,6 +107,7 @@ declare namespace Api {
         interface LoginResponse {
             token: string
             refreshToken: string
+            signKey: string
             previousLogin?: {
                 clientIp: string
                 region: string
@@ -118,6 +119,7 @@ declare namespace Api {
             loginSliderVerification: boolean
             registrationEnabled: boolean
             emailVerificationEnabled: boolean
+            requestSignatureEnabled: boolean
         }
 
         interface LoginChallenge {
@@ -137,6 +139,17 @@ declare namespace Api {
 
         interface VerifyRegisterPuzzleResult {
             puzzleTicket: string
+        }
+
+        /** API Key 状态，apiKey 明文仅在生成或重置时返回一次 */
+        interface ApiKeyStatus {
+            exists: boolean
+            prefix: string
+            createdAt: string | null
+            lastUsedAt: string | null
+            apiKey: string | null
+            /** 请求签名 Secret，仅在生成或重置时返回一次 */
+            signSecret: string | null
         }
 
         /** 用户信息 */
@@ -227,6 +240,10 @@ declare namespace Api {
             lastLoginAt: string | null
             lastLoginIp: string | null
             lastLoginRegion: string | null
+            /** 当前是否在线 */
+            isOnline: boolean
+            /** 最后在线时间，即最后一条实时连接断开的时间 */
+            lastOnlineAt: string | null
             version: number
         }
 

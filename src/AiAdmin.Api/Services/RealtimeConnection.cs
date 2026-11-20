@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net.WebSockets;
 
 namespace AiAdmin.Api.Services;
@@ -34,6 +35,11 @@ public sealed class RealtimeConnection(long userId, WebSocket socket, bool isSer
     ///     连接所属用户标识
     /// </summary>
     public long UserId { get; } = userId;
+
+    /// <summary>
+    ///     上次续期在线登记的时刻（Stopwatch 时间戳），避免每次收到心跳都写 Redis
+    /// </summary>
+    public long LastRenewedAt { get; set; } = Stopwatch.GetTimestamp();
 
     /// <summary>
     ///     释放发送锁

@@ -52,6 +52,12 @@
                     <ElFormItem :label="t('scheduledJob.alert.overSeconds')">
                         <ElInputNumber v-model="batchAlert.alertOverSeconds" :max="86400" :min="0" controls-position="right" />
                     </ElFormItem>
+                    <AlertResultRule
+                        v-model:case-sensitive="batchAlert.alertResultCaseSensitive"
+                        v-model:operator="batchAlert.alertResultOperator"
+                        v-model:value="batchAlert.alertResultValue"
+                        v-model:value-type="batchAlert.alertResultValueType"
+                        ref="batchResultRuleRef" />
                     <ElFormItem :label="t('scheduledJob.alert.mentions')">
                         <ElInput
                             v-model="batchAlert.alertMentions"
@@ -60,7 +66,7 @@
                             show-word-limit />
                     </ElFormItem>
                     <ElAlert
-                        v-if="!batchAlert.alertOnFailure && !batchAlert.alertOverSeconds"
+                        v-if="!batchAlert.alertOnFailure && !batchAlert.alertOverSeconds && batchAlert.alertResultOperator == null"
                         :closable="false"
                         class="mb-3"
                         show-icon
@@ -111,10 +117,12 @@ import {
     fetchGetScheduledJobs,
     fetchRunScheduledJob,
     fetchUpdateScheduledJob,
+    type BatchScheduledJobAlert,
     type SaveScheduledJob,
     type ScheduledJob,
     type DynamicFilter,
 } from '@/api/system-manage'
+import AlertResultRule from './modules/alert-result-rule.vue'
 import ScheduledJobDialog from './modules/scheduled-job-dialog.vue'
 import ScheduledJobExecutionTable from './modules/scheduled-job-execution-table.vue'
 import { formatDateTime } from '@/utils/date'
@@ -145,7 +153,18 @@ const batchRemark = ref('')
 const batchRemarkSaving = ref(false)
 const alertDialogVisible = ref(false)
 const batchAlertSaving = ref(false)
-const batchAlert = reactive({ alertEnabled: true, alertOnFailure: true, alertOverSeconds: 0, alertMentions: '' })
+const batchResultRuleRef = ref<InstanceType<typeof AlertResultRule>>()
+const createBatchAlert = (): BatchScheduledJobAlert => ({
+    alertEnabled: true,
+    alertOnFailure: true,
+    alertOverSeconds: 0,
+    alertMentions: '',
+    alertResultOperator: null,
+    alertResultValueType: 2,
+    alertResultValue: '',
+    alertResultCaseSensitive: false,
+})
+const batchAlert = reactive<BatchScheduledJobAlert>(createBatchAlert())
 const defaultFilter: DynamicFilter = { field: 'IsEnabled', operator: 'Equal', value: true }
 const statusMap: Record<number, { key: string; type: 'info' | 'primary' | 'success' | 'danger' | 'warning' }> = {
     0: { key: 'waiting', type: 'info' },
@@ -155,17 +174,6 @@ const statusMap: Record<number, { key: string; type: 'info' | 'primary' | 'succe
     4: { key: 'timeout', type: 'warning' },
 }
 const statusLabel = (status: number): string => t(`scheduledJob.status.${statusMap[status]?.key || 'unknown'}`)
-const requestMethodTagType = (method: string): 'info' | 'primary' | 'success' | 'danger' | 'warning' => {
-    return (
-        {
-            GET: 'success',
-            POST: 'primary',
-            PUT: 'warning',
-            PATCH: 'warning',
-            DELETE: 'danger',
-        }[method.toUpperCase() as 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'] || 'info'
-    )
-}
 const getNextExecution = (cron: string): string => {
     const fields = cron.trim().split(/\s+/)
     if (fields.length !== 5 && fields.length !== 6) return '-'
@@ -305,20 +313,10 @@ const {
                 queryField: 'RequestUrl',
                 queryValueField: 'requestUrl',
                 queryValueType: 'string',
-                label: t('scheduledJob.fields.requestUrl'),
+                label: `${t('scheduledJob.fields.requestUrl')} / ${t('scheduledJob.fields.lastResult')}`,
                 minWidth: 400,
                 formatter: (row) =>
                     h('div', { class: 'request-info' }, [
-                        h(
-                            'div',
-                            {
-                                'data-query-field': 'RequestMethod',
-                                'data-query-label': t('scheduledJob.fields.requestMethod'),
-                                'data-query-value': row.requestMethod,
-                                'data-query-value-type': 'string',
-                            },
-                            [h(ElTag, { effect: 'light', size: 'small', type: requestMethodTagType(row.requestMethod) }, () => row.requestMethod)],
-                        ),
                         h(
                             'div',
                             {
@@ -329,6 +327,18 @@ const {
                                 'data-query-value-type': 'string',
                             },
                             row.requestUrl,
+                        ),
+                        h(
+                            'div',
+                            {
+                                class: 'request-url',
+                                style: { color: 'var(--el-text-color-secondary)', fontSize: '12px' },
+                                'data-query-field': 'LastResult',
+                                'data-query-label': t('scheduledJob.fields.lastResult'),
+                                'data-query-value': row.lastResult || '-',
+                                'data-query-value-type': 'string',
+                            },
+                            row.lastResult || '-',
                         ),
                     ]),
             },
@@ -520,11 +530,15 @@ const openRemarkDialog = (): void => {
 }
 /** 打开批量报警对话框，默认启用并选中“失败或超时报警”，整体覆盖到所选作业 */
 const openAlertDialog = (): void => {
-    Object.assign(batchAlert, { alertEnabled: true, alertOnFailure: true, alertOverSeconds: 0, alertMentions: '' })
+    Object.assign(batchAlert, createBatchAlert())
     alertDialogVisible.value = true
 }
 /** 保存批量报警设置并刷新列表 */
 const saveBatchAlert = async (): Promise<void> => {
+    if (batchAlert.alertEnabled && batchAlert.alertResultOperator != null && batchResultRuleRef.value && !batchResultRuleRef.value.valid) {
+        ElMessage.error(t('scheduledJob.alert.result.invalid'))
+        return
+    }
     batchAlertSaving.value = true
     try {
         await fetchBatchUpdateScheduledJobAlert(
@@ -589,7 +603,7 @@ const saveBatchRemark = async (): Promise<void> => {
 .request-info {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 0;
     line-height: 1.35;
     min-width: 0;
 }

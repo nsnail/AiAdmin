@@ -1,8 +1,8 @@
 <!-- 个人中心页面 -->
 <template>
     <div class="w-full h-full p-0 bg-transparent border-none shadow-none max-md:h-auto">
-        <div class="relative flex-b mt-2.5 max-md:flex max-md:flex-col max-md:mt-1">
-            <div class="w-112 mr-5 max-md:w-full max-md:mr-0">
+        <div class="relative flex items-stretch mt-2.5 max-md:flex max-md:flex-col max-md:mt-1">
+            <div class="flex flex-col w-112 mr-5 max-md:w-full max-md:mr-0">
                 <div class="art-card-sm relative p-9 pb-6 overflow-hidden text-center">
                     <img class="absolute top-0 left-0 w-full h-50 object-cover" src="@imgs/user/bg.webp" />
                     <ElUpload :auto-upload="false" :on-change="handleAvatarChange" :show-file-list="false" accept="image/*">
@@ -55,22 +55,75 @@
                     </div>
                 </div>
 
-                <div class="art-card-sm mt-5 max-md:mb-5 max-md:w-full max-md:overflow-hidden">
-                    <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.token.title') }}</h1>
+                <div class="art-card-sm mt-5 max-md:mb-5 max-md:w-full max-md:overflow-hidden md:flex-1">
+                    <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.apiKey.title') }}</h1>
                     <div class="box-border w-full min-w-0 p-5 max-md:p-4">
-                        <ElInput :model-value="accessToken" :rows="5" class="token-input" readonly type="textarea" />
-                        <div class="mt-3 text-sm break-all text-g-700">
-                            {{ t('userCenter.token.expiresAt') }}：{{ tokenExpiresText }}
-                            <span :class="tokenExpired ? 'text-danger' : ''">（{{ tokenRemainingText }}）</span>
+                        <div class="mb-3 text-sm text-g-700">{{ t('userCenter.apiKey.desc') }}</div>
+                        <template v-if="newApiKey">
+                            <div class="mb-1 text-sm text-g-700">{{ t('userCenter.apiKey.keyLabel') }}</div>
+                            <ElInput :model-value="newApiKey" readonly>
+                                <template #append>
+                                    <ElButton :title="t('userCenter.apiKey.copy')" @click="copyApiKey">
+                                        <ArtSvgIcon icon="ri:file-copy-line" />
+                                    </ElButton>
+                                </template>
+                            </ElInput>
+                            <div class="mt-3 mb-1 text-sm text-g-700">{{ t('userCenter.apiKey.secretLabel') }}</div>
+                            <ElInput :model-value="newSignSecret" readonly>
+                                <template #append>
+                                    <ElButton :title="t('userCenter.apiKey.copySecret')" @click="copySignSecret">
+                                        <ArtSvgIcon icon="ri:file-copy-line" />
+                                    </ElButton>
+                                </template>
+                            </ElInput>
+                            <div class="mt-3">
+                                <ElAlert :closable="false" :title="t('userCenter.apiKey.newKeyTip')" type="warning" />
+                            </div>
+                            <ElButton v-ripple @click="downloadCredentials" class="mt-3 w-full">
+                                <ArtSvgIcon class="mr-1" icon="ri:download-2-line" />
+                                {{ t('userCenter.apiKey.download') }}
+                            </ElButton>
+                        </template>
+                        <div v-if="apiKeyStatus?.exists" class="mt-3 text-sm break-all text-g-700">
+                            <div>{{ t('userCenter.apiKey.prefix') }}：{{ apiKeyStatus.prefix }}...</div>
+                            <div>{{ t('userCenter.apiKey.createdAt') }}：{{ formatApiKeyTime(apiKeyStatus.createdAt) }}</div>
+                            <div>
+                                {{ t('userCenter.apiKey.lastUsedAt') }}：
+                                {{ apiKeyStatus.lastUsedAt ? formatApiKeyTime(apiKeyStatus.lastUsedAt) : t('userCenter.apiKey.neverUsed') }}
+                            </div>
                         </div>
-                        <ElButton v-ripple :disabled="!accessToken" @click="copyToken" class="mt-3 w-full" type="primary">
-                            <ArtSvgIcon class="mr-1" icon="ri:file-copy-line" />
-                            {{ t('userCenter.token.copy') }}
-                        </ElButton>
+                        <div v-else-if="apiKeyStatus" class="mt-3 text-sm text-g-700">{{ t('userCenter.apiKey.none') }}</div>
+                        <div class="flex gap-2 mt-3">
+                            <ElPopconfirm
+                                :disabled="!apiKeyStatus?.exists"
+                                :title="t('userCenter.apiKey.resetConfirm')"
+                                @confirm="resetApiKey"
+                                width="260">
+                                <template #reference>
+                                    <ElButton
+                                        v-ripple
+                                        :loading="apiKeyLoading"
+                                        @click="!apiKeyStatus?.exists && resetApiKey()"
+                                        class="flex-1"
+                                        type="primary">
+                                        {{ t(apiKeyStatus?.exists ? 'userCenter.apiKey.reset' : 'userCenter.apiKey.generate') }}
+                                    </ElButton>
+                                </template>
+                            </ElPopconfirm>
+                            <ElPopconfirm
+                                v-if="apiKeyStatus?.exists"
+                                :title="t('userCenter.apiKey.revokeConfirm')"
+                                @confirm="revokeApiKey"
+                                width="260">
+                                <template #reference>
+                                    <ElButton v-ripple :loading="apiKeyLoading" type="danger">{{ t('userCenter.apiKey.revoke') }}</ElButton>
+                                </template>
+                            </ElPopconfirm>
+                        </div>
                     </div>
                 </div>
             </div>
-            <div class="flex-1 overflow-hidden max-md:w-full max-md:flex-none max-md:mt-3.5">
+            <div class="flex flex-col flex-1 overflow-hidden max-md:w-full max-md:flex-none max-md:mt-3.5">
                 <div class="art-card-sm">
                     <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.profile.title') }}</h1>
 
@@ -142,7 +195,7 @@
                     </ElForm>
                 </div>
 
-                <div class="art-card-sm my-5">
+                <div class="art-card-sm mt-5 max-md:mb-5 md:flex-1">
                     <h1 class="p-4 text-xl font-normal border-b border-g-300">{{ t('userCenter.password.title') }}</h1>
 
                     <ElForm :model="pwdForm" :rules="pwdRules" class="box-border p-5" label-position="top" label-width="86px" ref="pwdFormRef">
@@ -181,9 +234,17 @@
 
 <script lang="ts" setup>
 import ArtUserAvatar from '@/components/core/forms/art-user-avatar/index.vue'
-import { fetchChangeUserPassword, fetchProfileEmailCode, fetchUpdateUserProfile } from '@/api/auth'
+import {
+    fetchApiKeyStatus,
+    fetchChangeUserPassword,
+    fetchDeleteApiKey,
+    fetchProfileEmailCode,
+    fetchResetApiKey,
+    fetchUpdateUserProfile,
+} from '@/api/auth'
 import { fetchDeleteCurrentUserAvatar, fetchUploadCurrentUserAvatar } from '@/api/system-manage'
 import { useUserStore } from '@/store/modules/user'
+import { downloadTextFile } from '@/utils/download-text'
 import { ElMessage, type FormInstance, type FormRules, type UploadFile } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 
@@ -193,53 +254,90 @@ const userStore = useUserStore()
 const { t } = useI18n()
 const userInfo = computed(() => userStore.getUserInfo)
 
-const rawToken = computed(() => userStore.accessToken)
-const accessToken = computed(() => (rawToken.value ? `Bearer ${rawToken.value}` : ''))
-const now = ref(Date.now())
-let nowTimer: ReturnType<typeof setInterval> | undefined
+const apiKeyStatus = ref<Api.Auth.ApiKeyStatus>()
+const newApiKey = ref('')
+const newSignSecret = ref('')
+const apiKeyLoading = ref(false)
 
 /**
- * 解析 JWT 载荷中的过期时间（毫秒时间戳），解析失败返回 undefined
+ * 格式化 API Key 相关时间
  */
-const tokenExpiresAt = computed<number | undefined>(() => {
+const formatApiKeyTime = (value: string | null) => (value ? new Date(value).toLocaleString() : '')
+
+/**
+ * 加载 API Key 状态（不含明文）
+ */
+const loadApiKeyStatus = async () => {
+    apiKeyStatus.value = await fetchApiKeyStatus()
+}
+
+/**
+ * 生成或重置 API Key，明文只在本次响应中展示一次
+ */
+const resetApiKey = async () => {
+    if (apiKeyLoading.value) return
+    apiKeyLoading.value = true
     try {
-        const payload = rawToken.value.split('.')[1]
-        const json = decodeURIComponent(
-            atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
-                .split('')
-                .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-                .join(''),
-        )
-        const exp = JSON.parse(json).exp
-        return typeof exp === 'number' ? exp * 1000 : undefined
-    } catch {
-        return undefined
+        const result = await fetchResetApiKey()
+        newApiKey.value = result.apiKey || ''
+        newSignSecret.value = result.signSecret || ''
+        apiKeyStatus.value = { ...result, apiKey: null, signSecret: null }
+        ElMessage.success(t('userCenter.apiKey.generated'))
+    } finally {
+        apiKeyLoading.value = false
     }
-})
-const tokenExpired = computed(() => tokenExpiresAt.value !== undefined && tokenExpiresAt.value <= now.value)
-const tokenExpiresText = computed(() => (tokenExpiresAt.value ? new Date(tokenExpiresAt.value).toLocaleString() : t('userCenter.token.unknown')))
-const tokenRemainingText = computed(() => {
-    if (tokenExpiresAt.value === undefined) return t('userCenter.token.unknown')
-    const seconds = Math.floor((tokenExpiresAt.value - now.value) / 1000)
-    if (seconds <= 0) return t('userCenter.token.expired')
-    const d = Math.floor(seconds / 86400)
-    const h = Math.floor((seconds % 86400) / 3600)
-    const m = Math.floor((seconds % 3600) / 60)
-    const s = seconds % 60
-    const time = d > 0 ? `${d}d ${h}h ${m}m` : h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`
-    return t('userCenter.token.remaining', { time })
-})
+}
 
 /**
- * 复制当前 JWT 令牌到剪贴板
+ * 吊销 API Key
  */
-const copyToken = async () => {
+const revokeApiKey = async () => {
+    if (apiKeyLoading.value) return
+    apiKeyLoading.value = true
     try {
-        await navigator.clipboard.writeText(accessToken.value)
-        ElMessage.success(t('userCenter.token.copied'))
+        await fetchDeleteApiKey()
+        newApiKey.value = ''
+        newSignSecret.value = ''
+        await loadApiKeyStatus()
+        ElMessage.success(t('userCenter.apiKey.revoked'))
+    } finally {
+        apiKeyLoading.value = false
+    }
+}
+
+/**
+ * 复制新生成的 API Key
+ */
+const copyApiKey = async () => {
+    try {
+        await navigator.clipboard.writeText(newApiKey.value)
+        ElMessage.success(t('userCenter.apiKey.copied'))
     } catch {
         ElMessage.error(t('userCenter.token.copyFailed'))
     }
+}
+
+/**
+ * 复制新生成的请求签名 Secret
+ */
+const copySignSecret = async () => {
+    try {
+        await navigator.clipboard.writeText(newSignSecret.value)
+        ElMessage.success(t('userCenter.apiKey.secretCopied'))
+    } catch {
+        ElMessage.error(t('userCenter.token.copyFailed'))
+    }
+}
+
+/**
+ * 把新生成的 API Key 和签名 Secret 下载为文本文件，两者只显示一次
+ */
+const downloadCredentials = () => {
+    const content = `X-Api-Key=${newApiKey.value}
+SignSecret=${newSignSecret.value}
+`
+    downloadTextFile('api-credentials.txt', content)
+    ElMessage.success(t('userCenter.apiKey.downloaded'))
 }
 
 const isEdit = ref(false)
@@ -349,12 +447,11 @@ const options = computed(() => [
 
 onMounted(() => {
     syncForm()
-    nowTimer = setInterval(() => (now.value = Date.now()), 1000)
+    void loadApiKeyStatus()
 })
 
 onBeforeUnmount(() => {
     clearInterval(sendCodeTimer)
-    clearInterval(nowTimer)
 })
 
 watch(userInfo, syncForm, { deep: true })
@@ -482,10 +579,6 @@ const editPwd = async () => {
 </script>
 
 <style scoped>
-.token-input :deep(textarea) {
-    word-break: break-all;
-}
-
 .avatar-upload-mask {
     position: absolute;
     inset: 0;

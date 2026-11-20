@@ -4,6 +4,7 @@ using System.Text.Json;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -22,12 +23,29 @@ namespace AiAdmin.Api.Controllers;
 public sealed class MenusController(AppDbContext db, ApiPermissionCache permissionCache) : ControllerBase
 {
     /// <summary>
+    ///     列表展示列到实体字段的排序别名，列表与导出共用
+    /// </summary>
+    private static readonly IReadOnlyDictionary<string, string> _sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["meta.title"] = nameof(Menu.Name)
+        , ["component"] = nameof(Menu.Component)
+        , ["sort"] = nameof(Menu.Sort)
+        , ["type"] = nameof(Menu.Name)
+        , ["meta.authList"] = nameof(Menu.Name)
+        , ["status"] = nameof(Menu.IsEnabled)
+        , ["date"] = nameof(Menu.UpdatedAt)
+        , ["createdAt"] = nameof(Menu.CreatedAt)
+        , ["updatedAt"] = nameof(Menu.UpdatedAt)
+    };
+
+    /// <summary>
     ///     创建菜单
     /// </summary>
     /// <param name="request">菜单保存请求</param>
     /// <returns>创建后的菜单</returns>
     [HttpPost]
     [ApiDescription("Create menu")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<MenuItemResult>>> CreateAsync(SaveMenuRequest request) {
         if (await db.Menus.AnyAsync(x => x.Name == request.Name.Trim()).ConfigureAwait(false)) {
             return Conflict(new ApiResponse<object>(409, "Menu name already exists", null));
@@ -119,6 +137,28 @@ public sealed class MenusController(AppDbContext db, ApiPermissionCache permissi
     }
 
     /// <summary>
+    ///     导出菜单数据，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的菜单数据导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export menu data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<MenuItemResult>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                db.Menus.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter), limits
+                , query => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Menu.CreatedAt), true, _sortAliases)
+                , rows => rows.ConvertAll(ToResult)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<MenuItemResult>>.Ok(result));
+    }
+
+    /// <summary>
     ///     查询菜单列表筛选字段元数据
     /// </summary>
     /// <returns>菜单筛选字段定义</returns>
@@ -148,22 +188,10 @@ public sealed class MenusController(AppDbContext db, ApiPermissionCache permissi
     [HttpPost("list")]
     [ApiDescription("Query menu list")]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<MenuItemResult>>>> ListAsync([FromBody] DynamicQueryRequest request) {
-        var sortAliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["meta.title"] = nameof(Menu.Name)
-            , ["component"] = nameof(Menu.Component)
-            , ["sort"] = nameof(Menu.Sort)
-            , ["type"] = nameof(Menu.Name)
-            , ["meta.authList"] = nameof(Menu.Name)
-            , ["status"] = nameof(Menu.IsEnabled)
-            , ["date"] = nameof(Menu.UpdatedAt)
-            , ["createdAt"] = nameof(Menu.CreatedAt)
-            , ["updatedAt"] = nameof(Menu.UpdatedAt)
-        };
         var menus = await db
             .Menus.AsNoTracking()
             .ApplyDynamicFilter(request.DynamicFilter)
-            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Menu.CreatedAt), true, sortAliases)
+            .ApplyDynamicSort(request.SortField, request.SortOrder, nameof(Menu.CreatedAt), true, _sortAliases)
             .ToListAsync()
             .ConfigureAwait(false);
         return Ok(ApiResponse<IReadOnlyList<MenuItemResult>>.Ok(BuildTree(menus)));

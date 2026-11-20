@@ -38,6 +38,9 @@
                     <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.errorMessage')" :span="2">
                         <span :class="{ 'error-message': execution.errorMessage }">{{ execution.errorMessage || '-' }}</span>
                     </ElDescriptionsItem>
+                    <ElDescriptionsItem :label="t('scheduledJob.executionDetail.fields.result')" :span="2">
+                        <span class="break-all">{{ execution.result || '-' }}</span>
+                    </ElDescriptionsItem>
                 </ElDescriptions>
             </ElTabPane>
             <ElTabPane :label="t('scheduledJob.executionDetail.tabs.request')" name="request">

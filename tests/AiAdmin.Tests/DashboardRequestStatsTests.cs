@@ -77,19 +77,19 @@ public sealed class DashboardRequestStatsTests : IAsyncLifetime, IDisposable
     /// </summary>
     [Fact]
     public async Task RefreshRequestStats_WarmsCacheAndRequiresAllDataAsync() {
-        _ = await Assert.ThrowsAsync<DataAccessDeniedException>(() => NewController(false).RefreshRequestStatsAsync()).ConfigureAwait(true);
+        _ = await Assert.ThrowsAsync<DataAccessDeniedException>(() => NewController(false).RefreshOverviewAsync()).ConfigureAwait(true);
 
         var todayLocal = LocalToday();
         await InsertAsync(Local(todayLocal, 9, 0), "/api/user/list", 3).ConfigureAwait(true);
         var controller = NewController(true);
-        var refresh = await controller.RefreshRequestStatsAsync().ConfigureAwait(true);
-        var refreshed = Assert.IsType<ApiResponse<RefreshDashboardRequestStatsResult>>(Assert.IsType<OkObjectResult>(refresh.Result).Value, false);
-        Assert.Equal(1, refreshed.Data!.Refreshed);
+        var refresh = await controller.RefreshOverviewAsync().ConfigureAwait(true);
+        var refreshed = Assert.IsType<ApiResponse<RefreshDashboardOverviewResult>>(Assert.IsType<OkObjectResult>(refresh.Result).Value, false);
+        Assert.Equal(DashboardOverviewCache.WarmDays.Count, refreshed.Data!.Refreshed);
 
         // 刷新后再写入日志，缓存永不过期且读取不会重新扫表，读到的仍是刷新时的结果
         await InsertAsync(Local(todayLocal, 9, 30), "/api/user/list", 4).ConfigureAwait(true);
-        var cached = await controller.RequestStatsAsync().ConfigureAwait(true);
-        var stats = Assert.IsType<ApiResponse<DashboardRequestStatsResult>>(Assert.IsType<OkObjectResult>(cached.Result).Value, false).Data!;
+        var cached = await controller.OverviewAsync().ConfigureAwait(true);
+        var stats = Assert.IsType<ApiResponse<DashboardOverviewResult>>(Assert.IsType<OkObjectResult>(cached.Result).Value, false).Data!.RequestStats;
         Assert.Equal(3, stats.TodayTotal);
     }
 
@@ -181,7 +181,11 @@ public sealed class DashboardRequestStatsTests : IAsyncLifetime, IDisposable
         Assert.Equal(ApiEndpointKey.ComputePathCrc32("/api/not/in/table").ToString(CultureInfo.InvariantCulture), share.Path);
         Assert.Equal(string.Empty, share.Name);
 
-        _ = await Assert.ThrowsAsync<DataAccessDeniedException>(() => NewController(false).RequestStatsAsync()).ConfigureAwait(true);
+        // 没有全部数据权限的用户仍能读到总览，但操作日志统计为空，不会泄露全部用户的访问记录
+        var restricted = await NewController(false).OverviewAsync().ConfigureAwait(true);
+        var restrictedStats = Assert.IsType<ApiResponse<DashboardOverviewResult>>(Assert.IsType<OkObjectResult>(restricted.Result).Value, false).Data!
+            .RequestStats;
+        Assert.Equal(DashboardRequestStatsResult.Empty, restrictedStats);
     }
 
     /// <summary>
@@ -282,10 +286,11 @@ public sealed class DashboardRequestStatsTests : IAsyncLifetime, IDisposable
         _ = services.AddSingleton(_tables);
         _ = services.AddScoped<DashboardRequestStatsService>();
         var provider = services.BuildServiceProvider();
-        var cache = new DashboardRequestStatsCache(
+        var cache = new DashboardOverviewCache(
             new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions())), provider.GetRequiredService<IServiceScopeFactory>()
         );
-        return new DashboardController(NewDb(allData), null!, cache)
+        var db = NewDb(allData);
+        return new DashboardController(db, null!, new DashboardOverviewService(db), cache)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext { User = user } }
         };
@@ -308,9 +313,9 @@ public sealed class DashboardRequestStatsTests : IAsyncLifetime, IDisposable
     /// <returns>统计结果</returns>
     private async Task<DashboardRequestStatsResult> StatsAsync() {
         var controller = NewController(true);
-        _ = await controller.RefreshRequestStatsAsync().ConfigureAwait(false);
-        var result = await controller.RequestStatsAsync().ConfigureAwait(false);
+        _ = await controller.RefreshOverviewAsync().ConfigureAwait(false);
+        var result = await controller.OverviewAsync().ConfigureAwait(false);
         var ok = Assert.IsType<OkObjectResult>(result.Result);
-        return Assert.IsType<ApiResponse<DashboardRequestStatsResult>>(ok.Value, false).Data!;
+        return Assert.IsType<ApiResponse<DashboardOverviewResult>>(ok.Value, false).Data!.RequestStats;
     }
 }

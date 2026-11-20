@@ -20,12 +20,17 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="LastTriggeredAt">最后触发时间</param>
 /// <param name="LastFinishedAt">最后完成时间</param>
 /// <param name="LastError">最后一次错误信息</param>
+/// <param name="LastResult">最近一次执行的结果摘要，即响应体的前若干字符</param>
 /// <param name="SuccessRate">成功率（百分比）</param>
 /// <param name="AlertEnabled">是否启用报警</param>
 /// <param name="AlertOnFailure">执行失败或超时时是否报警</param>
 /// <param name="AlertOverSeconds">耗时超过该秒数报警，0 表示不按耗时报警</param>
 /// <param name="AlertMentions">报警时提醒的 Telegram 用户名</param>
 /// <param name="AlertActive">当前是否处于报警状态</param>
+/// <param name="AlertResultOperator">响应体的比较操作符，为空表示不按执行结果报警</param>
+/// <param name="AlertResultValueType">响应体的比较类型</param>
+/// <param name="AlertResultValue">响应体匹配的阈值</param>
+/// <param name="AlertResultCaseSensitive">响应体匹配是否区分大小写</param>
 public sealed record ScheduledJobResult(
     long Id
     , DateTimeOffset CreatedAt
@@ -42,9 +47,14 @@ public sealed record ScheduledJobResult(
     , DateTimeOffset? LastTriggeredAt
     , DateTimeOffset? LastFinishedAt
     , string LastError
+    , string LastResult
     , decimal SuccessRate
     , bool AlertEnabled
     , bool AlertOnFailure
     , int AlertOverSeconds
     , string AlertMentions
-    , bool AlertActive);
+    , bool AlertActive
+    , AlertMonitorOperator? AlertResultOperator
+    , AlertMonitorValueType AlertResultValueType
+    , string AlertResultValue
+    , bool AlertResultCaseSensitive);

@@ -108,13 +108,8 @@ export class RouteValidator {
                 return
             }
 
-            // 一级菜单：必须指定 Layout，除非是外链或 iframe
-            if (parentPath === '' && !hasExternalLink && !isIframe) {
-                errors.push(`一级菜单(${routePath}) 缺少 component，必须指向 ${RoutesAlias.Layout}`)
-                return
-            }
-
-            // 非一级菜单：如果既不是外链、iframe，也没有子路由，则必须配置 component
+            // 一级目录菜单（有子菜单）可不配置 component，转换路由时自动使用布局容器；
+            // 其余菜单如果既不是外链、iframe，也没有子路由，则必须配置 component
             if (!hasExternalLink && !isIframe && !hasChildren) {
                 errors.push(`路由(${routePath}) 缺少 component 配置`)
             }

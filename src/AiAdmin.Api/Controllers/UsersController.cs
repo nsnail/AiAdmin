@@ -3,6 +3,7 @@ using System.Security.Claims;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using ImageMagick;
@@ -17,18 +18,18 @@ namespace AiAdmin.Api.Controllers;
 /// </summary>
 /// <param name="db">数据库上下文</param>
 /// <param name="storage">对象存储服务</param>
-/// <param name="exportLimitService">列表导出上限服务</param>
 /// <param name="cache">分布式缓存</param>
 /// <param name="tokenService">JWT 访问令牌服务</param>
+/// <param name="presence">用户在线状态服务</param>
 [ApiController]
 [ApiDescription("User management")]
 [Route("api/user")]
 public sealed class UsersController(
     AppDbContext db
     , MinioStorageService storage
-    , ExportLimitService exportLimitService
     , IDistributedCache cache
-    , TokenService tokenService) : ControllerBase
+    , TokenService tokenService
+    , UserPresenceService presence) : ControllerBase
 {
     /// <summary>
     ///     对外使用稳定查询字段名，实体路径仅由后端维护
@@ -46,6 +47,7 @@ public sealed class UsersController(
     /// <returns>密码修改结果</returns>
     [HttpPost("password")]
     [ApiDescription("Change current user password")]
+    [JwtOnly]
     public async Task<ActionResult<ApiResponse<object>>> ChangePasswordAsync(ChangePasswordRequest request) {
         var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
         var user = await db.Users.SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
@@ -69,6 +71,7 @@ public sealed class UsersController(
     /// <returns>创建后的用户</returns>
     [HttpPost]
     [ApiDescription("Create user")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<UserListItem>>> CreateAsync(SaveUserRequest request) {
         var userName = request.UserName.Trim();
         var email = request.Email.Trim();
@@ -153,19 +156,24 @@ public sealed class UsersController(
     }
 
     /// <summary>
-    ///     导出符合动态查询条件的用户数据
+    ///     导出用户数据，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
     /// </summary>
     /// <param name="request">动态筛选与排序请求</param>
-    /// <returns>受系统设置上限约束的用户导出结果</returns>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的用户导出结果</returns>
     [HttpPost("export")]
     [ApiDescription("Export user data")]
-    public async Task<ActionResult<ApiResponse<UserExportResult>>> ExportAsync([FromBody] UserExportRequest request) {
-        var query = BuildListQuery(request.DynamicFilter);
-        var total = await query.CountAsync().ConfigureAwait(false);
-        var limit = await exportLimitService.GetLimitAsync().ConfigureAwait(false);
-        var users = await ApplyListSort(query, request.SortField, request.SortOrder).Take(limit).ToListAsync().ConfigureAwait(false);
-        var records = users.ConvertAll(ToListItem);
-        return Ok(ApiResponse<UserExportResult>.Ok(new UserExportResult(records, limit, total)));
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<UserListItem>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunAsync(
+                BuildListQuery(request.DynamicFilter), limits, query => ApplyListSort(query, request.SortField, request.SortOrder)
+                , rows => rows.ConvertAll(ToListItem)
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<UserListItem>>.Ok(result));
     }
 
     /// <summary>
@@ -252,7 +260,8 @@ public sealed class UsersController(
         }
 
         if (user.IsEnabled) {
-            return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(tokenService.Create(user), string.Empty, null), "Impersonation successful"));
+            var (token, refreshToken, signKey) = tokenService.Create(user);
+            return Ok(ApiResponse<LoginResult>.Ok(new LoginResult(token, refreshToken, signKey, null), "Impersonation successful"));
         }
 
         return BadRequest(new ApiResponse<object>(400, "User is disabled", null));
@@ -348,6 +357,24 @@ public sealed class UsersController(
                     )
             ];
         }
+    }
+
+    /// <summary>
+    ///     校正用户在线状态，供计划作业定时调用：把库里标记为在线、但已经没有有效实时连接的用户置为离线，主要处理实例崩溃遗留的在线状态；
+    ///     用户上线和下线由实时连接建立和断开时实时更新，这里只做兜底
+    ///     校正会修改所有用户的状态，因此只允许全部数据权限调用
+    /// </summary>
+    /// <returns>本次置为离线的用户数量</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpPost("refresh-online-status")]
+    [ApiDescription("Refresh user online status")]
+    public async Task<ActionResult<ApiResponse<RefreshUserOnlineStatusResult>>> RefreshOnlineStatusAsync() {
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        var offlineCount = await presence.ReconcileAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+        return Ok(ApiResponse<RefreshUserOnlineStatusResult>.Ok(new RefreshUserOnlineStatusResult(offlineCount)));
     }
 
     /// <summary>
@@ -448,6 +475,7 @@ public sealed class UsersController(
     /// <returns>更新后的当前用户信息</returns>
     [HttpPost("profile")]
     [ApiDescription("Update current user profile")]
+    [JwtOnly]
     public async Task<ActionResult<ApiResponse<CurrentUserResult>>> UpdateProfileAsync(UpdateCurrentUserProfileRequest request) {
         var id = long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
         var user = await db.Users.Include(x => x.UserRoles).ThenInclude(x => x.Role).SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
@@ -640,7 +668,8 @@ public sealed class UsersController(
             , [.. user.UserRoles.Select(x => x.Role.Code)], [.. user.UserRoles.Select(x => x.Role.Name)]
             , [.. user.UserDepartments.Select(x => x.DepartmentId)], [.. user.UserDepartments.Select(x => x.Department.Name)], "system"
             , ServerTime.ToOffset(user.CreatedAt), "system", user.UpdatedAt is { } updatedAt ? ServerTime.ToOffset(updatedAt) : null, user.Version
-            , user.LastLoginAt is { } lastLoginAt ? ServerTime.ToOffset(lastLoginAt) : null, user.LastLoginIp, user.LastLoginRegion
+            , user.LastLoginAt is { } lastLoginAt ? ServerTime.ToOffset(lastLoginAt) : null, user.LastLoginIp, user.LastLoginRegion, user.IsOnline
+            , user.LastOnlineAt is { } lastOnlineAt ? ServerTime.ToOffset(lastOnlineAt) : null
         );
     }
 

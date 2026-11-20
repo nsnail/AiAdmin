@@ -6,6 +6,7 @@
             :columns="columns"
             :data="data"
             :default-filter="defaultFilter"
+            :export-fn="(query) => fetchExportScheduledJobExecutions(props.jobId, query)"
             :filter-fields="filterFields"
             :filter-groups-fn="filterGroups"
             :loading="loading"
@@ -32,6 +33,7 @@ import ArtListIdCell from '@/components/core/forms/art-list-id-cell/index.vue'
 import ArtTablePage from '@/components/core/tables/art-table-page/index.vue'
 import { useTable } from '@/hooks/core/useTable'
 import {
+    fetchExportScheduledJobExecutions,
     fetchScheduledJobExecutionFilterFields,
     fetchScheduledJobExecutionFilterGroups,
     fetchScheduledJobExecutions,
@@ -193,6 +195,15 @@ const {
                 align: 'center' as const,
                 formatter: (row: ScheduledJobExecution) =>
                     h(ElTag, { effect: 'light', size: 'small', type: statusMap[row.status]?.type || 'info' }, () => statusLabel(row.status)),
+            },
+            {
+                prop: 'result',
+                queryField: 'Result',
+                label: t('scheduledJob.executionFields.result'),
+                minWidth: 220,
+                sortable: true,
+                showOverflowTooltip: true,
+                formatter: (row: ScheduledJobExecution) => row.result || '-',
             },
             {
                 prop: 'errorMessage',

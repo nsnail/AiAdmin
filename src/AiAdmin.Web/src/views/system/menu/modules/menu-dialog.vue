@@ -244,7 +244,10 @@ const formItems = computed<FormItem[]>(() => {
             },
             { label: '权限标识', key: 'label', type: 'input', props: { placeholder: '如：User' } },
             {
-                label: createLabelTooltip('组件路径', '一级父级菜单：填写 /index/index\n具体页面：填写组件路径（如 /system/user）\n目录菜单：留空'),
+                label: createLabelTooltip(
+                    '组件路径',
+                    '目录菜单（含一级目录）：留空，系统自动使用布局容器\n具体页面：填写组件路径（如 /system/user）',
+                ),
                 key: 'component',
                 type: 'input',
                 props: { placeholder: '如：/system/user 或留空' },

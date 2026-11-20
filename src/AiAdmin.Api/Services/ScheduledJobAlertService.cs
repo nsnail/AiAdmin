@@ -61,19 +61,21 @@ public sealed partial class ScheduledJobAlertService(
     /// <param name="outcome">本次状态</param>
     /// <param name="durationMs">耗时毫秒数</param>
     /// <param name="finished">作业是否已结束</param>
+    /// <param name="responseBody">本次完整响应体，请求超时、异常或作业仍在运行时为 null，此时不按执行结果规则判定</param>
     /// <returns>报警动作</returns>
     public static ScheduledJobAlertKind Evaluate(
         ScheduledJob job
         , ScheduledJobStatus outcome
         , long durationMs
         , bool finished
+        , string? responseBody = null
     ) {
         if (!job.AlertEnabled) {
             job.AlertActive = false;
             return ScheduledJobAlertKind.None;
         }
 
-        switch (IsBreached(job, outcome, durationMs)) {
+        switch (IsBreached(job, outcome, durationMs, responseBody).Breached) {
             case true when !job.AlertActive:
                 job.AlertActive = true;
                 return ScheduledJobAlertKind.Raised;
@@ -113,6 +115,7 @@ public sealed partial class ScheduledJobAlertService(
     /// <param name="durationMs">已用或总耗时毫秒数</param>
     /// <param name="error">错误信息，没有时为空字符串</param>
     /// <param name="finished">作业是否已结束，未结束时只会触发报警，不会解除</param>
+    /// <param name="responseBody">本次完整响应体，没有响应体时为 null</param>
     /// <returns>需要发送的通知文本，无需通知时为 null</returns>
     public static string? Prepare(
         ScheduledJob job
@@ -120,9 +123,16 @@ public sealed partial class ScheduledJobAlertService(
         , long durationMs
         , string error
         , bool finished
+        , string? responseBody = null
     ) {
-        var kind = Evaluate(job, outcome, durationMs, finished);
-        return kind == ScheduledJobAlertKind.None ? null : BuildText(kind, job, outcome, durationMs, error);
+        var kind = Evaluate(job, outcome, durationMs, finished, responseBody);
+        if (kind == ScheduledJobAlertKind.None) {
+            return null;
+        }
+
+        // 触发报警时说明命中的是执行结果规则，便于不翻执行记录就能看到原因
+        var resultReason = kind == ScheduledJobAlertKind.Raised ? IsBreached(job, outcome, durationMs, responseBody).ResultReason : string.Empty;
+        return BuildText(kind, job, outcome, durationMs, error, resultReason);
     }
 
     /// <summary>
@@ -154,6 +164,7 @@ public sealed partial class ScheduledJobAlertService(
     /// <param name="outcome">本次状态</param>
     /// <param name="durationMs">耗时毫秒数</param>
     /// <param name="error">错误信息</param>
+    /// <param name="resultReason">命中执行结果规则时的说明，没有命中时为空字符串</param>
     /// <returns>通知文本</returns>
     private static string BuildText(
         ScheduledJobAlertKind kind
@@ -161,6 +172,7 @@ public sealed partial class ScheduledJobAlertService(
         , ScheduledJobStatus outcome
         , long durationMs
         , string error
+        , string resultReason
     ) {
         var builder = new StringBuilder();
         _ = builder
@@ -174,6 +186,10 @@ public sealed partial class ScheduledJobAlertService(
             _ = builder.Append("\nError: ").Append(error.Length > _MAX_ERROR_LENGTH ? error[.._MAX_ERROR_LENGTH] : error);
         }
 
+        if (kind == ScheduledJobAlertKind.Raised && resultReason.Length > 0) {
+            _ = builder.Append("\nResult: ").Append(resultReason.Length > _MAX_ERROR_LENGTH ? resultReason[.._MAX_ERROR_LENGTH] : resultReason);
+        }
+
         _ = builder.Append("\nTime (UTC): ").Append(DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
         if (!string.IsNullOrWhiteSpace(job.AlertMentions)) {
             _ = builder.Append('\n').Append(job.AlertMentions);
@@ -183,20 +199,45 @@ public sealed partial class ScheduledJobAlertService(
     }
 
     /// <summary>
-    ///     判断是否命中报警条件：失败或超时，或耗时超过设定秒数
+    ///     判断是否命中报警条件：失败或超时，或耗时超过设定秒数，或完整响应体命中执行结果规则
     /// </summary>
     /// <param name="job">计划作业</param>
     /// <param name="outcome">本次状态</param>
     /// <param name="durationMs">耗时毫秒数</param>
-    /// <returns>命中返回 true</returns>
-    private static bool IsBreached(
+    /// <param name="responseBody">本次完整响应体，没有响应体时为 null，此时不按执行结果规则判定</param>
+    /// <returns>是否命中，以及命中执行结果规则时的说明</returns>
+    private static (bool Breached, string ResultReason) IsBreached(
         ScheduledJob job
         , ScheduledJobStatus outcome
         , long durationMs
+        , string? responseBody
     ) {
         var failed = job.AlertOnFailure && outcome is ScheduledJobStatus.Failed or ScheduledJobStatus.Timeout;
         var tooLong = job.AlertOverSeconds > 0 && durationMs > job.AlertOverSeconds * 1000L;
-        return failed || tooLong;
+        var resultReason = MatchResult(job, responseBody);
+        return (failed || tooLong || resultReason.Length > 0, resultReason);
+    }
+
+    /// <summary>
+    ///     按作业的执行结果规则匹配完整响应体：没有配置规则或没有响应体时不命中；响应体无法按规则处理（如不是数字、正则非法或超时）时视为命中并说明原因，避免漏报
+    /// </summary>
+    /// <param name="job">计划作业</param>
+    /// <param name="responseBody">完整响应体，没有响应体时为 null</param>
+    /// <returns>命中时的说明，没有命中时为空字符串</returns>
+    private static string MatchResult(
+        ScheduledJob job
+        , string? responseBody
+    ) {
+        if (job.AlertResultOperator is not { } op || responseBody is null) {
+            return string.Empty;
+        }
+
+        var result = ResultMatcher.Match(job.AlertResultValueType, op, responseBody, job.AlertResultValue, job.AlertResultCaseSensitive);
+        if (result.Failed) {
+            return result.Reason;
+        }
+
+        return result.Hit ? responseBody.Trim() : string.Empty;
     }
 
     [GeneratedRegex(@"[\s,;]+", RegexOptions.CultureInvariant, 1000)]

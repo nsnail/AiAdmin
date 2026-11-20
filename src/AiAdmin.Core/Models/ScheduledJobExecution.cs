@@ -10,6 +10,11 @@ namespace AiAdmin.Api.Models;
 public sealed class ScheduledJobExecution : EntityBase
 {
     /// <summary>
+    ///     执行结果摘要的最大长度，超出部分被截断
+    /// </summary>
+    public const int RESULT_MAX_LENGTH = 500;
+
+    /// <summary>
     ///     执行耗时，单位毫秒
     /// </summary>
     [ListFilter("scheduledJob.executionFields.duration", "number")]
@@ -66,6 +71,13 @@ public sealed class ScheduledJobExecution : EntityBase
     /// </summary>
     [ListFilter("scheduledJob.executionFields.responseStatusCode", "number", GroupCount = true)]
     public int? ResponseStatusCode { get; set; }
+
+    /// <summary>
+    ///     执行结果摘要：HTTP 响应体的前若干字符，请求超时或异常时为空
+    /// </summary>
+    [MaxLength(RESULT_MAX_LENGTH)]
+    [ListFilter("scheduledJob.executionFields.result")]
+    public string Result { get; set; } = string.Empty;
 
     /// <summary>
     ///     所属作业

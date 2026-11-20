@@ -34,6 +34,47 @@ public sealed class ApiRequestLogsController(AppDbContext db, ApiRequestLogTable
     };
 
     /// <summary>
+    ///     导出API 请求日志，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的API 请求日志导出结果</returns>
+    /// <exception cref="DataAccessDeniedException">当前用户没有全部数据权限时引发</exception>
+    [HttpPost("export")]
+    [ApiDescription("Export API request log data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<ApiRequestLogResult>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        // 请求日志包含所有用户的访问记录，不属于任何数据范围，只有全部数据权限才能导出
+        if (!db.DataScope.HasAllData) {
+            throw new DataAccessDeniedException();
+        }
+
+        var (from, to) = ApiRequestLogQueryRange.Resolve(request.DynamicFilter, DateTime.UtcNow);
+        var filter = ApiRequestLogFilterTranslator.Translate(request.DynamicFilter);
+        var names = await tables.ListTablesInRangeAsync(from, to, HttpContext.RequestAborted).ConfigureAwait(false);
+        var limit = await limits.GetLimitAsync().ConfigureAwait(false);
+        var total = 0;
+        var candidates = new List<ApiRequestLog>();
+        foreach (var name in names) {
+            await using var context = tables.OpenQueryContext(name);
+            var query = context.Logs.AsNoTracking().ApplyDynamicFilter(filter);
+            total += await query.CountAsync(HttpContext.RequestAborted).ConfigureAwait(false);
+
+            // 每张日表只取排在前 limit 行，合并后的前 limit 行一定包含在这些行中
+            var sorted = (IOrderedQueryable<ApiRequestLog>)query.ApplyDynamicSort(
+                request.SortField, request.SortOrder, nameof(ApiRequestLog.CreatedAt), true, _sortAliases
+            );
+            candidates.AddRange(await sorted.ThenBy(x => x.Id).Take(limit).ToListAsync(HttpContext.RequestAborted).ConfigureAwait(false));
+        }
+
+        var page = SortAndPage(candidates, ResolveSortField(request.SortField), request.SortOrder, 1, limit);
+        var results = await ToResultsAsync(page).ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<ApiRequestLogResult>>.Ok(new DynamicExportResult<ApiRequestLogResult>(results, limit, total)));
+    }
+
+    /// <summary>
     ///     查询请求日志列表筛选字段元数据
     /// </summary>
     /// <returns>请求日志筛选字段定义</returns>

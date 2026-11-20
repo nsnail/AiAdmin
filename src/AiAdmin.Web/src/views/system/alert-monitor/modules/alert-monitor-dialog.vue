@@ -44,12 +44,7 @@
                         </ElSelect>
                     </ElFormItem>
                     <ElFormItem :label="t('alertMonitor.fields.threshold')" prop="threshold">
-                        <ElInput
-                            v-model="formData.threshold"
-                            :placeholder="
-                                t(formData.valueType === 1 ? 'alertMonitor.placeholder.thresholdNumber' : 'alertMonitor.placeholder.thresholdText')
-                            "
-                            maxlength="1000" />
+                        <ElInput v-model="formData.threshold" :placeholder="thresholdPlaceholder" maxlength="1000" />
                     </ElFormItem>
                     <ElFormItem v-if="formData.valueType === 2" :label="t('alertMonitor.fields.caseSensitive')">
                         <ElSwitch v-model="formData.caseSensitive" />
@@ -113,7 +108,9 @@ const dialogVisible = computed({
 /** 数字比较可用的操作符编号，与后端 AlertMonitorEvaluator 保持一致 */
 const NUMBER_OPERATORS = [1, 2, 3, 4, 5, 6]
 /** 字符串比较可用的操作符编号 */
-const TEXT_OPERATORS = [5, 6, 7, 8, 9, 10]
+const TEXT_OPERATORS = [5, 6, 7, 8, 9, 10, 11, 12]
+/** 阈值为正则表达式的操作符编号 */
+const REGEX_OPERATORS = [11, 12]
 const OPERATOR_LABELS: Record<number, string> = {
     1: 'alertMonitor.operator.greaterThan',
     2: 'alertMonitor.operator.greaterThanOrEqual',
@@ -125,6 +122,8 @@ const OPERATOR_LABELS: Record<number, string> = {
     8: 'alertMonitor.operator.notContains',
     9: 'alertMonitor.operator.startsWith',
     10: 'alertMonitor.operator.endsWith',
+    11: 'alertMonitor.operator.regexMatch',
+    12: 'alertMonitor.operator.regexNotMatch',
 }
 
 /** 新增时的默认值：字典来源、按数字比较值、大于 */
@@ -152,11 +151,26 @@ const operatorOptions = computed(() =>
     (formData.valueType === 1 ? NUMBER_OPERATORS : TEXT_OPERATORS).map((value) => ({ value, label: OPERATOR_LABELS[value] })),
 )
 
-/** 阈值：数字比较必须是数字，字符串比较不能为空 */
+/** 阈值输入框的占位提示：数字、正则表达式和普通文本各一种 */
+const thresholdPlaceholder = computed(() => {
+    if (formData.valueType === 1) return t('alertMonitor.placeholder.thresholdNumber')
+    return t(REGEX_OPERATORS.includes(formData.operator) ? 'alertMonitor.placeholder.thresholdRegex' : 'alertMonitor.placeholder.thresholdText')
+})
+
+/** 阈值：数字比较必须是数字，正则必须能编译，其余字符串比较不能为空 */
 const validateThreshold = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
     const text = (value ?? '').trim()
     if (formData.valueType === 1) {
         callback(/^[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(text) ? undefined : new Error(t('alertMonitor.rules.thresholdNumber')))
+        return
+    }
+    if (REGEX_OPERATORS.includes(formData.operator)) {
+        try {
+            new RegExp(text)
+            callback(text ? undefined : new Error(t('alertMonitor.rules.thresholdRegex')))
+        } catch {
+            callback(new Error(t('alertMonitor.rules.thresholdRegex')))
+        }
         return
     }
     callback(text ? undefined : new Error(t('alertMonitor.rules.thresholdText')))
@@ -190,6 +204,12 @@ watch(
         if (!allowed.includes(formData.operator)) formData.operator = allowed[0]
         nextTick(() => formRef.value?.validateField('threshold').catch(() => undefined))
     },
+)
+
+/** 切换操作符后重新校验阈值，普通文本与正则对阈值的要求不同 */
+watch(
+    () => formData.operator,
+    () => nextTick(() => formRef.value?.validateField('threshold').catch(() => undefined)),
 )
 
 /** 打开时按当前监控回填表单，新增时重置为默认值 */

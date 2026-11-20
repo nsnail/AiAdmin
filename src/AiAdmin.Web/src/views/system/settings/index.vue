@@ -14,6 +14,7 @@
                 <h3>{{ t('systemSettings.sections.registration') }}</h3>
                 <ElFormItem v-for="field in registrationFields" :key="field.label" :label="t(field.title)">
                     <ElSwitch v-model="values[field.label]" />
+                    <span v-if="field.tip" class="ml-3 text-xs text-g-500">{{ t(field.tip) }}</span>
                 </ElFormItem>
 
                 <ElDivider />
@@ -93,6 +94,11 @@ const registrationFields = [
     },
     { label: 'Enable user registration', title: 'systemSettings.fields.enableUserRegistration' },
     { label: 'Enable email verification', title: 'systemSettings.fields.enableEmailVerification' },
+    {
+        label: 'Enable request signature',
+        title: 'systemSettings.fields.enableRequestSignature',
+        tip: 'systemSettings.fields.enableRequestSignatureTip',
+    },
 ]
 const smtpPort = computed({
     get: () => Number(values['SMTP Port'] || 25),

@@ -6,7 +6,7 @@
             tabStyle === 'tab-card' ? 'py-1 border-b border-[var(--art-card-border)]' : '',
             tabStyle === 'tab-google' ? 'pt-1 pb-0 border-b border-[var(--art-card-border)]' : '',
         ]"
-        class="box-border flex-b w-full px-5 mb-3 select-none max-sm:px-[15px]">
+        class="box-border flex-b w-full px-3 mb-3 select-none max-sm:px-2.5">
         <div class="w-full overflow-hidden" ref="scrollRef">
             <ul
                 :class="[tabStyle === 'tab-google' ? 'pl-1' : '']"

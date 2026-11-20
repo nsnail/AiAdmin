@@ -2,6 +2,7 @@ using System.Data;
 using AiAdmin.Api.Attributes;
 using AiAdmin.Api.Contracts;
 using AiAdmin.Api.Data;
+using AiAdmin.Api.Filters;
 using AiAdmin.Api.Models;
 using AiAdmin.Api.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -35,11 +36,20 @@ public sealed class ScheduledJobsController(
     [HttpPost("batch-alert")]
     [ApiDescription("Batch update scheduled job alerts")]
     public async Task<ActionResult<ApiResponse<object>>> BatchUpdateAlertAsync(BatchUpdateScheduledJobAlertRequest request) {
+        var resultRuleFailure = ValidateAlertResultRule(request.AlertResultOperator, request.AlertResultValueType, request.AlertResultValue.Trim());
+        if (resultRuleFailure is not null) {
+            return resultRuleFailure;
+        }
+
         var ids = request.Ids.Distinct().ToArray();
         var mentions = ScheduledJobAlertService.NormalizeMentions(request.AlertMentions);
         var enabled = request.AlertEnabled;
         var onFailure = request.AlertOnFailure;
         var overSeconds = request.AlertOverSeconds;
+        var resultOperator = request.AlertResultOperator;
+        var resultValueType = request.AlertResultValueType;
+        var resultValue = request.AlertResultOperator is null ? string.Empty : request.AlertResultValue.Trim();
+        var resultCaseSensitive = request.AlertResultCaseSensitive;
         var affected = await db
             .ScheduledJobs.Where(x => Enumerable.Contains(ids, x.Id))
             .ExecuteUpdateAsync(x =>
@@ -47,6 +57,10 @@ public sealed class ScheduledJobsController(
                     .SetProperty(row => row.AlertEnabled, enabled)
                     .SetProperty(row => row.AlertOnFailure, onFailure)
                     .SetProperty(row => row.AlertOverSeconds, overSeconds)
+                    .SetProperty(row => row.AlertResultOperator, resultOperator)
+                    .SetProperty(row => row.AlertResultValueType, resultValueType)
+                    .SetProperty(row => row.AlertResultValue, resultValue)
+                    .SetProperty(row => row.AlertResultCaseSensitive, resultCaseSensitive)
                     .SetProperty(row => row.AlertMentions, mentions)
                     .SetProperty(row => row.AlertActive, row => enabled && row.AlertActive)
                     .SetProperty(row => row.UpdatedAt, DateTime.UtcNow)
@@ -172,6 +186,7 @@ public sealed class ScheduledJobsController(
     /// <returns>复制后的作业</returns>
     [HttpPost("copy")]
     [ApiDescription("Copy scheduled job")]
+    [Idempotent]
     public async Task<ActionResult<ApiResponse<ScheduledJobResult>>> CopyAsync([FromBody] IdentifierRequest request) {
         var id = request.Id;
         var source = await db.ScheduledJobs.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id).ConfigureAwait(false);
@@ -192,6 +207,10 @@ public sealed class ScheduledJobsController(
             , AlertEnabled = source.AlertEnabled
             , AlertOnFailure = source.AlertOnFailure
             , AlertOverSeconds = source.AlertOverSeconds
+            , AlertResultOperator = source.AlertResultOperator
+            , AlertResultValueType = source.AlertResultValueType
+            , AlertResultValue = source.AlertResultValue
+            , AlertResultCaseSensitive = source.AlertResultCaseSensitive
             , AlertMentions = source.AlertMentions
             , IsEnabled = false
             , Status = ScheduledJobStatus.Waiting
@@ -208,6 +227,7 @@ public sealed class ScheduledJobsController(
     /// <returns>新增作业</returns>
     [HttpPost]
     [ApiDescription("Create scheduled job")]
+    [Idempotent]
     public Task<ActionResult<ApiResponse<ScheduledJobResult>>> CreateAsync(SaveScheduledJobRequest request) {
         return SaveAsync(null, request);
     }
@@ -229,6 +249,40 @@ public sealed class ScheduledJobsController(
         _ = db.ScheduledJobs.Remove(job);
         _ = await db.SaveChangesAsync().ConfigureAwait(false);
         return Ok(ApiResponse<object>.Ok(new { }));
+    }
+
+    /// <summary>
+    ///     导出作业执行记录，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的作业执行记录导出结果</returns>
+    [HttpPost("executions/export")]
+    [ApiDescription("Export scheduled job execution data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<ScheduledJobExecutionResult>>>> ExecutionExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var source = db.ScheduledJobExecutions.AsNoTracking();
+
+        // 未指定作业主键时导出全部作业的执行记录
+        if (request.ParentId is > 0) {
+            source = source.Where(x => x.ScheduledJobId == request.ParentId.Value);
+        }
+
+        var result = await ListExport
+            .RunAsync(
+                source.ApplyDynamicFilter(request.DynamicFilter), limits
+                , query => query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ScheduledJobExecution.StartedAt), true)
+                , rows => rows.ConvertAll(x => new ScheduledJobExecutionResult(
+                        x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), ServerTime.ToOffset(x.StartedAt), x.RequestUrl, x.RequestMethod
+                        , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Result, x.Status, x.ErrorMessage
+                        , x.DurationMs
+                    )
+                )
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<ScheduledJobExecutionResult>>.Ok(result));
     }
 
     /// <summary>
@@ -293,7 +347,8 @@ public sealed class ScheduledJobsController(
             .ConfigureAwait(false);
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
                 x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), ServerTime.ToOffset(x.StartedAt), x.RequestUrl, x.RequestMethod
-                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage, x.DurationMs
+                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Result, x.Status, x.ErrorMessage
+                , x.DurationMs
             )
         );
         return Ok(
@@ -324,12 +379,39 @@ public sealed class ScheduledJobsController(
         var rows = await query.Skip((current - 1) * size).Take(size).ToListAsync().ConfigureAwait(false);
         var results = rows.ConvertAll(x => new ScheduledJobExecutionResult(
                 x.Id, x.ScheduledJobId, ServerTime.ToOffset(x.CreatedAt), ServerTime.ToOffset(x.StartedAt), x.RequestUrl, x.RequestMethod
-                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Status, x.ErrorMessage, x.DurationMs
+                , x.RequestHeaders, x.RequestBody, x.ResponseStatusCode, x.ResponseHeaders, x.ResponseBody, x.Result, x.Status, x.ErrorMessage
+                , x.DurationMs
             )
         );
         return Ok(
             ApiResponse<PagedResponse<ScheduledJobExecutionResult>>.Ok(new PagedResponse<ScheduledJobExecutionResult>(results, current, size, total))
         );
+    }
+
+    /// <summary>
+    ///     导出计划作业，未勾选时导出当前查询条件和排序下的全部结果，受系统设置的导出上限约束
+    /// </summary>
+    /// <param name="request">动态筛选与排序请求</param>
+    /// <param name="limits">导出上限服务</param>
+    /// <returns>受系统设置条数限制的计划作业导出结果</returns>
+    [HttpPost("export")]
+    [ApiDescription("Export scheduled job data")]
+    public async Task<ActionResult<ApiResponse<DynamicExportResult<ScheduledJobResult>>>> ExportAsync(
+        [FromBody] DynamicExportRequest request
+        , [FromServices] ExportLimitService limits
+    ) {
+        var result = await ListExport
+            .RunCustomAsync(
+                db.ScheduledJobs.AsNoTracking().ApplyDynamicFilter(request.DynamicFilter), limits, (
+                    query
+                    , limit
+                ) => string.Equals(request.SortField, "executionDuration", StringComparison.OrdinalIgnoreCase)
+                    ? ListOrderedByDurationAsync(query, new DynamicQueryRequest { Current = 1, Size = limit, SortOrder = request.SortOrder })
+                    : query.ApplyDynamicSort(request.SortField, request.SortOrder, nameof(ScheduledJob.CreatedAt), true).Take(limit).ToListAsync()
+                , rows => Task.FromResult(rows.ConvertAll(ToResult))
+            )
+            .ConfigureAwait(false);
+        return Ok(ApiResponse<DynamicExportResult<ScheduledJobResult>>.Ok(result));
     }
 
     /// <summary>
@@ -511,9 +593,39 @@ public sealed class ScheduledJobsController(
         return new ScheduledJobResult(
             x.Id, ServerTime.ToOffset(x.CreatedAt), x.Name, x.CronExpression, x.RequestUrl, x.RequestMethod, x.RequestHeadersJson, x.RequestBody
             , x.Remark, x.TimeoutSeconds, x.IsEnabled, x.Status, x.LastTriggeredAt.HasValue ? ServerTime.ToOffset(x.LastTriggeredAt.Value) : null
-            , x.LastFinishedAt.HasValue ? ServerTime.ToOffset(x.LastFinishedAt.Value) : null, x.LastError, x.SuccessRate, x.AlertEnabled
-            , x.AlertOnFailure, x.AlertOverSeconds, x.AlertMentions, x.AlertActive
+            , x.LastFinishedAt.HasValue ? ServerTime.ToOffset(x.LastFinishedAt.Value) : null, x.LastError, x.LastResult, x.SuccessRate, x.AlertEnabled
+            , x.AlertOnFailure, x.AlertOverSeconds, x.AlertMentions, x.AlertActive, x.AlertResultOperator, x.AlertResultValueType, x.AlertResultValue
+            , x.AlertResultCaseSensitive
         );
+    }
+
+    /// <summary>
+    ///     校验执行结果报警规则：没有配置操作符表示不按执行结果报警；配置后操作符必须适用于比较类型，阈值必须合法，正则必须能编译
+    /// </summary>
+    /// <param name="op">响应体的比较操作符，为空表示不启用</param>
+    /// <param name="valueType">响应体的比较类型</param>
+    /// <param name="value">阈值，已去掉首尾空白</param>
+    /// <returns>规则合法返回 null，否则返回 400 结果</returns>
+    private static BadRequestObjectResult? ValidateAlertResultRule(
+        AlertMonitorOperator? op
+        , AlertMonitorValueType valueType
+        , string value
+    ) {
+        if (op is not { } resultOperator) {
+            return null;
+        }
+
+        if (!Enum.IsDefined(valueType) || !Enum.IsDefined(resultOperator)) {
+            return new BadRequestObjectResult(new ApiResponse<object>(400, "Alert result option is invalid", null));
+        }
+
+        if (!ResultMatcher.IsOperatorAllowed(valueType, resultOperator)) {
+            return new BadRequestObjectResult(new ApiResponse<object>(400, "Operator does not apply to the value type", null));
+        }
+
+        return ResultMatcher.IsThresholdValid(valueType, resultOperator, value)
+            ? null
+            : new BadRequestObjectResult(new ApiResponse<object>(400, "Threshold is invalid", null));
     }
 
     /// <summary>
@@ -530,6 +642,11 @@ public sealed class ScheduledJobsController(
             || string.IsNullOrWhiteSpace(request.CronExpression)
             || string.IsNullOrWhiteSpace(request.RequestUrl)) {
             return BadRequest(new ApiResponse<object>(400, "Name, cron expression and URL are required", null));
+        }
+
+        var resultRuleFailure = ValidateAlertResultRule(request.AlertResultOperator, request.AlertResultValueType, request.AlertResultValue.Trim());
+        if (resultRuleFailure is not null) {
+            return resultRuleFailure;
         }
 
         var job = id.HasValue
@@ -551,6 +668,10 @@ public sealed class ScheduledJobsController(
         job.AlertEnabled = request.AlertEnabled;
         job.AlertOnFailure = request.AlertOnFailure;
         job.AlertOverSeconds = Math.Clamp(request.AlertOverSeconds, 0, 86400);
+        job.AlertResultOperator = request.AlertResultOperator;
+        job.AlertResultValueType = request.AlertResultValueType;
+        job.AlertResultValue = request.AlertResultOperator is null ? string.Empty : request.AlertResultValue.Trim();
+        job.AlertResultCaseSensitive = request.AlertResultCaseSensitive;
         job.AlertMentions = ScheduledJobAlertService.NormalizeMentions(request.AlertMentions);
         if (!job.AlertEnabled) {
             job.AlertActive = false;

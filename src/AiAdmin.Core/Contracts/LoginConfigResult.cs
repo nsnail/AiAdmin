@@ -6,4 +6,9 @@ namespace AiAdmin.Api.Contracts;
 /// <param name="LoginSliderVerification">是否启用登录滑块验证</param>
 /// <param name="RegistrationEnabled">是否允许注册</param>
 /// <param name="EmailVerificationEnabled">是否启用邮箱验证</param>
-public sealed record LoginConfigResult(bool LoginSliderVerification, bool RegistrationEnabled, bool EmailVerificationEnabled);
+/// <param name="RequestSignatureEnabled">是否启用请求签名，接入文档据此决定是否展示签名说明</param>
+public sealed record LoginConfigResult(
+    bool LoginSliderVerification
+    , bool RegistrationEnabled
+    , bool EmailVerificationEnabled
+    , bool RequestSignatureEnabled);

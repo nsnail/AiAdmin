@@ -190,6 +190,27 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
+        // 用户在线状态校正作业：每分钟把库里标记为在线、但已经没有有效实时连接的用户置为离线，处理实例崩溃遗留的在线状态，默认未启用
+        const string refreshUserOnlineJobName = "Refresh user online status";
+        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == refreshUserOnlineJobName).ConfigureAwait(false)) {
+            _ = await db
+                .ScheduledJobs.AddAsync(
+                    new ScheduledJob
+                    {
+                        Name = refreshUserOnlineJobName
+                        , CronExpression = "* * * * *"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/user/refresh-online-status"
+                        , RequestMethod = "POST"
+                        , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
+                        , Remark
+                            = "Mark users as offline when they are flagged online but no longer have a valid realtime connection, which cleans up the state left behind by a crashed instance. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                        , TimeoutSeconds = 60
+                        , IsEnabled = false
+                    }
+                )
+                .ConfigureAwait(false);
+        }
+
         // 成功率刷新作业：每 10 分钟统计一次各作业的成功执行数与总执行数之比，默认未启用
         const string successRateJobName = "Refresh success rate";
         if (!await db.ScheduledJobs.AnyAsync(x => x.Name == successRateJobName).ConfigureAwait(false)) {
@@ -255,22 +276,25 @@ internal static class SystemDataSeeder
                 .ConfigureAwait(false);
         }
 
-        // 操作日志统计缓存刷新作业：每 4 分钟扫描今天和昨天的日分表并写入缓存，缓存有效期 5 分钟，刷新间隔留有 1 分钟余量，与业务总览一致，默认未启用
-        // 未启用时统计在缓存缺失（最长 5 分钟过期）后由第一次访问当场扫表并写入，页面仍可用，只是该次访问较慢
-        const string refreshRequestStatsJobName = "Refresh dashboard request stats cache";
-        if (!await db.ScheduledJobs.AnyAsync(x => x.Name == refreshRequestStatsJobName).ConfigureAwait(false)) {
+        // 仪表盘总览缓存刷新作业：每 4 分钟重算用户、登录、计划作业等运营数据，并扫描今天和昨天的日分表统计操作日志后写入缓存，与业务总览一致，默认未启用
+        // 未启用时总览页面读到空结果，启用前需要填写 ApiBaseUrl 和 JobToken；已存在旧版“刷新操作日志统计缓存”作业的环境只需把请求地址改为新接口，不再新建
+        const string refreshOverviewJobName = "Refresh dashboard overview cache";
+        const string legacyRefreshRequestStatsJobName = "Refresh dashboard request stats cache";
+        if (!await db
+                .ScheduledJobs.AnyAsync(x => x.Name == refreshOverviewJobName || x.Name == legacyRefreshRequestStatsJobName)
+                .ConfigureAwait(false)) {
             _ = await db
                 .ScheduledJobs.AddAsync(
                     new ScheduledJob
                     {
-                        Name = refreshRequestStatsJobName
+                        Name = refreshOverviewJobName
                         , CronExpression = "*/4 * * * *"
-                        , RequestUrl = "{{ApiBaseUrl}}/api/dashboard/request-stats/refresh"
+                        , RequestUrl = "{{ApiBaseUrl}}/api/dashboard/overview/refresh"
                         , RequestMethod = "POST"
                         , RequestHeadersJson = "{\"Authorization\":\"Bearer {{JobToken}}\"}"
                         , RequestBody = "{}"
                         , Remark
-                            = "Scan the daily API request log tables of today and yesterday and store the dashboard request statistics in the cache so the dashboard only reads the cache. Fill the ApiBaseUrl and JobToken placeholders before enabling"
+                            = "Recalculate the dashboard overview and the request statistics of the daily API request log tables of today and yesterday and store them in the cache so the dashboard only reads the cache. Fill the ApiBaseUrl and JobToken placeholders before enabling"
                         , TimeoutSeconds = 120
                         , IsEnabled = false
                     }

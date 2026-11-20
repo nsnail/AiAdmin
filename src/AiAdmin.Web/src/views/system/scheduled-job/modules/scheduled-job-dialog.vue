@@ -60,6 +60,12 @@
                             <ElInputNumber v-model="formData.alertOverSeconds" :max="86400" :min="0" controls-position="right" />
                             <span class="alert-hint">{{ t('scheduledJob.alert.overSecondsHint') }}</span>
                         </ElFormItem>
+                        <AlertResultRule
+                            v-model:case-sensitive="formData.alertResultCaseSensitive"
+                            v-model:operator="formData.alertResultOperator"
+                            v-model:value="formData.alertResultValue"
+                            v-model:value-type="formData.alertResultValueType"
+                            ref="resultRuleRef" />
                         <ElFormItem :label="t('scheduledJob.alert.mentions')">
                             <ElInput
                                 v-model="formData.alertMentions"
@@ -68,7 +74,7 @@
                                 show-word-limit />
                         </ElFormItem>
                         <ElAlert
-                            v-if="!formData.alertOnFailure && !formData.alertOverSeconds"
+                            v-if="!formData.alertOnFailure && !formData.alertOverSeconds && formData.alertResultOperator == null"
                             :closable="false"
                             class="mb-3"
                             show-icon
@@ -94,6 +100,7 @@ import type { SaveScheduledJob, ScheduledJob } from '@/api/system-manage'
 import ScCron from '@/components/business/sc-cron/index.vue'
 import ArtJsonEditor from '@/components/core/forms/art-json-editor/index.vue'
 import ArtRawData from '@/components/core/others/art-raw-data/index.vue'
+import AlertResultRule from './alert-result-rule.vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
@@ -109,6 +116,7 @@ const emit = defineEmits<{
 
 const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 const formRef = ref<FormInstance>()
+const resultRuleRef = ref<InstanceType<typeof AlertResultRule>>()
 const dialogVisible = computed({
     get: () => props.visible,
     set: (value) => emit('update:visible', value),
@@ -127,6 +135,10 @@ const defaults = (): SaveScheduledJob => ({
     alertOnFailure: true,
     alertOverSeconds: 0,
     alertMentions: '',
+    alertResultOperator: null,
+    alertResultValueType: 2,
+    alertResultValue: '',
+    alertResultCaseSensitive: false,
 })
 const formData = reactive<SaveScheduledJob>(defaults())
 const activeTab = ref('edit')
@@ -237,6 +249,12 @@ watch(
 
 const submit = async (): Promise<void> => {
     await formRef.value?.validate()
+    // 执行结果规则在报警页签里，不在上面的表单校验范围内，不合法时切到报警页签提示，避免提交后才被后端拒绝
+    if (formData.alertEnabled && formData.alertResultOperator != null && resultRuleRef.value && !resultRuleRef.value.valid) {
+        activeTab.value = 'alert'
+        ElMessage.error(t('scheduledJob.alert.result.invalid'))
+        return
+    }
     emit('submit', { ...formData })
 }
 </script>

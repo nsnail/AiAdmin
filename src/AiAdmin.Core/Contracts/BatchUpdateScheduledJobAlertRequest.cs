@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AiAdmin.Api.Models;
 
 namespace AiAdmin.Api.Contracts;
 
@@ -28,6 +29,27 @@ public sealed class BatchUpdateScheduledJobAlertRequest
     /// </summary>
     [Range(0, 86400)]
     public int AlertOverSeconds { get; init; }
+
+    /// <summary>
+    ///     响应体匹配是否区分大小写
+    /// </summary>
+    public bool AlertResultCaseSensitive { get; init; }
+
+    /// <summary>
+    ///     响应体的比较操作符，为空表示不按执行结果报警
+    /// </summary>
+    public AlertMonitorOperator? AlertResultOperator { get; init; }
+
+    /// <summary>
+    ///     响应体匹配的阈值
+    /// </summary>
+    [MaxLength(500)]
+    public string AlertResultValue { get; init; } = string.Empty;
+
+    /// <summary>
+    ///     响应体的比较类型
+    /// </summary>
+    public AlertMonitorValueType AlertResultValueType { get; init; } = AlertMonitorValueType.Text;
 
     /// <summary>
     ///     计划作业编号集合

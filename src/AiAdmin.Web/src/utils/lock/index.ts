@@ -15,6 +15,7 @@ export { isScreenLocked }
 interface LockVault {
     accessToken: string
     refreshToken: string
+    signKey: string
     salt: string
     digest: string
 }
@@ -44,6 +45,7 @@ export async function lockScreen(password: string): Promise<void> {
     vault = {
         accessToken: userStore.accessToken,
         refreshToken: userStore.refreshToken,
+        signKey: userStore.signKey,
         salt,
         digest: await digestOf(password, salt),
     }
@@ -51,6 +53,7 @@ export async function lockScreen(password: string): Promise<void> {
     stopRealtime()
     userStore.accessToken = ''
     userStore.refreshToken = ''
+    userStore.signKey = ''
     userStore.isLogin = false
     isScreenLocked.value = true
 }
@@ -66,6 +69,7 @@ export async function unlockScreen(password: string): Promise<boolean> {
     const userStore = useUserStore()
     userStore.accessToken = vault.accessToken
     userStore.refreshToken = vault.refreshToken
+    userStore.signKey = vault.signKey
     userStore.isLogin = true
     vault = null
     isScreenLocked.value = false

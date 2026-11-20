@@ -48,6 +48,15 @@ public sealed class User : EntityBase, IUpdatedAt, IVersion
     public bool IsEnabled { get; set; } = true;
 
     /// <summary>
+    ///     当前是否在线：用户至少有一条有效的实时连接，由连接建立和断开时更新，实例崩溃遗留的在线状态由计划作业兜底校正
+    /// </summary>
+    [ListFilter(
+        "userManagement.fields.online", "select", Span = 2, Options = ["true:userManagement.status.online", "false:userManagement.status.offline"]
+        , GroupCount = true
+    )]
+    public bool IsOnline { get; init; }
+
+    /// <summary>
     ///     最后登录时间
     /// </summary>
     public DateTime? LastLoginAt { get; set; }
@@ -61,6 +70,11 @@ public sealed class User : EntityBase, IUpdatedAt, IVersion
     ///     最后登录地点
     /// </summary>
     public string LastLoginRegion { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     最后在线时间：用户最后一条实时连接断开的时间，只由连接断开时更新，不参与乐观并发版本
+    /// </summary>
+    public DateTime? LastOnlineAt { get; init; }
 
     /// <summary>
     ///     密码哈希

@@ -1,3 +1,5 @@
+using AiAdmin.Api.Models;
+
 namespace AiAdmin.Api.Contracts;
 
 /// <summary>
@@ -24,6 +26,26 @@ public sealed class SaveScheduledJobRequest
     ///     执行耗时超过该秒数时报警，0 表示不按耗时报警
     /// </summary>
     public int AlertOverSeconds { get; set; }
+
+    /// <summary>
+    ///     响应体匹配是否区分大小写
+    /// </summary>
+    public bool AlertResultCaseSensitive { get; set; }
+
+    /// <summary>
+    ///     响应体的比较操作符，为空表示不按执行结果报警
+    /// </summary>
+    public AlertMonitorOperator? AlertResultOperator { get; set; }
+
+    /// <summary>
+    ///     响应体匹配的阈值，数字比较时为数字，正则操作符时为正则表达式
+    /// </summary>
+    public string AlertResultValue { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     响应体的比较类型
+    /// </summary>
+    public AlertMonitorValueType AlertResultValueType { get; set; } = AlertMonitorValueType.Text;
 
     /// <summary>
     ///     Cron 表达式

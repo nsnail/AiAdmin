@@ -142,7 +142,7 @@ const handleSubmit = async () => {
         if (!loginChallenge.value) return
         if (!loginProof.value) loginProof.value = await solveProof(loginChallenge.value.challenge, loginChallenge.value.difficulty)
 
-        const { token, refreshToken, previousLogin } = await fetchLogin({
+        const { token, refreshToken, signKey, previousLogin } = await fetchLogin({
             userName: username,
             password,
             challenge: loginChallenge.value.challenge,
@@ -156,7 +156,7 @@ const handleSubmit = async () => {
         }
 
         // 存储 token 和登录状态
-        userStore.setToken(token, refreshToken)
+        userStore.setToken(token, refreshToken, signKey)
         userStore.setLoginStatus(true)
         if (formData.rememberUsername) {
             localStorage.setItem(REMEMBER_LOGIN_KEY, JSON.stringify({ username }))
